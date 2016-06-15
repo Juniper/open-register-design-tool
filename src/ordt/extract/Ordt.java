@@ -27,7 +27,7 @@ public class Ordt {
 
 	private static String version = "160615.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
-	
+
 	public enum InputType { RDL, JSPEC };
 	private static InputType inputType;
 	private static List<String> inputParmFiles = new ArrayList<String>();
