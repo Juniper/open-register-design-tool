@@ -17,5 +17,9 @@ hs_err_pid*
 /.classpath
 /.project
 
-# test output dirs
+# vim temp
+*.sw?
+
+# test output dirs, user settings
 /test/**/output/
+/test/scripts/test.setup
