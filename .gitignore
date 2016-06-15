@@ -10,3 +10,16 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+
+# eclipse stuff
+/bin/
+/info/output/
+/.classpath
+/.project
+
+# vim temp
+*.sw?
+
+# test output dirs, user settings
+/test/**/output/
+/test/scripts/test.setup
