@@ -1,0 +1,20 @@
+// rdl_hello
+
+addrmap  {
+    name = "foo registers";
+    desc = "this is a bunch of foo regs bla bla bla";
+    
+    regfile bar_regs  {
+        name = "bar registers";
+        desc = "this is a bunch of bar regs bla bla bla";
+        
+	    reg {
+            field { name="field 1"; sw=rw; hw=rw; we; } fld1[9:0] = 10'd0;
+            field { name="field 2"; sw=rw; hw=r; } fld2[15:15];
+	    } a_reg[2];	    
+	    
+    } bar;
+    
+} foo;   
+
+

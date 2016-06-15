@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# remove all test output directories from git control
+#
+
+# inputs
+tests_dir=.                # dir where tests are located, default is current directory
+
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+while getopts "d:" opt; do
+    case "$opt" in
+    d)  tests_dir=$OPTARG 
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+[ "$1" = "--" ] && shift
+
+#echo "------ tests_dir=$tests_dir, Leftovers: $@"
+
+if [ ! $# == 0 ]; then
+   echo "ERROR: invalid input arguments - usage: gitrm_output <options>"
+   echo "       <options>: -d <dir>   - set dir where tests are located"
+   exit 0
+fi
+
+# ---- loop thru all tests and git rm the output dir
+cd $tests_dir
+for full_test_name in $tests_dir/*; do
+   if [ -d $full_test_name ]; then
+      cmd="git rm -r --cached $full_test_name/output"
+      echo "---- $cmd ..."
+      $cmd
+   fi
+done

@@ -1,0 +1,72 @@
+#!/bin/bash
+
+#
+# promote output(s) of all jrdl tests to golden for test compare
+#
+
+# inputs
+tests_dir=.      # dir where tests are located, default is current directory
+test_name=       # name of test
+all_golden=      # clear golden dir and make all outputs golden
+clear_golden=    # clear golden dir contents
+v_golden=        # make verilog golden
+sv_golden=       # make systemverilog golden
+uvm_golden=      # make uvmregs golden
+rdl_golden=      # make rdl golden
+js_golden=       # make jspec golden
+reglist_golden=  # make reglist golden
+xml_golden=      # make xml golden
+
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+while getopts "d:acvsurjlx" opt; do
+    case "$opt" in
+    d)  tests_dir=$OPTARG 
+        ;;
+    a)  all_golden=" -a"
+        ;;
+    c)  clear_golden=" -c"
+        ;;
+    v)  v_golden=" -v"
+        ;;
+    s)  sv_golden=" -s"
+        ;;
+    u)  uvm_golden=" -u"
+        ;;
+    r)  rdl_golden=" -r"
+        ;;
+    j)  js_golden=" -j"
+        ;;
+    l)  reglist_golden=" -l"
+        ;;
+    x)  xml_golden=" -x"
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+[ "$1" = "--" ] && shift
+
+if [ ! $# == 0 ]; then
+   echo "ERROR: invalid input arguments - usage: makeallgold <options>"
+   echo "       <options>: -d <dir>   - set dir where tests are located"
+   echo "                  -a         - clear golden dir and make all outputs golden"
+   echo "                  -c         - clear golden dir"
+   echo "                  -v         - make verilog golden"
+   echo "                  -s         - make systemverilog golden"
+   echo "                  -u         - make uvm golden"
+   echo "                  -r         - make rdl golden"
+   echo "                  -j         - make jspec golden"
+   echo "                  -l         - make reglist golden"
+   echo "                  -x         - make xml golden"
+   exit 0
+fi
+
+# ---- loop thru all tests and run em
+cd $tests_dir
+for full_test_name in $tests_dir/*; do
+   if [ -d $full_test_name ]; then
+      test_name=`basename $full_test_name`
+      #echo "-------- test=$test_name ..."
+      makegold $all_golden $clear_golden $v_golden $sv_golden $uvm_golden $rdl_golden $js_golden $reglist_golden $xml_golden $test_name
+   fi
+done

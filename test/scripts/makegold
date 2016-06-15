@@ -1,0 +1,126 @@
+#!/bin/bash
+#
+# promote output of a jrdl test to golden for test compare
+#
+
+# inputs
+tests_dir=.      # dir where tests are located, default is current directory
+test_name=       # name of test
+all_golden=      # clear golden dir and make all outputs golden
+clear_golden=    # clear golden dir contents
+v_golden=        # make verilog golden
+sv_golden=       # make systemverilog golden
+uvm_golden=      # make uvmregs golden
+rdl_golden=      # make rdl golden
+js_golden=       # make jspec golden
+reglist_golden=  # make reglist golden
+xml_golden=      # make xml golden
+
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+while getopts "d:acvsurjlx" opt; do
+    case "$opt" in
+    d)  tests_dir=$OPTARG 
+        ;;
+    a)  all_golden=1
+        ;;
+    c)  clear_golden=1
+        ;;
+    v)  v_golden=1
+        ;;
+    s)  sv_golden=1
+        ;;
+    u)  uvm_golden=1
+        ;;
+    r)  rdl_golden=1
+        ;;
+    j)  js_golden=1
+        ;;
+    l)  reglist_golden=1
+        ;;
+    x)  xml_golden=1
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+[ "$1" = "--" ] && shift
+
+if [ ! $# == 1 ]; then
+   echo "ERROR: invalid input arguments - usage: makegold <options> <test>"
+   echo "       <options>: -d <dir>   - set dir where tests are located"
+   echo "                  -a         - clear golden dir and make all outputs golden"
+   echo "                  -c         - clear golden dir"
+   echo "                  -v         - make verilog golden"
+   echo "                  -s         - make systemverilog golden"
+   echo "                  -u         - make uvm golden"
+   echo "                  -r         - make rdl golden"
+   echo "                  -j         - make jspec golden"
+   echo "                  -l         - make reglist golden"
+   echo "                  -x         - make xml golden"
+   exit 0
+fi
+
+test_name=$1
+
+# set up directories and file name
+test_dir=$tests_dir/$test_name
+output_dir=$test_dir/output
+golden_dir=$test_dir/golden
+
+# check that test exists
+if [ ! -e $test_dir ]; then
+   echo "ERROR: unable to find test $test_name"
+   exit 8
+fi
+
+# --- all_golden
+if [ -n "$all_golden" ]; then
+   # clear golden
+   [ ! -e $golden_dir ] && mkdir $golden_dir
+   rm $golden_dir/*
+   # copy all outputs to golden
+   cp $output_dir/uvm*.sv $golden_dir
+   cp $output_dir/output.* $golden_dir
+   exit 0
+fi
+
+# clear golden
+if [ -n "$clear_golden" ]; then
+   [ ! -e $golden_dir ] && mkdir $golden_dir
+   rm $golden_dir/*
+fi
+
+# promote verilog
+if [ -n "$v_golden" ]; then
+   cp $output_dir/output.v $golden_dir
+fi
+
+# promote systemverilog
+if [ -n "$sv_golden" ]; then
+   cp $output_dir/output.sv $golden_dir
+fi
+
+# promote uvm
+if [ -n "$uvm_golden" ]; then
+   cp $output_dir/uvm*.sv $golden_dir
+fi
+
+# promote rdl
+if [ -n "$rdl_golden" ]; then
+   cp $output_dir/output.rdl $golden_dir
+fi
+
+# promote jspec
+if [ -n "$js_golden" ]; then
+   cp $output_dir/output.js $golden_dir
+fi
+
+# promote reglist
+if [ -n "$reglist_golden" ]; then
+   cp $output_dir/output.reglist $golden_dir
+fi
+
+# promote xml
+if [ -n "$xml_golden" ]; then
+   cp $output_dir/output.xml $golden_dir
+fi

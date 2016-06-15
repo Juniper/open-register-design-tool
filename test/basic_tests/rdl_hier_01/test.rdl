@@ -1,0 +1,59 @@
+// ---- top down generation of hierarchical address maps
+//
+
+// define a config reg
+reg config_reg{
+   name = "Config reg set  %instance";
+   field {
+      name = "Bunch o lsb bits";
+      sw=rw; hw=r;
+   } lsb_field[16] = 16'hffff;
+   field {
+      name = "Bunch o msb bits";
+      sw=rw; hw=r;
+   } msb_field[16] = 16'h0;
+};
+
+// define a state reg
+reg state_reg{
+   name = "State reg";
+   field {
+      name = "Some state bits";
+      sw=r; hw=w;
+   } lsb_field[16] = 16'hffff;
+};
+
+// define a regfile containing arrays of config and state regs
+regfile base_regs {   
+    config_reg config_regs[8];
+    //config_regs->name = "Config regs";
+    state_reg state_regs[8] @0x100;
+    state_regs->name = "State regs";
+};
+
+// define level 3 addrmap - base regs and ext region
+addrmap l3_map {
+    name = "L3 regs";
+    
+    base_regs base_regs;
+    external base_regs ext_base_regs @0x800;
+};
+
+// define level 2 addrmap - base regs, ext region, and p2p child
+addrmap l2_map {
+    name = "L2 regs";
+    
+    base_regs base_regs;
+    external base_regs ext_base_regs @0x1000;
+    external(SERIAL8_D1) l3_map l3_child @0x2000;
+};
+
+// define level 1 addrmap - base regs, ext region, and p2p child
+addrmap l1_map {
+    name = "L1 regs";
+    
+    base_regs base_regs;
+    external base_regs ext_base_regs @0x10000;
+    external(RING16_D2) l2_map l2_r16_child @0x20000;
+    external(SERIAL8_D1) l2_map l2_s8_child @0x30000;
+} base_map;

@@ -1,0 +1,196 @@
+#!/bin/bash
+#
+# run an ordl test
+#
+
+# inputs
+tests_dir=.                # dir where tests are located, default is current directory
+test_name=                 # name of test to be run
+skip_output_read_checks=   # skip compile/read of outputs
+verbose=                   #verbose output
+
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+while getopts "d:sv" opt; do
+    case "$opt" in
+    d)  tests_dir=$OPTARG 
+        ;;
+    s)  skip_output_read_checks=1
+        ;;
+    v)  verbose=1
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+[ "$1" = "--" ] && shift
+
+#echo "------ tests_dir=$tests_dir, skip_output_read_checks=$skip_output_read_checks, Leftovers: $@"
+
+if [ ! $# == 1 ]; then
+   echo "ERROR: invalid input arguments - usage: runtest <options> <test>"
+   echo "       <options>: -d <dir>   - set dir where tests are located"
+   echo "                  -s         - skip compile/read output checks"
+   echo "                  -v         - verbose output"
+   exit 0
+fi
+
+test_name=$1
+
+echo "-------- running test=$test_name ..."
+
+# set up directories and file name
+test_dir=$tests_dir/$test_name
+output_dir=$test_dir/output
+golden_dir=$test_dir/golden
+
+# set options for specific environment (ordt required, others optional)
+. test.setup
+
+rdl_test_file=$test_dir/test.rdl
+js_test_file=$test_dir/test.js
+ordt_stdout=$output_dir/stdout.log
+ordt_stderr=$output_dir/stderr.log
+parms_file=$test_dir/test.parms
+
+# check that test exists
+if [ ! -e $test_dir ]; then
+   echo "ERROR: unable to find test $test_name"
+   exit 8
+fi
+
+# remove previous output
+if [ -e $output_dir ]; then
+   rm -r $output_dir
+   mkdir $output_dir
+fi
+
+# set ordt output options
+uvm_option=" -uvmregspkg $output_dir/uvm_reg_jrdl_pkg.sv -uvmregs $output_dir/uvmregs.sv"
+sv_option=" -systemverilog $output_dir/output.sv"
+v_option=" -verilog $output_dir/output.v -vbench $output_dir/vbench.v"
+rdl_option=" -rdl $output_dir/output.rdl"
+js_option=" -jspec $output_dir/output.js"
+xml_option=" -xml $output_dir/output.xml"
+reglist_option=" -reglist $output_dir/output.reglist"
+
+parms_option=
+if [ -f $parms_file ]; then
+   parms_option=" -parms $parms_file"
+fi
+
+rdl_opts="$parms_option$sv_option$v_option$uvm_option$js_option$xml_option$reglist_option"
+js_opts="$parms_option$uvm_option$rdl_option$xml_option$reglist_option"
+
+# run the command
+if [ -e $rdl_test_file ]; then
+   ordt_cmd="$ordt $rdl_opts $rdl_test_file"
+else if [ -e $js_test_file ]; then
+      ordt_cmd="$ordt $js_opts $js_test_file"
+   else
+      echo "ERROR: no input file exists for test=$test_name" 
+      exit
+   fi
+fi
+#echo $ordt_cmd
+$ordt_cmd > $ordt_stdout 2> $ordt_stderr
+
+# check for the log file existance
+if [ ! -e $ordt_stdout ]; then
+   echo "ERROR: unable to find ordt log file for test=$test_name"
+   exit 8
+fi
+
+# check the log file for errors
+if [ -e $ordt_stderr ]; then
+   if grep -q "ERROR" $ordt_stderr; then
+      echo "ERROR: ordt error detected:"
+      if [ -n "$verbose" ]; then
+         cat $ordt_stdout $ordt_stderr
+      else
+         grep "ERROR" $ordt_stderr
+      fi
+      exit 8 
+   fi
+fi
+
+# check output against any specified golden files for this test
+if [ -e $golden_dir ]; then
+   for outfile in $output_dir/*; do
+      #echo "$outfile"
+      basef=`basename $outfile`
+      goldfile="$golden_dir/$basef"
+      if [ -f $goldfile ]; then
+         #diff $goldfile $outfile
+         delta=`diff -q -B <(grep -vE '(\s\s(Ordt|Jrdl|Input:|Date:|Parms:)\s|<(map|regset) version)' $goldfile)  <(grep -vE '(\s\s(Ordt|Jrdl|Input:|Date:|Parms:)\s|<(map|regset) version)' $outfile)`
+         if [ -n "$delta" ]; then
+           echo "ERROR: mismatch between output and golden, file=$basef"
+           diff -B <(grep -vE '(\s\s(Ordt|Jrdl|Input:|Date:|Parms:)\s|<(map|regset) version)' $goldfile)  <(grep -vE '(\s\s(Ordt|Jrdl|Input:|Date:|Parms:)\s|<(map|regset) version)' $outfile)
+           exit 8
+         fi
+      fi
+   done
+fi
+
+# define check function
+function check_output () {
+   # input args
+   exec=$1
+   ofile=$2
+   errstr=$3
+   ver=$4
+   # if exec exists run it
+   if [ -n "$exec" ]; then
+      #echo "check_output, ofile=$ofile"
+      if [ -e $ofile ]; then
+         check_cmd="$exec $ofile"
+         #echo "running cmd=$check_cmd"
+         $check_cmd > "check.stdout" 2> "check.stderr"
+         # check the log file for errors
+         if [ -e check.stderr ]; then
+            if grep -q "$errstr" check.stderr; then
+               ofile_msg=$ofile
+               [ -z "$ofile" ] && ofile_msg="special_checks"
+               echo "ERROR: error detected in $ofile_msg:"
+               if [ -n "$verbose" ]; then
+                  cat check.stdout check.stderr
+               else
+                  grep "$errstr" check.stderr
+               fi
+               exit 8
+            fi
+         fi
+      fi
+   fi
+}
+
+# run specified checks for each generated output
+if [ -z "$skip_output_checks" ]; then
+   #echo "--- running output read checks"
+   cd $output_dir
+
+   # set parms for js and rdl checks if defined
+   check_parms=
+   [ -e ../check.parms ] && check_parms="-parms ../check.parms"
+
+   # run verilog output checks
+   check_output "$verilog_exec" output.v "$verilog_err" "$verbose"
+
+   # run systemverilog output checks
+   check_output "$systemverilog_exec" output.sv "$systemverilog_err" "$verbose"
+
+   # run uvm output checks   TODO - need uvm pkg also
+   check_output "$uvm_exec" uvmregs.sv "$uvm_err" "$verbose"
+
+   # run jspec output checks
+   check_output "$js_exec" "$check_parms output.js" "$js_err" "$verbose"
+
+   # run rdl output checks
+   check_output "$rdl_exec" "$check_parms output.rdl" "$rdl_err" "$verbose"
+fi
+
+# run any special checks for this test
+if [ -e ../special_checks ]; then
+   check_output "../special_checks" "" "ERROR" "$verbose"
+fi
+
+echo "Test passed"

@@ -1,0 +1,16 @@
+#!/bin/bash
+####################################################################
+# set test options for specific environment (ordt is required, others con be left blank to disable)
+ordt="java -jar /Users/snellenbach/Documents/jrdl_work/Jrdl.jar"
+#
+verilog_exec="iverilog"
+verilog_err="error"
+systemverilog_exec=
+systemverilog_err="error"
+uvm_exec=
+uvm_err="error"
+rdl_exec="$jrdl -jspec temp.js"
+rdl_err="ERROR"
+js_exec="$jrdl -rdl temp.rdl"
+js_err="ERROR"
+####################################################################

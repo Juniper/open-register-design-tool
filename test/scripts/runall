@@ -1,0 +1,45 @@
+#!/bin/bash
+#
+# run all jrdl tests
+#
+
+# inputs
+tests_dir=.                # dir where tests are located, default is current directory
+test_name=                 # name of test to be run
+skip_output_read_checks=   # skip compile/read of outputs
+verbose=                   #verbose output
+
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+while getopts "d:sv" opt; do
+    case "$opt" in
+    d)  tests_dir=$OPTARG 
+        ;;
+    s)  skip_output_read_checks=" -s"
+        ;;
+    v)  verbose=" -v"
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+[ "$1" = "--" ] && shift
+
+#echo "------ tests_dir=$tests_dir, skip_output_read_checks=$skip_output_read_checks, Leftovers: $@"
+
+if [ ! $# == 0 ]; then
+   echo "ERROR: invalid input arguments - usage: runall <options>"
+   echo "       <options>: -d <dir>   - set dir where tests are located"
+   echo "                  -s         - skip compile/read output checks"
+   echo "                  -v         - verbose output"
+   exit 0
+fi
+
+# ---- loop thru all tests and run em
+cd $tests_dir
+for full_test_name in $tests_dir/*; do
+   if [ -d $full_test_name ]; then
+      test_name=`basename $full_test_name`
+      #echo "-------- test=$test_name ..."
+      runtest $skip_output_read_checks $verbose $test_name
+   fi
+done

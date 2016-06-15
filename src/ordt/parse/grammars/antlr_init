@@ -1,0 +1,10 @@
+#!/bin/bash
+# --- antlr_init - set up aliases for generation of ordt antlr classes
+# ---              set antjar and rdljar to use
+
+antjar=/usr/local/lib/antlr-4.5.1-complete.jar
+rdtdir=<workspace_root_directory>/ORDT/src/ordt
+
+alias ant_jspec="java -jar $antjar -o '$rdtdir/parse/jspec' -package 'ordt.parse.jspec' '$rdtdir/parse/grammars/JSpec.g4'"
+alias ant_rdl="java -jar $antjar -o '$rdtdir/parse/systemrdl' -package 'ordt.parse.systemrdl' '$rdtdir/parse/grammars/SystemRDL.g4'" 
+alias ant_parms="java -jar $antjar -o '$rdtdir/parse/parameters' -package 'ordt.parse.parameters' '$rdtdir/parse/grammars/ExtParms.g4'" 
