@@ -1,6 +1,6 @@
 /*
-The following code is an extension of the SystemRDL 1.0 grammar provided by Accellera.  
-See accellera.org for additional info.
+The following code is an extension of the SystemRDL 1.0 grammar provided for use by Accellera under Apache 2.0 license.  
+See http://accellera.org/downloads/standards/systemrdl for additional info.
 
 ----------------------
 
