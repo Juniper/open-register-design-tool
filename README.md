@@ -10,3 +10,5 @@ The tool can generate several outputs from SystemRDL or JSpec, including:
   - UVM model of the registers
   - XML and text file register descriptions
   - SystemRDL and JSpec (conversion)
+
+Easiest way to get started with ordt is to download a runnable jar from the release area.
