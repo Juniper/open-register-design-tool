@@ -94,8 +94,8 @@ fi
 #echo $ordt_cmd
 $ordt_cmd > $ordt_stdout 2> $ordt_stderr
 
-# check for the log file existance
-if [ ! -e $ordt_stdout ]; then
+# check that log file exists and is non-empty
+if [ ! -s $ordt_stdout ]; then
    echo "ERROR: unable to find ordt log file for test=$test_name"
    exit 8
 fi

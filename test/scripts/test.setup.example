@@ -1,7 +1,7 @@
 #!/bin/bash
 ####################################################################
 # set test options for specific environment (ordt is required, others con be left blank to disable)
-ordt="java -jar /Users/snellenbach/Documents/jrdl_work/Jrdl.jar"
+ordt="java -jar /Users/snellenbach/Documents/jrdl_work/Ordt.jar"
 #
 verilog_exec="iverilog"
 verilog_err="error"
