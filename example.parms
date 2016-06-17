@@ -1,0 +1,95 @@
+// global parameters
+global {
+	min_data_size = 32       // base reg size
+	//base_address = 0x80000000   // block base address
+	//use_js_address_alignment = true   // align per jspec reg array and register_set rules
+	//suppress_alignment_warnings = true   // inhibit register/regfile base address alignment messages
+	//default_base_map_name = "zt"   // default address map name (replaces 'default_name' in cases where no addrmap is specified)
+	//debug_mode = 2       // debug options, 1=uvmregs reg width matches max for block, 3=no uvm_mem wrapper block 
+	allow_unordered_addresses = true   // attempt to correct order of elements defined in non-descending order
+}
+
+// jspec input parameters
+input jspec {
+	root_regset_is_addrmap = true   // root component will be created as an addrmap rather than a regfile/regset (not if typedef)
+	root_is_external_decode = true   // root=true will be converted to external_decode property?
+	//process_typedef = "av_sd16_rx_24ch"   // process this typedef 
+	//process_typedef = "av_sd16_tx_24ch"   // process this typedef 
+	//process_typedef = "ccl_EAXPF_tx"   // process this typedef 
+	//process_typedef = "ccl_EAXPF_rx"   // process this typedef 
+ /* 
+    process_typedef = "av_sd16_rx_6ch"
+    process_typedef = "av_sd16_tx_6ch"
+    process_typedef = "av_sd16_rx_8ch"
+    process_typedef = "av_sd16_tx_8ch"
+    process_typedef = "av_sd16_rx_24ch"
+    process_typedef = "av_sd16_tx_24ch"
+*/
+}
+
+// rdl input parameters  
+input rdl {
+	//process_component = "zt_fabio_map"   // process this component
+    //process_component = "zt_fabio_switch_sopcf0"
+    resolve_reg_category = true    // try to determine category from rdl properties if not specified
+}
+
+// systemverilog output parameters
+output systemverilog {
+	leaf_address_size = 40             // leaf address bits
+	//root_has_leaf_interface = true     // does root module talk directly to leaf  DEPRECATED
+    //root_decoder_interface = ring16      // default | leaf | serial8 | ring16
+	base_addr_is_parameter = false     // base address parameter will be added to top module
+	//module_tag = "_version1"         // tag to be added to generated module names
+	use_gated_logic_clock = false       // use separate gated clock for registers
+	//use_external_select = true         // use an externally generated block select  DEPRECATED
+	//block_select_mode = always       // is block select generated internally, externally or always
+	//export_start_end = true           // create addr_start, addr_end outputs 
+	//always_generate_iwrap = false     // create int wrapper mod even if none specified in rdl
+	suppress_no_reset_warnings = true   // inhibit field no reset messages
+	//generate_child_addrmaps = false   // generate child address maps
+	ring16_inter_node_delay = 2             // leaf address bits
+	include_default_coverage = true   // include default cover points in rtl
+}
+
+// jspec output parameters
+output jspec {
+	root_regset_is_instanced = true   // instance the root or make it a typedef?
+	//external_decode_is_root = true   // external_decode will be converted to root=true?    DEPRECATED
+	add_js_include = "$ENV{WORKAREA}/$ENV{GENMACROS}/protect/design_spec/func/jspec/protect.jjs" 
+}
+
+// rdl output parameters  
+output rdl {
+	root_component_is_instanced = true   // instance the root addrmap/regset or make it a comp definition (not if multi-typedef)?
+	output_jspec_attributes = true       // pass attribute definitions from jspec input as-is
+	no_root_enum_defs = true             // do not output any enum components defined at root level
+}
+
+// reglist output parameters
+output reglist {
+	display_external_regs = true       // include external regs in output?
+	show_reg_type = true              // show int/ext type for each reg?
+	//match_instance = "sopf_ints"           // show only regs with matching instance names
+	//show_fields = true                // show field info for each reg
+}
+
+// uvmregs output parameters
+output uvmregs {
+	//is_mem_threshold = 512   // make replicated regs uvm_mem if reps greater-equal to threshold
+	suppress_no_category_warnings = true   // inhibit reg no category messages
+	//include_address_coverage = true   // include address coverage in model
+	max_reg_coverage_bins = 64   // limit address coverage bins for replicated regs
+}
+
+annotate {
+  set_reg_property cppmod_prune = "true" instances "foo.bar.*" // set parameter on all matching registers
+  //set_field_property cppmod_prune = "true" instances "ltpn"      // set parameter on all matching fields
+  //set_reg_property external = "DEFAULT" instances "sram" // set parameter on all matching registers
+  //set_reg_property js_superset_check = "SS_VALUE" instances "*" // set parameter on all matching registers
+}
+
+output bench {
+  //generate_external_regs = true       // generate registers for all external regions, even if not an addrmap
+  only_output_dut_instances = false    // do not output full testbench module, just rtl instancing dut
+}
