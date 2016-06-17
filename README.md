@@ -1,5 +1,4 @@
 # open-register-design-tool
-This repo is a work in progress...
 
 Ordt is a tool for automation of IC register definition and documentation.  It currently supports 2 input formats:
   1. SystemRDL - a stardard register description format released by Accellera.org (see http://accellera.org/activities/working-groups/systemrdl)
