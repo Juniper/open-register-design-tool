@@ -49,6 +49,7 @@ output systemverilog {
 	suppress_no_reset_warnings = true   // inhibit field no reset messages
 	//generate_child_addrmaps = false   // generate child address maps
 	ring16_inter_node_delay = 2             // leaf address bits
+	bbv5_timeout_input = true         // add input port(s) for bb root interface timeout
 	include_default_coverage = true   // include default cover points in rtl
 }
 

@@ -120,6 +120,7 @@ ext_parm_defs
    | 'suppress_no_reset_warnings' EQ bool
    | 'generate_child_addrmaps' EQ bool
    | 'ring16_inter_node_delay' EQ NUM
+   | 'bbv5_timeout_input' EQ bool
    | 'include_default_coverage' EQ bool
    | 'generate_external_regs' EQ bool   // also allowed in bench output
    ;

@@ -1,4 +1,4 @@
-// Generated from /Users/snellenbach/Documents/workspace/ORDT/src/ordt/parse/grammars/ExtParms.g4 by ANTLR 4.5.1
+// Generated from /Users/snellenbach/git/open-register-design-tool/src/ordt/parse/grammars/ExtParms.g4 by ANTLR 4.5.1
 package ordt.parse.parameters;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 

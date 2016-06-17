@@ -109,6 +109,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("suppress_no_reset_warnings", false); 
 		initBooleanParameter("generate_child_addrmaps", false); 
 		initIntegerParameter("ring16_inter_node_delay", 0); 	
+		initBooleanParameter("bbv5_timeout_input", false); 
 		initBooleanParameter("include_default_coverage", false);
 
 		// ---- rdl output defaults
@@ -557,6 +558,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	 */
 	public static int sysVerRing16InterNodeDelay() {
 		return getIntegerParameter("ring16_inter_node_delay");
+	}
+	
+	public static Boolean sysVerBBV5TimeoutInput() {
+		return getBooleanParameter("bbv5_timeout_input");
 	}
 	
 	public static Boolean sysVerIncludeDefaultCoverage() {

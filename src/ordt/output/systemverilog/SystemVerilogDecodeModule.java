@@ -1243,6 +1243,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorFrom(SystemVerilogBuilder.HW, backboneTopWidthName, 0, 4);   //number of words  
 		this.addVectorFrom(SystemVerilogBuilder.HW, backboneTopDataName, 0, 32);   //data  
 		
+		// use a timeout input if option specified
+		int backboneTopTimeoutBits = 7; // set timeout counter size - default to 7 bits
+		String backboneTopTimeoutValue = "7'h7F";  
+		if (ExtParameters.sysVerBBV5TimeoutInput()) {
+			backboneTopTimeoutBits = 12; // set timeout counter size
+			backboneTopTimeoutValue = "bb2d_" + regProperties.getBaseName() + "_timeout";  // use input signal for timeout
+			this.addVectorFrom(SystemVerilogBuilder.HW, backboneTopTimeoutValue, 0, backboneTopTimeoutBits);   //timeout input  
+		}
 		// if size of external range is greater than one reg we'll need to set external address bits 
 		RegNumber newBase = regProperties.getFullBaseAddress();  
 		//RegNumber newBase = new RegNumber(ExtParameters.getLeafBaseAddress());  
@@ -1321,9 +1329,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		}
 		
 		// timeout counter
-		this.addVectorReg(bbTimeoutCntName, 0, 7);
-		this.addVectorReg(bbTimeoutCntNextName, 0, 7);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), bbTimeoutCntName + " <= #1  7'b0;");  
+		this.addVectorReg(bbTimeoutCntName, 0, backboneTopTimeoutBits);
+		this.addVectorReg(bbTimeoutCntNextName, 0, backboneTopTimeoutBits);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), bbTimeoutCntName + " <= #1  " + backboneTopTimeoutBits + "'b0;");  
 		this.addRegAssign(groupName,  bbTimeoutCntName + " <= #1  " + bbTimeoutCntNextName + ";");  			
 		
 		// state machine init values
@@ -1344,7 +1352,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			
 		if (is8bit)
 			this.addCombinAssign(groupName,  bbWaitCntNextName + " =  2'b0;"); 
-		this.addCombinAssign(groupName,  bbTimeoutCntNextName + " =  7'b0;"); 
+		this.addCombinAssign(groupName,  bbTimeoutCntNextName + " =  " + backboneTopTimeoutBits + "'b0;"); 
 
 		// state machine
 		String IDLE = stateBits + "'h0"; 
@@ -1417,8 +1425,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// RES_WAIT
 		this.addCombinAssign(groupName, "  " + RES_WAIT + ": begin  // RES_WAIT");
 		this.addCombinAssign(groupName, "      " + topBackboneRdName + " = " + decodeToHwReName + ";"); // assert if rd  
-		this.addCombinAssign(groupName, "      " + "if ("  + bbTimeoutCntName + " != 7'h7f)"); 
-		this.addCombinAssign(groupName, "        " + bbTimeoutCntNextName + " = " + bbTimeoutCntName + " + 7'b1;");  // run timeout counter
+		this.addCombinAssign(groupName, "      " + "if ("  + bbTimeoutCntName + " != " + backboneTopTimeoutValue + ")"); 
+		this.addCombinAssign(groupName, "        " + bbTimeoutCntNextName + " = " + bbTimeoutCntName + " + " + backboneTopTimeoutBits + "'b1;");  // run timeout counter
 		if (regWordBits > 0)
 			this.addCombinAssign(groupName,  bbWordCntNextName + " = "  + regWordBits + "'b0;"); // reset word count
 		// if a write or nack/error/retry then we're done else wait for read data
@@ -1430,15 +1438,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "        " + "else");  
 		this.addCombinAssign(groupName, "          " + bbStateNextName + " = " + RES_READ + ";");  
 		this.addCombinAssign(groupName, "      end"); 
-		this.addCombinAssign(groupName, "      " + "else if ("  + bbTimeoutCntName + " == 7'h7f)"); 
+		this.addCombinAssign(groupName, "      " + "else if ("  + bbTimeoutCntName + " == " + backboneTopTimeoutValue + ")"); 
 		this.addCombinAssign(groupName, "        " + bbStateNextName + " = " + RES_DONE_NACK + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// RES_READ
 		this.addCombinAssign(groupName, "  " + RES_READ + ": begin  // RES_READ");  
 		this.addCombinAssign(groupName, "      " + topBackboneRdName + " =  1'b1;");  
-		this.addCombinAssign(groupName, "      " + "if ("  + bbTimeoutCntName + " != 7'h7f)"); 
-		this.addCombinAssign(groupName, "        " + bbTimeoutCntNextName + " = " + bbTimeoutCntName + " + 7'b1;");  // run timeout counter
+		this.addCombinAssign(groupName, "      " + "if ("  + bbTimeoutCntName + " != " + backboneTopTimeoutValue + ")"); 
+		this.addCombinAssign(groupName, "        " + bbTimeoutCntNextName + " = " + bbTimeoutCntName + " + " + backboneTopTimeoutBits + "'b1;");  // run timeout counter
 		this.addCombinAssign(groupName, "      " + "if (" + /* backboneTopReqName + " && " +*/ backboneTopDvldName + ") begin");  
 		if (regWordBits > 0) { // if a wide reg then accumulate rd reg and bump the word count
 			this.addCombinAssign(groupName, "        " + bbWordCntNextName + " = " + bbWordCntName + " + " + regWordBits + "'b1;");
@@ -1455,7 +1463,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addCombinAssign(groupName, "        " + bbStateNextName + " = " + RES_DONE_ACK + ";");  
 		}
 		this.addCombinAssign(groupName, "      end"); 
-		this.addCombinAssign(groupName, "      " + "else if ("  + bbTimeoutCntName + " == 7'h7f)"); 
+		this.addCombinAssign(groupName, "      " + "else if ("  + bbTimeoutCntName + " == " + backboneTopTimeoutValue + ")"); 
 		this.addCombinAssign(groupName, "        " + bbStateNextName + " = " + RES_DONE_NACK + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		

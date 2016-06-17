@@ -3,7 +3,7 @@
 # ---              set antjar and rdljar to use
 
 antjar=/usr/local/lib/antlr-4.5.1-complete.jar
-rdtdir=<workspace_root_directory>/ORDT/src/ordt
+rdtdir=<ordt_root_directory>/src/ordt
 
 alias ant_jspec="java -jar $antjar -o '$rdtdir/parse/jspec' -package 'ordt.parse.jspec' '$rdtdir/parse/grammars/JSpec.g4'"
 alias ant_rdl="java -jar $antjar -o '$rdtdir/parse/systemrdl' -package 'ordt.parse.systemrdl' '$rdtdir/parse/grammars/SystemRDL.g4'" 
