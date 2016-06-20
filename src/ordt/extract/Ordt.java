@@ -25,7 +25,7 @@ import ordt.parameters.ExtParameters;
 
 public class Ordt {
 
-	private static String version = "160617.01"; 
+	private static String version = "160620.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };

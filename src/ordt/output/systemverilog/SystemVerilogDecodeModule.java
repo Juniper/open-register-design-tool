@@ -1244,9 +1244,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorFrom(SystemVerilogBuilder.HW, backboneTopDataName, 0, 32);   //data  
 		
 		// use a timeout input if option specified
-		int backboneTopTimeoutBits = 7; // set timeout counter size - default to 7 bits
-		String backboneTopTimeoutValue = "7'h7F";  
+		int backboneTopTimeoutBits = 8; // set timeout counter size - default to 8 bits
+		String backboneTopTimeoutValue = "8'hFF";  
 		if (ExtParameters.sysVerBBV5TimeoutInput()) {
+			//System.out.println("SystemVerilogDecodeModule generateExternalInterface_BBV5: using timeout input for " + regProperties.getBaseName());
 			backboneTopTimeoutBits = 12; // set timeout counter size
 			backboneTopTimeoutValue = "bb2d_" + regProperties.getBaseName() + "_timeout";  // use input signal for timeout
 			this.addVectorFrom(SystemVerilogBuilder.HW, backboneTopTimeoutValue, 0, backboneTopTimeoutBits);   //timeout input  
