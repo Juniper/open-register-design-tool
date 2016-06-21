@@ -225,10 +225,10 @@ public class CppModClass {
    
    // --------------------------- rdl structure methods -----------------------------
    
-   /** create a design-specific jrdl_regset class */
+   /** create a design-specific ordt_regset class */
    private static CppModClass createRegset(String className, boolean isRoot) {
 	   CppModClass newClass = new CppModClass(className);
-	   newClass.addParent("jrdl_regset");
+	   newClass.addParent("ordt_regset");
 	   CppMethod nMethod;
 	   // constructors
 	   if (isRoot) {
@@ -236,7 +236,7 @@ public class CppModClass {
 		   newClass.tagMethod("root constructor", nMethod);  // tag this method so we can update		   
 	   }
 	   nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(uint64_t _m_startaddress, uint64_t _m_endaddress)");
-	   nMethod.addInitCall("jrdl_regset(_m_startaddress, _m_endaddress)");
+	   nMethod.addInitCall("ordt_regset(_m_startaddress, _m_endaddress)");
 	   // override the child ptr update function
 	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void update_child_ptrs()");   
 	   nMethod.addStatement("m_children.clear();");
@@ -244,12 +244,12 @@ public class CppModClass {
 	   return newClass;
    }
 
-   /** create a design-specific jrdl_regset child class */
+   /** create a design-specific ordt_regset child class */
    public static CppModClass createRegset(String className) {
 	   return createRegset(className, false);
    }
    
-   /** create a design-specific root level jrdl_regset class */
+   /** create a design-specific root level ordt_regset class */
    public static CppModClass createRootRegset(String className) {
 	   return createRegset(className, true);
    }
@@ -281,10 +281,10 @@ public class CppModClass {
 	   endOffset.add(byteSize);
 	   endOffset.subtract(1);
 	   CppMethod ptrUpdateMethod = this.getTaggedMethod("update_child_ptrs"); 
-	   // if a replicated regset use jrdl_regset_array class
+	   // if a replicated regset use ordt_regset_array class
 	   if (reps>1) {
 		   // create child define 
-		   this.addDefine(Vis.PUBLIC, "jrdl_addr_elem_array<" + className + "> " + instName);  
+		   this.addDefine(Vis.PUBLIC, "ordt_addr_elem_array<" + className + "> " + instName);  
 		   // create child init call
 		   String strideStr = ((stride == null) || (!stride.isDefined()))? byteSize.toFormat(NumBase.Hex, NumFormat.Address) : stride.toFormat(NumBase.Hex, NumFormat.Address);
 		   this.addInitCall(instName + "(_m_startaddress + " + startOffset.toFormat(NumBase.Hex, NumFormat.Address) + 
@@ -303,28 +303,28 @@ public class CppModClass {
 	   ptrUpdateMethod.addStatement("m_children.push_back(&" + instName + ");");  // push ptr of child onto vector 
    }
 
-   /** create a design-specific jrdl_reg child class */
+   /** create a design-specific ordt_reg child class */
    public static CppModClass createReg(String className) {
 	   CppModClass newClass = new CppModClass(className);
-	   newClass.addParent("jrdl_reg");
+	   newClass.addParent("ordt_reg");
 	   // constructor
 	   CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(uint64_t _m_startaddress, uint64_t _m_endaddress)");
-	   nMethod.addInitCall("jrdl_reg(_m_startaddress, _m_endaddress)");
+	   nMethod.addInitCall("ordt_reg(_m_startaddress, _m_endaddress)");
 	   // overload write methods
-	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const uint64_t &addr, const jrdl_data &wdata)");
+	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const uint64_t &addr, const ordt_data &wdata)");
 	   nMethod.addStatement("   std::cout << \"reg " + className + " write: ---- addr=\"<< addr << \", data=\" << wdata.to_string() << \"\\n\";");
 	   nMethod.addStatement("   if (this->hasStartAddress(addr))");
 	   nMethod.addStatement("      this->write(wdata);");
-	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const jrdl_data &wdata)");  
+	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const ordt_data &wdata)");  
 	   newClass.tagMethod("write", nMethod);  
 	   nMethod.addStatement("std::lock_guard<std::mutex> m_guard(m_mutex);");  // grab reg lock
 	   // overload read methods
-	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(const uint64_t &addr, jrdl_data &rdata)");  
+	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(const uint64_t &addr, ordt_data &rdata)");  
 	   nMethod.addStatement("   std::cout << \"reg " + className + " read: ---- addr=\"<< addr << \"\\n\";");
 	   nMethod.addStatement("   if (this->hasStartAddress(addr))");
 	   nMethod.addStatement("      this->read(rdata);");
 	   nMethod.addStatement("   else rdata.clear();");
-	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(jrdl_data &rdata)");  
+	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(ordt_data &rdata)");  
 	   newClass.tagMethod("read", nMethod);  
 	   nMethod.addStatement("rdata.clear();");
 	   nMethod.addStatement("for (int widx=0; widx<((m_endaddress - m_startaddress + 1)/4); widx++) rdata.push_back(0);");
@@ -362,12 +362,12 @@ public class CppModClass {
 	   //else fieldType = "uint64_t";
 	   //
 	   else if (width <= 64) fieldType = "uint64_t";
-	   else  fieldType = "jrdl_data";
+	   else  fieldType = "ordt_data";
 	   // create child define 
-	   this.addDefine(Vis.PUBLIC, "jrdl_field<" + fieldType + "> " + instName); 
+	   this.addDefine(Vis.PUBLIC, "ordt_field<" + fieldType + "> " + instName); 
 	   // create field init call
 	   String initStr = "";
-	   if ("jrdl_data".equals(fieldType)) { // special call if a wide field
+	   if ("ordt_data".equals(fieldType)) { // special call if a wide field
 		   if (((resetVal == null) || !resetVal.isDefined())) initStr = "0"; // default to reset value of 0
 		   else if (resetVal.isNonZero()) { 
 			   Ordt.warnMessage("C++ model does not support non-zero init values for wide fields, field=" + instName);

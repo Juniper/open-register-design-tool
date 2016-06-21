@@ -154,14 +154,14 @@ public class CppModBuilder extends OutputBuilder {
 	/** get c++ class name for a regset from hierarchy name */
 	private String getCppRegsetClassName() {
 		String baseName = regSetProperties.getBaseName();
-		String className = ((baseName == null) || (baseName.isEmpty()))? "jrdl_root" : "jrdl_rset_" + baseName;
+		String className = ((baseName == null) || (baseName.isEmpty()))? "ordt_root" : "ordt_rset_" + baseName;
 		return className;
 	}
 
 	/** get c++ class name for a reg from hierarchy name */
 	private String getCppRegClassName() {
 		String baseName = regProperties.getBaseName();
-		String className = "jrdl_rg_" + baseName;
+		String className = "ordt_rg_" + baseName;
 		return className;
 	}
 
@@ -212,14 +212,14 @@ public class CppModBuilder extends OutputBuilder {
    	    saveDir.mkdirs();   // make sure directory exists
 
    	    // open the hpp and cpp files
-    	hppBw = openBufferedWriter(outName + "/jrdl_pio.hpp", description);
-    	cppBw = openBufferedWriter(outName + "/jrdl_pio.cpp", description);
+    	hppBw = openBufferedWriter(outName + "/ordt_pio.hpp", description);
+    	cppBw = openBufferedWriter(outName + "/ordt_pio.cpp", description);
     	if ((hppBw != null) && (cppBw != null)) {
 
     		// write the hpp file header
     		writeHeader(hppBw, commentPrefix);
-    		writeStmt(hppBw, 0, "#ifndef __JRDL_PIO_HPP_INCLUDED__");	
-    		writeStmt(hppBw, 0, "#define __JRDL_PIO_HPP_INCLUDED__");
+    		writeStmt(hppBw, 0, "#ifndef __ORDT_PIO_HPP_INCLUDED__");	
+    		writeStmt(hppBw, 0, "#define __ORDT_PIO_HPP_INCLUDED__");
     		writeStmt(hppBw, 0, "");	
     		writeStmt(hppBw, 0, "#include <vector>");
     		writeStmt(hppBw, 0, "#include <iostream>");  
@@ -235,7 +235,7 @@ public class CppModBuilder extends OutputBuilder {
    		
     		// write the cpp file header
     		writeHeader(cppBw, commentPrefix);
-    		writeStmt(cppBw, 0, "#include \"jrdl_pio.hpp\"");
+    		writeStmt(cppBw, 0, "#include \"ordt_pio.hpp\"");
     		writeStmt(cppBw, 0, "");
     		
     		// define r/w modes
@@ -246,7 +246,7 @@ public class CppModBuilder extends OutputBuilder {
     		writeClasses();
     		
             // close up hpp file
-    		writeStmt(hppBw, 0, "#endif // __JRDL_PIO_HPP_INCLUDED__");
+    		writeStmt(hppBw, 0, "#endif // __ORDT_PIO_HPP_INCLUDED__");
     		closeBufferedWriter(hppBw);
     		
     		// close up cpp file
@@ -257,12 +257,12 @@ public class CppModBuilder extends OutputBuilder {
 	/** write model classes */
 	private void writeClasses() {
 		// write base classes
-		writeJrdlDataClass();
-		writeJrdlAddrElemClass();
-		writeJrdlRegsetClass();
-		writeJrdlAddrElemArrayClass();
-		writeJrdlRegClass();
-		writeJrdlFieldClass();  
+		writeOrdtDataClass();
+		writeOrdtAddrElemClass();
+		writeOrdtRegsetClass();
+		writeOrdtAddrElemArrayClass();
+		writeOrdtRegClass();
+		writeOrdtFieldClass();  
 		// write design specific classes
 		writeDesignSpecificClasses();
 	}
@@ -276,9 +276,9 @@ public class CppModBuilder extends OutputBuilder {
 		}	
 	}
 
-	/** create and write JrdlData class  */   
-	private void writeJrdlDataClass() {
-		String className = "jrdl_data";
+	/** create and write OrdtData class  */   
+	private void writeOrdtDataClass() {
+		String className = "ordt_data";
 		CppModClass newClass = new CppModClass(className);
 		newClass.addParent("std::vector<uint32_t>");
 		// constructors
@@ -286,11 +286,11 @@ public class CppModBuilder extends OutputBuilder {
 		nMethod.addInitCall("std::vector<uint32_t>()");
 		nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(int _size, uint32_t _data)");
 		nMethod.addInitCall("std::vector<uint32_t>(_size, _data)");
-		nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(const jrdl_data& _data)");  // copy
+		nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(const ordt_data& _data)");  // copy
 		nMethod.addInitCall("std::vector<uint32_t>(_data)");
 		
-		// set_slice method for jrdl_data
-		nMethod = newClass.addMethod(Vis.PUBLIC, "void set_slice(int lobit, int size, const jrdl_data& update)");
+		// set_slice method for ordt_data
+		nMethod = newClass.addMethod(Vis.PUBLIC, "void set_slice(int lobit, int size, const ordt_data& update)");
 		nMethod.addStatement("int data_size = this->size() * 32;");
 		//nMethod.addStatement("std::cout << \"set_slice: -------------------, lo bit=\" << lobit << \", size=\" << size << \"\\n\";");
 		nMethod.addStatement("if ((lobit % 32) > 0) {");
@@ -348,8 +348,8 @@ public class CppModBuilder extends OutputBuilder {
 		//nMethod.addStatement("  std::cout << \"set_slice: new word=\" << this->at(idx) << \"\\n\";");
 		nMethod.addStatement("}");
 		
-		// get_slice method for jrdl_data
-		nMethod = newClass.addMethod(Vis.PUBLIC, "void get_slice(int lobit, int size, jrdl_data& slice_out) const");
+		// get_slice method for ordt_data
+		nMethod = newClass.addMethod(Vis.PUBLIC, "void get_slice(int lobit, int size, ordt_data& slice_out) const");
 		nMethod.addStatement("int data_size = this->size() * 32;");
 		//nMethod.addStatement("std::cout << \"get_slice: -------------------, lo bit=\" << lobit << \", size=\" << size << \", slice_out=\" << slice_out << \", sizeof(T)=\" << sizeof(T) << \"\\n\";");
 		nMethod.addStatement("if ((lobit % 32) > 0) {");
@@ -421,30 +421,30 @@ public class CppModBuilder extends OutputBuilder {
 		nMethod.addStatement("return ss.str();");
 		
 		// = overload
-		nMethod = newClass.addMethod(Vis.PUBLIC, "jrdl_data& operator=(const uint32_t rhs)");
+		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data& operator=(const uint32_t rhs)");
 		//nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
 		//nMethod.addStatement("   this->at(idx) = rhs;");
 		nMethod.addStatement("   this->assign(this->size(), rhs);");
 		nMethod.addStatement("return *this;");
 		
 		// ~ overload
-		nMethod = newClass.addMethod(Vis.PUBLIC, "jrdl_data operator~()");
-		nMethod.addStatement("jrdl_data temp;");
+		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data operator~()");
+		nMethod.addStatement("ordt_data temp;");
 		nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
 		nMethod.addStatement("   temp.at(idx) = ~ this->at(idx);");
 		nMethod.addStatement("return temp;");
 		
 		// & overload
-		nMethod = newClass.addMethod(Vis.PUBLIC, "jrdl_data operator&(const jrdl_data& rhs)");
-		nMethod.addStatement("jrdl_data temp;");
+		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data operator&(const ordt_data& rhs)");
+		nMethod.addStatement("ordt_data temp;");
 		nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
 		nMethod.addStatement("   if (idx < rhs.size()) temp.at(idx) = this->at(idx) & rhs.at(idx);");
 		nMethod.addStatement("   else temp.at(idx) = 0;");
 		nMethod.addStatement("return temp;");
 		
 		// | overload
-		nMethod = newClass.addMethod(Vis.PUBLIC, "jrdl_data operator|(const jrdl_data& rhs)");
-		nMethod.addStatement("jrdl_data temp;");
+		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data operator|(const ordt_data& rhs)");
+		nMethod.addStatement("ordt_data temp;");
 		nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
 		nMethod.addStatement("   if (idx < rhs.size()) temp.at(idx) = this->at(idx) | rhs.at(idx);");
 		nMethod.addStatement("   else temp.at(idx) = this->at(idx);");
@@ -457,7 +457,7 @@ public class CppModBuilder extends OutputBuilder {
 		
 		/*
 		writeStmt(hppBw, 0, "");
-		writeStmt(hppBw, 0, "std::ostream& operator<<(std::ostream &strm, const jrdl_data &d) {");
+		writeStmt(hppBw, 0, "std::ostream& operator<<(std::ostream &strm, const ordt_data &d) {");
 		writeStmt(hppBw, 0, "  strm << \"{ 0x\" << std::hex;");
 		writeStmt(hppBw, 0, "  for(std::vector<int>::reverse_iterator rit = d.rbegin(); rit!= d.rend(); ++rit) strm << *rit << \" \";");
 		writeStmt(hppBw, 0, "  return strm << std::dec << \"}");
@@ -466,9 +466,9 @@ public class CppModBuilder extends OutputBuilder {
 		*/
 	}
 
-	/** create and write JrdlAddrElem class  */
-	private void writeJrdlAddrElemClass() {
-		String className = "jrdl_addr_elem";
+	/** create and write OrdtAddrElem class  */
+	private void writeOrdtAddrElemClass() {
+		String className = "ordt_addr_elem";
 		CppModClass newClass = new CppModClass(className);
 		newClass.addDefine(Vis.PROTECTED, "uint64_t m_startaddress");
 		newClass.addDefine(Vis.PROTECTED, "uint64_t m_endaddress");
@@ -477,19 +477,19 @@ public class CppModBuilder extends OutputBuilder {
 		nMethod.addInitCall("m_startaddress(_m_startaddress)");
 		nMethod.addInitCall("m_endaddress(_m_endaddress)");
 		// methods
-		newClass.addMethod(Vis.PUBLIC, "pure virtual void write(const uint64_t &addr, const jrdl_data &wdata)");
-		newClass.addMethod(Vis.PUBLIC, "pure virtual void read(const uint64_t &addr, jrdl_data &rdata)");  
+		newClass.addMethod(Vis.PUBLIC, "pure virtual void write(const uint64_t &addr, const ordt_data &wdata)");
+		newClass.addMethod(Vis.PUBLIC, "pure virtual void read(const uint64_t &addr, ordt_data &rdata)");  
 		nMethod = newClass.addMethod(Vis.PUBLIC, "bool containsAddress(const uint64_t &addr)");
-		//nMethod.addStatement("std::cout << \"jrdl_addr_elem containsAddress: addr=\"<< addr << \" start=\" << m_startaddress << \" end=\" << m_endaddress << \"\\n\";");
+		//nMethod.addStatement("std::cout << \"ordt_addr_elem containsAddress: addr=\"<< addr << \" start=\" << m_startaddress << \" end=\" << m_endaddress << \"\\n\";");
 		nMethod.addStatement("return ((addr >= m_startaddress) && (addr <= m_endaddress));");
 		nMethod = newClass.addMethod(Vis.PUBLIC, "bool isBelowAddress(const uint64_t &addr)");
-		//nMethod.addStatement("std::cout << \"jrdl_addr_elem isBelowAddress: addr=\"<< addr << \" start=\" << m_startaddress << \" end=\" << m_endaddress << \"\\n\";");
+		//nMethod.addStatement("std::cout << \"ordt_addr_elem isBelowAddress: addr=\"<< addr << \" start=\" << m_startaddress << \" end=\" << m_endaddress << \"\\n\";");
 		nMethod.addStatement("return (addr > m_endaddress);");
 		nMethod = newClass.addMethod(Vis.PUBLIC, "bool isAboveAddress(const uint64_t &addr)");
-		//nMethod.addStatement("std::cout << \"jrdl_addr_elem isAboveAddress: addr=\"<< addr << \" start=\" << m_startaddress << \" end=\" << m_endaddress << \"\\n\";");
+		//nMethod.addStatement("std::cout << \"ordt_addr_elem isAboveAddress: addr=\"<< addr << \" start=\" << m_startaddress << \" end=\" << m_endaddress << \"\\n\";");
 		nMethod.addStatement("return (addr < m_startaddress);");
 		nMethod = newClass.addMethod(Vis.PUBLIC, "bool hasStartAddress(const uint64_t &addr)");
-		//nMethod.addStatement("std::cout << \"jrdl_addr_elem hasStartAddress: addr=\"<< addr << \" start=\" << m_startaddress << \" end=\" << m_endaddress << \"\\n\";");
+		//nMethod.addStatement("std::cout << \"ordt_addr_elem hasStartAddress: addr=\"<< addr << \" start=\" << m_startaddress << \" end=\" << m_endaddress << \"\\n\";");
 		nMethod.addStatement("return (addr == m_startaddress);");
 		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void update_child_ptrs()");  // empty placeholder defined in design-specific regset classes - called after elem copy in jdrl_addr_elem_array to fix pointers  
 		// write class
@@ -497,18 +497,18 @@ public class CppModBuilder extends OutputBuilder {
 		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
 	}
 
-	/** create and write JrdlRegset class  */
-	private void writeJrdlRegsetClass() {
-		String className = "jrdl_regset";
+	/** create and write OrdtRegset class  */
+	private void writeOrdtRegsetClass() {
+		String className = "ordt_regset";
 		CppModClass newClass = new CppModClass(className);
-		newClass.addParent("jrdl_addr_elem");
-		newClass.addDefine(Vis.PROTECTED, "std::vector<jrdl_addr_elem *>  m_children");
-		newClass.addDefine(Vis.PRIVATE, "jrdl_addr_elem* childElem");  
+		newClass.addParent("ordt_addr_elem");
+		newClass.addDefine(Vis.PROTECTED, "std::vector<ordt_addr_elem *>  m_children");
+		newClass.addDefine(Vis.PRIVATE, "ordt_addr_elem* childElem");  
 		// constructors
 		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(uint64_t _m_startaddress, uint64_t _m_endaddress)");  
-		nMethod.addInitCall("jrdl_addr_elem(_m_startaddress, _m_endaddress)");
+		nMethod.addInitCall("ordt_addr_elem(_m_startaddress, _m_endaddress)");
 		// address search method
-		nMethod = newClass.addMethod(Vis.PRIVATE, "jrdl_addr_elem* findAddrElem(const uint64_t &addr)");  
+		nMethod = newClass.addMethod(Vis.PRIVATE, "ordt_addr_elem* findAddrElem(const uint64_t &addr)");  
 		nMethod.addStatement("int lo = 0;");
 		nMethod.addStatement("int hi = m_children.size()-1;");
 		nMethod.addStatement("int mid = 0;");
@@ -519,7 +519,7 @@ public class CppModBuilder extends OutputBuilder {
 		//nMethod.addStatement("   std::cout << \"findAddrElem: looking for addr=\"<< addr << \" at idx=\" << mid << \", lo=\" << lo << \", hi=\" << hi << \"\\n\";");
 		nMethod.addStatement("   if (m_children[mid]->containsAddress(addr)) {");
 		nMethod.addStatement("      //outElem = m_children[mid];");
-		//nMethod.addStatement("      std::cout << \"findAddrElem: jrdl_regset contained addr=\"<< addr << \" at idx=\" << mid << \"\\n\";");
+		//nMethod.addStatement("      std::cout << \"findAddrElem: ordt_regset contained addr=\"<< addr << \" at idx=\" << mid << \"\\n\";");
 		nMethod.addStatement("      return m_children[mid];");
 		nMethod.addStatement("   }");
 		nMethod.addStatement("   else if (m_children[mid]->isAboveAddress(addr))");
@@ -530,18 +530,18 @@ public class CppModBuilder extends OutputBuilder {
 		//nMethod.addStatement("std::cout << \"findAddrElem: did not find addr=\"<< addr << \"\\n\";");
 		nMethod.addStatement("return nullptr;");
 		// methods
-		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const uint64_t &addr, const jrdl_data &wdata)");  
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const uint64_t &addr, const ordt_data &wdata)");  
 		//nMethod.addStatement("   std::cout << \"regset write: ---- addr=\"<< addr << \", data=\" << wdata.to_string() << \"\\n\";");
 		nMethod.addStatement("   if (this->containsAddress(addr)) {");
-		//nMethod.addStatement("      std::cout << \"regset write: jrdl_regset contains addr=\"<< addr << \"\\n\";");
+		//nMethod.addStatement("      std::cout << \"regset write: ordt_regset contains addr=\"<< addr << \"\\n\";");
 		nMethod.addStatement("      childElem = this->findAddrElem(addr);");
 		nMethod.addStatement("      if (childElem != nullptr) { childElem->write(addr, wdata); return; }");
 		//nMethod.addStatement("      else std::cout << \"write: findAddrElem returned nullptr, addr=\"<< addr << \"\\n\";" );
 		nMethod.addStatement("   }");
-		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(const uint64_t &addr, jrdl_data &rdata)");  
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(const uint64_t &addr, ordt_data &rdata)");  
 		//nMethod.addStatement("   std::cout << \"regset read: ---- addr=\"<< addr << \"\\n\";");
 		nMethod.addStatement("   if (this->containsAddress(addr)) {");
-		//nMethod.addStatement("      std::cout << \"regset read: jrdl_regset contains addr=\"<< addr << \"\\n\";");
+		//nMethod.addStatement("      std::cout << \"regset read: ordt_regset contains addr=\"<< addr << \"\\n\";");
 		nMethod.addStatement("      childElem = this->findAddrElem(addr);");
 		nMethod.addStatement("      if (childElem != nullptr) { childElem->read(addr, rdata); return; }");
 		//nMethod.addStatement("      else std::cout << \"read: findAddrElem returned nullptr, addr=\"<< addr << \"\\n\";" );
@@ -556,25 +556,25 @@ public class CppModBuilder extends OutputBuilder {
 		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
 	}
 
-	/** create and write JrdlAddrElemArray class  */ 
-	private void writeJrdlAddrElemArrayClass() {
+	/** create and write OrdtAddrElemArray class  */ 
+	private void writeOrdtAddrElemArrayClass() {
 		// this is a template class so write directly to hpp file
 		writeStmt(hppBw, 0, "");
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "class jrdl_addr_elem_array : public std::vector<T>, public jrdl_addr_elem {");  // mult inheritance jrdl_array_elem??
+		writeStmt(hppBw, 0, "class ordt_addr_elem_array : public std::vector<T>, public ordt_addr_elem {");  // mult inheritance ordt_array_elem??
 		writeStmt(hppBw, 0, "  protected:");
 		writeStmt(hppBw, 0, "    std::vector<T> vec;");  
 		writeStmt(hppBw, 0, "    uint64_t m_stride;");  
 		writeStmt(hppBw, 0, "  public:");
-		writeStmt(hppBw, 0, "    jrdl_addr_elem_array(uint64_t _m_startaddress, uint64_t _m_endaddress, int _reps, uint64_t _m_stride);");
-		writeStmt(hppBw, 0, "    virtual void write(const uint64_t &addr, const jrdl_data &wdata);");
-		writeStmt(hppBw, 0, "    virtual void read(const uint64_t &addr, jrdl_data &rdata);");
+		writeStmt(hppBw, 0, "    ordt_addr_elem_array(uint64_t _m_startaddress, uint64_t _m_endaddress, int _reps, uint64_t _m_stride);");
+		writeStmt(hppBw, 0, "    virtual void write(const uint64_t &addr, const ordt_data &wdata);");
+		writeStmt(hppBw, 0, "    virtual void read(const uint64_t &addr, ordt_data &rdata);");
 		writeStmt(hppBw, 0, "};");
 		writeStmt(hppBw, 0, "");
 
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "jrdl_addr_elem_array<T>::jrdl_addr_elem_array(uint64_t _m_startaddress, uint64_t _m_endaddress, int _reps, uint64_t _m_stride)");
-		writeStmt(hppBw, 0, "   : jrdl_addr_elem(_m_startaddress, _m_endaddress + (_m_stride * _reps)), m_stride(_m_stride) {");
+		writeStmt(hppBw, 0, "ordt_addr_elem_array<T>::ordt_addr_elem_array(uint64_t _m_startaddress, uint64_t _m_endaddress, int _reps, uint64_t _m_stride)");
+		writeStmt(hppBw, 0, "   : ordt_addr_elem(_m_startaddress, _m_endaddress + (_m_stride * _reps)), m_stride(_m_stride) {");
 		writeStmt(hppBw, 0, "   this->reserve(_reps);");
 		writeStmt(hppBw, 0, "   uint64_t el_startaddress = _m_startaddress;");
 		writeStmt(hppBw, 0, "   uint64_t el_endaddress = _m_endaddress;");
@@ -589,7 +589,7 @@ public class CppModBuilder extends OutputBuilder {
 		writeStmt(hppBw, 0, "");
 
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "void jrdl_addr_elem_array<T>::write(const uint64_t &addr, const jrdl_data &wdata) {");
+		writeStmt(hppBw, 0, "void ordt_addr_elem_array<T>::write(const uint64_t &addr, const ordt_data &wdata) {");
 		//writeStmt(hppBw, 0, "   std::cout << \"addr_elem array write: ---- addr=\"<< addr << \", data=\" << wdata.to_string() << \"\\n\";");
 		writeStmt(hppBw, 0, "   if (this->containsAddress(addr)) {");
 		writeStmt(hppBw, 0, "      int idx = (addr - m_startaddress) / m_stride;");
@@ -600,7 +600,7 @@ public class CppModBuilder extends OutputBuilder {
 		writeStmt(hppBw, 0, "}");
 		writeStmt(hppBw, 0, "");
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "void jrdl_addr_elem_array<T>::read(const uint64_t &addr, jrdl_data &rdata) {");
+		writeStmt(hppBw, 0, "void ordt_addr_elem_array<T>::read(const uint64_t &addr, ordt_data &rdata) {");
 		//writeStmt(hppBw, 0, "   std::cout << \"addr_elem array read: ---- addr=\"<< addr << \", start=\" << m_startaddress << \", end=\" << m_endaddress<< \", stride=\" << m_stride<< \"\\n\";");
 		writeStmt(hppBw, 0, "   if (this->containsAddress(addr)) {");
 		writeStmt(hppBw, 0, "      int idx = (addr - m_startaddress) / m_stride;");
@@ -616,67 +616,67 @@ public class CppModBuilder extends OutputBuilder {
 		writeStmt(hppBw, 0, "");
 	}
 
-	/** create and write JrdlReg class  */  
-	private void writeJrdlRegClass() {  
-		String className = "jrdl_reg";
+	/** create and write OrdtReg class  */  
+	private void writeOrdtRegClass() {  
+		String className = "ordt_reg";
 		CppModClass newClass = new CppModClass(className);
-		newClass.addParent("jrdl_addr_elem");
+		newClass.addParent("ordt_addr_elem");
 		// define mutex for reg
 		newClass.addDefine(Vis.PROTECTED, "std::mutex  m_mutex");
 		// constructors
 		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(uint64_t _m_startaddress, uint64_t _m_endaddress)");  
-		nMethod.addInitCall("jrdl_addr_elem(_m_startaddress, _m_endaddress)");  
+		nMethod.addInitCall("ordt_addr_elem(_m_startaddress, _m_endaddress)");  
 		// redefine copy constructor since we have a mutex
 		nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(const " + className + " &_old)");  
-		nMethod.addInitCall("jrdl_addr_elem(_old)");  
+		nMethod.addInitCall("ordt_addr_elem(_old)");  
 		nMethod.addInitCall("m_mutex()");  
 		// write methods
-		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const jrdl_data &wdata)");  // will be overriden by child classes
-		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const uint64_t &addr, const jrdl_data &wdata)");
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const ordt_data &wdata)");  // will be overriden by child classes
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const uint64_t &addr, const ordt_data &wdata)");
 		// read methods
-		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(jrdl_data &rdata)");  // will be overriden by child classes
-		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(const uint64_t &addr, jrdl_data &rdata)");  
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(ordt_data &rdata)");  // will be overriden by child classes
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(const uint64_t &addr, ordt_data &rdata)");  
 		// write class
 		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
 		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
 	}
 
-	/** create and write write JrdlField class  */  
-	private void writeJrdlFieldClass() {
+	/** create and write write OrdtField class  */  
+	private void writeOrdtFieldClass() {
 		// this is a template class so write directly to hpp file
 		writeStmt(hppBw, 0, "");
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "class jrdl_field {");
+		writeStmt(hppBw, 0, "class ordt_field {");
 		writeStmt(hppBw, 0, "  public:");
 		writeStmt(hppBw, 0, "    int lobit, size;");
 		writeStmt(hppBw, 0, "    T data;");
 		//writeStmt(hppBw, 0, "    std::atomic<T> data;");  // wrap data in atomic
 		writeStmt(hppBw, 0, "    read_mode_t r_mode;");
 		writeStmt(hppBw, 0, "    write_mode_t w_mode;");
-		writeStmt(hppBw, 0, "    jrdl_field(int _lobit, int _size, int _vsize, uint32_t _data, read_mode_t _r_mode, write_mode_t _w_mode);"); // special case for wide fields
-		writeStmt(hppBw, 0, "    jrdl_field(int _lobit, int _size, T _init_data, read_mode_t _r_mode, write_mode_t _w_mode);");
+		writeStmt(hppBw, 0, "    ordt_field(int _lobit, int _size, int _vsize, uint32_t _data, read_mode_t _r_mode, write_mode_t _w_mode);"); // special case for wide fields
+		writeStmt(hppBw, 0, "    ordt_field(int _lobit, int _size, T _init_data, read_mode_t _r_mode, write_mode_t _w_mode);");
 		// read/write 
-		writeStmt(hppBw, 0, "    void write(const jrdl_data &wdata);");
-		writeStmt(hppBw, 0, "    void read(jrdl_data &rdata);");
+		writeStmt(hppBw, 0, "    void write(const ordt_data &wdata);");
+		writeStmt(hppBw, 0, "    void read(ordt_data &rdata);");
 		// clear 
-		//writeStmt(hppBw, 0, "    void clear(jrdl_data &data);");
+		//writeStmt(hppBw, 0, "    void clear(ordt_data &data);");
 		writeStmt(hppBw, 0, "    void clear();");
 		writeStmt(hppBw, 0, "};");
 		// constructors
 		writeStmt(hppBw, 0, "");
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "jrdl_field<T>::jrdl_field(int _lobit, int _size, int _vsize, uint32_t _data, read_mode_t _r_mode, write_mode_t _w_mode)");
+		writeStmt(hppBw, 0, "ordt_field<T>::ordt_field(int _lobit, int _size, int _vsize, uint32_t _data, read_mode_t _r_mode, write_mode_t _w_mode)");
 		writeStmt(hppBw, 0, "   : lobit(_lobit), size(_size), data(_vsize, _data), r_mode(_r_mode), w_mode(_w_mode) {");
 		writeStmt(hppBw, 0, "}");
 		writeStmt(hppBw, 0, "");
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "jrdl_field<T>::jrdl_field(int _lobit, int _size, T _init_data, read_mode_t _r_mode, write_mode_t _w_mode)");
+		writeStmt(hppBw, 0, "ordt_field<T>::ordt_field(int _lobit, int _size, T _init_data, read_mode_t _r_mode, write_mode_t _w_mode)");
 		writeStmt(hppBw, 0, "   : lobit(_lobit), size(_size), data(_init_data), r_mode(_r_mode), w_mode(_w_mode) {");
 		writeStmt(hppBw, 0, "}");
 		writeStmt(hppBw, 0, "");
 		// read/write
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "void jrdl_field<T>::write(const jrdl_data &wdata) {");
+		writeStmt(hppBw, 0, "void ordt_field<T>::write(const ordt_data &wdata) {");
 		//writeStmt(hppBw, 0, "   std::cout << \"field write: \" << \", mode=\" << w_mode << \"\\n\";");
 		writeStmt(hppBw, 0, "   if (w_mode == w_std) wdata.get_slice(lobit, size, data);");
 		writeStmt(hppBw, 0, "   else if (w_mode == w_1set) {");
@@ -692,7 +692,7 @@ public class CppModBuilder extends OutputBuilder {
 		writeStmt(hppBw, 0, "}");
 		writeStmt(hppBw, 0, "");
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "void jrdl_field<T>::read(jrdl_data &rdata) {");
+		writeStmt(hppBw, 0, "void ordt_field<T>::read(ordt_data &rdata) {");
 		//writeStmt(hppBw, 0, "   std::cout << \"field read: \" << \"\\n\";");
 		writeStmt(hppBw, 0, "   rdata.set_slice(lobit, size, data);");
 		writeStmt(hppBw, 0, "   if (r_mode == r_clr) clear();");
@@ -700,7 +700,7 @@ public class CppModBuilder extends OutputBuilder {
 		// clear 
 		writeStmt(hppBw, 0, "");
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "void jrdl_field<T>::clear() {");
+		writeStmt(hppBw, 0, "void ordt_field<T>::clear() {");
 		writeStmt(hppBw, 0, "    data = 0;");
 		writeStmt(hppBw, 0, "}");
 		writeStmt(hppBw, 0, "");
