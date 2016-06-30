@@ -25,7 +25,7 @@ import ordt.parameters.ExtParameters;
 
 public class Ordt {
 
-	private static String version = "160621.01"; 
+	private static String version = "160630.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -356,6 +356,11 @@ public class Ordt {
 	/** add in input parameter file (used by DebugController) */
 	public static void addInputParmFile(String name) {
 		inputParmFiles.add(name);  		
+	}
+
+	/** return true if an input parms file has been specified */
+	public static boolean hasInputParmFile() {
+		return !inputParmFiles.isEmpty();
 	}
 
 }

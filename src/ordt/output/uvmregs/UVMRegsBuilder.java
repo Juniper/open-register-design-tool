@@ -918,10 +918,11 @@ public class UVMRegsBuilder extends OutputBuilder {
 				if (field.isMaskIntrBits())  // if maskintrbits then define a callback
 					outputList.add(new OutputLine(indentLvl, "rdl_mask_intr_field_cbs " + field.getPrefixedId() + "_mask_cb;")); // define mask field callback
 			}
+			/* disabling intr cascade callback 
 			if (field.isInterrupt() && (field.hasRef(RhsRefType.NEXT) || (field.hasRef(RhsRefType.INTR) && (field.getIntrType() == FieldProperties.IntrType.LEVEL)))) {
 				intrCascadeDetected = true;
 				outputList.add(new OutputLine(indentLvl, "rdl_cascade_intr_field_cbs " + field.getPrefixedId() + "_cascade_cb;")); // define cascade field callback
-			}
+			}*/
 		} 
 		
 		// if fields require add_callbacks() to be called,
@@ -1013,7 +1014,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 					}
 				}
 				
-				// interrupt cascade callback  
+				//* (disabled) interrupt cascade callback, but still need set_cascade intr reg call  
 				if (field.isInterrupt() && (field.hasRef(RhsRefType.NEXT) || (field.hasRef(RhsRefType.INTR) && (field.getIntrType() == FieldProperties.IntrType.LEVEL)))) {
 					// set reference 
 					RhsReference eRef = null;
@@ -1032,10 +1033,12 @@ public class UVMRegsBuilder extends OutputBuilder {
 						String cascadeIsHalt = eRef.hasDeRef("halt")? "1" : "0";
 						outputList.add(new OutputLine(indentLvl, fieldId + ".set_cascade_intr_reg(m_cb_reg, " + cascadeIsHalt + ");"));  
 						
+						/* disable callback
 						//System.out.println("UVMRegsBuilder buildRegAddCallbacksFunction: cascade reg=" + eRef.getRegName() + ", depth=" + eRef.getDepth() );
 						outputList.add(new OutputLine(indentLvl, field.getPrefixedId() + "_cascade_cb = new(\"" +
 					                        field.getPrefixedId() + "_cascade_cb\", " + fieldId + ");")); 
-						outputList.add(new OutputLine(indentLvl, "uvm_reg_field_cb::add(this." + fieldId + ", " + field.getPrefixedId() + "_cascade_cb);")); 										
+						outputList.add(new OutputLine(indentLvl, "uvm_reg_field_cb::add(this." + fieldId + ", " + field.getPrefixedId() + "_cascade_cb);"));
+						*/ 										
 					}   
 				}
 				

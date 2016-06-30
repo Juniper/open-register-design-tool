@@ -87,7 +87,7 @@ public class UVMRdlClasses {
 		// create cbs class used for masked/enabled fields
 		buildMaskIntrFieldCbsClass(outputList, indentLvl);
 		// create cbs class used for fields with next or intr assigned
-		buildCascadeIntrFieldCbsClass(outputList, indentLvl);
+		//buildCascadeIntrFieldCbsClass(outputList, indentLvl);
 	}
 
 	/** build uvm_reg_rdl class extension of uvm_reg 

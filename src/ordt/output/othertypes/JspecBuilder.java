@@ -134,15 +134,10 @@ public class JspecBuilder extends OutputBuilder {
 	@Override
 	public void finishRegSet() {  
 		// all jspec register sets must specify a size
-		RegNumber regSetSize = getRegSetAddressStride(false);  // TODO - need to make sure this works before enabling
-		/*RegNumber regSetSize = new RegNumber(regSetProperties.getExtractInstance().getAddressIncrement());
-		// otherwise use computed size
-		if (!regSetSize.isDefined()) {
-			// compute size of this regset
-			regSetSize = new RegNumber(getNextAddress());
-			regSetSize.subtract(regSetProperties.getBaseAddress());
-			//System.out.println("JSpecBuilder finishRegSet: id=" + regSetProperties.getInstancePath() + ", base = " + regSetProperties.getBaseAddress() + ", next = " + getNextAddress() + ", computed size = " + regSetSize);
-		}*/
+		boolean useAlignedStride = regSetProperties.isReplicated() && ExtParameters.useJsAddressAlignment();
+		//RegNumber regSetSize = getRegSetAddressStride(false);  // TODO - need to make sure this works before enabling
+		RegNumber regSetSize = getRegSetAddressStride(useAlignedStride); 
+
 		// check for empty register set
 		if (!regSetSize.isGreaterThan(new RegNumber(0))) 
 			   Ordt.warnMessage("register set " + regSetProperties.getInstancePath() + 
