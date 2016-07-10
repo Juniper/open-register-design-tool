@@ -10,6 +10,7 @@ import java.util.List;
 import ordt.output.JspecCategory;
 import ordt.output.JspecSubCategory;
 import ordt.output.OutputLine;
+import ordt.output.systemverilog.SystemVerilogFunction;
 
 public class UVMRdlClasses {
 
@@ -110,10 +111,18 @@ public class UVMRdlClasses {
 		outputList.add(new OutputLine(indentLvl, "local int unsigned m_js_category = 0;")); 
 		
 		// create new function
-		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl++, "function new(string name = \"uvm_reg_rdl\", int unsigned n_bits = 0, int has_coverage = UVM_NO_COVERAGE);"));
-		outputList.add(new OutputLine(indentLvl, "super.new(name, n_bits, has_coverage);"));
-		outputList.add(new OutputLine(--indentLvl, "endfunction: new"));
+		SystemVerilogFunction func = new SystemVerilogFunction(null, "new");
+		func.addIO("input", "string", "name", "\"uvm_reg_rdl\"");
+		func.addIO("input", "int unsigned", "n_bits", "0");
+		func.addIO("input", "int", "has_coverage", "UVM_NO_COVERAGE");
+		func.addStatement("super.new(name, n_bits, has_coverage);");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		//TODO
+		//outputList.add(new OutputLine(indentLvl, ""));	
+		//outputList.add(new OutputLine(indentLvl++, "function new(string name = \"uvm_reg_rdl\", int unsigned n_bits = 0, int has_coverage = UVM_NO_COVERAGE);"));
+		//outputList.add(new OutputLine(indentLvl, "super.new(name, n_bits, has_coverage);"));
+		//outputList.add(new OutputLine(--indentLvl, "endfunction: new"));
 		
 		// add rdl path gen methods
 		buildRegRdlPathMethods(outputList, indentLvl);
