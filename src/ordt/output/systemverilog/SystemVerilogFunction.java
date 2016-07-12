@@ -7,12 +7,12 @@ import java.util.List;
 import ordt.output.OutputLine;
 
 public class SystemVerilogFunction {
-   private String name;
-   private String retType;
-   private boolean isVirtual = false;
-   private List<SVMethodIO> ioList = new ArrayList<SVMethodIO>();
-   private List<String> comments = new ArrayList<String>();
-   private List<String> statements = new ArrayList<String>();
+   protected String name;
+   protected String retType;
+   protected boolean isVirtual = false;
+   protected List<SVMethodIO> ioList = new ArrayList<SVMethodIO>();
+   protected List<String> comments = new ArrayList<String>();
+   protected List<String> statements = new ArrayList<String>();
    
    // constructor
    public SystemVerilogFunction(String retType, String name) {
@@ -124,7 +124,7 @@ public class SystemVerilogFunction {
    }
    
    // nested IO class
-   private class SVMethodIO {
+   protected class SVMethodIO {
 	   String dir;
 	   String type;
 	   String name;
