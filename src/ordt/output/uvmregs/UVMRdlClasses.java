@@ -11,6 +11,7 @@ import ordt.output.JspecCategory;
 import ordt.output.JspecSubCategory;
 import ordt.output.OutputLine;
 import ordt.output.systemverilog.SystemVerilogFunction;
+import ordt.output.systemverilog.SystemVerilogTask;
 
 public class UVMRdlClasses {
 
@@ -19,12 +20,12 @@ public class UVMRdlClasses {
 	 * @param indentLvl */
 	public static void buildRdlPackage(List<OutputLine> outputList, int indentLvl) {
 		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl, "// uvm_reg_rdl_pkg containing jrdl extended classes"));
-		outputList.add(new OutputLine(indentLvl++, "`ifndef UVM_REG_JRDL_PKG_SV"));
-		outputList.add(new OutputLine(indentLvl,     "`define UVM_REG_JRDL_PKG_SV"));
+		outputList.add(new OutputLine(indentLvl, "// uvm_reg_ordt_pkg containing ordt extended classes"));
+		outputList.add(new OutputLine(indentLvl++, "`ifndef UVM_REG_ORDT_PKG_SV"));
+		outputList.add(new OutputLine(indentLvl,     "`define UVM_REG_ORDT_PKG_SV"));
 
 		outputList.add(new OutputLine(indentLvl,   "`include \"uvm_macros.svh\""));
-		outputList.add(new OutputLine(indentLvl++, "package uvm_reg_jrdl_pkg;")); 
+		outputList.add(new OutputLine(indentLvl++, "package uvm_reg_ordt_pkg;")); 
 		outputList.add(new OutputLine(indentLvl,     "import uvm_pkg::*;"));
 		// create enum defines
 		buildRdlEnums(outputList, indentLvl);
@@ -87,8 +88,6 @@ public class UVMRdlClasses {
 		buildAliasRegCbsClass(outputList, indentLvl);
 		// create cbs class used for masked/enabled fields
 		buildMaskIntrFieldCbsClass(outputList, indentLvl);
-		// create cbs class used for fields with next or intr assigned
-		//buildCascadeIntrFieldCbsClass(outputList, indentLvl);
 	}
 
 	/** build uvm_reg_rdl class extension of uvm_reg 
@@ -133,14 +132,21 @@ public class UVMRdlClasses {
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// default get_src_intr_fields methods (overridden in intr reg child classes)
-		func = new SystemVerilogFunction("void", "get_intr_fields");  // return all source interrupt fields
+		func = new SystemVerilogFunction("void", "get_intr_fields"); 
+		func.addComment("Return a list of all leaf fields in this register's interrupt hierarchy.");
+		func.addComment("This null function is overridden by child interrupt register classes.");
 		func.setVirtual();
 		func.addIOArray("ref uvm_reg_field", "fields");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
-		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl++, "virtual task get_active_intr_fields(ref uvm_reg_field fields[$], input bit is_halt, input uvm_path_e path = UVM_DEFAULT_PATH); // return all active source intr/halt fields"));
-		outputList.add(new OutputLine(--indentLvl, "endtask: get_active_intr_fields"));
+		SystemVerilogTask task = new SystemVerilogTask("get_active_intr_fields");
+		task.addComment("Return a list of all fields in this register's interrupt hierarchy that are causing");
+		task.addComment("halt or interrupt to be asserted.  This null task is overridden by child interrupt register classes.");
+		task.setVirtual();
+		task.addIOArray("ref", "uvm_reg_field", "fields", null);
+		task.addIO("input", "bit", "is_halt", null);
+		task.addIO("input", "uvm_path_e", "path", "UVM_DEFAULT_PATH");
+		outputList.addAll(task.genOutputLines(indentLvl));	
 		
 		// add reg test info methods
 		buildRegTestInfoMethods(outputList, indentLvl);
@@ -187,21 +193,27 @@ public class UVMRdlClasses {
 
 		// add reset getters/setters
 		func = new SystemVerilogFunction("bit", "has_reset_value");
+		func.addComment("Return 1 if a reset value exists for this vreg set.");
 		func.addStatement("return m_has_reset;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 				
 		func = new SystemVerilogFunction("uvm_reg_data_t", "get_reset_value");
+		func.addComment("Return the reset value for this vreg set.");
 		func.addStatement("return m_reset_value;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 				
 		func = new SystemVerilogFunction("void", "set_reset_value");
+		func.addComment("Set the reset value for each register in this vreg set.");
 		func.addIO("uvm_reg_data_t", "reset_value");
 		func.addStatement("m_has_reset = 1;");
 		func.addStatement("m_reset_value = reset_value;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 				
 		// staged data methods  
-		func = new SystemVerilogFunction("uvm_reg_data_t", "get_staged");  // return staged value at specified idx or reset value
+		func = new SystemVerilogFunction("uvm_reg_data_t", "get_staged");
+		func.addComment("Return the value at the specified stage array idx. If no valid data exists at specified index,");
+		func.addComment("the reset value associated with this vreg will be returned.  If no reset value exists, a uvm_error");
+		func.addComment("will be thrown.");
 		func.addIO("longint unsigned", "stage_idx");
 		func.addStatement("if (m_staged.exists(stage_idx)) return m_staged[stage_idx];");
 		func.addStatement("else if (has_reset_value()) return m_reset_value;");
@@ -209,7 +221,8 @@ public class UVMRdlClasses {
 		func.addStatement("return 0;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 				
-		func = new SystemVerilogFunction("uvm_reg_data_t", "get_staged_field");  // return staged field value at specified idx
+		func = new SystemVerilogFunction("uvm_reg_data_t", "get_staged_field");
+		func.addComment("Return the value of the field with specified name at a given stage array idx.");
 		func.addIO("longint unsigned", "stage_idx");
 		func.addIO("string", "name");
 		func.addStatement("uvm_reg_data_t rvalue;");
@@ -228,12 +241,15 @@ public class UVMRdlClasses {
 		outputList.addAll(func.genOutputLines(indentLvl));	
 				
 		func = new SystemVerilogFunction("void", "set_staged");  // set staged value at specified idx
+		func.addComment("Set the value stored at the specified stage array idx.");
 		func.addIO("longint unsigned", "stage_idx");
 		func.addIO("uvm_reg_data_t", "staged");
 		func.addStatement("m_staged[stage_idx] = staged;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 				
 		func = new SystemVerilogFunction("void", "stage_field");  // set field value in specified staged array idx
+		func.addComment("Set the value of the field with specified name stored at a given stage array idx.");
+		func.addComment("Other bit locations in the target stage array location are not modified.");
 		func.addIO("longint unsigned", "stage_idx");
 		func.addIO("string", "name");
 		func.addIO("uvm_reg_data_t", "value");
@@ -260,25 +276,38 @@ public class UVMRdlClasses {
 		func.addStatement("m_staged[stage_idx] |= (value << lsb);");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 				
-		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl,   "// write stage value stored at stage_idx to dut memory offset at vreg_idx"));	
-		outputList.add(new OutputLine(indentLvl++, "virtual task write_staged(input longint unsigned stage_idx, input longint unsigned vreg_idx, output uvm_status_e status,"));
-		outputList.add(new OutputLine(indentLvl,     "    input uvm_path_e path = UVM_DEFAULT_PATH, input uvm_reg_map map = null, input uvm_sequence_base parent = null,"));
-		outputList.add(new OutputLine(indentLvl,     "    input uvm_object extension = null, input string fname = \"\", input int lineno = 0);"));
-		outputList.add(new OutputLine(indentLvl++,   "if (!m_staged.exists(stage_idx)) begin"));
-		outputList.add(new OutputLine(indentLvl,       "`uvm_error(\"RegModel\", $sformatf(\"Attempting write of uninitialized staged value at index %d. (uvm_vreg_rdl::write_staged())\", stage_idx));"));
-		outputList.add(new OutputLine(indentLvl,       "return;"));
-		outputList.add(new OutputLine(--indentLvl,   "end"));
-		outputList.add(new OutputLine(indentLvl,     "this.write(vreg_idx, status, m_staged[stage_idx], path, map, parent, extension, fname, lineno);"));
-		outputList.add(new OutputLine(--indentLvl, "endtask: write_staged"));	
+		SystemVerilogTask task = new SystemVerilogTask("write_staged");
+		task.setVirtual();
+		task.addComment("Write the stage array value stored at stage_idx to dut memory at offset vreg_idx");	
+		task.addIO("input", "longint unsigned", "stage_idx", null);
+		task.addIO("input", "longint unsigned", "vreg_idx", null);
+		task.addIO("output", "uvm_status_e", "status", null);
+		task.addIO("input", "uvm_path_e", "path", "UVM_DEFAULT_PATH");
+		task.addIO("input", "uvm_reg_map", "map", "null");
+		task.addIO("input", "uvm_sequence_base", "parent", "null");
+		task.addIO("input", "uvm_object", "extension", "null");
+		task.addIO("input", "string", "fname", "\"\"");
+		task.addIO("input", "int", "lineno", "0");
+		task.addStatement("if (!m_staged.exists(stage_idx)) begin");
+		task.addStatement("  `uvm_error(\"RegModel\", $sformatf(\"Attempting write of uninitialized staged value at index %d. (uvm_vreg_rdl::write_staged())\", stage_idx));");
+		task.addStatement("  return;");
+		task.addStatement("end");
+		task.addStatement("this.write(vreg_idx, status, m_staged[stage_idx], path, map, parent, extension, fname, lineno);");
+		outputList.addAll(task.genOutputLines(indentLvl));	
 		
-		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl,   "// write stage value stored at idx to dut memory at same idx offset"));	
-		outputList.add(new OutputLine(indentLvl++, "virtual task write_same_staged(input longint unsigned idx, output uvm_status_e status,"));
-		outputList.add(new OutputLine(indentLvl,     "    input uvm_path_e path = UVM_DEFAULT_PATH, input uvm_reg_map map = null, input uvm_sequence_base parent = null,"));
-		outputList.add(new OutputLine(indentLvl,     "    input uvm_object extension = null, input string fname = \"\", input int lineno = 0);"));
-		outputList.add(new OutputLine(indentLvl,     "this.write_staged(idx, idx, status, path, map, parent, extension, fname, lineno);"));
-		outputList.add(new OutputLine(--indentLvl, "endtask: write_same_staged"));		
+		task = new SystemVerilogTask("write_same_staged");
+		task.setVirtual();
+		task.addComment("Write the stage array value stored at idx to dut memory at same idx offset");	
+		task.addIO("input", "longint unsigned", "idx", null);
+		task.addIO("output", "uvm_status_e", "status", null);
+		task.addIO("input", "uvm_path_e", "path", "UVM_DEFAULT_PATH");
+		task.addIO("input", "uvm_reg_map", "map", "null");
+		task.addIO("input", "uvm_sequence_base", "parent", "null");
+		task.addIO("input", "uvm_object", "extension", "null");
+		task.addIO("input", "string", "fname", "\"\"");
+		task.addIO("input", "int", "lineno", "0");
+		task.addStatement("this.write_staged(idx, idx, status, path, map, parent, extension, fname, lineno);");
+		outputList.addAll(task.genOutputLines(indentLvl));	
 		
 		// close out the class definition
 		outputList.add(new OutputLine(indentLvl, ""));	
@@ -331,6 +360,7 @@ public class UVMRdlClasses {
 		
 		// set_rdl_address_map
 		func = new SystemVerilogFunction("void", "set_rdl_address_map");
+		func.addComment("Set indication that this block represents an rdl addrmap.");	
 		func.addIO("input", "bit", "val", "0");
 		func.addStatement("m_rdl_address_map = val;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
@@ -393,6 +423,7 @@ public class UVMRdlClasses {
 
 		// set_hw_access function
 		func = new SystemVerilogFunction("void", "set_rdl_access_info");
+		func.addComment("Set rdl hw/sw access info for this field.");	
 		func.addIO("bit", "is_sw_readable");
 		func.addIO("bit", "is_sw_writeable");
 		func.addIO("bit", "is_hw_readable");
@@ -409,6 +440,8 @@ public class UVMRdlClasses {
 
 		// read data output
 		func = new SystemVerilogFunction("string", "get_hw_read_signal");
+		func.addComment("Return the name of the read data output signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("return {rdl_reg.get_rdl_name(\"l2h_\", 1), this.get_name(), \"_r\"};");
@@ -416,6 +449,8 @@ public class UVMRdlClasses {
 
 		// write data input
 		func = new SystemVerilogFunction("string", "get_hw_write_signal");
+		func.addComment("Return the name of the write data input signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("return {rdl_reg.get_rdl_name(\"h2l_\", 1), this.get_name(), \"_w\"};");
@@ -423,6 +458,8 @@ public class UVMRdlClasses {
 
 		// write data enable input
 		func = new SystemVerilogFunction("string", "get_hw_we_signal");
+		func.addComment("Return the name of the active high write enable input signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("return {rdl_reg.get_rdl_name(\"h2l_\", 1), this.get_name(), \"_we\"};");
@@ -430,6 +467,8 @@ public class UVMRdlClasses {
 
 		// write data enable input
 		func = new SystemVerilogFunction("string", "get_hw_wel_signal");
+		func.addComment("Return the name of the active low write enable input signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("return {rdl_reg.get_rdl_name(\"h2l_\", 1), this.get_name(), \"_wel\"};");
@@ -437,87 +476,106 @@ public class UVMRdlClasses {
 
 		// is_sw_readable
 		func = new SystemVerilogFunction("bit", "is_sw_readable");
+		func.addComment("Returns 1 if this field can be read by sw.");	
 		func.addStatement("return m_is_sw_readable;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// is_sw_writeable
 		func = new SystemVerilogFunction("bit", "is_sw_writeable");
+		func.addComment("Returns 1 if this field can be written by sw.");	
 		func.addStatement("return m_is_sw_writeable;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// is_hw_readable
 		func = new SystemVerilogFunction("bit", "is_hw_readable");
+		func.addComment("Returns 1 if this field can be read by hw.");	
 		func.addStatement("return m_is_hw_readable;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// is_hw_writeable
 		func = new SystemVerilogFunction("bit", "is_hw_writeable");
+		func.addComment("Returns 1 if this field can be written by hw.");	
 		func.addStatement("return m_is_hw_writeable;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// has_hw_we
 		func = new SystemVerilogFunction("bit", "has_hw_we");
+		func.addComment("Returns 1 if this field has an active high hw write enable.");	
 		func.addStatement("return m_has_hw_we;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// has_hw_wel
 		func = new SystemVerilogFunction("bit", "has_hw_wel");
+		func.addComment("Returns 1 if this field has an active low hw write enable.");	
 		func.addStatement("return m_has_hw_wel;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// is_counter
 		func = new SystemVerilogFunction("bit", "is_counter");
+		func.addComment("Returns 1 if this field is a counter.  It is assumed this class can be cast to");	
+		func.addComment("uvm_reg_field_rdl_counter if this value is set.");	
 		func.addStatement("return m_is_counter;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// is_interrupt
 		func = new SystemVerilogFunction("bit", "is_interrupt");
+		func.addComment("Returns 1 if this field is an interrupt.  It is assumed this class can be cast to");	
+		func.addComment("uvm_reg_field_rdl_interrupt if this value is set.");	
 		func.addStatement("return m_is_interrupt;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// is_unsupported
 		func = new SystemVerilogFunction("void", "set_unsupported");
+		func.addComment("Sets indication that this field has functionality that is unsupported in the uvm model (use tbd).");	
 		func.addStatement("m_is_unsupported = 1;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		func = new SystemVerilogFunction("bit", "is_unsupported");
+		func.addComment("Returns 1 if this field has functionality that is unsupported in the uvm model (use tbd).");	
 		func.addStatement("return m_is_unsupported;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// is_dontcompare
 		func = new SystemVerilogFunction("void", "set_dontcompare");
+		func.addComment("Sets the dontcompare indicator on this field.");	
 		func.addStatement("m_is_dontcompare = 1;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		func = new SystemVerilogFunction("bit", "is_dontcompare");
+		func.addComment("Returns 1 if this field has dontcompare set.");	
 		func.addStatement("return m_is_dontcompare;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// has_js_subcategory
 		func = new SystemVerilogFunction("bit", "has_a_js_subcategory");
+		func.addComment("Returns 1 if this field has a jspec subcategory.");	
 		func.addStatement("return (m_js_subcategory > 0);");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// has_js_subcategory
 		func = new SystemVerilogFunction("bit", "has_js_subcategory");
+		func.addComment("Returns 1 if this field has the specified jspec subcategory.");	
 		func.addIO("js_subcategory_e", "cat");
 		func.addStatement("return ((cat & m_js_subcategory) > 0);");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// add_js_subcategory
 		func = new SystemVerilogFunction("void", "add_js_subcategory");
+		func.addComment("Sets the specified jspec subcategory for this field.");	
 		func.addIO("js_subcategory_e", "cat");
 		func.addStatement("m_js_subcategory = m_js_subcategory | cat;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// remove_js_subcategory
 		func = new SystemVerilogFunction("void", "remove_js_subcategory");
+		func.addComment("Removes the specified jspec subcategory for this field.");	
 		func.addIO("js_subcategory_e", "cat");
 		func.addStatement("m_js_subcategory = m_js_subcategory & ~cat;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// set_js_subcategory
 		func = new SystemVerilogFunction("void", "set_js_subcategory");
+		func.addComment("Sets the specified set of encoded jspec subcategories for this field.");	
 		func.addIO("int", "js_subcategory");
 		func.addStatement("m_js_subcategory = js_subcategory;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
@@ -527,7 +585,7 @@ public class UVMRdlClasses {
 		outputList.add(new OutputLine(--indentLvl, "endclass : uvm_reg_field_rdl"));
 	}
 
-	/** create class definition for interrupt fields  
+	/** create class definition for interrupt fields
 	 * @param outputList - list of output lines to be updated
 	 * @param indentLvl */
 	private static void buildUvmRegFieldRdlInterruptClass(List<OutputLine> outputList, int indentLvl) {
@@ -558,6 +616,7 @@ public class UVMRdlClasses {
 		
 		// add_intr function
 		func = new SystemVerilogFunction("void", "add_intr");
+		func.addComment("Set interrupt info for this field.");	
 		func.addIO("input", "int", "intr_level_type", "0");
 		func.addIO("input", "int", "intr_sticky_type", "0");
 		func.addIO("input", "string", "intr_sig", "\"\"");
@@ -571,17 +630,19 @@ public class UVMRdlClasses {
 		
 		// get intr input signal
 		func = new SystemVerilogFunction("string", "get_intr_signal");
+		func.addComment("Return the name of the interrupt input signal for this field.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("string intr_signal;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
-		func.addStatement("if (m_intr_sig.len() > 0) intr_signal = {rdl_reg.get_rdl_name(\"l2h_\", 1), m_intr_sig};");
+		func.addStatement("if (m_intr_sig.len() > 0) intr_signal = {rdl_reg.get_rdl_name(\"l2h_\", 1), m_intr_sig};");  //FIXME
 		func.addStatement("else intr_signal = {rdl_reg.get_rdl_name(\"h2l_\", 1), this.get_name(), \"_intr\"};");
-		func.addStatement("//$display(\"---  getting intrement sigmal: %s\", intr_signal);");
+		func.addStatement("//$display(\"---  getting interrupt signal: %s\", intr_signal);");
 		func.addStatement("return intr_signal;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// get intr output signal for parent reg
 		func = new SystemVerilogFunction("string", "get_intr_out_signal");
+		func.addComment("Return the name of the interrupt output signal for this field's parent register.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("return {rdl_reg.get_rdl_name(\"l2h_\", 1), \"_intr_o\"};");
@@ -589,31 +650,39 @@ public class UVMRdlClasses {
 		
 		// intr_level_type value // LEVEL(0), POSEDGE(1), NEGEDGE(2), BOTHEDGE(3)
 		func = new SystemVerilogFunction("int", "get_intr_level_type");
+		func.addComment("Return the interrupt level type for this field.");	
+		func.addComment("   Values: LEVEL(0), POSEDGE(1), NEGEDGE(2), BOTHEDGE(3)");	
 		func.addStatement("return m_intr_level_type;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// intr_sticky_type value // STICKYBIT(0), STICKY(1), NONSTICKY(2)
 		func = new SystemVerilogFunction("int", "get_intr_sticky_type");
+		func.addComment("Return the interrupt sticky type for this field.");	
+		func.addComment("   Values: STICKYBIT(0), STICKY(1), NONSTICKY(2)");	
 		func.addStatement("return m_intr_sticky_type;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
         // get mask intr bits indicator
 		func = new SystemVerilogFunction("bit", "get_mask_intr_bits");
+		func.addComment("Return 1 if the value of this field will be modified by enables/masks.");	
 		func.addStatement("return m_mask_intr_bits;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// add_halt function
 		func = new SystemVerilogFunction("void", "add_halt");
+		func.addComment("Set indication that this field will contribute to halt.");	
 		func.addStatement("m_is_halt = 1;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// get halt indication
 		func = new SystemVerilogFunction("bit", "is_halt");
+		func.addComment("Return 1 if halt is set for this interrupt field.");	
 		func.addStatement("return m_is_halt;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// get halt output signal for parent reg
 		func = new SystemVerilogFunction("string", "get_halt_out_signal");
+		func.addComment("Return the name of the halt output signal for this field's parent register.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("return {rdl_reg.get_rdl_name(\"l2h_\", 1), \"_halt_o\"};");
@@ -621,6 +690,7 @@ public class UVMRdlClasses {
 		
 		// set field that will be used as mask or enable of intr output from this field
 		func = new SystemVerilogFunction("void", "set_intr_mask_field");
+		func.addComment("Set the uvm_reg_field whose value is used as an intr mask or enable for this interrupt field.");	
 		func.addIO("uvm_reg_field", "intr_mask_fld");
 		func.addIO("bit", "intr_mask_fld_is_enable");
 		func.addStatement("$cast(m_intr_mask_fld, intr_mask_fld);");
@@ -628,19 +698,23 @@ public class UVMRdlClasses {
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		func = new SystemVerilogFunction("uvm_reg_field_rdl", "get_intr_mask_field");
+		func.addComment("Return the uvm_reg_field_rdl whose value is used as an intr mask or enable for this interrupt field.");	
 		func.addStatement("return m_intr_mask_fld;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		func = new SystemVerilogFunction("bit", "has_intr_mask_field");
+		func.addComment("Return 1 if an intr mask or enable field is assigned for this interrupt field.");	
 		func.addStatement("return (m_intr_mask_fld != null);");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		func = new SystemVerilogFunction("bit", "intr_mask_field_is_enable");
+		func.addComment("Return 1 if an intr enable field is assigned for this interrupt field, otherwise mask is assumed.");	
 		func.addStatement("return m_intr_mask_fld_is_enable;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// get field value after applying the intr mask/enable
 		func = new SystemVerilogFunction("uvm_reg_data_t", "get_intr_masked");
+		func.addComment("Return the field value after applying any intr masks/enables.");	
 		func.addStatement("uvm_reg_field_rdl mask_fld;");
 		func.addStatement("if (has_intr_mask_field()) begin");
 		func.addStatement("  if (intr_mask_field_is_enable()) return get() & m_intr_mask_fld.get();");
@@ -651,6 +725,7 @@ public class UVMRdlClasses {
 		
 		// set field that will be used as mask or enable of halt output from this field
 		func = new SystemVerilogFunction("void", "set_halt_mask_field");
+		func.addComment("Set the uvm_reg_field whose value is used as an halt mask or enable for this interrupt field.");	
 		func.addIO("uvm_reg_field", "halt_mask_fld");
 		func.addIO("bit", "halt_mask_fld_is_enable");
 		func.addStatement("$cast(m_halt_mask_fld, halt_mask_fld);");
@@ -658,19 +733,23 @@ public class UVMRdlClasses {
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		func = new SystemVerilogFunction("uvm_reg_field_rdl", "get_halt_mask_field");
+		func.addComment("Return the uvm_reg_field_rdl whose value is used as an halt mask or enable for this interrupt field.");	
 		func.addStatement("return m_halt_mask_fld;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		func = new SystemVerilogFunction("bit", "has_halt_mask_field");
+		func.addComment("Return 1 if a halt mask or enable field is assigned for this interrupt field.");	
 		func.addStatement("return (m_halt_mask_fld != null);");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
-		func = new SystemVerilogFunction("bit", "halt_mask_field_is_enable"); // is mask field an enable else a mask
+		func = new SystemVerilogFunction("bit", "halt_mask_field_is_enable"); 
+		func.addComment("Return 1 if an halt enable field is assigned for this interrupt field, otherwise mask is assumed.");	
 		func.addStatement("return m_halt_mask_fld_is_enable;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// get field value after applying the halt mask/enable
 		func = new SystemVerilogFunction("uvm_reg_data_t", "get_halt_masked");
+		func.addComment("Return the field value after applying any halt masks/enables.");	
 		func.addStatement("uvm_reg_field_rdl mask_fld;");
 		func.addStatement("if (has_halt_mask_field()) begin"); // if a mask/enable then apply
 		func.addStatement("  if (halt_mask_field_is_enable()) return get() & m_halt_mask_fld.get();"); // enable field
@@ -681,6 +760,8 @@ public class UVMRdlClasses {
 		
 		// set cascaded intr reg that will set value of this field
 		func = new SystemVerilogFunction("void", "set_cascade_intr_reg");
+		func.addComment("Set a register whose intr or halt output drives this interrupt field.  This creates an interrupt");	
+		func.addComment("hierarchy in the model where fields in the specified register are child interrupts of the current field.");	
 		func.addIO("uvm_reg", "cascade_intr_reg");
 		func.addIO("bit", "cascade_reg_is_halt");
 		func.addStatement("$cast(m_cascade_intr_reg, cascade_intr_reg);");
@@ -688,30 +769,39 @@ public class UVMRdlClasses {
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		func = new SystemVerilogFunction("uvm_reg_rdl", "get_cascade_intr_reg");
+		func.addComment("Return the uvm_reg_rdl whose intr or halt value drives this interrupt field.");	
 		func.addStatement("return m_cascade_intr_reg;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		func = new SystemVerilogFunction("bit", "has_cascade_intr_reg");
+		func.addComment("Return 1 if this interrupt field is driven by a child interrupt register.");	
 		func.addStatement("return (m_cascade_intr_reg != null);");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		func = new SystemVerilogFunction("bit", "cascade_reg_is_halt");
+		func.addComment("Return 1 if this interrupt field is driven by a child register's halt (else intr).");	
 		func.addStatement("return m_cascade_reg_is_halt;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// default get_src_intr_fields methods (overridden in intr reg child classes)
-		func = new SystemVerilogFunction("void", "get_intr_fields");  // return all source interrupt fields
+		func = new SystemVerilogFunction("void", "get_intr_fields");  
+		func.addComment("Return all leaf child interrupt fields in this field's interrupt hierarchy.");	
 		func.addIOArray("ref uvm_reg_field", "fields");
 		func.addStatement("if (has_cascade_intr_reg()) m_cascade_intr_reg.get_intr_fields(fields);");
 		func.addStatement("else fields.push_back(this);");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
-		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl++, "task get_active_intr_fields(ref uvm_reg_field fields[$], input bit is_halt, input uvm_path_e path = UVM_DEFAULT_PATH); // return all active source intr/halt fields"));
-		outputList.add(new OutputLine(indentLvl,     "if (has_cascade_intr_reg()) m_cascade_intr_reg.get_active_intr_fields(fields, m_cascade_reg_is_halt, path);"));
-		outputList.add(new OutputLine(indentLvl,     "else if (is_halt && (|get_halt_masked())) fields.push_back(this);"));
-		outputList.add(new OutputLine(indentLvl,     "else if (!is_halt && (|get_intr_masked())) fields.push_back(this);"));
-		outputList.add(new OutputLine(--indentLvl, "endtask: get_active_intr_fields"));
+		// return all active source intr/halt fields
+		SystemVerilogTask task = new SystemVerilogTask("get_active_intr_fields");
+		task.addComment("Return all leaf child interrupt fields in this field's interrupt hierarchy that.");	
+		task.addComment("are contributing to an active intr or halt.");	
+		task.addIOArray("ref", "uvm_reg_field", "fields", null);
+		task.addIO("input", "bit", "is_halt", null);
+		task.addIO("input", "uvm_path_e", "path", "UVM_DEFAULT_PATH");
+		task.addStatement("if (has_cascade_intr_reg()) m_cascade_intr_reg.get_active_intr_fields(fields, m_cascade_reg_is_halt, path);");
+		task.addStatement("else if (is_halt && (|get_halt_masked())) fields.push_back(this);");
+		task.addStatement("else if (!is_halt && (|get_intr_masked())) fields.push_back(this);");
+		outputList.addAll(task.genOutputLines(indentLvl));	
 		
 		outputList.add(new OutputLine(indentLvl, ""));	
 		//outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(uvm_reg_field_rdl_interrupt)")); //NOFACTORY
@@ -760,16 +850,19 @@ public class UVMRdlClasses {
 		
 		// get accum value
 		func = new SystemVerilogFunction("uvm_reg_data_t", "get_accum_value");
+		func.addComment("Return the scratchpad data stored for this counter field.");	
 		func.addStatement("return m_accum_value;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		func = new SystemVerilogFunction("void", "set_accum_value");
+		func.addComment("Set the scratchpad data value for this counter field.");	
 		func.addIO("uvm_reg_data_t", "accum_value");
 		func.addStatement("m_accum_value = accum_value;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// add_incr function
-		func = new SystemVerilogFunction("void", "add_incr");
+		func = new SystemVerilogFunction("void", "add_incr");  
+		func.addComment("Set incrementing counter info for this field.");	
 		func.addIO("uvm_reg_data_t", "incr_value");
 		func.addIO("input", "string", "incr_sig", "\"\"");
 		func.addIO("input", "string", "incr_value_sig", "\"\"");
@@ -782,7 +875,8 @@ public class UVMRdlClasses {
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// add_incr sat function
-		func = new SystemVerilogFunction("void", "add_incr_sat");
+		func = new SystemVerilogFunction("void", "add_incr_sat"); 
+		func.addComment("Set incrementing counter saturation value info for this field.");	
 		func.addIO("uvm_reg_data_t", "incr_sat_value");
 		func.addIO("input", "string", "incr_sat_value_sig", "\"\"");
 		func.addStatement("m_has_incr_sat = 1;");
@@ -792,6 +886,7 @@ public class UVMRdlClasses {
 		
 		// add_incr thold function
 		func = new SystemVerilogFunction("void", "add_incr_thold");
+		func.addComment("Set incrementing counter threshold value info for this field.");	
 		func.addIO("uvm_reg_data_t", "incr_thold_value");
 		func.addIO("input", "string", "incr_thold_value_sig", "\"\"");
 		func.addStatement("m_has_incr_thold = 1;");
@@ -801,17 +896,21 @@ public class UVMRdlClasses {
 		
 		// get incr input signal
 		func = new SystemVerilogFunction("string", "get_incr_signal");
+		func.addComment("Return the name of the increment input signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("string incr_signal;");
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
-		func.addStatement("if (m_incr_sig.len() > 0) incr_signal = {rdl_reg.get_rdl_name(\"rg_\", 1), m_incr_sig};"); // field incr signal
-		func.addStatement("else incr_signal = {rdl_reg.get_rdl_name(\"h2l_\", 1), this.get_name(), \"_incr\"};");  // input incr signal
-		func.addStatement("//$display(\"---  getting increment sigmal: %s\", incr_signal);");
+		func.addStatement("if (m_incr_sig.len() > 0) incr_signal = {rdl_reg.get_rdl_name(\"rg_\", 1), m_incr_sig};"); // FIXME
+		func.addStatement("else incr_signal = {rdl_reg.get_rdl_name(\"h2l_\", 1), this.get_name(), \"_incr\"};");
+		func.addStatement("//$display(\"---  getting increment signal: %s\", incr_signal);");
 		func.addStatement("return incr_signal;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// overflow output
 		func = new SystemVerilogFunction("string", "get_overflow_signal");
+		func.addComment("Return the name of the overflow output signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("return {rdl_reg.get_rdl_name(\"l2h_\", 1), this.get_name(), \"_overflow\"};");
@@ -819,6 +918,8 @@ public class UVMRdlClasses {
 		
 		// incrsat output
 		func = new SystemVerilogFunction("string", "get_incr_sat_signal");
+		func.addComment("Return the name of the increment saturation output signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("return {rdl_reg.get_rdl_name(\"l2h_\", 1), this.get_name(), \"_incrsat_o\"};");
@@ -826,6 +927,8 @@ public class UVMRdlClasses {
 		
 		// incrthold output
 		func = new SystemVerilogFunction("string", "get_incr_thold_signal");
+		func.addComment("Return the name of the increment threshold output signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("return {rdl_reg.get_rdl_name(\"l2h_\", 1), this.get_name(), \"_incrthold_o\"};");
@@ -833,58 +936,71 @@ public class UVMRdlClasses {
 		
 		// incr value
 		func = new SystemVerilogFunction("uvm_reg_data_t", "get_incr_value");
+		func.addComment("Return the increment value for this counter field.");	
 		func.addStatement("return m_incr_value;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// get incr value signal
 		func = new SystemVerilogFunction("string", "get_incr_value_signal");
+		func.addComment("Return the name of the increment value input signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
-		func.addStatement("if (m_incr_value_sig.len() > 0) return rdl_reg.get_rdl_name(\"rg_\", 1, m_incr_value_sig);"); // assumes peer field w/ no property
-		func.addStatement("else return {rdl_reg.get_rdl_name(\"h2l_\", 1), this.get_name(), \"_incrvalue\"};");  // input incr value signal
+		func.addStatement("if (m_incr_value_sig.len() > 0) return rdl_reg.get_rdl_name(\"rg_\", 1, m_incr_value_sig);"); // FIXME
+		func.addStatement("else return {rdl_reg.get_rdl_name(\"h2l_\", 1), this.get_name(), \"_incrvalue\"};");  
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// get incr value signal width
 		func = new SystemVerilogFunction("int unsigned", "get_incr_value_signal_width");
+		func.addComment("Return the increment input signal width for this counter field.");	
 		func.addStatement("return m_incr_value_sig_width;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// incr sat value
 		func = new SystemVerilogFunction("bit", "has_incr_sat");
+		func.addComment("Return 1 if an increment saturation value/signal is defined for this counter field.");	
 		func.addStatement("return m_has_incr_sat;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		func = new SystemVerilogFunction("uvm_reg_data_t", "get_incr_sat_value");
+		func.addComment("Return the increment saturation value for this counter field.");	
 		func.addStatement("return m_incr_sat_value;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// get incr sat value signal
 		func = new SystemVerilogFunction("string", "get_incr_sat_value_signal");
+		func.addComment("Return the name of the increment saturation value input signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("if (m_incr_sat_value_sig.len() < 1) return \"\";"); // no default input
-		func.addStatement("else return rdl_reg.get_rdl_name(\"rg_\", 1, m_incr_sat_value_sig);");  // assumes peer field w/ no propert
+		func.addStatement("else return rdl_reg.get_rdl_name(\"rg_\", 1, m_incr_sat_value_sig);");  // FIXME assumes peer field w/ no property
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// incr thold value
 		func = new SystemVerilogFunction("bit", "has_incr_thold");
+		func.addComment("Return 1 if an increment threshold value/signal is defined for this counter field.");	
 		func.addStatement("return m_has_incr_thold;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		func = new SystemVerilogFunction("uvm_reg_data_t", "get_incr_thold_value");
+		func.addComment("Return the increment threshold value for this counter field.");	
 		func.addStatement("return m_incr_thold_value;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// get incr thold value signal
 		func = new SystemVerilogFunction("string", "get_incr_thold_value_signal");
+		func.addComment("Return the name of the increment threshold value input signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("if (m_incr_thold_value_sig.len() < 1) return \"\";"); // no default input
-		func.addStatement("else return rdl_reg.get_rdl_name(\"rg_\", 1, m_incr_thold_value_sig);"); // assumes peer field w/ no property
+		func.addStatement("else return rdl_reg.get_rdl_name(\"rg_\", 1, m_incr_thold_value_sig);"); // FIXME assumes peer field w/ no property
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// add_decr function
-		func = new SystemVerilogFunction("void", "add_decr");
+		func = new SystemVerilogFunction("void", "add_decr");  
+		func.addComment("Set decrementing counter info for this field.");	
 		func.addIO("uvm_reg_data_t", "decr_value");
 		func.addIO("input", "string", "decr_sig", "\"\"");
 		func.addIO("input", "string", "decr_value_sig", "\"\"");
@@ -898,6 +1014,7 @@ public class UVMRdlClasses {
 		
 		// add_decr sat function
 		func = new SystemVerilogFunction("void", "add_decr_sat");
+		func.addComment("Set decrementing counter saturation value info for this field.");	
 		func.addIO("uvm_reg_data_t", "decr_sat_value");
 		func.addIO("input", "string", "decr_sat_value_sig", "\"\"");
 		func.addStatement("m_has_decr_sat = 1;");
@@ -907,6 +1024,7 @@ public class UVMRdlClasses {
 		
 		// add_decr thold function
 		func = new SystemVerilogFunction("void", "add_decr_thold");
+		func.addComment("Set decrementing counter threshold value info for this field.");	
 		func.addIO("uvm_reg_data_t", "decr_thold_value");
 		func.addIO("input", "string", "decr_thold_value_sig", "\"\"");
 		func.addStatement("m_has_decr_thold = 1;");
@@ -916,17 +1034,21 @@ public class UVMRdlClasses {
 		
 		// get decr input signal
 		func = new SystemVerilogFunction("string", "get_decr_signal");
+		func.addComment("Return the name of the decrement input signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("string decr_signal;");
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
-		func.addStatement("if (m_decr_sig.len() > 0) decr_signal = {rdl_reg.get_rdl_name(\"rg_\", 1), m_decr_sig};"); // field decr signal
-		func.addStatement("else decr_signal = {rdl_reg.get_rdl_name(\"h2l_\", 1), this.get_name(), \"_decr\"};");  // input decr signal
+		func.addStatement("if (m_decr_sig.len() > 0) decr_signal = {rdl_reg.get_rdl_name(\"rg_\", 1), m_decr_sig};"); // FIXME
+		func.addStatement("else decr_signal = {rdl_reg.get_rdl_name(\"h2l_\", 1), this.get_name(), \"_decr\"};");
 		func.addStatement("//$display(\"---  getting decrement sigmal: %s\", decr_signal);");
 		func.addStatement("return decr_signal;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// underflow output
 		func = new SystemVerilogFunction("string", "get_underflow_signal");
+		func.addComment("Return the name of the underflow output signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("return {rdl_reg.get_rdl_name(\"l2h_\", 1), this.get_name(), \"_underflow\"};");
@@ -934,6 +1056,8 @@ public class UVMRdlClasses {
 
 		// decrsat output
 		func = new SystemVerilogFunction("string", "get_decr_sat_signal");
+		func.addComment("Return the name of the decrement saturation output signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("return {rdl_reg.get_rdl_name(\"l2h_\", 1), this.get_name(), \"_decrsat_o\"};");
@@ -941,6 +1065,8 @@ public class UVMRdlClasses {
 
 		// decrthold output
 		func = new SystemVerilogFunction("string", "get_decr_thold_signal");
+		func.addComment("Return the name of the decrement threshold output signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("return {rdl_reg.get_rdl_name(\"l2h_\", 1), this.get_name(), \"_decrthold_o\"};");
@@ -948,54 +1074,66 @@ public class UVMRdlClasses {
 
 		// decr value
 		func = new SystemVerilogFunction("uvm_reg_data_t", "get_decr_value");
+		func.addComment("Return the decrement value for this counter field.");	
 		func.addStatement("return m_decr_value;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// get decr value signal
 		func = new SystemVerilogFunction("string", "get_decr_value_signal");
+		func.addComment("Return the name of the decrement value input signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
-		func.addStatement("if (m_decr_value_sig.len() > 0) return rdl_reg.get_rdl_name(\"rg_\", 1, m_decr_value_sig);");  // assumes peer field w/ no property
-		func.addStatement("else return {rdl_reg.get_rdl_name(\"h2l_\", 1), this.get_name(), \"_decrvalue\"};"); // input decr value signal
+		func.addStatement("if (m_decr_value_sig.len() > 0) return rdl_reg.get_rdl_name(\"rg_\", 1, m_decr_value_sig);");  // FIXME
+		func.addStatement("else return {rdl_reg.get_rdl_name(\"h2l_\", 1), this.get_name(), \"_decrvalue\"};"); 
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// get decr value signal width
 		func = new SystemVerilogFunction("int unsigned", "get_decr_value_signal_width");
+		func.addComment("Return the decrement input signal width for this counter field.");	
 		func.addStatement("return m_decr_value_sig_width;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// decr sat value
-		func = new SystemVerilogFunction("bit", "has_decr_sat");
+		func = new SystemVerilogFunction("bit", "has_decr_sat"); 
+		func.addComment("Return 1 if a decrement saturation value/signal is defined for this counter field.");	
 		func.addStatement("return m_has_decr_sat;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		func = new SystemVerilogFunction("uvm_reg_data_t", "get_decr_sat_value");
+		func.addComment("Return the decrement saturation value for this counter field.");	
 		func.addStatement("return m_decr_sat_value;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// get decr sat value signal
 		func = new SystemVerilogFunction("string", "get_decr_sat_value_signal");
+		func.addComment("Return the name of the decrement saturation value input signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("if (m_decr_sat_value_sig.len() < 1) return \"\";");  // no default input
-		func.addStatement("else return rdl_reg.get_rdl_name(\"rg_\", 1, m_decr_sat_value_sig);"); // assumes peer field w/ no property
+		func.addStatement("else return rdl_reg.get_rdl_name(\"rg_\", 1, m_decr_sat_value_sig);"); // FIXME assumes peer field w/ no property
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// decr thold value
 		func = new SystemVerilogFunction("bit", "has_decr_thold");
+		func.addComment("Return 1 if a decrement threshold value/signal is defined for this counter field.");	
 		func.addStatement("return m_has_decr_thold;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		func = new SystemVerilogFunction("uvm_reg_data_t", "get_decr_thold_value");
+		func.addComment("Return the decrement threshold value for this counter field.");	
 		func.addStatement("return m_decr_thold_value;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// get decr thold value signal
 		func = new SystemVerilogFunction("string", "get_decr_thold_value_signal");
+		func.addComment("Return the name of the decrement threshold value input signal for this field.");	
+		func.addComment("Note that a signal having this name may not exist in the RTL depending on field options.");	
 		func.addStatement("uvm_reg_rdl rdl_reg;");
 		func.addStatement("rdl_reg = this.get_rdl_register();");
 		func.addStatement("if (m_decr_thold_value_sig.len() < 1) return \"\";");  // no default input
-		func.addStatement("else return rdl_reg.get_rdl_name(\"rg_\", 1, m_decr_thold_value_sig);"); // assumes peer field w/ no property
+		func.addStatement("else return rdl_reg.get_rdl_name(\"rg_\", 1, m_decr_thold_value_sig);"); // FIXME assumes peer field w/ no property
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		outputList.add(new OutputLine(indentLvl, ""));	
@@ -1024,47 +1162,49 @@ public class UVMRdlClasses {
 		
 		// create set_alias_regs function
 		func = new SystemVerilogFunction("void", "set_alias_regs");
-		func.addComment("set alias register group for this cbs");
+		func.addComment("Set alias register group for this callback.");
 		func.addIOArray("uvm_reg", "alias_regs");
 		func.addStatement("m_alias_regs = alias_regs;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// task to set all regs in an alias group to same value post r/w
-		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl, "// set all regs in an alias group to same value post r/w"));	
-		outputList.add(new OutputLine(indentLvl++, "task alias_group_predict(uvm_reg_item rw);")); 
-		outputList.add(new OutputLine(indentLvl, " uvm_reg_data_t 	updated_value;"));
-		outputList.add(new OutputLine(indentLvl++, "if (rw.status != UVM_IS_OK)"));
-		outputList.add(new OutputLine(indentLvl--, "return;"));
-		outputList.add(new OutputLine(indentLvl++, "if (rw.element_kind == UVM_REG) begin"));
-		outputList.add(new OutputLine(indentLvl, "uvm_reg rg;"));
-		outputList.add(new OutputLine(indentLvl, "$cast(rg, rw.element);"));
-		outputList.add(new OutputLine(indentLvl++, "if (m_alias_regs[0] != null) begin"));
-		outputList.add(new OutputLine(indentLvl, "updated_value = rg.get();"));
-		outputList.add(new OutputLine(indentLvl++, "foreach (m_alias_regs[i]) begin"));
-		outputList.add(new OutputLine(indentLvl, "void'(m_alias_regs[i].predict(updated_value));"));
-		outputList.add(new OutputLine(indentLvl, "//$display(\"  new value for %s is %h\", m_alias_regs[i].get_full_name(), m_alias_regs[i].get());"));
-		outputList.add(new OutputLine(--indentLvl, "end"));
-		outputList.add(new OutputLine(--indentLvl, "end"));
-		outputList.add(new OutputLine(--indentLvl, "end"));
-		outputList.add(new OutputLine(--indentLvl, "endtask"));
-
+		SystemVerilogTask task = new SystemVerilogTask("alias_group_predict");
+		task.addComment("Set all regs in an alias group to same value post r/w");
+		task.addIO("uvm_reg_item", "rw");
+		task.addStatement(" uvm_reg_data_t 	updated_value;");
+		task.addStatement("if (rw.status != UVM_IS_OK)");
+		task.addStatement("  return;");
+		task.addStatement("if (rw.element_kind == UVM_REG) begin");
+		task.addStatement("  uvm_reg rg;");
+		task.addStatement("  $cast(rg, rw.element);");
+		task.addStatement("  if (m_alias_regs[0] != null) begin");
+		task.addStatement("    updated_value = rg.get();");
+		task.addStatement("    foreach (m_alias_regs[i]) begin");
+		task.addStatement("      void'(m_alias_regs[i].predict(updated_value));");
+		task.addStatement("      //$display(\"  new value for %s is %h\", m_alias_regs[i].get_full_name(), m_alias_regs[i].get());");
+		task.addStatement("    end");
+		task.addStatement("  end");
+		task.addStatement("end");
+		outputList.addAll(task.genOutputLines(indentLvl));	
+		
 		// post_read
-		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl, "// update all regs in group after read"));	
-		outputList.add(new OutputLine(indentLvl++, "virtual task post_read(uvm_reg_item rw);")); 
-		outputList.add(new OutputLine(indentLvl, " //$display(\"*** post_read ***\");"));
-		outputList.add(new OutputLine(indentLvl, " alias_group_predict(rw);"));
-		outputList.add(new OutputLine(--indentLvl, "endtask"));
+		task = new SystemVerilogTask("post_read");
+		task.setVirtual();
+		task.addComment("Update all regs in an alias group after a read");
+		task.addIO("uvm_reg_item", "rw");
+		task.addStatement(" //$display(\"*** post_read ***\");");
+		task.addStatement(" alias_group_predict(rw);");
+		outputList.addAll(task.genOutputLines(indentLvl));	
 		
 		// post_write
-		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl, "// update all regs in group after write"));	
-		outputList.add(new OutputLine(indentLvl++, "virtual task post_write(uvm_reg_item rw);")); 
-		outputList.add(new OutputLine(indentLvl, " //$display(\"*** post_write ***\");"));
-		outputList.add(new OutputLine(indentLvl, " alias_group_predict(rw);"));
-		outputList.add(new OutputLine(--indentLvl, "endtask"));
-
+		task = new SystemVerilogTask("post_write");
+		task.setVirtual();
+		task.addComment("Update all regs in an alias group after a write");
+		task.addIO("uvm_reg_item", "rw");
+		task.addStatement(" //$display(\"*** post_write ***\");");
+		task.addStatement(" alias_group_predict(rw);");
+		outputList.addAll(task.genOutputLines(indentLvl));	
+		
 		// close out the alias cbs definition
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(rdl_alias_reg_cbs)"));
@@ -1093,6 +1233,7 @@ public class UVMRdlClasses {
 		
 		// override post_predict function
 		func = new SystemVerilogFunction("void", "post_predict");
+		func.addComment("Override post_predict to update value of field according to mask/enable state.");
 		func.setVirtual();
 		func.addIO("input", "uvm_reg_field", "fld", null);
 		func.addIO("input", "uvm_reg_data_t", "previous", null);
@@ -1110,60 +1251,6 @@ public class UVMRdlClasses {
 		outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(rdl_mask_intr_field_cbs)"));
 		outputList.add(new OutputLine(--indentLvl, "endclass : rdl_mask_intr_field_cbs"));
 	}
-
-	/** build cbs class to be used for fields with next or intr assigned to an intr_o from another reg
-	 * @param outputList - list of output lines to be updated
-	 * @param indentLvl */
-	public static void buildCascadeIntrFieldCbsClass(List<OutputLine> outputList, int indentLvl) {
-		// generate class header 
-		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl, "// cbs class for fields with next or intr assigned as cascaded intr_o value"));
-		outputList.add(new OutputLine(indentLvl++, "class rdl_cascade_intr_field_cbs extends uvm_reg_cbs;"));   
-				
-		// define
-		outputList.add(new OutputLine(indentLvl, "local uvm_reg_field_rdl_interrupt m_cascade_field;"));
-		
-		// create new function, intr_o_reg=next/intr reg whose intr_o value will be used
-		SystemVerilogFunction func = new SystemVerilogFunction(null, "new");
-		func.addIO("input", "string", "name", "\"\"");
-		func.addIO("input", "uvm_reg_field", "cascade_field", "null");
-		func.addStatement("super.new(name);");
-		func.addStatement("$cast(m_cascade_field, cascade_field);");
-		outputList.addAll(func.genOutputLines(indentLvl));	
-		
-		// override post_predict function / loop thru field values and set value if any intr bits defined  
-		func = new SystemVerilogFunction("void", "post_predict");
-		func.setVirtual();
-		func.addIO("input", "uvm_reg_field", "fld", null);
-		func.addIO("input", "uvm_reg_data_t", "previous", null);
-		func.addIO("inout", "uvm_reg_data_t", "value", null);
-		func.addIO("input", "uvm_predict_e", "kind", null);
-		func.addIO("input", "uvm_path_e", "path", null);
-		func.addIO("input", "uvm_reg_map", "map", null);
-		func.addStatement("uvm_reg_field f[$];");
-		func.addStatement("uvm_reg_field_rdl rdl_f;");
-		func.addStatement("uvm_reg_field_rdl_interrupt rdl_intr_f;");
-		func.addStatement("uvm_reg m_intr_o_reg;"); 
-		func.addStatement("if (kind == UVM_PREDICT_READ) begin");
-		func.addStatement("  m_intr_o_reg = m_cascade_field.get_cascade_intr_reg();"); // get referenced intr_o reg
-		func.addStatement("  m_intr_o_reg.get_fields(f);"); 
-		func.addStatement("  value = 0;");
-		func.addStatement("  foreach(f[i]) begin");
-		func.addStatement("    $cast(rdl_f, f[i]);");  // cast to rdl filed so intr methods are visible
-		func.addStatement("    if (rdl_f.is_interrupt()) begin");
-		func.addStatement("      $cast(rdl_intr_f, rdl_f);");  // cast to rdl filed so intr methods are visible
-		func.addStatement("      if (rdl_intr_f.cascade_reg_is_halt) value = value | rdl_intr_f.get_halt_masked();");  // use halt masked/enabled values here
-		func.addStatement("      else value = value | rdl_intr_f.get_intr_masked();");  // use intr masked/enabled values here
-		func.addStatement("    end");
-		func.addStatement("  end");
-		func.addStatement("end");
-		outputList.addAll(func.genOutputLines(indentLvl));
-		
-		// close out the alias cbs definition
-		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(rdl_cascade_intr_field_cbs)"));
-		outputList.add(new OutputLine(--indentLvl, "endclass : rdl_cascade_intr_field_cbs"));
-	}
 	
 	// ----------- common method gen methods
 	
@@ -1171,6 +1258,7 @@ public class UVMRdlClasses {
 	private static void buildRegTestInfoMethods(List<OutputLine> outputList, int indentLvl) {
 		// set_reg_test_info function
 		SystemVerilogFunction func = new SystemVerilogFunction("void", "set_reg_test_info");
+		func.addComment("Set test related info for this register (donttest, dontcompare, js category).");
 		func.addIO("bit", "dont_test");
 		func.addIO("bit", "dont_compare");
 		func.addIO("int", "js_category");
@@ -1181,33 +1269,39 @@ public class UVMRdlClasses {
 		
 		// is_dont_test
 		func = new SystemVerilogFunction("bit", "is_dont_test");
+		func.addComment("Return 1 if register is marked don't test.");
 		func.addStatement("return m_dont_test;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// is_dont_compare
 		func = new SystemVerilogFunction("bit", "is_dont_compare");
+		func.addComment("Return 1 if register is marked don't compare.");
 		func.addStatement("return m_dont_compare;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// has_js_category
 		func = new SystemVerilogFunction("bit", "has_a_js_category");
+		func.addComment("Return 1 if register has a jspec category.");
 		func.addStatement("return (m_js_category > 0);");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// has_js_category
 		func = new SystemVerilogFunction("bit", "has_js_category");
+		func.addComment("Return 1 if register has the specified jspec category.");
 		func.addIO("js_category_e", "cat");
 		func.addStatement("return ((cat & m_js_category) > 0);");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// add_js_category
 		func = new SystemVerilogFunction("void", "add_js_category");
+		func.addComment("Add the specified jspec category to this register.");
 		func.addIO("js_category_e", "cat");
 		func.addStatement("m_js_category = m_js_category | cat;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// remove_js_category
 		func = new SystemVerilogFunction("void", "remove_js_category");
+		func.addComment("Remove the specified jspec category from this register.");
 		func.addIO("js_category_e", "cat");
 		func.addStatement("m_js_category = m_js_category & ~cat;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
@@ -1220,12 +1314,17 @@ public class UVMRdlClasses {
 	private static void buildRegRdlPathMethods(List<OutputLine> outputList, int indentLvl) {
 		// set rdl tag for this hierarchy level
 		SystemVerilogFunction func = new SystemVerilogFunction("void", "set_rdl_tag");
+		func.addComment("Set the rdl tag string for this register.  The tag will be used to build");
+		func.addComment("RTL signal names using the model hierarchy.");
 		func.addIO("input", "string", "rdl_tag", "\"rdl_tag\"");
 		func.addStatement("m_rdl_tag = rdl_tag;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// recursively build hierarchical name
 		func = new SystemVerilogFunction("string", "get_rdl_name");
+		func.addComment("Return a string corresponding to this model element using recursive call to");
+		func.addComment("ancestors.  Used to generate RTL signal names.");
+		func.addComment("RTL signal names using the model hierarchy.");
 		func.addIO("input", "string", "prefix", null);
 		func.addIO("input", "bit", "add_hdl_prefix", "0");
 		func.addIO("input", "string", "override_tag", "\"\"");
@@ -1251,12 +1350,16 @@ public class UVMRdlClasses {
 	private static void buildBlockRdlPathMethods(List<OutputLine> outputList, int indentLvl) {
 		// set rdl tag for this hierarchy level
 		SystemVerilogFunction func = new SystemVerilogFunction("void", "set_rdl_tag");
+		func.addComment("Set the rdl tag string for this block.  The tag will be used to build");
+		func.addComment("RTL signal names using the model hierarchy.");
 		func.addIO("input", "string", "rdl_tag", "\"rdl_tag\"");
 		func.addStatement("m_rdl_tag = rdl_tag;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// recursively build hierarchical name
 		func = new SystemVerilogFunction("string", "get_rdl_name");
+		func.addComment("Return a string corresponding to this model element using recursive call to");
+		func.addComment("ancestors (stopping at an address map).  Used to generate RTL signal names.");
 		func.addIO("input", "string", "prefix", null);
 		func.addIO("input", "bit", "add_hdl_prefix", "0");
 		func.addIO("input", "string", "override_tag", "\"\"");
@@ -1286,6 +1389,7 @@ public class UVMRdlClasses {
 	 * @param indentLvl */
 	private static void buildAddCallbacksMethod(List<OutputLine> outputList, int indentLvl) {
 		SystemVerilogFunction func = new SystemVerilogFunction("void", "add_callbacks");
+		func.addComment("Null function that is overridden by block/reg classes requiring callback setup.");
 		func.setVirtual();
 		outputList.addAll(func.genOutputLines(indentLvl));	
 	}
@@ -1295,6 +1399,8 @@ public class UVMRdlClasses {
 	 * @param indentLvl */
 	private static void buildRdlAncestorMethod(List<OutputLine> outputList, int indentLvl) {
 		SystemVerilogFunction func = new SystemVerilogFunction("uvm_reg_block_rdl", "get_ancestor");
+		func.addComment("Return the uvm_reg_block_rdl element that is the specified number of ancestor");
+		func.addComment("levels from the current block/register.");
 		func.setVirtual();
 		func.addIO("int", "depth");
 		func.addStatement("uvm_reg_block_rdl rdl_parent;");
