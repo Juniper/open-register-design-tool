@@ -83,10 +83,35 @@ public class SystemVerilogFunction {
 	   return retList;
    }
    
+   /** generate markup string list for this method */
+   public List<String> genMarkup() {
+	   List<String> retList = new ArrayList<String>();
+	   // build markup
+	   retList.add(genHeader() + " **" + name + "()**");
+	   retList.add(""); 
+	   retList.add("Parameters:"); 
+	   retList.add(""); 
+	   // add parameters
+	   for (SVMethodIO mio : ioList) {
+		   String ioName = mio.dir + " " + mio.type + " **" + mio.name + "**"; 
+		   String defStr = (mio.defaultValue != null)? ", (default value = " + mio.defaultValue + ")" : "";
+		   retList.add("- " + ioName + defStr);
+	   }
+	   retList.add(""); 
+	   // add comments
+	   Iterator<String> cit = comments.iterator();
+	   while (cit.hasNext()) retList.add(cit.next());
+	   retList.add(""); 
+	   retList.add("---"); 
+	   return retList;
+   }
+   
    /** generate OutputLine list for this method */
    public List<OutputLine> genOutputLines(int indentLvl) {
 	   List<OutputLine> retList = new ArrayList<OutputLine>();
 	   Iterator<String> it = genSV().iterator();
+	   //Iterator<String> it = genMarkup().iterator();  // generate markup for docs
+	   //indentLvl = 0;  // no indent for markup
 	   while (it.hasNext()) {
 		   retList.add(new OutputLine(indentLvl, it.next()));
 	   }	   
@@ -108,14 +133,19 @@ public class SystemVerilogFunction {
 	   return retStr;
    }
    
+   /** generate header string for this method (function) */
+   protected String genHeader() {
+	   String retStr = isVirtual? "virtual function" : "function";
+	   retStr = (retType == null)? retStr : retStr + " " + retType; 
+	   return retStr;
+   }
+  
    /** generate signature string for this method (function) */
    protected String genSignature() {
 	   boolean showIODir = false;
 	   for (SVMethodIO io: ioList) if (!"input".equals(io.dir)) showIODir = true;
-	   String retStr = isVirtual? "virtual function" : "function";
 	   String suffix = " " + name + genIODefs(showIODir) + ";";
-	   retStr = (retType == null)? retStr + suffix : retStr + " " + retType + suffix; 
-	   return retStr;
+	   return genHeader() + suffix;
    }
    
    /** generate closing string for this method (function) */

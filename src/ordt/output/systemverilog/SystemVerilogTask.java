@@ -6,14 +6,18 @@ public class SystemVerilogTask extends SystemVerilogFunction {
 		super(null, name);
 	}
 
+	/** generate header string for this method (task) */
+	protected String genHeader() {
+		String retStr = isVirtual? "virtual task" : "task";
+		return retStr;
+	}
+	  
 	/** generate signature string for this method (task) */
 	@Override
 	protected String genSignature() {
 		boolean showIODir = true;
-		String retStr = isVirtual? "virtual task" : "task";
 		String suffix = " " + name + genIODefs(showIODir) + ";";
-		retStr = retStr + suffix; 
-		return retStr;
+		return genHeader() + suffix;
 	}
 
 	/** generate closing string for this method (task) */
