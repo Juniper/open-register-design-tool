@@ -20,12 +20,12 @@ public class UVMRdlClasses {
 	 * @param indentLvl */
 	public static void buildRdlPackage(List<OutputLine> outputList, int indentLvl) {
 		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl, "// uvm_reg_ordt_pkg containing ordt extended classes"));
-		outputList.add(new OutputLine(indentLvl++, "`ifndef UVM_REG_ORDT_PKG_SV"));
-		outputList.add(new OutputLine(indentLvl,     "`define UVM_REG_ORDT_PKG_SV"));
+		outputList.add(new OutputLine(indentLvl, "// ordt_uvm_reg_pkg containing ordt extended classes"));
+		outputList.add(new OutputLine(indentLvl++, "`ifndef ORDT_UVM_REG_PKG_SV"));
+		outputList.add(new OutputLine(indentLvl,     "`define ORDT_UVM_REG_PKG_SV"));
 
 		outputList.add(new OutputLine(indentLvl,   "`include \"uvm_macros.svh\""));
-		outputList.add(new OutputLine(indentLvl++, "package uvm_reg_ordt_pkg;")); 
+		outputList.add(new OutputLine(indentLvl++, "package ordt_uvm_reg_pkg;")); 
 		outputList.add(new OutputLine(indentLvl,     "import uvm_pkg::*;"));
 		// create enum defines
 		buildRdlEnums(outputList, indentLvl);

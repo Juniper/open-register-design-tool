@@ -186,7 +186,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	public void addRegMap() { 
 		regSetHasCallback.push(false);
 		outputList.add(new OutputLine(indentLvl, "import uvm_pkg::*;"));
-		outputList.add(new OutputLine(indentLvl, "import uvm_reg_ordt_pkg::*;"));
+		outputList.add(new OutputLine(indentLvl, "import ordt_uvm_reg_pkg::*;"));
 	}
 
 	/** finish root address map  */
