@@ -5,6 +5,7 @@ package ordt.output.systemverilog;
 // - header is only written for root builder
 
 import java.io.BufferedWriter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -209,51 +210,114 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 
 	// -----------
 	
+	private enum cmdType {INVALID, READ, WRITE, WAIT, SET};
+
 	/** test command inner class */
 	private class TestCommand {  // TODO
-		private boolean valid = false;
-		private boolean read = false;
-		private Integer size = 0;
-		private RegNumber address;
-		private RegNumber data;
+		
+		private cmdType cType = cmdType.INVALID; // command is invalid by default
+		private HashMap<String, Integer> ints= new HashMap<String, Integer>();
+		private HashMap<String, String> strs= new HashMap<String, String>();
+		private HashMap<String, RegNumber> rnums= new HashMap<String, RegNumber>();
 				
 		TestCommand(String cmdStr) {
-			Pattern datePatt = Pattern.compile("^(write|read)\\s+(\\d+)\\s+(0x\\w+)(\\s+(0x\\w+))?");
-			Matcher m = datePatt.matcher(cmdStr);
+			
+			// check for read and write form commands
+			Pattern chkPat = Pattern.compile("^(write|read)\\s+(\\d+)\\s+(0x\\w+)(\\s+(0x\\w+))?");
+			Matcher m = chkPat.matcher(cmdStr);
 			if (m.matches()) {
-			//if (cmdStr.matches("^write\\s+(\\d+)\\s+(0x\\w+)\\s+(0x\\w+)")) {
-				valid = true;
-				read = "read".equals(m.group(1));
-				size = Integer.valueOf(m.group(2));
+				RegNumber address, data = null;
+				cType = "read".equals(m.group(1))? cmdType.READ : cmdType.WRITE;
+				ints.put("size", Integer.valueOf(m.group(2)));  // save r/w size
 				address = new RegNumber(m.group(3));
 				address.setNumBase(NumBase.Hex);
 				address.setNumFormat(NumFormat.Verilog);
 				address.setVectorLen(ExtParameters.getLeafAddressSize());
+				rnums.put("address", address);  // save r/w address
 				if (m.groupCount() > 4) {
 					data = new RegNumber(m.group(5));
 					data.setNumBase(NumBase.Hex);
 					data.setNumFormat(NumFormat.Verilog);
-					data.setVectorLen(size);
+					data.setVectorLen(ints.get("size"));
+					rnums.put("data", data);  // save r/w data
 				}
-				valid = (size != null) && (address.isDefined()) && (read | ((data !=null) && data.isDefined()));
+				if ((ints.get("size") == null) || (!address.isDefined()) || 
+						(isWrite() && ((data == null) || !data.isDefined()))) cType = cmdType.INVALID;
 			}
 			
-			//if (!valid) System.out.println("bad command: " + cmdStr);
-			//else System.out.println(m.group(1) + " " + size + " detected, address=" + address + ", data=" + data);
-
+			// otherwise check for wait command
+			else {
+				chkPat = Pattern.compile("^wait\\s+(\\d+)");
+				m = chkPat.matcher(cmdStr);
+				if (m.matches()) {
+					cType = cmdType.WAIT;
+					ints.put("cycles", Integer.valueOf(m.group(1)));  // save wait time
+					if (ints.get("cycles") == null) cType = cmdType.INVALID;
+				}
+				
+				// otherwise check for set command
+				else {
+					chkPat = Pattern.compile("^set\\s+(\\w+)\\s*=\\s*(.*)");
+					m = chkPat.matcher(cmdStr);
+					if (m.matches()) {
+						cType = cmdType.SET;
+						strs.put("var", m.group(1));  // save varname
+						strs.put("value", m.group(2));  // save assign value
+						if ((strs.get("var") == null) || (strs.get("value") == null)) cType = cmdType.INVALID;
+					}					
+				}
+				
+			}
+			
+			//System.out.println(this);
+			if (!isValid()) Ordt.warnMessage("invalid test commad found: " + cmdStr);
 		}
 
 		public void addStatements() {
-			String typeStr = read? "read" : "write";  
-			String dataStr = read? "" : ", " + data;
-			benchtop.addStatement(typeStr + size + "(" + address + dataStr + ", address, wr_data, type, size, leaf_go);");
-		   	benchtop.addStatement("@ (posedge done)");
-		   	benchtop.addStatement("   leaf_go = #2 1'b0; ");
-		   	benchtop.addStatement("");
-	}
+			if (isRead() || isWrite()) {
+				String typeStr = isRead()? "read" : "write";  
+				String dataStr = isRead()? "" : ", " + rnums.get("data");
+				benchtop.addStatement(typeStr + ints.get("size") + "(" + rnums.get("address") + dataStr + ", address, wr_data, type, size, leaf_go);");
+			   	benchtop.addStatement("@ (posedge done)");
+			   	benchtop.addStatement("   leaf_go = #2 1'b0;");
+			   	benchtop.addStatement("");				
+			}
+			else if (isWait()) {
+			   	benchtop.addStatement("repeat(" + ints.get("cycles") + ")");
+			   	benchtop.addStatement("   @(posedge CLK);");
+			   	benchtop.addStatement("");								
+			}
+			else if (isSet()) {
+			   	benchtop.addStatement(strs.get("var") + " = " + strs.get("value") + ";");
+			   	benchtop.addStatement("");				
+			}
+		}
+		
+		public String toString() {
+			String retStr = "type: " + cType;
+			retStr += "\n  ints: ";
+			for (String key : ints.keySet()) retStr += "\n    " + key + ": " + ints.get(key);
+			retStr += "\n  strs: ";
+			for (String key : strs.keySet()) retStr += "\n    " + key + ": " + strs.get(key);
+			retStr += "\n  rnums: ";
+			for (String key : rnums.keySet()) retStr += "\n    " + key + ": " + rnums.get(key);
+			return retStr;
+		}
 
 		public boolean isValid() {
-			return valid;
+			return (cType != cmdType.INVALID);
+		}
+		private boolean isRead() {
+			return (cType == cmdType.READ);
+		}
+		private boolean isWrite() {
+			return (cType == cmdType.WRITE);
+		}
+		private boolean isWait() {
+			return (cType == cmdType.WAIT);
+		}
+		private boolean isSet() {
+			return (cType == cmdType.SET);
 		}
 	}
 	// -----------
@@ -420,7 +484,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	   	   
 		leafbfm.addStatement("    if (type[1] == 1'b0) begin");			
 	   	leafbfm.addStatement("      leaf_dec_wr_width = size;");  // 0 to N-1
-	   	leafbfm.addStatement("      $display(\"%0d: initiating %d word write to address %x...\", $time, trans_size, address);");
+	   	leafbfm.addStatement("      $display(\"%0d: initiating %d word write to address %x (data=%x)...\", $time, trans_size, address, wr_data);");
 	   	leafbfm.addStatement("    end");
 		leafbfm.addStatement("    else begin");			
 	   	leafbfm.addStatement("      leaf_dec_wr_width = 0;");  // set width during read to zero
