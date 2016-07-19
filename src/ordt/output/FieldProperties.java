@@ -46,6 +46,9 @@ public class FieldProperties extends InstanceProperties {
 	private boolean isWoset = false;
 	private boolean isWoclr = false;
 	
+	private boolean hasSwAcc = false;
+	private boolean hasSwMod = false;
+	
 	private boolean isAnded = false;
 	private boolean isOred = false;
 	private boolean isXored = false;
@@ -266,6 +269,10 @@ public class FieldProperties extends InstanceProperties {
 		if (pList.hasTrueProperty("anded")) setAnded(true);
 		if (pList.hasTrueProperty("ored")) setOred(true);
 		if (pList.hasTrueProperty("xored")) setXored(true);
+		
+		// set sw access props
+		if (pList.hasTrueProperty("swacc")) setSwAcc(true);
+		if (pList.hasTrueProperty("swmod")) setSwMod(true);
 		
 		// set singlepulse property
 		if (pList.hasTrueProperty("singlepulse")) setSinglePulse(true);
@@ -649,6 +656,16 @@ public class FieldProperties extends InstanceProperties {
 		String prefix = addPrefix ? "h2l_" : "";
 		return prefix + fieldPath + "_swwe" ;
 	}
+	
+	public static String getLogicToHwSwAccName(String fieldPath, boolean addPrefix) {
+		String prefix = addPrefix ? "l2h_" : "";
+		return prefix + fieldPath + "_swacc_o" ;
+	}
+
+	public static String getLogicToHwSwModName(String fieldPath, boolean addPrefix) {
+		String prefix = addPrefix ? "l2h_" : "";
+		return prefix + fieldPath + "_swmod_o" ;
+	}
 
 	public static String getHwToLogicIntrName(String fieldPath, boolean addPrefix) {
 		String prefix = addPrefix ? "h2l_" : "";
@@ -773,6 +790,14 @@ public class FieldProperties extends InstanceProperties {
 
 	public  String getHwToLogicSwWeName() {
 		return getHwToLogicSwWeName(getBaseName(), true);   
+	}
+
+	public  String getLogicToHwSwAccName() {
+		return getLogicToHwSwAccName(getBaseName(), true);   
+	}
+	
+	public  String getLogicToHwSwModName() {
+		return getLogicToHwSwModName(getBaseName(), true);   
 	}
 
 	public  String getHwToLogicIntrName() {
@@ -994,6 +1019,22 @@ public class FieldProperties extends InstanceProperties {
 		this.hasWriteEnableL = hasWriteEnableL;
 	}
 	
+	public boolean hasSwAcc() {
+		return hasSwAcc;
+	}
+
+	public void setSwAcc(boolean hasSwAcc) {
+		this.hasSwAcc = hasSwAcc;
+	}
+
+	public boolean hasSwMod() {
+		return hasSwMod;
+	}
+
+	public void setSwMod(boolean hasSwMod) {
+		this.hasSwMod = hasSwMod;
+	}
+
 	/** returns true if field is hw accessible (either read or write) */
 	public boolean isHwAccessible() {
 		return isHwReadable() || isHwWriteable();

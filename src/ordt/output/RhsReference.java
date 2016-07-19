@@ -239,6 +239,10 @@ public class RhsReference {
 		   return FieldProperties.getLogicToHwOredName(instancePath, addPrefix);  
 	   if (this.deRef.equals("xored"))
 		   return FieldProperties.getLogicToHwXoredName(instancePath, addPrefix);  
+	   if (this.deRef.equals("swacc"))
+		   return FieldProperties.getLogicToHwSwAccName(instancePath, addPrefix);  
+	   if (this.deRef.equals("swmod"))
+		   return FieldProperties.getLogicToHwSwModName(instancePath, addPrefix);  
 	   // if not supported flag an error
 	   Ordt.errorExit("unsupported right hand assignment reference: " + getRawReference());
 	   return null;

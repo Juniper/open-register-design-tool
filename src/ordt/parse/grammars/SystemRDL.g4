@@ -249,8 +249,8 @@ property
   | 'hwset'
   | 'hwclr'
 
-//| 'swmod'
-//| 'swacc'
+  | 'swmod'
+  | 'swacc'
 
   | 'sticky'
   | 'stickybit'
@@ -362,9 +362,6 @@ property
 
 unimplemented_property
   : 'arbiter'
-
-  | 'swmod'
-  | 'swacc'
 
   | 'sharedextbus'
   | 'errextbus'

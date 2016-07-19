@@ -111,7 +111,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	    // if this child is for test, then tag it
 	    this.setTestBuilder(isTestModule);
 	    if (isTestModule) setAddressMapName(regSetProperties.getId());
-	    // FIXME - need to handle external replicated reg, single reg , replicated regsets cases
+	    // FIXME - need to handle external replicated reg, single reg , replicated regsets cases for full test gen
 	    // also, wont work because startMap() and finishMap() are not called - would need to modify model itself or allow regset as sv root instance
 
 	    // save the regProperties state and set external names
@@ -516,7 +516,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		}
 	}
 
-	/** generate verilog statements to write field flops */  
+	/** generate verilog statements to write field flops */  // TODO - move these methods to SystemVerilogLogicBuilder
 	private  void genFieldWriteStmts() {
 		   // get field-specific verilog signal names
 		   String hwToLogicDataName = fieldProperties.getHwToLogicDataName();  // hwBaseName + "_w" 
@@ -756,6 +756,23 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   else if (fieldProperties.isRclr()) {
 			   logic.addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicReName + swWeStr + ") " + fieldRegisterNextName + " = " + 
 		           fieldProperties.getFieldWidth() + "'b0;");
+		   }
+		   
+		   // if has sw access output
+		   if (fieldProperties.hasSwAcc()) {
+			   String logicToHwSwAccName = fieldProperties.getLogicToHwSwAccName();
+			   hwSigList.addScalar(LOGIC, HW, logicToHwSwAccName);   // add sw access output
+			   logic.addScalarReg(logicToHwSwAccName);  
+			   logic.addPrecCombinAssign(regBaseName, swPrecedence, logicToHwSwAccName + 
+					   " = " + decodeToLogicReName + " | " + decodeToLogicWeName + ";");
+		   }
+		   // if has sw modify output
+		   if (fieldProperties.hasSwMod()) {
+			   String logicToHwSwModName = fieldProperties.getLogicToHwSwModName();
+			   hwSigList.addScalar(LOGIC, HW, logicToHwSwModName);   // add sw access output
+			   logic.addScalarReg(logicToHwSwModName); 
+			   String readMod = (fieldProperties.isRclr() || fieldProperties.isRset())? "(" + decodeToLogicReName + " | " + decodeToLogicWeName + ")" : decodeToLogicWeName;
+			   logic.addPrecCombinAssign(regBaseName, swPrecedence, logicToHwSwModName + " = " + readMod + swWeStr + ";");
 		   }
 	}
 
