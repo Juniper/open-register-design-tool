@@ -83,6 +83,7 @@ output uvmregs {
 	max_reg_coverage_bins = 64   // limit address coverage bins for replicated regs
 }
 
+// model annotation commands
 annotate {
   set_reg_property cppmod_prune = "true" instances "foo.bar.*" // set parameter on all matching registers
   //set_field_property cppmod_prune = "true" instances "ltpn"      // set parameter on all matching fields
@@ -90,7 +91,7 @@ annotate {
   //set_reg_property js_superset_check = "SS_VALUE" instances "*" // set parameter on all matching registers
 }
 
+// testbench output parameters
 output bench {
-  //generate_external_regs = true       // generate registers for all external regions, even if not an addrmap
-  only_output_dut_instances = false    // do not output full testbench module, just rtl instancing dut
+  add_test_command = "write 32 0x0 0x12345678"  // add a test command to the output bench
 }

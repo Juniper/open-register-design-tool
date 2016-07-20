@@ -404,7 +404,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 			subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].set_rdl_tag($psprintf(\"" + blockId + "_%0d_\",i));");
 			if (regSetProperties.isAddressMap()) {
 				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].set_rdl_address_map(1);");  // tag block as an address map
-				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".jrdl_logic\"});");  // TODO
+				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});");  // TODO
 			}
 			subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].build();");
 			subcompBuildList.addStatement(parentID, "  this.default_map.add_submap(this." + escapedBlockId + "[i].default_map, " + addrStr + "+i*" + getRegSetAddrIncrString() + ");");						
@@ -416,7 +416,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_tag(\"" + blockId + "_\");");
 			if (!hasNameOverride && regSetProperties.isAddressMap()) {
 				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + ".set_rdl_address_map(1);");  // tag block as an address map
-				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + ".set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".jrdl_logic\"});");  
+				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + ".set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});");  
 			}
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".build();");
 		   subcompBuildList.addStatement(parentID, "this.default_map.add_submap(this." + escapedBlockId + ".default_map, " + addrStr + ");");			
@@ -1233,7 +1233,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 			oLine.setHasTextReplacements(true);
 			outputList.add(oLine);
 			outputList.add(new OutputLine(indentLvl, "this.set_rdl_address_map(1);"));  			
-			outputList.add(new OutputLine(indentLvl, "this.set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".jrdl_logic\"});"));  			
+			outputList.add(new OutputLine(indentLvl, "this.set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});"));  			
 		}
 		else {
 			OutputLine oLine = new OutputLine(indentLvl, "this.default_map = create_map(\"\", 0, " + byteWidthString + ", " + endianness + ", 1);");
@@ -1279,7 +1279,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 				
 		// if an address map, set hdl path base
 		if (!isMemWrapper && (isBaseBlock || regSetProperties.isAddressMap()))  // TODO - does this work for child addrmaps? 
-			outputList.add(new OutputLine(indentLvl, "set_hdl_path_root({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".jrdl_logic\"});"));
+			outputList.add(new OutputLine(indentLvl, "set_hdl_path_root({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});"));
 		// now that all subcomponents have been built, add callbacks
 		if (!isMemWrapper && isBaseBlock)
 			outputList.add(new OutputLine(indentLvl, "this.add_callbacks();"));
