@@ -20,7 +20,6 @@ public class AddressableInstanceProperties extends InstanceProperties {
 	protected int extAddressWidth = 0;   // width of word address range for this group
 	protected int extLowBit = 0;  // low bit in external address range
 	
-	protected boolean addressMap = false;   // is an external address map
 	private boolean externalDecode = false;   // inst declared as external decode
 
 	public AddressableInstanceProperties(ModInstance extractInstance) {
@@ -34,7 +33,6 @@ public class AddressableInstanceProperties extends InstanceProperties {
 		setBaseAddress(oldInstance.getBaseAddress());  
 		setExtAddressWidth(oldInstance.getExtAddressWidth());  
 		setExtLowBit(oldInstance.getExtLowBit());  
-		setAddressMap(oldInstance.isAddressMap());  
 		setExternalDecode(oldInstance.isExternalDecode());  
 	}
 	
@@ -46,7 +44,6 @@ public class AddressableInstanceProperties extends InstanceProperties {
 		System.out.println("   relative base address=" + this.getRelativeBaseAddress());  		
 		System.out.println("   ext addr width=" + this.getExtAddressWidth());  		
 		System.out.println("   ext addr low bit=" + this.getExtLowBit());  		
-		System.out.println("   is address map=" + this.isAddressMap());  		
 		System.out.println("   external decode=" + this.isExternalDecode());  		
 	}
 
@@ -119,20 +116,6 @@ public class AddressableInstanceProperties extends InstanceProperties {
 	 */
 	public void setExtLowBit(int extLowBit) {
 		this.extLowBit = extLowBit;
-	}
-
-	/** get addressMap
-	 *  @return the addressMap
-	 */
-	public boolean isAddressMap() {
-		return addressMap;
-	}
-
-	/** set addressMap
-	 *  @param addressMap the addressMap to set
-	 */
-	public void setAddressMap(boolean addressMap) {
-		this.addressMap = addressMap;
 	}
 
 	/** get extractInstance

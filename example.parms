@@ -48,7 +48,7 @@ output systemverilog {
 	//always_generate_iwrap = false     // create int wrapper mod even if none specified in rdl
 	suppress_no_reset_warnings = true   // inhibit field no reset messages
 	//generate_child_addrmaps = false   // generate child address maps
-	ring16_inter_node_delay = 2             // leaf address bits
+	ring16_inter_node_delay = 2             // delay stages added between r16 clients 
 	//bbv5_timeout_input = true         // add input port(s) for bb root interface timeout
 	include_default_coverage = true   // include default cover points in rtl
 }

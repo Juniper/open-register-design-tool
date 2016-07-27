@@ -98,7 +98,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// add internal registered input sigs
 		this.addScalarReg("pio_write_active");  // write indication
 		this.addScalarReg("pio_read_active");  // read indication
-		this.addVectorReg("pio_dec_address_d1", builder.getAddressLowBit(), builder.getAddressWidth(builder.getCurrentMapSize()));  // address
+		if (mapHasMultipleAddresses()) this.addVectorReg("pio_dec_address_d1", builder.getAddressLowBit(), builder.getMapAddressWidth());  // address
 		this.addVectorReg("pio_dec_write_data_d1", 0, builder.getMaxRegWidth());  // input write data capture register 
 		
         // pio read/write actives - enabled by ext re/we and disabled when ack/nack
@@ -107,7 +107,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addRegAssign("pio i/f",  "pio_write_active <= #1  pio_write_active ? pio_no_acks : pio_activate_write;"); // active stays high until ack/nack 		   
 		this.addRegAssign("pio i/f",  "pio_read_active <= #1  pio_read_active ? pio_no_acks : pio_activate_read;");  		   
 
-		this.addRegAssign("pio i/f",  "pio_dec_address_d1 <= #1   " + pioInterfaceAddressName + ";");  // capture address if new transaction		   
+		if (mapHasMultipleAddresses()) this.addRegAssign("pio i/f",  "pio_dec_address_d1 <= #1   " + pioInterfaceAddressName + ";");  // capture address if new transaction		   
 		this.addRegAssign("pio i/f",  "pio_dec_write_data_d1 <= #1  " + pioInterfaceWriteDataName + ";"); // capture write data if new transaction
 		
 		// if max transaction is larger than min, add transaction size signals 
@@ -181,7 +181,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// first set correct names to be used
 		setChildAddrmapPioNames(topRegProperties);
 		// generate IO
-		this.addVectorFrom(SystemVerilogBuilder.PIO, pioInterfaceAddressName, builder.getAddressLowBit(), builder.getAddressWidth(builder.getCurrentMapSize()));  // address
+		if (mapHasMultipleAddresses()) this.addVectorFrom(SystemVerilogBuilder.PIO, pioInterfaceAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  // address
 		this.addVectorFrom(SystemVerilogBuilder.PIO, pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  // write data
 		// if max transaction for this addrmap is larger than 1, add transaction size signals
 		if (builder.getMaxRegWordWidth() > 1) {
@@ -203,7 +203,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// define the internal interface signals (these are external on child addrmaps)
 		this.addVectorWire(pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
-		this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), builder.getAddressWidth(builder.getCurrentMapSize()));  //  address to be used internally 
+		if (mapHasMultipleAddresses()) this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  //  address to be used internally 
 		this.addScalarWire(pioInterfaceReName);  //  read enable to be used internally 
 		this.addScalarWire(pioInterfaceWeName);  //  write enable be used internally 
 
@@ -222,7 +222,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// generate the address and block decode selects
 		this.addVectorFrom(SystemVerilogBuilder.PIO, "leaf_dec_addr", 0, ExtParameters.getLeafAddressSize() );  // full external address
-		this.addWireAssign(pioInterfaceAddressName + " = " + "leaf_dec_addr" + builder.genRefAddressArrayString() + ";");
+		if (mapHasMultipleAddresses()) this.addWireAssign(pioInterfaceAddressName + " = " + "leaf_dec_addr" + builder.genRefAddressArrayString() + ";");
 		
 		// if always selecting this block no need for sel signal
 		boolean alwaysSelected = (ExtParameters.getSystemverilogBlockSelectMode() == SVBlockSelectModes.ALWAYS);
@@ -240,7 +240,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// check for ignored lower bits in base address  // TODO should this check also be in others (ring16 eg)
 		int lowAddrBit = builder.getAddressLowBit();   
-		int addrSize = builder.getAddressWidth(builder.getCurrentMapSize());    
+		int addrSize = builder.getMapAddressWidth();    
 		RegNumber lowBaseBits = baseAddr.getSubVector(lowAddrBit, addrSize);
 		if ((lowBaseBits != null) && (lowBaseBits.isNonZero()))  
 			Ordt.warnMessage("Non zero base address value below bit " + (lowAddrBit + addrSize) + " will be ignored");
@@ -414,7 +414,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorTo(SystemVerilogBuilder.PIO, serial8ResDataName, 0, 8);     
 		
 		// calculate max number of 8b xfers required for address 
-		int addressWidth = builder.getAddressWidth(builder.getCurrentMapSize());
+		int addressWidth = builder.getMapAddressWidth();
 		int addrXferCount = 0;
 		if (addressWidth > 0) {
 			addrXferCount = (int) Math.ceil(addressWidth/8.0);
@@ -713,7 +713,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		   this.addWireAssign("block_base_address = " + baseAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ";");  // constant define
 		
 		// calculate max number of 16b xfers required for address 
-		int addressWidth = builder.getAddressWidth(builder.getCurrentMapSize());
+		int addressWidth = builder.getMapAddressWidth();
 		int maxAddrXferCount = (int) Math.ceil(ExtParameters.getLeafAddressSize()/16.0);  // max address xfers (not determined by local size)
 		//System.out.println("SystemVerilogBuilder genRing16PioInterface: addr width=" + addressWidth + ", max addr count=" + maxAddrXferCount);
 		
@@ -2332,7 +2332,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				writeStmt(indentLevel, elem.getDecodeToHwName() + "_next = pio_dec_write_data_d1" + SystemVerilogBuilder.genRefArrayString(0, elem.getRegWidth()) + ";"); // regardless of transaction size assign based on regsize
 				writeStmt(indentLevel, elem.getDecodeToHwWeName() + "_next = 1'b0;");  // we defaults to 0
 				writeStmt(indentLevel, elem.getDecodeToHwReName() + "_next = 1'b0;");  // we defaults to 0
-				// if an address is required then add it
+				// if an address is required then add it 
 				if ( (elem.getExtAddressWidth() > 0 ) && !elem.isSingleExtReg())
 				   writeStmt(indentLevel, elem.getDecodeToHwAddrName() + "_next = pio_dec_address_d1 " + elem.getExtAddressArrayString() + ";");  // address is resistered value from pio
 				// if data sizes are needed then add - also check for single register here and inhibit
@@ -2351,7 +2351,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// now build case statement by iterating through reg list
 		writeStmt(indentLevel, "");
-		writeStmt(indentLevel, "casez(pio_dec_address_d1)");   // begin case statement
+		if (mapHasMultipleAddresses()) writeStmt(indentLevel, "casez(pio_dec_address_d1)");   // begin case statement
 		it = decoderList.iterator();
 		while (it.hasNext()) {
 			RegProperties elem = it.next();
@@ -2359,10 +2359,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
  			//System.out.println("//  Register: "+ elem.getInstancePath() + "     Address: " + elem.getBaseAddress() + "     External: " + elem.isExternal()); 
 			//System.out.println("  reg width=" + elem.getRegWidth() + ",  words=" + regWords + "  bits=" + regWordBits);
 
-			// external, so capture extternal ack/nack, create re/we to hw, and capture read data
+			// external, so capture external ack/nack, create re/we to hw, and capture read data
 			if (elem.isExternal()) {
 				// getNextAddress holds max value of address map at this point   
-				writeStmt(indentLevel++, getExtDecodeAddressString(elem) + ":");
+				if (mapHasMultipleAddresses()) writeStmt(indentLevel++, getExtDecodeAddressString(elem) + ":");
 				writeStmt(indentLevel++, "begin"); 
 				//System.out.println("VerilogBuilder: external region, regsize=" + elem.getRegWidth() + ", regwordbits=" + getBits(elem.getRegWordWidth()) + ", sizebits=" + elem.getExtAddressWidth());
 
@@ -2407,7 +2407,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			// else internal, so create internal ack, re/we to logic, and capture read data
 			else {
 				// getNextAddress holds max value of address map at this point 
-				writeStmt(indentLevel++, getIntDecodeAddressString(elem) + ":");  
+				if (mapHasMultipleAddresses()) writeStmt(indentLevel++, getIntDecodeAddressString(elem) + ":");  
 				writeStmt(indentLevel++, "begin");
 				
 	            // if this is a wide register 
@@ -2438,7 +2438,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			}
 		}	
      
-	    writeStmt(indentLevel, "endcase");  		
+		if (mapHasMultipleAddresses()) writeStmt(indentLevel, "endcase");  		
 
 		writeStmt(--indentLevel, "end");  
 		writeStmt(indentLevel, "");  		
@@ -2460,7 +2460,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			for (int idx=adrLen-regWordBits; idx<adrLen; idx++)
 				decodeString.setCharAt(idx, '?');
 		}
-		return builder.getAddressWidth(mapSize) + "'b" + decodeString;  // TODO - check for zerod wide reg bits?
+		return builder.getMapAddressWidth() + "'b" + decodeString;  // TODO - check for zerod wide reg bits?
 	}
 	
 	/** generate the bit string for decoder case statement w/ an external address */
@@ -2484,6 +2484,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			return topBits + Utils.repeat('?', extAddrWidth);
 		}
 		else return intString;  // no external address needed, so just use base address
+	}
+
+	/** return true if this map contains multiple addressed elements */
+	private boolean mapHasMultipleAddresses() {
+		return builder.getMapAddressWidth() >= 1;
 	}
 
 }

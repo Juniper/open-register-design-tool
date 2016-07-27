@@ -404,7 +404,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	/** finish a register map for a particular output */
 	@Override
 	public  void finishRegMap() {	
-		//Jrdl.warnMessage("SystemVerilogBuilder: finishRegMap, builder=" + getBuilderID());
+		//Ordt.warnMessage("SystemVerilogBuilder: finishRegMap, builder=" + getBuilderID());
 		//System.out.println("SystemVerilogBuilder: finishRegMap: rqto_err_log_padoody2 #0 isRhs=" + definedSignals.get("rqto_err_log_padoody2").isRhsReference());
 		//logic.resolveNames();
 		//System.out.println("SystemVerilogBuilder: finishRegMap: rqto_err_log_padoody2 #1 isRhs=" + definedSignals.get("rqto_err_log_padoody2").isRhsReference());
@@ -1313,8 +1313,10 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	@Override
 	public void write(String outName, String description, String commentPrefix) {		
 		// before starting write, check that this addrmap is valid
-		int mapSize = this.getAddressWidth(getCurrentMapSize());
-		if (mapSize < 1) Ordt.errorExit("Minimum allowed address map size is " + (this.getMinRegByteWidth() * 2) + "B (addrmap=" + getAddressMapName() + ")");
+		//int mapSize = this.getMapAddressWidth();
+		//if (mapSize < 1) Ordt.errorExit("Minimum allowed address map size is " + (this.getMinRegByteWidth() * 2) + "B (addrmap=" + getAddressMapName() + ")");
+		if (decoder.getDecodeList().isEmpty()) Ordt.errorExit("Minimum allowed address map size is " + this.getMinRegByteWidth() + "B (addrmap=" + getAddressMapName() + ")");
+		//System.out.println("SystemVerilogBuilder write: Minimum allowed address map size is " + (this.getMinRegByteWidth() * 2) + "B, mapSize=" + mapSize + " (addrmap=" + getAddressMapName() + ")");
 
 		// determine if a single output file or multiple
 		boolean multipleOutputFiles = outName.endsWith("/");
@@ -1469,6 +1471,12 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	public void write(BufferedWriter bw) {
 		// set bw as default
 		bufferedWriter = bw;
+		
+		// before starting write, check that this addrmap is valid
+		//int mapSize = this.getMapAddressWidth();
+		if (decoder.getDecodeList().isEmpty()) Ordt.errorExit("Minimum allowed address map size is " + this.getMinRegByteWidth() + "B (addrmap=" + getAddressMapName() + ")");
+		//System.out.println("SystemVerilogBuilder write: Minimum allowed address map size is " + (this.getMinRegByteWidth() * 2) + "B, mapSize=" + getCurrentMapSize() + " - " + mapSize + "b (addrmap=" + getAddressMapName() + ")");
+		//System.out.println("SystemVerilogBuilder write:   Decoder elements= " + decoder.getDecodeList().size());
 
 		// write the logic module
 		logic.write();   
@@ -1625,11 +1633,16 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	   	return " [" + (size + lowIndex - 1) + ":" + lowIndex + "] ";
 	}
 
+	/** return address bit width from current addrmap size (high bit of mapSize-1) */
+	public int getMapAddressWidth() {
+		return getAddressWidth(getCurrentMapSize());
+	}
+	
 	/** generate a (little endian) array string corresponding to the internal address range for addrmap */  
 	public String genDefAddressArrayString() {
 		int lowIndex = getAddressLowBit();   // remove low bits using reg width in bytes
 		// compute total address map size
-		int size = getAddressWidth(getCurrentMapSize());   // get high bit of mapSize-1  
+		int size = getMapAddressWidth();   // get high bit of mapSize-1  
 	   	return SystemVerilogBuilder.genDefArrayString(lowIndex, size);  
 	}
 	
@@ -1637,7 +1650,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	public String genRefAddressArrayString() {
 		int lowIndex = getAddressLowBit();   // remove low bits using reg width in bytes
 		// compute total address map size
-		int size = getAddressWidth(getCurrentMapSize());   // get high bit of mapSize-1  
+		int size = getMapAddressWidth();   // get high bit of mapSize-1  
 	   	return SystemVerilogBuilder.genRefArrayString(lowIndex, size);  
 	}
 	
@@ -1645,7 +1658,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	public String getBlockSelectBits() {
 		int lowIndex = getAddressLowBit();   // low bit in internal address
 		// compute total address map size
-		int size = getAddressWidth(getCurrentMapSize());   // get high bit of mapSize-1  
+		int size = getMapAddressWidth();   // get high bit of mapSize-1  
 	   	int lowSelectBit =  lowIndex + size;  
 		int selectSize = ExtParameters.getLeafAddressSize() - lowSelectBit;
 		return SystemVerilogBuilder.genRefArrayString(lowSelectBit, selectSize);

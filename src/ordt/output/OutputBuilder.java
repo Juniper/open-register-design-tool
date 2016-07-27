@@ -708,7 +708,10 @@ public abstract class OutputBuilder {
 		}*/
 
 		// need to set external early so rootExternal can be determined
-		if (inst.hasDefaultProperty("external")) inst.setExternal(inst.getDefaultProperty("external"));
+		if (inst.hasDefaultProperty("external")) {
+			inst.setExternal(inst.getDefaultProperty("external"));
+			//System.out.println("OutputBuilder " + getBuilderID() + ": pushInstance, setting external type for inst=" + inst.getId() + " via default to " + inst.getExternalType());
+		}
 		
 		// if added instance is external and no others on stack then mark as root
 		if ((instancePropertyStack.isEmpty() || !instancePropertyStack.peek().isExternal()) && inst.isExternal()) {
@@ -716,9 +719,12 @@ public abstract class OutputBuilder {
 			//System.out.println("OutputBuilder " + getBuilderID() + ": pushInstance, setting external root for inst=" + inst.getId() + " and pushing onto stack");
 			//instancePropertyStack.peek().display();  
 		}
-		// if parent is external, this instance is external (regs are already set, but not regsets) // TODO - use instProperties defaultProperties instead?
+		// if parent is external, this instance is external (regs are already set, but not regsets)
 		if (!instancePropertyStack.isEmpty()) {
-			if (instancePropertyStack.peek().isExternal()) inst.setExternalType(instancePropertyStack.peek().getExternalType());
+			if (instancePropertyStack.peek().isLocalMapExternal()) {
+				inst.setExternalType(instancePropertyStack.peek().getExternalType());
+				//System.out.println("OutputBuilder " + getBuilderID() + ": pushInstance, setting external type for inst=" + inst.getId() + " to " + inst.getExternalType());
+			}
 			//if (instancePropertyStack.peek().isExternalDecode()) inst.setExternal(true);
 		}
 		// if stack isn't empty get parent instance default properties

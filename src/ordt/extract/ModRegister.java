@@ -127,7 +127,10 @@ public class ModRegister extends ModComponent  {
 		//System.out.println("Register: generateOutput,  register " + callingInst.getId() + ", reps=" + repCount + ", hi=" + callingInst.getHighIndex() + ", lo=" + callingInst.getLowIndex());
 
      	RegSetProperties rsProps = outputBuilder.getRegSetProperties();
-     	boolean regIsExternal = callingInst.hasProperty("external") || ((rsProps != null) && rsProps.isExternal());  
+     	boolean regIsExternal = callingInst.hasProperty("external") || ((rsProps != null) && rsProps.isLocalMapExternal());  
+     	
+     	//if (regIsExternal && rsProps.isAddressMap())
+     	//System.out.println("ModRegister generateOutput: register instance=" + callingInst.getId() + ",  is external=" + regIsExternal + ", parent is addrmap=" + rsProps.isAddressMap());
      	
 	    // if an extern register, call once per replicated set
 		if (regIsExternal && !outputBuilder.visitEachExternalRegister()) {
@@ -137,13 +140,13 @@ public class ModRegister extends ModComponent  {
 			RegProperties regProperties = new RegProperties(callingInst, outputBuilder.fieldOffsetsFromZero());  // extract basic properties
 			// cascade external type from instance or regset
 			if (callingInst.hasProperty("external")) regProperties.setExternal(callingInst.getProperty("external"));  
-			else if ((rsProps != null) && rsProps.isExternal()) regProperties.setExternalType(rsProps.getExternalType());
+			else if ((rsProps != null) && rsProps.isLocalMapExternal()) regProperties.setExternalType(rsProps.getExternalType());
 			else {
 				regProperties.setExternal("DEFAULT");
 				//System.out.println("ModRegister generateOutput, register instance=" + regProperties.getId() + " set to DEFAULT external");
 			}
 			outputBuilder.pushInstance(regProperties);  // push instance and set isRootExternal
-			//System.out.println("Register: generateOutput, register instance=" + regProperties.getId() + " post push, ext=" + regProperties.isExternal() + ", root=" + regProperties.isRootExternal());
+			//System.out.println("Register: generateOutput, register instance=" + regProperties.getId() + " post push, ext=" + regProperties.isLocalMapExternal() + ", root=" + regProperties.isRootExternal());
 			// add external registers to output structures  
 			outputBuilder.addExternalRegisters(regProperties);     // <----- note that all inst properties are extracted here
 			
@@ -168,7 +171,7 @@ public class ModRegister extends ModComponent  {
 		else {
 			// check for invalid internal reps
 			if ((repCount > ExtParameters.getMaxInternalRegReps()) && !regIsExternal) Ordt.errorExit("Register replication exceeded max for internal register, instance=" + callingInst.getId() + ", reps=" + repCount);
-			//else Jrdl.infoMessage("generateVerilog: register replication for internal register, instance=" + callingInst.getId() + ", reps=" + repCount);
+			//else Ordt.infoMessage("generateVerilog: register replication for internal register, instance=" + callingInst.getId() + ", reps=" + repCount);
 				
 			// call once per replicated register
 		    for (int rep=0; rep<repCount; rep++) {
@@ -176,8 +179,10 @@ public class ModRegister extends ModComponent  {
 				RegProperties regProperties = new RegProperties(callingInst, outputBuilder.fieldOffsetsFromZero());  // extract basic properties
 				// cascade external type from instance or regset (compunents of regIsExternal)
 				if (callingInst.hasProperty("external")) regProperties.setExternal(callingInst.getProperty("external"));  
-				else if ((rsProps != null) && rsProps.isExternal()) regProperties.setExternalType(rsProps.getExternalType());
+				else if ((rsProps != null) && rsProps.isLocalMapExternal()) regProperties.setExternalType(rsProps.getExternalType());
 				//regProperties.setExternal(regIsExternal);  // set external here to cascade from external parent
+				//System.out.println("ModRegister generate: register instance=" + regProperties.getId() + ",  is external=" + regProperties.getExternalType());  
+
 				if (outputBuilder.visitEachReg()) regProperties.setId(regProperties.getId() + getRepSuffix(rep, repCount)); // update name based on rep #
 				outputBuilder.pushInstance(regProperties);
 				

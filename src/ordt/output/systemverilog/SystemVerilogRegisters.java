@@ -112,7 +112,10 @@ public class SystemVerilogRegisters {
 		 */
 		public void addResetAssign(String reset, String stmt) {
 			// if reset isn't defined then issue error message
-			if (!resetActiveLow.containsKey(reset))  {
+			if (resetActiveLow.isEmpty())  {
+				Ordt.errorExit("No registers defined in addrmap " + builder.getAddressMapName());
+			}
+			else if (!resetActiveLow.containsKey(reset))  {
 				Ordt.errorExit("reset signal " + reset + " is not defined before use"); // + ", name=" + name + ", stmt=" + stmt);
 			}
 			// new reset signal so add it

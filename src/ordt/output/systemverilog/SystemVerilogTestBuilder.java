@@ -43,8 +43,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		bufferedWriter = bw;
 
 		// before starting write, check that this addrmap is valid
-		int mapSize = this.getAddressWidth(getCurrentMapSize());
-		if (mapSize < 1) Ordt.errorExit("Minimum allowed address map size is " + (this.getMinRegByteWidth() * 2) + "B (addrmap=" + this.getModuleName() + ")");
+		if (decoder.getDecodeList().isEmpty()) Ordt.errorExit("Minimum allowed address map size is " + this.getMinRegByteWidth() + "B (addrmap=" + getAddressMapName() + ")");
 				
 		// set bufferedwriter in all child builders so we can write to same file
 		setChildBufferedWriters(bw);
@@ -210,7 +209,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 
 	// -----------
 	
-	private enum cmdType {INVALID, READ, WRITE, WAIT, SET};
+	private enum cmdType {INVALID, READ, WRITE, WAIT, STMT};
 
 	/** test command inner class */
 	private class TestCommand {  // TODO
@@ -257,13 +256,12 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 				
 				// otherwise check for set command
 				else {
-					chkPat = Pattern.compile("^set\\s+(\\w+)\\s*=\\s*(.*)");
+					chkPat = Pattern.compile("^statement\\s+(.*)");
 					m = chkPat.matcher(cmdStr);
 					if (m.matches()) {
-						cType = cmdType.SET;
-						strs.put("var", m.group(1));  // save varname
-						strs.put("value", m.group(2));  // save assign value
-						if ((strs.get("var") == null) || (strs.get("value") == null)) cType = cmdType.INVALID;
+						cType = cmdType.STMT;
+						strs.put("stmt", m.group(1));  // save statement value
+						if (strs.get("stmt") == null) cType = cmdType.INVALID;
 					}					
 				}
 				
@@ -287,8 +285,8 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 			   	benchtop.addStatement("   @(posedge CLK);");
 			   	benchtop.addStatement("");								
 			}
-			else if (isSet()) {
-			   	benchtop.addStatement(strs.get("var") + " = " + strs.get("value") + ";");
+			else if (isStatement()) {
+			   	benchtop.addStatement(strs.get("stmt"));
 			   	benchtop.addStatement("");				
 			}
 		}
@@ -316,8 +314,8 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		private boolean isWait() {
 			return (cType == cmdType.WAIT);
 		}
-		private boolean isSet() {
-			return (cType == cmdType.SET);
+		private boolean isStatement() {
+			return (cType == cmdType.STMT);
 		}
 	}
 	// -----------

@@ -83,6 +83,7 @@ public class SystemVerilogCoverGroups {
 		/** create a coverpoint and add it to this group
 		 *  @param name - name of new coverpoint
 		 *  @param signal - signal to be sampled
+		 *  @param condition - iff condition to be applead for this signal's coverpoint
 		 */
 		public void addCoverPoint(String name, String signal, String condition) {
 			// create the new coverpoint and add it to this group

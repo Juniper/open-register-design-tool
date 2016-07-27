@@ -21,6 +21,7 @@ public class InstanceProperties {
 	public enum ExtType { INTERNAL, DEFAULT, EXTERNAL_DECODE, BBV5, SRAM, SERIAL8, RING16 }
 	private ExternalType externalType = new ExternalType(ExtType.INTERNAL);   // external interface type (init to internal)
 	private boolean rootExternal = false;   // is instance root instance of an external reg set
+	protected boolean addressMap = false;   // is an external address map
 	
 	private String textName;  // text name of this instance
 	private String textDescription;  // text description of this instance
@@ -72,6 +73,7 @@ public class InstanceProperties {
 		setInstancePath(oldInstance.getInstancePath());  
 		setExternalType(oldInstance.getExternalType());  
 		setRootExternal(oldInstance.isRootExternal());  
+		setAddressMap(oldInstance.isAddressMap());  
 		setTextName(oldInstance.getTextName());  
 		setTextDescription(oldInstance.getTextDescription());  
 		setJspecSupersetCheck(oldInstance.getJspecSupersetCheck());  
@@ -89,6 +91,7 @@ public class InstanceProperties {
 		System.out.println("   path=" + this.getInstancePath());  
 		System.out.println("   external=" + this.externalType);  
 		System.out.println("   root external=" + this.isRootExternal());  
+		System.out.println("   is address map=" + this.isAddressMap());  		
 		System.out.println("   name=" + this.getTextName());  
 		System.out.println("   description=" + this.getTextDescription());  
 		System.out.println("   js_superset_check=" + this.getJspecSupersetCheck());  
@@ -242,6 +245,23 @@ public class InstanceProperties {
 	 */
 	public void setRootExternal(boolean rootExternal) {
 		this.rootExternal = rootExternal;
+	}
+
+	/** return true if this instance is an addrmap
+	 */
+	public boolean isAddressMap() {
+		return addressMap;
+	}
+
+	/** mark this instance as an addrmap
+	 */
+	public void setAddressMap(boolean addressMap) {
+		this.addressMap = addressMap;
+	}
+
+	/** returns true if this instance is external within the local map (ie, external and not an addrmap) */
+	public boolean isLocalMapExternal() {
+		return isExternal() && !isAddressMap();
 	}
 
 	/** get total replication count
