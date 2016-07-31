@@ -12,7 +12,7 @@ global {
 // jspec input parameters
 input jspec {
 	root_regset_is_addrmap = true   // root component will be created as an addrmap rather than a regfile/regset (not if typedef)
-	root_is_external_decode = true   // root=true will be converted to external_decode property?
+	//root_is_external_decode = true   // root=true will be converted to external_decode property?
 	//process_typedef = "av_sd16_rx_24ch"   // process this typedef 
 	//process_typedef = "av_sd16_tx_24ch"   // process this typedef 
 	//process_typedef = "ccl_EAXPF_tx"   // process this typedef 
@@ -84,14 +84,14 @@ output uvmregs {
 }
 
 // model annotation commands
-annotate {
-  set_reg_property cppmod_prune = "true" instances "foo.bar.*" // set parameter on all matching registers
+//annotate {
+  //set_reg_property cppmod_prune = "true" instances "foo.bar.*" // set parameter on all matching registers
   //set_field_property cppmod_prune = "true" instances "ltpn"      // set parameter on all matching fields
   //set_reg_property external = "DEFAULT" instances "sram" // set parameter on all matching registers
   //set_reg_property js_superset_check = "SS_VALUE" instances "*" // set parameter on all matching registers
-}
+//}
 
 // testbench output parameters
-output bench {
-  add_test_command = "write 32 0x0 0x12345678"  // add a test command to the output bench
-}
+//output bench {
+//  add_test_command = "write 32 0x0 0x12345678"  // add a test command to the output bench
+//}

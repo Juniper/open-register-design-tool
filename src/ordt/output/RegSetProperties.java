@@ -17,7 +17,7 @@ public class RegSetProperties extends AddressableInstanceProperties {
 	private RegNumber highAddress;  // highest valid address
 
 	public RegSetProperties(ModInstance regSetInst) {
-		super(regSetInst);  // init instance, id, name, decription text
+		super(regSetInst);  // init instance, id, name, description text
 	}
 	
 	public RegSetProperties(RegSetProperties oldInstance) {

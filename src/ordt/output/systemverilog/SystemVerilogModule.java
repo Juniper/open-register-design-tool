@@ -24,7 +24,7 @@ public class SystemVerilogModule {
 	
 	protected SystemVerilogBuilder builder;  // builder creating this module
 	protected String name;  // module name
-	protected Integer insideLocs;
+	protected Integer insideLocs; // ORed value of (binary) locations inside this module
 	protected boolean useInterfaces = false;  // will interfaces be used in module io
 	protected boolean addBaseAddrParameter  = false;	// will base addr parm be created in module io
 	protected List<Instance> instanceList = new ArrayList<Instance>();  // list of child instances

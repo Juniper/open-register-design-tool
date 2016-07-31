@@ -526,7 +526,11 @@ public abstract class OutputBuilder {
 		if (regMapInst != null) {
 		   regSetProperties = new RegSetProperties(regMapInst);  // extract basic properties  TODO -  add checks for address, external, etc?
 		   rootMapProperties = regSetProperties;  // save these so can restore if empty rs stack
-		   //System.out.println("adding regmap,  path=" + getInstancePath() + ", id=" + regMapInst.getId()+ ", comp=" + regMapInst.getRegComp().getId());
+		   //System.out.println("OutputBuilder addRegMap: adding regmap,  path=" + getInstancePath() + ", id=" + regMapInst.getId()+ ", comp=" + regMapInst.getRegComp().getId());
+           //regSetProperties.display();
+			// regmap is special case so only allow name/desc property assign, not full extract
+			if (regMapInst.hasProperty("name")) regSetProperties.setTextName(regMapInst.getProperty("name")); 
+			if (regMapInst.hasProperty("desc")) regSetProperties.setTextDescription(regMapInst.getProperty("desc")); 
 		   // if instance has an id then use it for modulename
 		   if (regMapInst.getId() != null) setAddressMapName(regMapInst.getId());  
 		   // only base addrmap instance is first
