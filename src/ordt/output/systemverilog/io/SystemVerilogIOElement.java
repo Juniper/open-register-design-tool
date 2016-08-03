@@ -6,6 +6,7 @@ import java.util.List;
 public abstract class SystemVerilogIOElement {
 	
 	protected String name;       // local name of this element
+	protected String name_prefix;       // prefix to be added to full generated name
 	protected int repCount = 1;  // number of times this element is replicated  
 	Integer from, to = 0;  // direction of this signal/signalset
 
