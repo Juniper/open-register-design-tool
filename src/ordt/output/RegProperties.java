@@ -9,6 +9,7 @@ import ordt.extract.ModInstance;
 import ordt.extract.ModRegister;
 import ordt.extract.PropertyList;
 import ordt.extract.RegNumber;
+import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 
@@ -354,94 +355,79 @@ public class RegProperties extends AddressableInstanceProperties {
 
 	/** return the logic module input name for register */
 	public String getDecodeToLogicName() {
-		return "d2l_" + getBaseName() + "_w" ;
+		return getFullSignalName(DefSignalType.D2L_DATA);
 	}
 
 	/** return the logic module input name for register */
 	public String getLogicToDecodeName() {
-		return "l2d_" + getBaseName() + "_r" ;
+		return getFullSignalName(DefSignalType.L2D_DATA);
 	}
 
 	/** return the logic module write enable name for register */
 	public String getDecodeToLogicWeName() {
-		return "d2l_" + getBaseName() + "_we" ;
+		return getFullSignalName(DefSignalType.D2L_WE);
 	}
 
 	/** return the logic module read enable name for register */
 	public String getDecodeToLogicReName() {
-		return "d2l_" + getBaseName() + "_re" ;
+		return getFullSignalName(DefSignalType.D2L_RE);
 	}
 
 	//  ------------------- external reg signals -------------------------
 	
 	/** return the external reg write data name */
 	public String getDecodeToHwAddrName() {
-		return "d2h_" + getBaseName() + "_addr" ;
+		return getFullSignalName(DefSignalType.D2H_ADDR);
 	}
 	
 	/** return the external reg write data name */
 	public String getDecodeToHwName() {
-		return "d2h_" + getBaseName() + "_w" ;
+		return getFullSignalName(DefSignalType.D2H_DATA);
 	}
 	
 	/** return the external reg transaction size name */
 	public String getDecodeToHwTransSizeName() {
-		return "d2h_" + getBaseName() + "_size" ;
+		return getFullSignalName(DefSignalType.D2H_SIZE);
 	}
 	
 	/** return the external reg return transaction size name */
 	public String getHwToDecodeTransSizeName() {
-		return "h2d_" + getBaseName() + "_retsize" ;
+		return getFullSignalName(DefSignalType.H2D_RETSIZE);
 	}
 
 	/** return the external reg read data name */
 	public String getHwToDecodeName() {
-		return "h2d_" + getBaseName() + "_r" ;
+		return getFullSignalName(DefSignalType.H2D_DATA);
 	}
 
 	/** return the external reg we name */
 	public String getDecodeToHwWeName() {
-		return "d2h_" + getBaseName() + "_we" ;
+		return getFullSignalName(DefSignalType.D2H_WE);
 	}
 	
 	/** return the external reg re name */
 	public String getDecodeToHwReName() {
-		return "d2h_" + getBaseName() + "_re" ;
+		return getFullSignalName(DefSignalType.D2H_RE);
 	}
 
 	/** return the external reg ack name */
 	public String getHwToDecodeAckName() {
-		return "h2d_" + getBaseName() + "_ack" ;
+		return getFullSignalName(DefSignalType.H2D_ACK);
 	}
 
 	/** return the external reg nack name */
 	public String getHwToDecodeNackName() {
-		return "h2d_" + getBaseName() + "_nack" ;
+		return getFullSignalName(DefSignalType.H2D_NACK);
 	}
-
-	// --------------------
 	
-	/** return the external reg interrupt output name 
-	 * @param addPrefix */
-	public static String getLogicToHwIntrName(String regPath, boolean addPrefix) {
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + regPath + "_intr_o" ;
-	}
-
-	/** return the external reg halt output name */
-	public static String getLogicToHwHaltName(String regPath, boolean addPrefix) {
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + regPath + "_halt_o" ;
-	}
-
 	/** return the external reg interrupt output name */
 	public String getLogicToHwIntrName() {
-		return getLogicToHwIntrName(getBaseName(), true);
+		return getFullSignalName(DefSignalType.L2H_INTR);
 	}
 
 	/** return the external reg halt output name */
 	public String getLogicToHwHaltName() {
-		return getLogicToHwHaltName(getBaseName(), true);
+		return getFullSignalName(DefSignalType.L2H_HALT);
 	}
 	
 	//  --------------------------------------------------------

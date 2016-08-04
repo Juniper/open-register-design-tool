@@ -15,7 +15,8 @@ public class SystemVerilogDefinedSignals {
 		D2L_DATA, L2D_DATA, D2L_WE, D2L_RE, 
 		D2H_ADDR, D2H_DATA, D2H_SIZE, D2H_WE, D2H_RE, 
 		H2D_RETSIZE, H2D_DATA, H2D_ACK, H2D_NACK, 
-		L2H_INTR, L2H_HALT
+		L2H_INTR, L2H_HALT, 
+		USR_SIGNAL
 	};
 
 	private static HashMap<DefSignalType, SystemVerilogDefinedSignal> sigSet = initDefinedSignals();  // set of defined signals by type
@@ -27,247 +28,50 @@ public class SystemVerilogDefinedSignals {
 	private static HashMap<DefSignalType, SystemVerilogDefinedSignal> initDefinedSignals() {
 		HashMap<DefSignalType, SystemVerilogDefinedSignal> newList = new HashMap<DefSignalType, SystemVerilogDefinedSignal>();
 		
-		// add field signals
-/*
-
-	public static String getFieldRegisterName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.FIELD, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "rg", null));
-	/*
-	 * 
-	public static String getFieldRegisterNextName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.FIELD_NEXT, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "reg", "next"));
-    /*
-     * 
-	public static String getLogicToHwDataName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.L2H_DATA, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "l2h", "r"));
-    /*
-	
-	public static String getLogicToHwSwAccName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.L2H_SWACC, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "l2h", "swacc_o"));
-    /*
-
-	public static String getLogicToHwSwModName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.L2H_SWMOD, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "l2h", "swmod_o"));
-    /*
-
-	public static String getLogicToHwOverflowName(String fieldPath, boolean addPrefix) {  // overflow output
-	*/
 		newList.put(DefSignalType.L2H_OVERFLOW, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "l2h", "overflow_o"));
-    /*
-
-	public static String getLogicToHwUnderflowName(String fieldPath, boolean addPrefix) {  // underflow output
-	*/
 		newList.put(DefSignalType.L2H_UNDERFLOW, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "l2h", "underflow_o"));
-    /*
-
-	public static String getLogicToHwIncrSatName(String fieldPath, boolean addPrefix) {  // incr saturate output
-	*/
 		newList.put(DefSignalType.L2H_INCRSAT, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "l2h", "incrsat_o"));
-    /*
-
-	public static String getLogicToHwDecrSatName(String fieldPath, boolean addPrefix) {  // decr saturate output
-	*/
 		newList.put(DefSignalType.L2H_DECRSAT, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "l2h", "decrsat_o"));
-    /*
-	
-	public static String getLogicToHwIncrTholdName(String fieldPath, boolean addPrefix) {  // incr threshold output
-	*/
 		newList.put(DefSignalType.L2H_INCRTHOLD, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "l2h", "incrthold_o"));
-    /*
-
-	public static String getLogicToHwDecrTholdName(String fieldPath, boolean addPrefix) {  // decr threshold output
-	*/
 		newList.put(DefSignalType.L2H_DECRTHOLD, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "l2h", "decrthold_o"));
-    /*
-
-	public static String getLogicToHwAndedName(String fieldPath, boolean addPrefix) {  // anded output
-	*/
 		newList.put(DefSignalType.L2H_ANDED, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "l2h", "anded_o"));
-    /*
-
-	public static String getLogicToHwOredName(String fieldPath, boolean addPrefix) {  // ored output
-	*/
 		newList.put(DefSignalType.L2H_ORED, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "l2h", "ored_o"));
-    /*
-
-	public static String getLogicToHwXoredName(String fieldPath, boolean addPrefix) {  // xored output
-	*/
 		newList.put(DefSignalType.L2H_XORED, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "l2h", "xored_o"));
-    /*
-
-
-
-	public static String getHwToLogicWelName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.H2L_WEL, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "h2l", "wel"));
-    /*
-
-	public static String getHwToLogicWeName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.H2L_WE, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "h2l", "we"));
-    /*
-
-	public static String getHwToLogicHwSetName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.H2L_HWSET, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "h2l", "hwset"));
-    /*
-
-	public static String getHwToLogicHwClrName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.H2L_HWCLR, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "h2l", "hwclr"));
-    /*
-
-	public static String getHwToLogicSwWelName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.H2L_SWWEL, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "h2l", "swwel"));
-    /*
-
-	public static String getHwToLogicSwWeName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.H2L_SWWE, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "h2l", "swwe"));
-    /*
-
-	public static String getHwToLogicIntrName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.H2L_INTR, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "h2l", "intr"));
-    /*
-
-	public static String getHwToLogicDataName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.H2L_DATA, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "h2l", "w"));
-    /*
-
-	// counter signals
-	public static String getHwToLogicIncrName(String fieldPath, boolean addPrefix) {  // increment input
-	*/
 		newList.put(DefSignalType.H2L_INCR, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "h2l", "incr"));
-    /*
-
-	public static String getHwToLogicDecrName(String fieldPath, boolean addPrefix) {  // decrement input
-	*/
 		newList.put(DefSignalType.H2L_DECR, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "h2l", "decr"));
-    /*
-	
-	public static String getHwToLogicIncrValueName(String fieldPath, boolean addPrefix) {  // increment value input 
-	*/
 		newList.put(DefSignalType.H2L_INCRVALUE, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "h2l", "incrvalue"));
-    /*
-
-	public static String getHwToLogicDecrValueName(String fieldPath, boolean addPrefix) {  // decrement value input 
-	*/
 		newList.put(DefSignalType.H2L_DECRVALUE, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "h2l", "decrvalue"));
-    /*
-	
-	
-	public static String getPrevIntrName(String fieldPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.PREVINTR, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "intr", "previntr"));
-    /*
-	
-	public static String getNextCountName(String fieldPath, boolean addPrefix) {  // next value of counter 
-	*/
 		newList.put(DefSignalType.CNTR_NEXT, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, "cntr", "next"));
-    /*
-		
-		// add reg signals
-/*
-
-	/** return the logic module input name for register *
-	public String getDecodeToLogicName() {
-	*/
 		newList.put(DefSignalType.D2L_DATA, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "d2l", "w"));
-    /*
-
-	/** return the logic module input name for register *
-	public String getLogicToDecodeName() {
-	*/
 		newList.put(DefSignalType.L2D_DATA, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "l2d", "r"));
-    /*
-
-	/** return the logic module write enable name for register *
-	public String getDecodeToLogicWeName() {
-	*/
 		newList.put(DefSignalType.D2L_WE, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "d2l", "we"));
-    /*
-
-	/** return the logic module read enable name for register *
-	public String getDecodeToLogicReName() {
-	*/
 		newList.put(DefSignalType.D2L_RE, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "d2l", "re"));
-    /*
-	
-	/** return the external reg write data name *
-	public String getDecodeToHwAddrName() {
-	*/
 		newList.put(DefSignalType.D2H_ADDR, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "d2h", "addr"));
-    /*
-	
-	/** return the external reg write data name *
-	public String getDecodeToHwName() {
-	*/
 		newList.put(DefSignalType.D2H_DATA, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "d2h", "w"));
-    /*
-	
-	/** return the external reg transaction size name *
-	public String getDecodeToHwTransSizeName() {
-	*/
 		newList.put(DefSignalType.D2H_SIZE, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "d2h", "size"));
-    /*
-
-	/** return the external reg we name *
-	public String getDecodeToHwWeName() {
-	*/
 		newList.put(DefSignalType.D2H_WE, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "d2h", "we"));
-    /*
-	
-	/** return the external reg re name *
-	public String getDecodeToHwReName() {
-	*/
 		newList.put(DefSignalType.D2H_RE, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "d2h", "re"));
-    /*
-	
-	/** return the external reg return transaction size name *
-	public String getHwToDecodeTransSizeName() {
-	*/
 		newList.put(DefSignalType.H2D_RETSIZE, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "h2d", "retsize"));
-    /*
-
-	/** return the external reg read data name *
-	public String getHwToDecodeName() {
-	*/
 		newList.put(DefSignalType.H2D_DATA, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "h2d", "r"));
-    /*
-
-	/** return the external reg ack name *
-	public String getHwToDecodeAckName() {
-	*/
 		newList.put(DefSignalType.H2D_ACK, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "h2d", "ack"));
-    /*
-
-	/** return the external reg nack name *
-	public String getHwToDecodeNackName() {
-	*/
 		newList.put(DefSignalType.H2D_NACK, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "h2d", "nack"));
-    /*
-
-	/** return the external reg interrupt output name 
-	public static String getLogicToHwIntrName(String regPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.L2H_INTR, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "l2h", "intr_o"));
-    /*
-
-	/** return the external reg halt output name *
-	public static String getLogicToHwHaltName(String regPath, boolean addPrefix) {
-	*/
 		newList.put(DefSignalType.L2H_HALT, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "l2h", "halt_o"));
-    /*
-		
- */
+		newList.put(DefSignalType.USR_SIGNAL, new SystemVerilogDefinedSignal(DefSignalAssoc.SIGNAL, "sig", null));
 		return newList;
 	}
 	
@@ -294,7 +98,6 @@ public class SystemVerilogDefinedSignals {
 		newList.put("xored", DefSignalType.L2H_XORED);
 		newList.put("swacc", DefSignalType.L2H_SWACC);
 		newList.put("swmod", DefSignalType.L2H_SWMOD);
-
 		return newList;
 	}
 	
@@ -319,12 +122,12 @@ public class SystemVerilogDefinedSignals {
 	}
 
 	/** return true is specified signal deref corresponds to a valid rhs signal */
-	public boolean isValidRhsDeRef(String deRef) {
+	public static boolean isValidRhsDeRef(String deRef) {
 		return rhsSigSet.containsKey(deRef);
 	}
 
 	/** return the verilog expression for the deRef/path used in an rhs assign */
-	public String getResolvedRhsSignalExpression(String deRef, String instancePath, boolean addPrefix) {
+	public static String getResolvedRhsSignalExpression(String deRef, String instancePath, boolean addPrefix) {
 		// if deRef is invalid, return null
 		if (!isValidRhsDeRef(deRef)) return null;
 		// if a special assign is required

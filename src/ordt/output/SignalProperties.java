@@ -7,6 +7,7 @@ import ordt.extract.ModComponent;
 import ordt.extract.ModIndexedInstance;
 import ordt.extract.ModInstance;
 import ordt.extract.PropertyList;
+import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 
 /** class of properties needed for display of active signal instance */
 public class SignalProperties extends InstanceProperties {
@@ -54,12 +55,11 @@ public class SignalProperties extends InstanceProperties {
 		if (pList.hasTrueProperty("activelow") || pList.hasFalseProperty("activehigh")) {
 			this.setActiveLow(true);
 		}
-
     }	
     
     /** return rtl signal name */
 	public String getRtlName() {
-		return "sig_" + getBaseName();
+		return getFullSignalName(DefSignalType.USR_SIGNAL);
 	}
 
 	/** get signalWidth
