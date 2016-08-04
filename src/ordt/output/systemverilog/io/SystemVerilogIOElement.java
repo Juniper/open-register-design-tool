@@ -6,9 +6,16 @@ import java.util.List;
 public abstract class SystemVerilogIOElement {
 	
 	protected String name;       // local name of this element
-	protected String name_prefix;       // prefix to be added to full generated name
+	protected String namePrefix;       // prefix to be added to full generated name
 	protected int repCount = 1;  // number of times this element is replicated  
 	Integer from, to = 0;  // direction of this signal/signalset
+
+	/** returns true if this element is a set */
+	protected boolean isSignalSet() { return false; }
+	
+	/** returns true if this element is virtual (ie not an actually group in systemverilog output).
+	 *  This method is overridden in child classes */
+	protected boolean isVirtual() { return false; }
 
 	/** return true if location specified is in from locations for this io element */
 	public Boolean isFrom(Integer loc) {
@@ -32,6 +39,14 @@ public abstract class SystemVerilogIOElement {
 		this.to = to;
 	}
 
+	public String getName() {
+		return name;
+	}
+
+	public String getNamePrefix() {
+		return namePrefix;
+	}
+
 	/** get replication count for this io element */
 	public int getRepCount() {
 		return repCount;
@@ -44,16 +59,19 @@ public abstract class SystemVerilogIOElement {
 
 	/** by default return local element definition (no name prefix) */
 	public String toString () {
-		return getDefName("");
+		return getFullName("");
+	}
+	
+	/** return the full name of this io element including prefix, path, and local name 
+	 * used for top-down recursive name generation */ 
+	public String getFullName(String pathPrefix) {   // TODO need one w/o name_prefix for child name gen
+		return namePrefix + pathPrefix + name;
 	}
 	
 	// abstract methods
 	
-	/** return the definition string for this io element */
-	public abstract String getDefName(String prefix);
-	
-	/** return a list of definitions *  TODO - child definitions for IOSignalSet?
-	public abstract List<String> getDefStrings(String prefix); */
+	/** return sv string instancing this element */
+	public abstract String getInstanceString();
 
 	/** return all io elements at root level of this io element *   TODO - move to IOSignalSet
 	public List<SystemVerilogIOElement> getIOElements(Integer fromLoc, Integer toLoc) {

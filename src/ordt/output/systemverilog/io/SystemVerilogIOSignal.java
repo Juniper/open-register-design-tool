@@ -8,18 +8,18 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 	protected int lowIndex;
 	protected int size;
 
-	public SystemVerilogIOSignal(String name, int lowIndex, int size, Integer from, Integer to, int repCount) {
+	public SystemVerilogIOSignal(Integer from, Integer to, String name, int lowIndex, int size) {   // TODO - need to set prefix
 		this.name = name;
 		this.lowIndex = lowIndex;
 		this.size = size;
 		this.from = from;
 		this.to = to;
-		this.repCount = repCount;
+		this.repCount = 1;  // signal repcount is always 1
 	}
 	
 	// ----- SystemVerilogElement abstract methods
-	
-	/** return the name used for definitions (includes) prefixed array string */
+	/*
+	/** return the name used for definitions (includes) prefixed array string *
 	@Override
 	public String getDefName(String prefix) {
 		return getDefArray() + prefix + name;
@@ -30,6 +30,7 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 		// TODO Auto-generated method stub
 		return null;
 	}
+	*/
 	
 	// ----- other methods
 	/** get lowIndex for this io signal */
@@ -45,6 +46,20 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 	/** return the array string used for definitions (includes) prefixed array string */
 	public String getDefArray() {
 		return SystemVerilogBuilder.genDefArrayString(lowIndex, size);
+	}
+
+    // ------------ methods overriding super
+
+	@Override
+	public String getInstanceString() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<SystemVerilogIOSignal> getIOSignals(Integer fromLoc, Integer toLoc) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
