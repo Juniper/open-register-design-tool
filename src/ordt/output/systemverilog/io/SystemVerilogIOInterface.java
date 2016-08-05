@@ -2,9 +2,11 @@ package ordt.output.systemverilog.io;
 
 public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 
-	public SystemVerilogIOInterface(Integer from, Integer to, String name, int reps, String extType) { // TODO - need to set prefix
-		// TODO Auto-generated constructor stub
-		super(from, to, name, reps);
+	public SystemVerilogIOInterface(Integer from, Integer to, String namePrefix, String name, int reps, String extType) { 
+		super(namePrefix, name, reps);
+		this.from = from;
+		this.to = to;
+		this.type = extType;
 	}
 
 	/** returns true if this element is virtual (ie not an actually group in systemverilog output).

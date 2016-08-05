@@ -7,7 +7,8 @@ public class SystemVerilogDefinedSignal {
 	public enum DefSignalAssoc {
 		FIELD,
 		REG,
-		SIGNAL
+		SIGNAL, 
+		ANY
 	};
 
 	DefSignalAssoc assoc;

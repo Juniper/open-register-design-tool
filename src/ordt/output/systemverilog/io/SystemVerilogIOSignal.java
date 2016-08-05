@@ -8,8 +8,9 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 	protected int lowIndex;
 	protected int size;
 
-	public SystemVerilogIOSignal(Integer from, Integer to, String name, int lowIndex, int size) {   // TODO - need to set prefix
+	public SystemVerilogIOSignal(Integer from, Integer to, String namePrefix, String name, int lowIndex, int size) {   
 		this.name = name;
+		this.namePrefix = namePrefix;
 		this.lowIndex = lowIndex;
 		this.size = size;
 		this.from = from;

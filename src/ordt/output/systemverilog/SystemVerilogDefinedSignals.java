@@ -16,7 +16,8 @@ public class SystemVerilogDefinedSignals {
 		D2H_ADDR, D2H_DATA, D2H_SIZE, D2H_WE, D2H_RE, 
 		H2D_RETSIZE, H2D_DATA, H2D_ACK, H2D_NACK, 
 		L2H_INTR, L2H_HALT, 
-		USR_SIGNAL
+		USR_SIGNAL,
+		LOGIC_INTERFACE, SIGSET
 	};
 
 	private static HashMap<DefSignalType, SystemVerilogDefinedSignal> sigSet = initDefinedSignals();  // set of defined signals by type
@@ -72,6 +73,8 @@ public class SystemVerilogDefinedSignals {
 		newList.put(DefSignalType.L2H_INTR, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "l2h", "intr_o"));
 		newList.put(DefSignalType.L2H_HALT, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, "l2h", "halt_o"));
 		newList.put(DefSignalType.USR_SIGNAL, new SystemVerilogDefinedSignal(DefSignalAssoc.SIGNAL, "sig", null));
+		newList.put(DefSignalType.SIGSET, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, null, null));
+		newList.put(DefSignalType.LOGIC_INTERFACE, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, "lh", null));
 		return newList;
 	}
 	
