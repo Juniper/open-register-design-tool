@@ -6,7 +6,7 @@ import java.util.List;
 public abstract class SystemVerilogIOElement {
 	
 	protected String name;       // local name of this element
-	protected String namePrefix;       // prefix to be added to full generated name
+	protected String tagPrefix;       // prefix to be added to full generated name
 	protected int repCount = 1;  // number of times this element is replicated  
 	Integer from, to = 0;  // direction of this signal/signalset
 
@@ -43,8 +43,8 @@ public abstract class SystemVerilogIOElement {
 		return name;
 	}
 
-	public String getNamePrefix() {
-		return namePrefix;
+	public String getTagPrefix() {
+		return tagPrefix;
 	}
 
 	/** get replication count for this io element */
@@ -59,13 +59,14 @@ public abstract class SystemVerilogIOElement {
 
 	/** by default return local element definition (no name prefix) */
 	public String toString () {
-		return getFullName("");
+		return getFullName("", true);
 	}
 	
 	/** return the full name of this io element including prefix, path, and local name 
 	 * used for top-down recursive name generation */ 
-	public String getFullName(String pathPrefix) {   // TODO need one w/o name_prefix for child name gen
-		return namePrefix + pathPrefix + name;
+	public String getFullName(String pathPrefix, boolean addTagPrefix) {   
+		String newTagPrefix = addTagPrefix? tagPrefix : "";
+		return newTagPrefix + pathPrefix + name;
 	}
 	
 	// abstract methods
@@ -80,8 +81,12 @@ public abstract class SystemVerilogIOElement {
 		//System.out.println("  SystemVerilogIOSignal getSignalList: intfmap size=" + intfMappings.size() + ", output size=" + outList.size());
 		return outList;
 	}*/
-	
-	/** return a list of all io signals in this io element */
-	public abstract List<SystemVerilogIOSignal> getIOSignals(Integer fromLoc, Integer toLoc);
 
+	/** return a simple IOSignal with full generated name for this element */
+	public abstract SystemVerilogIOSignal getIOSignal(String pathPrefix, boolean addTagPrefix);
+/*	{
+		String newTagPrefix = addTagPrefix? tagPrefix : "";
+		return new SystemVerilogIOSignal(from, to, newTagPrefix, pathPrefix + name, int lowIndex, int size);
+	}*/
+	
 }

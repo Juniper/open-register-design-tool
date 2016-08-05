@@ -3,14 +3,16 @@ package ordt.output.systemverilog.io;
 import java.util.ArrayList;
 import java.util.List;
 
+import ordt.output.systemverilog.SystemVerilogSignal;
+
 public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	protected List<SystemVerilogIOElement> childList = new ArrayList<SystemVerilogIOElement>(); // signals/signalsets in this signalset
 	protected String type = null;   // type of this signalset  
 
-	public SystemVerilogIOSignalSet(String namePrefix, String name, int reps) { // TODO - need to set prefix, do we need from/to for virtual
+	public SystemVerilogIOSignalSet(String tagPrefix, String name, int reps) { 
 		this.name = name;
-		this.namePrefix = namePrefix;
-		this.repCount = reps;  // signal repcount is always 1
+		this.tagPrefix = tagPrefix;
+		this.repCount = reps; 
 	}
 
 	/** returns true if this element is a set */
@@ -65,7 +67,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	// ----------- methods to be overriden by child classes
 	
 	
-	/** return a list of definitions for this element */
+	/** return a list of definitions for this element - override in child classses, null for SignalSet */  
 	public List<String> getDefStrings(String pathPrefix) {
 	   return null;
     }
@@ -75,72 +77,95 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	@Override
 	public String getInstanceString() {
 		// TODO Auto-generated method stub
-		return null;
+		return null;  // virtual set has no instance
 	}
 
+	/** return a simple IOSignal with full generated name for this element */
 	@Override
-	public List<SystemVerilogIOSignal> getIOSignals(Integer fromLoc, Integer toLoc) {
-		// TODO Auto-generated method stub
-		return null;
+	public SystemVerilogIOSignal getIOSignal(String pathPrefix, boolean addTagPrefix) {
+		String newTagPrefix = addTagPrefix? tagPrefix : "";
+		return new SystemVerilogIOSignal(from, to, newTagPrefix, pathPrefix + name, 0, 1);
 	}
 	
-	// ------ output generation methods
-/*
- 
-	/** return all encapsulated non-intf signals in this interface - recursive *   TODO generate this from getIOSignalList
-	public List<SystemVerilogSignal> getSignalList(Integer fromLoc, Integer toLoc) {
-		List<SystemVerilogSignal> outList = new ArrayList<SystemVerilogSignal>();
-		//System.out.println("  SystemVerilogInterface getSignalList: sigs size=" + sigs.size());
-		for (SystemVerilogIOSignal ioSig : signalList) {
-			// if this signal is an interface get all encapsulated signals
-			if (ioSig.isIntfSig()) {
-				List<SystemVerilogSignal> newList = ioSig.getSignalList(fromLoc, toLoc);
-				outList.addAll(newList);
-			}
-			// otherwise add simple signal to list if from/to match
-			else if (ioSig.isFrom(fromLoc) && ioSig.isTo(toLoc)) {
-				outList.add(ioSig);
-			}
-		}
-		//System.out.println("  SystemVerilogIntfList getSignalList: output size=" + outList.size());
-		return outList;
-	}
-*/	
+	// ------ IO model output methods
 	
-	/** return a flat list of IOsignals in this signalset - recursive */ 
-	public List<SystemVerilogIOSignal> getIOSignalList(Integer fromLoc, Integer toLoc, String pathPrefix) {
+	/** return a flat list of IOsignals with generated names for this signalset - recursively builds names top down *
+	 * @param fromLoc - only signals matching from will be returned
+	 * @param toLoc - only signals matching to will be returned
+	 * @param pathPrefix - prefix from ancestor levels that will be used to create child name
+	 * @param addTagPrefix - if true, defined signal prefixes will be added to names
+	 * @param stopOnNonVirtualSets - if true, recursion stops when a non-virtual signalset is hit (eg an interface)
+	 * @return - list of SystemVerilogIOSignal
+	 */
+	public List<SystemVerilogIOSignal> getIOSignalList(Integer fromLoc, Integer toLoc, String pathPrefix, boolean addTagPrefix, boolean stopOnNonVirtualSets) {
 		List<SystemVerilogIOSignal> outList = new ArrayList<SystemVerilogIOSignal>();
 		//System.out.println("  SystemVerilogInterface getSignalList: sigs size=" + sigs.size());
 		for (SystemVerilogIOElement ioElem : childList) {
 			String prefix = ((pathPrefix == null) || pathPrefix.isEmpty())? "" : ioElem.getName() + "_";
-			// if this elem is an set, get all encapsulated signals
-			if (ioElem.isSignalSet()) {
-				//List<SystemVerilogIOSignal> newList = ioElem.getIOSignalList(fromLoc, toLoc, prefix);  TODO --- move to IOElement
-				//outList.addAll(newList);
-			}
-			// otherwise add simple signal to list if from/to match
-			else if (ioElem.isFrom(fromLoc) && ioElem.isTo(toLoc)) {
-				//outList.add(new SystemVerilogIOSignal(ioElem, );  // use same IOElem defined abstract method / create new IOSig and add to list
+		    // process each rep of this elem
+			for (int idx=0; idx<ioElem.getRepCount(); idx++) {
+				String suffix = ioElem.isReplicated()? "_" + idx : "";
+				// if this is leaf element then return it
+				boolean validLeaf = !(ioElem.isVirtual() || (ioElem.isSignalSet() && !stopOnNonVirtualSets));
+				boolean validLoc = ioElem.isFrom(fromLoc) && ioElem.isTo(toLoc);
+				if (validLeaf && validLoc) {
+					outList.add(ioElem. getIOSignal(prefix + suffix, addTagPrefix));  // create a new IOSig and add to list
+				}		
+				// otherwise if a signalset, make recursive call 
+				else if (ioElem.isSignalSet()) {
+					List<SystemVerilogIOSignal> newList = ((SystemVerilogIOSignalSet) ioElem).getIOSignalList(fromLoc, toLoc, prefix + suffix, addTagPrefix, stopOnNonVirtualSets);
+					outList.addAll(newList);
+  			    }
 			}
 		}
 		//System.out.println("  SystemVerilogIOSignalSet getIOSignalList: output size=" + outList.size());
 		return outList;
 	}
 	
-/*	
-	/** get a signalList including intrface encaps matching specified from/to params - no recursion  <-- gets the local list, need to cast sigsets to sigs
-	 * @param fromLoc
-	 * @param toLoc 
-	 *
-	public List<SystemVerilogIOSignal> getEncapsulatedIOSignalList(Integer fromLoc, Integer toLoc) {
-		List<SystemVerilogIOSignal> outList = new ArrayList<SystemVerilogIOSignal>();
-		for (SystemVerilogIOSignal sig: signalList) {
-			if (sig.isFrom(fromLoc) && sig.isTo(toLoc)) outList.add(sig);
+	/** return a flat list of simple SystemVerilogIOSignal with full generated names for this signalset - recursively builds names top down 
+	 * and should be called from root of signal list
+	 * @param fromLoc - only signals matching from will be returned
+	 * @param toLoc - only signals matching to will be returned
+	 * @return - list of SystemVerilogIOSignal
+	 */
+	public List<SystemVerilogIOSignal> getIOSignalList(Integer fromLoc, Integer toLoc) {
+		return getIOSignalList(fromLoc, toLoc, null, true, false);
+	}
+	 
+	/** return a flat list of simple SystemVerilogSignal with full generated names for this signalset. 
+	 * Generates a list of SystemVerilogIOSignal and then converts to SystemVerilogSignal -
+	 * should be called from root of signal list
+	 * @param fromLoc - only signals matching from will be returned
+	 * @param toLoc - only signals matching to will be returned
+	 * @return - list of SystemVerilogIOSignal
+	 */
+	public List<SystemVerilogSignal> getSignalList(Integer fromLoc, Integer toLoc) {
+		List<SystemVerilogIOSignal> IOSignals = getIOSignalList(fromLoc, toLoc);
+		List<SystemVerilogSignal> outList = new ArrayList<SystemVerilogSignal>();
+		//System.out.println("  SystemVerilogInterface getSignalList: sigs size=" + sigs.size());
+		for (SystemVerilogIOSignal ioSig : IOSignals) {
+			outList.add(new SystemVerilogSignal(ioSig.getFullName(null, true), ioSig.getLowIndex(), ioSig.getSize()));
 		}
+		//System.out.println("  SystemVerilogIOSignalSet getSignalList: output size=" + outList.size());
 		return outList;
 	}
 
-	/** return a list of all internally defined interfaces leaf first *  <--- used in intr wrapper gen
+	
+
+	/** return a simple IOsignal list of this signalsets children matching specified from/to params (non virtual children)  
+	 * <-- called by module input/output gen methods, gets the local list, need to cast sigsets to sigs
+	 */
+	public List<SystemVerilogIOSignal> getChildIOSignalList(Integer fromLoc, Integer toLoc) {  // was getEncapsulatedIOSignalList
+		List<SystemVerilogIOSignal> outList = getIOSignalList(fromLoc, toLoc, null, true, true);
+		return outList;
+	}
+	
+/*	
+ 
+	/** return a list of all internally defined interfaces leaf first *  
+	 * <--- used in intr wrapper gen, writeInterface for each, which calls getInterfaceDefName() & getIntfDefStrings()
+	 * incorporate in new getSignalSetDefineStmts? - null in sigset
+	 *
 	public List<SystemVerilogIOSignal> getIntfsToBeDefined() {
 		List<SystemVerilogIOSignal> outList = new ArrayList<SystemVerilogIOSignal>();
 		for (SystemVerilogIOSignal sig: signalList) {
@@ -170,11 +195,6 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		}
 		return outList;
 	}
-
- */
-	// ------ output generation methods
-	
-/*
 
 	// ----------------- methods returning sv formatted strings for output
 	
@@ -251,7 +271,6 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		}
 		return outList;
 	}
-
- 
  */
+		
 }

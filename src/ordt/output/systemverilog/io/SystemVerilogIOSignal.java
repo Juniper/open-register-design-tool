@@ -8,9 +8,9 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 	protected int lowIndex;
 	protected int size;
 
-	public SystemVerilogIOSignal(Integer from, Integer to, String namePrefix, String name, int lowIndex, int size) {   
+	public SystemVerilogIOSignal(Integer from, Integer to, String tagPrefix, String name, int lowIndex, int size) {   
 		this.name = name;
-		this.namePrefix = namePrefix;
+		this.tagPrefix = tagPrefix;
 		this.lowIndex = lowIndex;
 		this.size = size;
 		this.from = from;
@@ -18,22 +18,8 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 		this.repCount = 1;  // signal repcount is always 1
 	}
 	
-	// ----- SystemVerilogElement abstract methods
-	/*
-	/** return the name used for definitions (includes) prefixed array string *
-	@Override
-	public String getDefName(String prefix) {
-		return getDefArray() + prefix + name;
-	}
-
-	@Override
-	public List<SystemVerilogIOSignal> getIOSignals(Integer fromLoc, Integer toLoc) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	*/
+	// ----- 
 	
-	// ----- other methods
 	/** get lowIndex for this io signal */
 	public int getLowIndex() {
 		return lowIndex;
@@ -57,10 +43,11 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 		return null;
 	}
 
+	/** return a simple IOSignal with full generated name for this element */
 	@Override
-	public List<SystemVerilogIOSignal> getIOSignals(Integer fromLoc, Integer toLoc) {
-		// TODO Auto-generated method stub
-		return null;
+	public SystemVerilogIOSignal getIOSignal(String pathPrefix, boolean addTagPrefix) {
+		String newTagPrefix = addTagPrefix? tagPrefix : "";
+		return new SystemVerilogIOSignal(from, to, newTagPrefix, pathPrefix + name, lowIndex, size);
 	}
 
 }
