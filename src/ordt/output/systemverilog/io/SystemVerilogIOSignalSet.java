@@ -87,7 +87,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	// ------ output generation methods
 /*
  
-	/** return all encapsulated non-intf signals in this interface - recursive *   
+	/** return all encapsulated non-intf signals in this interface - recursive *   TODO generate this from getIOSignalList
 	public List<SystemVerilogSignal> getSignalList(Integer fromLoc, Integer toLoc) {
 		List<SystemVerilogSignal> outList = new ArrayList<SystemVerilogSignal>();
 		//System.out.println("  SystemVerilogInterface getSignalList: sigs size=" + sigs.size());
@@ -105,27 +105,30 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		//System.out.println("  SystemVerilogIntfList getSignalList: output size=" + outList.size());
 		return outList;
 	}
+*/	
 	
-	/** return all encapsulated non-intf signals in this interface - recursive * 
-	public List<SystemVerilogIOSignal> getIOSignalList(Integer fromLoc, Integer toLoc) {
+	/** return a flat list of IOsignals in this signalset - recursive */ 
+	public List<SystemVerilogIOSignal> getIOSignalList(Integer fromLoc, Integer toLoc, String pathPrefix) {
 		List<SystemVerilogIOSignal> outList = new ArrayList<SystemVerilogIOSignal>();
 		//System.out.println("  SystemVerilogInterface getSignalList: sigs size=" + sigs.size());
-		for (SystemVerilogIOSignal ioSig : signalList) {
-			// if this signal is an interface get all encapsulated signals
-			if (ioSig.isIntfSig()) {
-				List<SystemVerilogIOSignal> newList = ioSig.getIOSignalList(fromLoc, toLoc);
-				outList.addAll(newList);
+		for (SystemVerilogIOElement ioElem : childList) {
+			String prefix = ((pathPrefix == null) || pathPrefix.isEmpty())? "" : ioElem.getName() + "_";
+			// if this elem is an set, get all encapsulated signals
+			if (ioElem.isSignalSet()) {
+				//List<SystemVerilogIOSignal> newList = ioElem.getIOSignalList(fromLoc, toLoc, prefix);  TODO --- move to IOElement
+				//outList.addAll(newList);
 			}
 			// otherwise add simple signal to list if from/to match
-			else if (ioSig.isFrom(fromLoc) && ioSig.isTo(toLoc)) {
-				outList.add(ioSig);
+			else if (ioElem.isFrom(fromLoc) && ioElem.isTo(toLoc)) {
+				//outList.add(new SystemVerilogIOSignal(ioElem, );  // use same IOElem defined abstract method / create new IOSig and add to list
 			}
 		}
-		//System.out.println("  SystemVerilogIntfList getIOSignalList: output size=" + outList.size());
+		//System.out.println("  SystemVerilogIOSignalSet getIOSignalList: output size=" + outList.size());
 		return outList;
 	}
 	
-	/** get a signalList including intrface encaps matching specified from/to params - no recursion
+/*	
+	/** get a signalList including intrface encaps matching specified from/to params - no recursion  <-- gets the local list, need to cast sigsets to sigs
 	 * @param fromLoc
 	 * @param toLoc 
 	 *
