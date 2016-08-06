@@ -1,6 +1,7 @@
 package ordt.output.systemverilog.io;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 
@@ -13,8 +14,8 @@ import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
  * maintains a stack of active signalsets where new signals/sets will be added by svbuilder */
 public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 
-	public SystemVerilogIOSignalList(String name) {
-		super(null, name, 1);
+	public SystemVerilogIOSignalList() {
+		super(null, null, 1);  // IOsignalList has no tag, no name and one rep
 	}
 
 	private Stack<SystemVerilogIOSignalSet> activeSetStack = new Stack<SystemVerilogIOSignalSet>();  // track active signalsets for inserts 
@@ -69,7 +70,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	 * @param reps - number of replications
 	 * @param isFirstRep - true if first rep is being processed
 	 * @param isIntf - true if set is an interface
-	 * @param extType - externally defined type of this set
+	 * @param extType - externally defined type of this set, if null interface type is defined by path
 	 * @return
 	 */
 	public SystemVerilogIOSignalSet pushIOSignalSet(Integer from, Integer to, String namePrefix, String name, int reps, boolean isFirstRep, boolean isIntf, String extType) {
@@ -79,7 +80,9 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		if (inhibitAdd) return null;
 		// else no inhibit then create the set and push to active stack
 		SystemVerilogIOSignalSet newSigSet;
-		if (isIntf) newSigSet = new SystemVerilogIOInterface (from, to, namePrefix, name, reps, extType);  // create a new interface // TODO add isExtType input and generate internal type from stack if not ext
+		boolean hasExtType = (extType !=null);
+		String newType = hasExtType? extType : getCurrentStackPath();  // if internally defined, pass in the current path
+		if (isIntf) newSigSet = new SystemVerilogIOInterface (from, to, namePrefix, name, reps, newType, hasExtType);  // create a new interface
 		else newSigSet = new SystemVerilogIOSignalSet (namePrefix, name, reps);  // otherwise create default set
 		// add to active element or root level
 		if (activeSetStack.isEmpty()) super.addSignalSet(newSigSet);  // add new set at root
@@ -89,6 +92,17 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		return newSigSet;
 	}
 	
+	/** return a string of catenated sigset names on the activestack (no replication counts) */
+	private String getCurrentStackPath() {
+		String outName = "";
+		Iterator<SystemVerilogIOSignalSet> iter = activeSetStack.iterator();
+		while (iter.hasNext()) {
+			outName += iter.next().getName();
+			if (iter.hasNext()) outName += "_";
+		}
+		return outName;
+	}
+
 	/** if initial rep, create a new signal set class, add it to active stack */
 	public SystemVerilogIOSignalSet pushIOSignalSet(Integer from, Integer to, DefSignalType sigType, int reps, boolean isFirstRep, String extType) {
 		String prefix = SystemVerilogDefinedSignals.getPrefix(sigType);

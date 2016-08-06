@@ -5,11 +5,20 @@ import java.util.List;
 
 public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 
-	public SystemVerilogIOInterface(Integer from, Integer to, String namePrefix, String name, int reps, String extType) { 
-		super(namePrefix, name, reps);
+	/** create a new SystemVerilogIOInterface
+	 * @param from
+	 * @param to
+	 * @param tagPrefix
+	 * @param name - name of this interface
+	 * @param reps - number of reps in this set
+	 * @param type - if hasExtType is true, this is the external type, otherwise it is the path string for an internally defined type
+	 * @param hasExtType - if true, interface has an externally defined type
+	 */
+	public SystemVerilogIOInterface(Integer from, Integer to, String tagPrefix, String name, int reps, String type, boolean hasExtType) { 
+		super(tagPrefix, name, reps);
 		this.from = from;
 		this.to = to;
-		this.extType = extType;
+		this.type = hasExtType? type : getFullName(type, true);  // if not an ext type then build from path
 	}
 
 	/** returns true if this element is virtual (ie not an actually group in systemverilog output).
@@ -19,14 +28,17 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 
     /** return a list of definitions for this sigset - overriden in SignalSet child classses  */  
     @Override
-    public List<String> getDefStrings() {  // TODO
+    public List<String> getDefStrings() {
     	List<String> outList = new ArrayList<String>();
 		List<String> intfDefStrings = getDefStrings(null);  // get child definitions for this intf
 		// write the interface
 		if (intfDefStrings.size() > 0) {
-			/*writeInterfaceBegin(indentLevel++, intfName);  // need to generate 
+			outList.add("//");
+			outList.add("//---------- interface " + getType());
+			outList.add("//");
+			outList.add("interface " + getType() + ";");		
 			outList.addAll(intfDefStrings);   
-			writeInterfaceEnd(--indentLevel);*/
+			outList.add("endinterface\n");	
 		}
     	return outList;
     }
@@ -40,17 +52,12 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 
     // ----------------- methods returning sv formatted strings for output 
 
-    /** return a list define strings for this interface */
-    private List<String> getDefStrings(String pathPrefix) {  // TODO
+    /** return a list define strings for child elements in this interface */
+    private List<String> getDefStrings(String pathPrefix) {  // TODO - need to get elements, not 
     	List<String> outList = new ArrayList<String>();
-	/*	List<String> intfDefStrings = getIntfDefStrings();
-		// write the interface
-		if (intfDefStrings.size() > 0) {
-			writeInterfaceBegin(indentLevel++, intfName);
-			for (String defStr: intfDefStrings) writeStmt(indentLevel, defStr);   
-			writeInterfaceEnd(--indentLevel);
-		}*/
-    	return outList;
+    	// get a list of child elements
+    	// loop through the list and generate an instance
+  	return outList;
     }
 
 /*

@@ -7,10 +7,11 @@ import ordt.output.systemverilog.SystemVerilogSignal;
 
 public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	protected List<SystemVerilogIOElement> childList = new ArrayList<SystemVerilogIOElement>(); // signals/signalsets in this signalset
-	protected String extType = null;   // type of this signalset  
+	protected String type = null;   // type of this signalset  
+	protected boolean hasExtType = false;   // type of this signalset  
 
 	public SystemVerilogIOSignalSet(String tagPrefix, String name, int reps) { 
-		this.name = name;
+		this.name = (name == null)? "" : name;
 		this.tagPrefix = tagPrefix;
 		this.repCount = reps; 
 	}
@@ -26,12 +27,12 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
     
     /** return the defined type of this signalset */
 	public String getType() {
-		return extType;
+		return type;
 	}
 	
     /** return true if this signalset is externally defined (has type) */
 	public boolean hasExtType() {
-		return (extType != null);
+		return hasExtType;
 	}
 
 	/** returns true if this signalset has no children
@@ -103,7 +104,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	
 	// ------ IO model output methods
 	
-	/** return a flat list of IOsignals with generated names for this signalset - recursively builds names top down *
+	/** return a flat list of IOsignals with generated names for this signalset - recursively builds names top down *  // TODO - should this be IOelements?
 	 * @param fromLoc - only signals matching from will be returned
 	 * @param toLoc - only signals matching to will be returned
 	 * @param pathPrefix - prefix from ancestor levels that will be used to create child name
@@ -126,7 +127,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 				boolean validLeaf = !(ioElem.isVirtual() || (ioElem.isSignalSet() && !stopOnNonVirtualSets) || (isVirtual() && inhibitVirtualEncaps));
 				boolean validLoc = ioElem.isFrom(fromLoc) && ioElem.isTo(toLoc);
 				if (validLeaf && validLoc) {
-					outList.add(ioElem. getIOSignal(prefix + suffix, addTagPrefix));  // create a new IOSig and add to list
+					outList.add(ioElem.getIOSignal(prefix + suffix, addTagPrefix));  // create a new IOSig and add to list
 				}		
 				// otherwise if a signalset, make recursive call 
 				else if (ioElem.isSignalSet()) {
