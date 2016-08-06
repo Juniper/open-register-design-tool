@@ -1,5 +1,6 @@
 package ordt.output.systemverilog.io;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
@@ -18,8 +19,16 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 
     /** return a list of definitions for this sigset - overriden in SignalSet child classses  */  
     @Override
-    public List<String> getDefStrings(String pathPrefix) {
-    	return null;
+    public List<String> getDefStrings() {  // TODO
+    	List<String> outList = new ArrayList<String>();
+		List<String> intfDefStrings = getDefStrings(null);  // get child definitions for this intf
+		// write the interface
+		if (intfDefStrings.size() > 0) {
+			/*writeInterfaceBegin(indentLevel++, intfName);  // need to generate 
+			outList.addAll(intfDefStrings);   
+			writeInterfaceEnd(--indentLevel);*/
+		}
+    	return outList;
     }
 
     /** return a list of assign statements for this sigset mapping from simple signals to hierarchical- overriden in SignalSet child classses */  
@@ -28,40 +37,23 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
     	return null;
     }
 	
+
+    // ----------------- methods returning sv formatted strings for output 
+
+    /** return a list define strings for this interface */
+    private List<String> getDefStrings(String pathPrefix) {  // TODO
+    	List<String> outList = new ArrayList<String>();
+	/*	List<String> intfDefStrings = getIntfDefStrings();
+		// write the interface
+		if (intfDefStrings.size() > 0) {
+			writeInterfaceBegin(indentLevel++, intfName);
+			for (String defStr: intfDefStrings) writeStmt(indentLevel, defStr);   
+			writeInterfaceEnd(--indentLevel);
+		}*/
+    	return outList;
+    }
+
 /*
-// ----------------- methods returning sv formatted strings for output 
-
-/** return a list define strings for this interface map *
-public List<String> getIntfDefStrings() {
-	List<String> outList = new ArrayList<String>();
-	//System.out.println("SystemVerilogInterface getIntfDefStrings: name=" + getName() + ", sigs n=" + signalList.size());
-	for (SystemVerilogIOSignal sig: signalList) {
-		// extract sig string  
-		//String newName = getLocalName(sig);  
-		String newName = getChildName(sig);  
-		if (newName != null) {
-			// if logic use std def
-			if (!sig.isIntfSig()) {
-				String defString = "logic " + sig.getDefArray() + newName + ";";
-				outList.add(defString);
-				//System.out.println("   SystemVerilogInterface getIntfDefStrings: sig=" + defString);
-			}
-			// else if an interface use it's name and array size
-			else if (sig.isFirstRep()) {
-				String defString = sig.getInterfaceDefName() + " " + newName + sig.getDefArray() + "();";
-				outList.add(defString);
-				//System.out.println("   SystemVerilogInterface getIntfDefStrings: intf=" + defString);
-			}
-		}
-		// replicated interface sigs will fail to match and so will not be added
-		else {
-			//System.err.println("   SystemVerilogInterface getIntfDefStrings: elem name=" + sig.getName()); 
-			//System.out.println("---SystemVerilogInterface getIntfDefStrings: match failed for " + sig.getName());
-		}
-	}
-	return outList;
-}
-
 /** return a list of strings assigning interfaces to corresponding logic IO * 
 public List<String> getInterfaceAssignStrList(int insideLocations, String intfPrefix) {
 	List<String> outList = new ArrayList<String>();

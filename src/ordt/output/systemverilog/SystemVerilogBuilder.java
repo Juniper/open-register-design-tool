@@ -59,7 +59,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 
     // define IO lists
 	protected SystemVerilogIOSignalList cntlSigList = new SystemVerilogIOSignalList();   // clocks/resets
-	protected SystemVerilogIOSignalList hwSigList = new SystemVerilogIOSignalList();     // logic to/from hw
+	protected SystemVerilogIOSignalList hwSigList = new SystemVerilogIOSignalList();     // logic/decode to/from hw
 	protected SystemVerilogIOSignalList pioSigList = new SystemVerilogIOSignalList();    // pio to/from decoder
 	protected SystemVerilogIOSignalList intSigList = new SystemVerilogIOSignalList();    // logic to/from decoder
 	

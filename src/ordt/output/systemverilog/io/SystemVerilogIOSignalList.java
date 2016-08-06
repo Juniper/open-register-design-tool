@@ -79,7 +79,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		if (inhibitAdd) return null;
 		// else no inhibit then create the set and push to active stack
 		SystemVerilogIOSignalSet newSigSet;
-		if (isIntf) newSigSet = new SystemVerilogIOInterface (from, to, namePrefix, name, reps, extType);  // create a new interface
+		if (isIntf) newSigSet = new SystemVerilogIOInterface (from, to, namePrefix, name, reps, extType);  // create a new interface // TODO add isExtType input and generate internal type from stack if not ext
 		else newSigSet = new SystemVerilogIOSignalSet (namePrefix, name, reps);  // otherwise create default set
 		// add to active element or root level
 		if (activeSetStack.isEmpty()) super.addSignalSet(newSigSet);  // add new set at root
@@ -94,7 +94,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		String prefix = SystemVerilogDefinedSignals.getPrefix(sigType);
 		String name = SystemVerilogDefinedSignals.getSuffix(sigType);
 		boolean isIntf = (sigType == DefSignalType.LOGIC_INTERFACE);
-		return pushIOSignalSet(from, to, prefix, name,  reps,  isFirstRep,  isIntf,  extType);
+		return pushIOSignalSet(from, to, prefix, name,  reps,  isFirstRep,  isIntf,  extType);  
 	}
 
 	/** done defining signalset, so pop the stacks */

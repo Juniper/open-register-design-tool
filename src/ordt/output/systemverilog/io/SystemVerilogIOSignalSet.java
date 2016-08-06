@@ -76,8 +76,8 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 
 	// ----------- methods to be overriden by child classes
 		
-	/** return a list of definitions for this sigset - overriden in SignalSet child classses  */  
-	public List<String> getDefStrings(String pathPrefix) {
+	/** return a list of definitions for this sigset - overridden in SignalSet child classses  */  
+	public List<String> getDefStrings() {
 	   return null;
     }
 	
