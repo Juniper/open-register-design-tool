@@ -1,8 +1,11 @@
 package ordt.output.systemverilog.io;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
 import ordt.output.systemverilog.SystemVerilogDefinedSignals;
+import ordt.output.systemverilog.SystemVerilogSignal;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 
 
@@ -98,6 +101,28 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	public void popIOSignalSet() {
 		if (!inhibitAdd()) activeSetStack.pop();  // pop this set if push wasn't inhibited
 		inhibitInsertStack.pop();  // always pop the inhibit stack 
+	}
+	 
+	// -------
+
+	/** return a list of flat simple signals that are encapsulated in interfaces (no root sigs) - recursive *  was getIntfEncapsulatedSignalList
+	 *  <--- this is from SVIOSignalList, gets list of full signals in interfaces
+	 * @param insideLocations - encapsulated signals from and to this location are returned
+	 */
+	public List<SystemVerilogSignal> getEncapsulatedSignalList(int insideLocations) {
+		List<SystemVerilogSignal> outList = new ArrayList<SystemVerilogSignal>();
+		for (SystemVerilogIOElement ioElem: childList) {
+			// if this element is a sigset, call recursively to get all encapsulated signals
+			if (ioElem.isSignalSet()) {
+				SystemVerilogIOSignalSet ioSigSet = (SystemVerilogIOSignalSet) ioElem;
+				//System.err.println("   SystemVerilogIOSignalList getEncapsulatedSignalList: name=" + ioElem.getName());
+				List<SystemVerilogSignal> newList = ioSigSet.getEncapsulatedSignalList(null, insideLocations);  // get inputs
+				outList.addAll(newList);
+				newList = ioSigSet.getEncapsulatedSignalList(insideLocations, null);  // get outputs
+				outList.addAll(newList);
+			}
+		}
+		return outList;
 	}
 
 }
