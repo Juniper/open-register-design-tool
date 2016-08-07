@@ -1,7 +1,5 @@
 package ordt.output.systemverilog.io;
 
-import java.util.List;
-
 import ordt.output.systemverilog.SystemVerilogBuilder;
 
 public class SystemVerilogIOSignal extends SystemVerilogIOElement {
@@ -15,7 +13,7 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 		this.size = size;
 		this.from = from;
 		this.to = to;
-		this.repCount = 1;  // signal repcount is always 1
+		this.reps = 1;  // signal rep count is always 1
 	}
 	
 	// ----- 
@@ -37,15 +35,21 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 
     // ------------ methods overriding super
 
+    /** return type of this signal - always "logic" */
 	@Override
-	public String getInstanceString() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getType() {
+		return "logic";
 	}
 
-	/** return a simple IOSignal with full generated name for this element */
+	/** return sv string instancing this element - assumes element name is full instance name */
 	@Override
-	public SystemVerilogIOSignal getIOSignal(String pathPrefix, boolean addTagPrefix) {
+	public String getInstanceString() {
+		return getType() + " " + getFullName() + getDefArray();
+	}
+
+	/** return a simple IOElement with full generated name */
+	@Override
+	public SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix) {
 		String newTagPrefix = addTagPrefix? tagPrefix : "";
 		return new SystemVerilogIOSignal(from, to, newTagPrefix, pathPrefix + name, lowIndex, size);
 	}

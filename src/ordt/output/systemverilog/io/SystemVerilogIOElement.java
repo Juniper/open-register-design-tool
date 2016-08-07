@@ -7,7 +7,7 @@ public abstract class SystemVerilogIOElement {
 	
 	protected String name;       // local name of this element
 	protected String tagPrefix;       // prefix to be added to full generated name
-	protected int repCount = 1;  // number of times this element is replicated  
+	protected int reps = 1;  // number of times this element is replicated  
 	Integer from, to = 0;  // direction of this signal/signalset
 
 	/** returns true if this element is a set */
@@ -48,13 +48,13 @@ public abstract class SystemVerilogIOElement {
 	}
 
 	/** get replication count for this io element */
-	public int getRepCount() {
-		return repCount;
+	public int getReps() {
+		return reps;
 	}
 	
 	/** return true if more than one rep of this io element */
 	public boolean isReplicated() {
-		return (repCount > 1);
+		return (reps > 1);
 	}
 
 	/** by default return local element definition (no name prefix) */
@@ -62,31 +62,34 @@ public abstract class SystemVerilogIOElement {
 		return getFullName("", true);
 	}
 	
-	/** return the full name of this io element including prefix, path, and local name 
+	/** return the full name of this io element including any tagPrefix, pathPrefix, and local name 
 	 * used for top-down recursive name generation */ 
 	public String getFullName(String pathPrefix, boolean addTagPrefix) {   
 		String newTagPrefix = addTagPrefix? tagPrefix : "";
-		return newTagPrefix + pathPrefix + name;
+		String newPathPrefix = (pathPrefix == null)? "" : pathPrefix;
+		return newTagPrefix + newPathPrefix + name;
 	}
 	
-	// abstract methods
+	/** return the full name of this io element assuming no addl pathPrefix and addition of tagPrefix  
+	 * used for top-down recursive name generation */ 
+	public String getFullName() {   
+		return getFullName("", true);
+	}
 	
 	/** return sv string instancing this element */
-	public abstract String getInstanceString();   // TODO add getType() - getinstancestring will need pathStr input?
-
-	/** return all io elements at root level of this io element *   TODO - move to IOSignalSet
-	public List<SystemVerilogIOElement> getIOElements(Integer fromLoc, Integer toLoc) {
-		List<SystemVerilogSignal> outList = new ArrayList<SystemVerilogSignal>();
-	    outList.addAll(intf.getSignalList(fromLoc, toLoc));
-		//System.out.println("  SystemVerilogIOSignal getSignalList: intfmap size=" + intfMappings.size() + ", output size=" + outList.size());
-		return outList;
-	}*/
+	public String getInstanceString(String pathPrefix, boolean addTagPrefix) {
+		return getType() + " " + getFullName(pathPrefix, addTagPrefix) + ";";
+	}
+		
+	// abstract methods
+	
+	/** return type string for this element */
+	public abstract String getType();
+	
+	/** return sv string instancing this element - assumes element name is full instance name */
+	public abstract String getInstanceString();
 
 	/** return a simple IOSignal with full generated name for this element */
-	public abstract SystemVerilogIOSignal getIOSignal(String pathPrefix, boolean addTagPrefix);  // TODO change to getIOElement?
-/*	{
-		String newTagPrefix = addTagPrefix? tagPrefix : "";
-		return new SystemVerilogIOSignal(from, to, newTagPrefix, pathPrefix + name, int lowIndex, int size);
-	}*/
+	public abstract SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix);  
 	
 }
