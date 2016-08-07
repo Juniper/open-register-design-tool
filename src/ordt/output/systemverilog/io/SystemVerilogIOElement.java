@@ -72,7 +72,7 @@ public abstract class SystemVerilogIOElement {
 	// abstract methods
 	
 	/** return sv string instancing this element */
-	public abstract String getInstanceString();
+	public abstract String getInstanceString();   // TODO add getType() - getinstancestring will need pathStr input?
 
 	/** return all io elements at root level of this io element *   TODO - move to IOSignalSet
 	public List<SystemVerilogIOElement> getIOElements(Integer fromLoc, Integer toLoc) {
@@ -83,7 +83,7 @@ public abstract class SystemVerilogIOElement {
 	}*/
 
 	/** return a simple IOSignal with full generated name for this element */
-	public abstract SystemVerilogIOSignal getIOSignal(String pathPrefix, boolean addTagPrefix);
+	public abstract SystemVerilogIOSignal getIOSignal(String pathPrefix, boolean addTagPrefix);  // TODO change to getIOElement?
 /*	{
 		String newTagPrefix = addTagPrefix? tagPrefix : "";
 		return new SystemVerilogIOSignal(from, to, newTagPrefix, pathPrefix + name, int lowIndex, int size);
