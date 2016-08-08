@@ -51,10 +51,10 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	private static ValidAddressRanges addressRanges;
 	
 	// define io locations
-	protected static final Integer HW = 1;
-	protected static final Integer LOGIC = 2;
-	protected static final Integer DECODE = 4;
-	protected static final Integer PIO = 8;
+	protected static final Integer HW = SystemVerilogDefinedSignals.HW;
+	protected static final Integer LOGIC = SystemVerilogDefinedSignals.LOGIC;
+	protected static final Integer DECODE = SystemVerilogDefinedSignals.DECODE;
+	protected static final Integer PIO = SystemVerilogDefinedSignals.PIO;
 	protected boolean usesInterfaces = false;  // detect if sv interfaces are needed  
 
     // define IO lists

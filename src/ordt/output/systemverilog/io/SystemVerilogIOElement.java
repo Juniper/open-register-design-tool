@@ -17,7 +17,7 @@ public abstract class SystemVerilogIOElement {
 
 	/** return true if location specified is in from locations for this io element */
 	public Boolean isFrom(Integer loc) {
-		if (loc == null) return true;
+		if ((loc == null) || (this.from == null)) return true;
 		return ((this.from & loc) > 0);
 	}
 
@@ -28,7 +28,7 @@ public abstract class SystemVerilogIOElement {
 
     /** return true if location specified is in to locations for this io element */
 	public Boolean isTo(Integer loc) {
-		if (loc == null) return true;
+		if ((loc == null) || (this.to == null)) return true;
 		return ((this.to & loc) > 0);
 	}
 
@@ -39,6 +39,11 @@ public abstract class SystemVerilogIOElement {
 
 	public String getName() {
 		return name;
+	}
+	
+	/** returns true if element name is null of empty */
+	public boolean hasNoName() {
+		return (name == null) || name.isEmpty();
 	}
 
 	public String getTagPrefix() {
