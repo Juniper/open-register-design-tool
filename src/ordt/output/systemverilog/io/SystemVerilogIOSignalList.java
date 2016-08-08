@@ -138,5 +138,19 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		}
 		return outList;
 	}
+	
+	/** return a list of strings assigning interface children to corresponding simple IO signal */   
+	public List<String> getNonVirtualAssignStrings(int insideLocations) {
+		List<String> outList = new ArrayList<String>();
+		for (SystemVerilogIOElement ioElem: childList) {
+			// if this element is a set, call recursively to get all encapsulated signal assigns
+			if (ioElem.isSignalSet()) {
+				//System.err.println("   SystemVerilogIOSignalList getInterfaceAssignStrList: name=" + sig.getName());
+				List<String> newList = ((SystemVerilogIOSignalSet) ioElem).getNonVirtualAssignStrings(insideLocations, true, null, null, false, false);
+				outList.addAll(newList);
+			}
+		}
+		return outList;
+	}
 
 }

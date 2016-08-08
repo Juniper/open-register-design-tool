@@ -1,7 +1,5 @@
 package ordt.output.systemverilog.io;
 
-import java.util.List;
-
 /** io signal/signalset elements */
 public abstract class SystemVerilogIOElement {
 	

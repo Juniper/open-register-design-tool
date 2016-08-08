@@ -110,28 +110,28 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	 * @param pathPrefix - prefix from ancestor levels that will be used to create child name
 	 * @param addTagPrefix - if true, defined signal prefixes will be added to names
 	 * @param stopOnNonVirtualSets - if true, recursion stops when a non-virtual signalset is hit (eg an interface)
-	 * @param inhibitVirtualEncaps - if true, only signals in at least one non-virtual signalset are returned
+	 * @param validEncap - if true, any matching elements in this signalset should be added, otherwise only those encapsulated in a non-virtual set
 	 * @return - list of SystemVerilogIOSignal
 	 */
 	public List<SystemVerilogIOElement> getIOElementList(Integer fromLoc, Integer toLoc, String pathPrefix, boolean addTagPrefix, 
-			boolean stopOnNonVirtualSets, boolean inhibitVirtualEncaps) {
+			boolean stopOnNonVirtualSets, boolean validEncap) {
 		List<SystemVerilogIOElement> outList = new ArrayList<SystemVerilogIOElement>();
 		//System.out.println("  SystemVerilogInterface getSignalList: sigs size=" + sigs.size());
 		for (SystemVerilogIOElement ioElem : childList) {
 			String prefix = ioElem.getFullName(pathPrefix, false);
-			boolean childInhibitVirtualEncaps = inhibitVirtualEncaps && !isVirtual();  // no inhibit in children if a real set is encountered
+			boolean newValidEncap = validEncap && !isVirtual();  // child elems are valid if this element in non-virtual
 		    // process each rep of this elem
 			for (int idx=0; idx<ioElem.getReps(); idx++) {
 				String suffix = ioElem.isReplicated()? "_" + idx : "";
 				// if this is leaf element then return it
-				boolean validLeaf = !(ioElem.isVirtual() || (ioElem.isSignalSet() && !stopOnNonVirtualSets) || (isVirtual() && inhibitVirtualEncaps));  // TODO - inhibitVirtualEncaps is broken
+				boolean validLeaf = !(ioElem.isVirtual() || (ioElem.isSignalSet() && !stopOnNonVirtualSets) || !newValidEncap);
 				boolean validLoc = ioElem.isFrom(fromLoc) && ioElem.isTo(toLoc);
 				if (validLeaf && validLoc) {
 					outList.add(ioElem.getFullNameIOElement(prefix + suffix, addTagPrefix));  // create a new IOElem and add to list
 				}		
 				// otherwise if a signalset, make recursive call 
 				else if (ioElem.isSignalSet()) {
-					List<SystemVerilogIOElement> newList = ((SystemVerilogIOSignalSet) ioElem).getIOElementList(fromLoc, toLoc, prefix + suffix + "_", addTagPrefix, stopOnNonVirtualSets, childInhibitVirtualEncaps);
+					List<SystemVerilogIOElement> newList = ((SystemVerilogIOSignalSet) ioElem).getIOElementList(fromLoc, toLoc, prefix + suffix + "_", addTagPrefix, stopOnNonVirtualSets, newValidEncap);
 					outList.addAll(newList);
   			    }
 			}
@@ -244,19 +244,18 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	 * @param sigsOnInside - true if signals are used inside insideLocations, hierarchy outside
 	 * @param pathPrefix - prefix from ancestor levels that will be used to create child name
 	 * @param hierPathPrefix - hierarchical path prefix from ancestor levels that will be used to create hier child name
-	 * @param addTagPrefix - if true, defined signal prefixes will be added to names
-	 * @param stopOnNonVirtualSets - if true, recursion stops when a non-virtual signalset is hit (eg an interface)
-	 * @param inhibitVirtualEncaps - if true, only signals in at least one non-virtual signalset are returned
+	 * @param validEncap - if true, any matching elements in this signalset should be added, otherwise only those encapsulated in a non-virtual set
+	 * @param foundFirstNonVirtual - if true, first non-virtual element in hierarchy was already found, so no name prefix in hier
 	 * @return - list of SystemVerilogIOSignal
 	 */
-	public List<String> getNonVirtualAssignStrings(Integer insideLocations, boolean sigsOnInside, String pathPrefix, String hierPathPrefix, boolean addTagPrefix, 
-			boolean inhibitVirtualEncaps, boolean foundFirstNonVirtual) {
+	public List<String> getNonVirtualAssignStrings(Integer insideLocations, boolean sigsOnInside, String pathPrefix, String hierPathPrefix, 
+			boolean validEncap, boolean foundFirstNonVirtual) {
 		List<String> outList = new ArrayList<String>();
 		//System.out.println("  SystemVerilogInterface getSignalList: sigs size=" + sigs.size());
 		for (SystemVerilogIOElement ioElem : childList) {
 			String newPrefix = ioElem.getFullName(pathPrefix, false);
 			String newHierPrefix = ioElem.getFullName(pathPrefix, !(ioElem.isVirtual() || foundFirstNonVirtual));;
-			boolean childInhibitVirtualEncaps = inhibitVirtualEncaps && !isVirtual();  // no inhibit in children if a real set is encountered
+			boolean newValidEncap = validEncap && !isVirtual();  // child elems are valid if this element in non-virtual
 		    // process each rep of this elem
 			for (int idx=0; idx<ioElem.getReps(); idx++) {
 				// build hier and non-hier string names
@@ -264,7 +263,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 				String hierSuffix = (ioElem.isReplicated() && !ioElem.isVirtual())? "[" + idx + "]" : suffix;
 				String hierConnector = (ioElem.isVirtual())? "_" : ".";
 				// if this is leaf element then return it
-				boolean validLeaf = !(ioElem.isVirtual() || ioElem.isSignalSet() || (isVirtual() && inhibitVirtualEncaps)); // TODO - inhibitVirtualEncaps is broken
+				boolean validLeaf = !(ioElem.isVirtual() || ioElem.isSignalSet() || !newValidEncap); 
 				if (validLeaf) {
 					String signalName = ioElem.getFullName(pathPrefix, true);
 					String hierName = ioElem.getFullName(hierPathPrefix, false);
@@ -281,7 +280,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 				// otherwise if a signalset, make recursive call 
 				else if (ioElem.isSignalSet()) {
 					boolean newFoundFirstNonVirtual = foundFirstNonVirtual || !ioElem.isVirtual();
-					List<String> newList = ((SystemVerilogIOSignalSet) ioElem).getNonVirtualAssignStrings(insideLocations, sigsOnInside, newPrefix + suffix + "_", newHierPrefix + hierSuffix + hierConnector, addTagPrefix, childInhibitVirtualEncaps, newFoundFirstNonVirtual);
+					List<String> newList = ((SystemVerilogIOSignalSet) ioElem).getNonVirtualAssignStrings(insideLocations, sigsOnInside, newPrefix + suffix + "_", newHierPrefix + hierSuffix + hierConnector, newValidEncap, newFoundFirstNonVirtual);
 					outList.addAll(newList);
   			    }
 			}
