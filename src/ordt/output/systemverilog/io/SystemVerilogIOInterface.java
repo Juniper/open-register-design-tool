@@ -41,14 +41,7 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 			outList.add("endinterface\n");	
 		}
     	return outList;
-    }
-
-    /** return a list of assign statements for this sigset mapping from simple signals to hierarchical- overriden in SignalSet child classses */  
-    @Override
-    public List<String> getAssignMapStrings(String pathPrefix) {
-    	return null;
-    }
-	
+    }	
 
     // ----------------- methods returning sv formatted strings for output 
 
@@ -59,48 +52,13 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
     	List<SystemVerilogIOElement> children = getLocalChildIOElementList();
     	// loop through the list and generate an instance
     	for (SystemVerilogIOElement child: children)
-    		outList.add(child.getInstanceString());
+    		outList.add("  " + child.getInstanceString());
   	    return outList;
     }
 
+
+	
 /*
-
-	/** return a flat list of IOelements with generated names for this signalset - recursively builds names top down * 
-	 * @param fromLoc - only signals matching from will be returned
-	 * @param toLoc - only signals matching to will be returned
-	 * @param pathPrefix - prefix from ancestor levels that will be used to create child name
-	 * @param addTagPrefix - if true, defined signal prefixes will be added to names
-	 * @param stopOnNonVirtualSets - if true, recursion stops when a non-virtual signalset is hit (eg an interface)
-	 * @param inhibitVirtualEncaps - if true, only signals in at least one non-virtual signalset are returned
-	 * @return - list of SystemVerilogIOSignal
-	 *
-	public List<SystemVerilogIOElement> getIOElementList(Integer fromLoc, Integer toLoc, String pathPrefix, boolean addTagPrefix, 
-			boolean stopOnNonVirtualSets, boolean inhibitVirtualEncaps) {
-		List<SystemVerilogIOElement> outList = new ArrayList<SystemVerilogIOElement>();
-		//System.out.println("  SystemVerilogInterface getSignalList: sigs size=" + sigs.size());
-		for (SystemVerilogIOElement ioElem : childList) {
-			String prefix = ((pathPrefix == null) || pathPrefix.isEmpty())? "" : ioElem.getName() + "_";
-			boolean childInhibitVirtualEncaps = inhibitVirtualEncaps && !isVirtual();  // no inhibit in children if a real set is encountered
-		    // process each rep of this elem
-			for (int idx=0; idx<ioElem.getReps(); idx++) {
-				String suffix = ioElem.isReplicated()? "_" + idx : "";
-				// if this is leaf element then return it
-				boolean validLeaf = !(ioElem.isVirtual() || (ioElem.isSignalSet() && !stopOnNonVirtualSets) || (isVirtual() && inhibitVirtualEncaps));
-				boolean validLoc = ioElem.isFrom(fromLoc) && ioElem.isTo(toLoc);
-				if (validLeaf && validLoc) {
-					outList.add(ioElem.getFullNameIOElement(prefix + suffix, addTagPrefix));  // create a new IOElem and add to list
-				}		
-				// otherwise if a signalset, make recursive call 
-				else if (ioElem.isSignalSet()) {
-					List<SystemVerilogIOElement> newList = ((SystemVerilogIOSignalSet) ioElem).getIOElementList(fromLoc, toLoc, prefix + suffix, addTagPrefix, stopOnNonVirtualSets, childInhibitVirtualEncaps);
-					outList.addAll(newList);
-  			    }
-			}
-		}
-		//System.out.println("  SystemVerilogIOSignalSet getIOSignalList: output size=" + outList.size());
-		return outList;
-	}
-
 
 /** return a list of strings assigning interfaces to corresponding logic IO *   // TODO
 public List<String> getInterfaceAssignStrList(int insideLocations, String intfPrefix) {
