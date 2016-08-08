@@ -49,7 +49,7 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
     private List<String> getChildInstanceStrings() { 
     	List<String> outList = new ArrayList<String>();
     	// get a list of child elements
-    	List<SystemVerilogIOElement> children = getLocalChildIOElementList();
+    	List<SystemVerilogIOElement> children = getLocalDescendentIOElementList();
     	// loop through the list and generate an instance
     	for (SystemVerilogIOElement child: children)
     		outList.add("  " + child.getInstanceString());

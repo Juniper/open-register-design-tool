@@ -188,7 +188,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
     	list1.popIOSignalSet();
     	
     	// add an interface
-    	SystemVerilogIOInterface intf1 = (SystemVerilogIOInterface) list1.pushIOSignalSet(LOGIC, HW, "lh_", "intf1", 1, true, true, null);
+    	SystemVerilogIOInterface intf1 = (SystemVerilogIOInterface) list1.pushIOSignalSet(LOGIC, HW, "lh_", "intf1", 1, true, true, null);  // TODO add from/set method using type
     	list1.addScalar(DefSignalType.L2H_UNDERFLOW);
     	// with a child signalset
     	//list1.pushIOSignalSet(null, null, null, "childsigset", 1, true, false, null);
@@ -199,15 +199,15 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
     	// get a list of child elems
     	List<SystemVerilogIOElement> elemList = list1.getChildList();
     	System.out.println("Children:");
-    	for (SystemVerilogIOElement ioElem : elemList) System.out.println("  " + ioElem /*+ ", local inst=" + ioElem.getInstanceString() */);
+    	for (SystemVerilogIOElement ioElem : elemList) System.out.println("  " + ioElem /*+ ", local inst=" + ioElem.getInstanceString() */);  // FIXME no SvBuilder defined
     	
     	// get a list of non-virtual child elems
-    	elemList = list1.getChildIOElementList(null, null);  //DECODE, HW
+    	elemList = list1.getDescendentIOElementList(null, null);  //DECODE, HW
     	System.out.println("Non-virtual child elems:");
     	for (SystemVerilogIOElement ioElem : elemList) System.out.println("  " + ioElem);
     	
     	// get a list of local children
-    	elemList = list1.getLocalChildIOElementList(); 
+    	elemList = list1.getLocalDescendentIOElementList(); 
     	System.out.println("Local Non-virtual child elems:");
     	for (SystemVerilogIOElement ioElem : elemList) System.out.println("  " + ioElem);
     	
@@ -215,6 +215,16 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
     	elemList = list1.getEncapsulatedIOElementList(null, null); 
     	System.out.println("Encapsulated child elems:");
     	for (SystemVerilogIOElement ioElem : elemList) System.out.println("  " + ioElem);
+    	
+    	// get intf define string
+    	//List<String> strList = intf1.getDefStrings();   // FIXME doesnt work here, no SvBuilder defined
+    	//System.out.println("Define strings:");
+    	//for (String str : strList) System.out.println("  " + str);
+    	
+    	// get assign strings
+    	List<String> strList = list1.getNonVirtualAssignStrings(DECODE|LOGIC); 
+    	System.out.println("Assign strings:");
+    	for (String str : strList) System.out.println("  " + str);
     }
 
 }

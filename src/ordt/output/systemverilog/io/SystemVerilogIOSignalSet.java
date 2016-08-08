@@ -77,11 +77,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	   return null;
     }
 
-	/** get rep array string */
-	protected String getRepArray() {
-		return isReplicated()? "[" + getReps() + "] " : "";
-	}
-    // ------------ methods overriding super
+	// ------------ methods overriding super
 
     /** return type of this signal */
 	@Override
@@ -95,6 +91,11 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		return getType() + " " + getRepArray() + getFullName();
 	}
 
+	/** get rep array string */
+	protected String getRepArray() {
+		return isReplicated()? "[" + getReps() + "] " : "";
+	}
+
 	/** return a simple IOElement with full generated name */
 	@Override
 	public SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix) {
@@ -102,7 +103,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		return new SystemVerilogIOSignalSet(newTagPrefix, pathPrefix + name, reps);
 	}
 		
-	// ------ IO model output methods
+	// ------ methods returning IOElement lists
 	
 	/** return a flat list of IOelements with generated names for this signalset - recursively builds names top down * 
 	 * @param fromLoc - only signals matching from will be returned
@@ -116,17 +117,17 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	public List<SystemVerilogIOElement> getIOElementList(Integer fromLoc, Integer toLoc, String pathPrefix, boolean addTagPrefix, 
 			boolean stopOnNonVirtualSets, boolean validEncap) {
 		List<SystemVerilogIOElement> outList = new ArrayList<SystemVerilogIOElement>();
-		System.out.println("SystemVerilogIOSignalSet getIOElementList: from=" + fromLoc + ", to=" + toLoc + ", pPrefix=" + pathPrefix + ", addTagPrefix=" + addTagPrefix + ", stopOnNonVirtualSets=" + stopOnNonVirtualSets + ", validEncap=" + validEncap);
+		//System.out.println("SystemVerilogIOSignalSet getIOElementList: from=" + fromLoc + ", to=" + toLoc + ", pPrefix=" + pathPrefix + ", addTagPrefix=" + addTagPrefix + ", stopOnNonVirtualSets=" + stopOnNonVirtualSets + ", validEncap=" + validEncap);
 		String prefix = getFullName(pathPrefix, false);  // add current name to prefix
 		String suffixChar = hasNoName()? "" : "_";
 		for (SystemVerilogIOElement ioElem : childList) {
 			boolean newValidEncap = validEncap || !isVirtual();  // child elems are valid if this element in non-virtual
 			boolean validLeaf = !(ioElem.isVirtual() || (ioElem.isSignalSet() && !stopOnNonVirtualSets) || !newValidEncap);
 			boolean validLoc = ioElem.isFrom(fromLoc) && ioElem.isTo(toLoc);
-			System.out.println("SystemVerilogIOSignalSet getIOElementList child: name=" + ioElem.getName() + ", newValidEncap=" + newValidEncap + ", validLeaf=" + validLeaf + ", validLoc=" + validLoc);
+			//System.out.println("SystemVerilogIOSignalSet getIOElementList child: name=" + ioElem.getName() + ", newValidEncap=" + newValidEncap + ", validLeaf=" + validLeaf + ", validLoc=" + validLoc);
 		    // process each rep of this elem
-			for (int idx=0; idx<ioElem.getReps(); idx++) {
-				String repSuffix = ioElem.isReplicated()? "_" + idx : "";  // FIXME - this is child's rep count, not current
+			for (int idx=0; idx<getReps(); idx++) {
+				String repSuffix = isReplicated()? "_" + idx : ""; 
 				String fullPrefix = prefix + repSuffix + suffixChar;
 				// if this is leaf element then return it
 				if (validLeaf && validLoc) {
@@ -162,7 +163,25 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	public List<SystemVerilogIOElement> getEncapsulatedIOElementList(Integer fromLoc, Integer toLoc) {
 		return getIOElementList(fromLoc, toLoc, null, true, false, false);
 	}
-	 
+
+	/** return a simple IOelement list of this signalset's first-level non-virtual descendents that match specified from/to params.  
+	 *  Assumes no pathPrefix and addTagPrefix=true. Called by module input/output gen methods
+	 */
+	public List<SystemVerilogIOElement> getDescendentIOElementList(Integer fromLoc, Integer toLoc) {  // was getEncapsulatedIOSignalList
+		List<SystemVerilogIOElement> outList = getIOElementList(fromLoc, toLoc, null, true, true, true);
+		return outList;
+	}
+	
+	/** return a simple IOelement list of this signalset's first-level non-virtual descendents (all)
+	 *  Assumes no pathPrefix and addTagPrefix=false. Called in Non-virtual signalset instance string generation
+	 */
+	public List<SystemVerilogIOElement> getLocalDescendentIOElementList() {  
+		List<SystemVerilogIOElement> outList = getIOElementList(null, null, null, false, true, true);
+		return outList;
+	}
+
+	// ---- methods returning SystemVerilogSignal lists
+	
 	/** return a flat list of simple SystemVerilogSignal with full generated names for this signalset. 
 	 *  Generates a list of SystemVerilogIOElement and then converts to SystemVerilogSignal -
 	 *  should be called from root of signal list
@@ -203,26 +222,10 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		}
 		//System.out.println("  SystemVerilogIOSignalSet getSignalList: output size=" + outList.size());
 		return outList;
-	}
-	
-
-	/** return a simple IOelement list of this signalset's children matching specified from/to params (non virtual children).  
-	 * Assumes no pathPrefix. Called by module input/output gen methods
-	 */
-	public List<SystemVerilogIOElement> getChildIOElementList(Integer fromLoc, Integer toLoc) {  // was getEncapsulatedIOSignalList
-		List<SystemVerilogIOElement> outList = getIOElementList(fromLoc, toLoc, null, true, true, true);
-		return outList;
-	}
-	
-	/** return a simple IOelement list of this signalset's non-virtual children  
-	 * Assumes no pathPrefix. Called in Non-virtual signalset definition generation
-	 */
-	public List<SystemVerilogIOElement> getLocalChildIOElementList() {  
-		List<SystemVerilogIOElement> outList = getChildIOElementList(null, null);
-		return outList;
-	}
-	
+	}	
  
+	// ------- methods returning IOSignalSets
+	
 	/** return a list of all non virtual signalsets in current - return list leaf first *  was getIntfsToBeDefined()
 	 * @param noExtDefined - if true, only return signalsets that are not externally defined
 	 */
@@ -263,11 +266,11 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 			boolean newValidEncap = validEncap || !isVirtual();  // child elems are valid if this element in non-virtual
 			boolean validLeaf = !(ioElem.isVirtual() || ioElem.isSignalSet() || !newValidEncap); 
 		    // process each rep of this elem
-			for (int idx=0; idx<ioElem.getReps(); idx++) {
+			for (int idx=0; idx<getReps(); idx++) {
 				// build hier and non-hier name prefixes
-				String repSuffix = ioElem.isReplicated()? "_" + idx : "";
+				String repSuffix = isReplicated()? "_" + idx : ""; 
 				String fullPrefix = prefix + repSuffix + suffixChar;
-				String hierRepSuffix = (ioElem.isReplicated() && !ioElem.isVirtual())? "[" + idx + "]" : repSuffix;
+				String hierRepSuffix = (isReplicated() && !isVirtual())? "[" + idx + "]" : repSuffix;
 				String fullHierPrefix = newHierPrefix + hierRepSuffix + hierSuffixChar;
 				// if this is leaf element then return it
 				if (validLeaf) {
