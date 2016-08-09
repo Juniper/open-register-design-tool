@@ -267,7 +267,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i].configure(this, null, \"\");");  
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i].set_rdl_tag($psprintf(\"" + hdlPath + "_%0d_\",i));");
 			if (regProperties.isExternal()) 
-				subcompBuildList.addStatement(parentID, "this." + regId + "[i].set_external(1);");
+				subcompBuildList.addStatement(parentID, "  this." + regId + "[i].set_external(1);");
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i]" + getUvmRegTestModeString());  
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i].build();");
 			subcompBuildList.addStatement(parentID, "  this.default_map.add_reg(this." + regId + "[i], " + addr + "+i*" + getRegAddrIncr() + ", \"" + getRegAccessType() + "\", 0);");						
@@ -376,11 +376,11 @@ public class UVMRegsBuilder extends OutputBuilder {
 		return retVal;
 	}
 
-	/** save register info for use in parent uvm_reg_block class   
+	/** save register set info for use in parent uvm_reg_block class   
 	 * @param blockNameOverride - if non null, specified name will be used as the block instance rather then regset id
 	 *        - regSetProperties (replication, is addrmap) will be ignored if a name override is specified
 	 *        (this is used for uvm_mem wrapper block gen)
-	 * @param addrOffsetOverride - if non null, specified address offset will be used ratehr than current regset offset
+	 * @param addrOffsetOverride - if non null, specified address offset will be used rather than current regset offset
 	 */
 	private void saveRegSetInfo(String blockNameOverride, RegNumber addrOffsetOverride) {
 		// get parent name
@@ -415,8 +415,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".configure(this, \"\");"); 
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_tag(\"" + blockId + "_\");");
 			if (!hasNameOverride && regSetProperties.isAddressMap()) {
-				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + ".set_rdl_address_map(1);");  // tag block as an address map
-				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + ".set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});");  
+				subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_address_map(1);");  // tag block as an address map
+				subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});");  
 			}
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".build();");
 		   subcompBuildList.addStatement(parentID, "this.default_map.add_submap(this." + escapedBlockId + ".default_map, " + addrStr + ");");			

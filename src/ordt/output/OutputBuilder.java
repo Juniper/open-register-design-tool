@@ -822,7 +822,7 @@ public abstract class OutputBuilder {
 		return true;
 	}
 	
-	/** return RegSetProperties instance of current address map 
+	/** return RegSetProperties instance of current active address map from the regset stack
 	 */
 	protected RegSetProperties getParentAddressMap() {
 		Iterator<RegSetProperties> iter = regSetPropertyStack.iterator();
@@ -833,12 +833,12 @@ public abstract class OutputBuilder {
 		return null;
 	}
 	
-	/** return name of current address map 
+	/** return name of current active address map from the regset stack
 	 */
 	protected String getParentAddressMapName() {
-		RegSetProperties addrMapInst = getParentAddressMap();
+		RegSetProperties addrMapInst = getParentAddressMap();  // get first addrmap on the stack
 		if (addrMapInst == null) return getAddressMapName();  // return the root name
-		return getAddressMapName() + addrMapInst.getBaseName();  // return the catenated name
+		return getAddressMapName() + "_" + addrMapInst.getBaseName();  // return the catenated name
 	}
 	
 	/** update max reg width in all regSet instances on the stack

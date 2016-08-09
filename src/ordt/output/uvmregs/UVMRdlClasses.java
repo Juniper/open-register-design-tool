@@ -612,6 +612,8 @@ public class UVMRdlClasses {
 		outputList.add(new OutputLine(indentLvl, "local uvm_reg_rdl m_cascade_intr_reg;"));  // cascaded intr reg value used
 		outputList.add(new OutputLine(indentLvl, "local bit m_cascade_reg_is_halt;"));  // 1 if halt output from reg is used to set value
 		
+		outputList.add(new OutputLine(indentLvl, "local uvm_vreg_rdl m_associated_vreg;"));  // virtual register/memory association for this intr
+		
 		// create new function
 		SystemVerilogFunction func = new SystemVerilogFunction(null, "new");
 		func.addIO("input", "string", "name", "\"uvm_reg_field_rdl_interrupt\"");
@@ -806,6 +808,23 @@ public class UVMRdlClasses {
 		task.addStatement("else if (is_halt && (|get_halt_masked())) fields.push_back(this);");
 		task.addStatement("else if (!is_halt && (|get_intr_masked())) fields.push_back(this);");
 		outputList.addAll(task.genOutputLines(indentLvl));	
+		
+		// set uvm_vreg_rdl that is associated with this interrupt field
+		func = new SystemVerilogFunction("void", "set_associated_vreg");
+		func.addComment("Set the uvm_vreg_rdl that is associated with this interrupt field.");	
+		func.addIO("uvm_vreg_rdl", "associated_vreg");
+		func.addStatement("m_associated_vreg = associated_vreg;");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		func = new SystemVerilogFunction("uvm_vreg_rdl", "get_associated_vreg");
+		func.addComment("Return the uvm_vreg_rdl that is associated with this interrupt field.");	
+		func.addStatement("return m_associated_vreg;");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		func = new SystemVerilogFunction("bit", "has_associated_vreg");
+		func.addComment("Return 1 if a uvm_vreg_rdl is associated with this interrupt field.");	
+		func.addStatement("return (m_associated_vreg != null);");
+		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		outputList.add(new OutputLine(indentLvl, ""));	
 		//outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(uvm_reg_field_rdl_interrupt)")); //NOFACTORY
