@@ -12,6 +12,8 @@ import ordt.extract.ModIndexedInstance;
 import ordt.extract.ModInstance;
 import ordt.extract.PropertyList;
 import ordt.extract.RegNumber;
+import ordt.output.systemverilog.SystemVerilogDefinedSignals;
+import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.parameters.Utils;
 
 /** class of properties needed for display of active field instance */
@@ -613,261 +615,127 @@ public class FieldProperties extends InstanceProperties {
 	}
 
 	public static String getFieldRegisterName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "rg_" : "";
-		return prefix + fieldPath;   // prefix is unique to prevent name aliasing
+		return SystemVerilogDefinedSignals.getFullName(DefSignalType.FIELD, fieldPath, addPrefix);   
 	}
 	
 	public static String getFieldRegisterNextName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "reg_" : "";
-		return prefix + fieldPath + "_next";
-	}
-
-	public static String getLogicToHwDataName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + fieldPath + "_r" ;
-	}
-
-	public static String getHwToLogicWelName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "h2l_" : "";
-		return prefix + fieldPath + "_wel" ;
-	}
-
-	public static String getHwToLogicWeName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "h2l_" : "";
-		return prefix + fieldPath + "_we" ;
-	}
-
-	public static String getHwToLogicHwSetName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "h2l_" : "";
-		return prefix + fieldPath + "_hwset" ;
-	}
-
-	public static String getHwToLogicHwClrName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "h2l_" : "";
-		return prefix + fieldPath + "_hwclr" ;
-	}
-
-	public static String getHwToLogicSwWelName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "h2l_" : "";
-		return prefix + fieldPath + "_swwel" ;
-	}
-
-	public static String getHwToLogicSwWeName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "h2l_" : "";
-		return prefix + fieldPath + "_swwe" ;
-	}
-	
-	public static String getLogicToHwSwAccName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + fieldPath + "_swacc_o" ;
-	}
-
-	public static String getLogicToHwSwModName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + fieldPath + "_swmod_o" ;
-	}
-
-	public static String getHwToLogicIntrName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "h2l_" : "";
-		return prefix + fieldPath + "_intr" ;
-	}
-	
-	public static String getPrevIntrName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "intr_" : "";
-		return prefix + fieldPath + "_previntr" ;
-	}
-
-	public static String getHwToLogicDataName(String fieldPath, boolean addPrefix) {
-		String prefix = addPrefix ? "h2l_" : "";
-		return prefix + fieldPath + "_w" ;
-	}
-
-	// counter signals
-	public static String getHwToLogicIncrName(String fieldPath, boolean addPrefix) {  // increment input
-		String prefix = addPrefix ? "h2l_" : "";
-		return prefix + fieldPath + "_incr" ;
-	}
-
-	public static String getHwToLogicDecrName(String fieldPath, boolean addPrefix) {  // decrement input
-		String prefix = addPrefix ? "h2l_" : "";
-		return prefix + fieldPath + "_decr" ;
-	}
-
-	public static String getLogicToHwOverflowName(String fieldPath, boolean addPrefix) {  // overflow output
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + fieldPath + "_overflow_o" ;
-	}
-
-	public static String getLogicToHwUnderflowName(String fieldPath, boolean addPrefix) {  // underflow output
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + fieldPath + "_underflow_o" ;
-	}
-	
-	public static String getHwToLogicIncrValueName(String fieldPath, boolean addPrefix) {  // increment value input 
-		String prefix = addPrefix ? "h2l_" : "";
-		return prefix + fieldPath + "_incrvalue" ;
-	}
-
-	public static String getHwToLogicDecrValueName(String fieldPath, boolean addPrefix) {  // decrement value input 
-		String prefix = addPrefix ? "h2l_" : "";
-		return prefix + fieldPath + "_decrvalue" ;
-	}
-	
-	public static String getNextCountName(String fieldPath, boolean addPrefix) {  // next value of counter 
-		String prefix = addPrefix ? "cntr_" : "";
-		return prefix + fieldPath + "_next" ;
-	}
-		
-	public static String getLogicToHwIncrSatName(String fieldPath, boolean addPrefix) {  // incr saturate output
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + fieldPath + "_incrsat_o" ;
-	}
-
-	public static String getLogicToHwDecrSatName(String fieldPath, boolean addPrefix) {  // decr saturate output
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + fieldPath + "_decrsat_o" ;
-	}
-	
-	public static String getLogicToHwIncrTholdName(String fieldPath, boolean addPrefix) {  // incr threshold output
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + fieldPath + "_incrthold_o" ;
-	}
-
-	public static String getLogicToHwDecrTholdName(String fieldPath, boolean addPrefix) {  // decr threshold output
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + fieldPath + "_decrthold_o" ;
-	}
-
-	// bitwise operator signals
-	public static String getLogicToHwAndedName(String fieldPath, boolean addPrefix) {  // anded output
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + fieldPath + "_anded_o" ;
-	}
-
-	public static String getLogicToHwOredName(String fieldPath, boolean addPrefix) {  // ored output
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + fieldPath + "_ored_o" ;
-	}
-
-	public static String getLogicToHwXoredName(String fieldPath, boolean addPrefix) {  // xored output
-		String prefix = addPrefix ? "l2h_" : "";
-		return prefix + fieldPath + "_xored_o" ;
+		return SystemVerilogDefinedSignals.getFullName(DefSignalType.FIELD_NEXT, fieldPath, addPrefix);   
 	}
 
 	//------
 	
 	public  String getFieldRegisterName() {
-		return getFieldRegisterName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.FIELD);
 	}
 	
 	public  String getFieldRegisterNextName() {
-		return getFieldRegisterNextName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.FIELD_NEXT);
 	}
 
 	public  String getLogicToHwDataName() {
-		return getLogicToHwDataName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.L2H_DATA);
 	}
 
 	public  String getHwToLogicWelName() {
-		return getHwToLogicWelName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.H2L_WEL);
 	}
 
 	public  String getHwToLogicWeName() {
-		return getHwToLogicWeName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.H2L_WE);
 	}
 
 	public  String getHwToLogicHwSetName() {
-		return getHwToLogicWelName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.H2L_HWSET);
 	}
 
 	public  String getHwToLogicHwClrName() {
-		return getHwToLogicHwClrName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.H2L_HWCLR);
 	}
 
 	public  String getHwToLogicSwWelName() {
-		return getHwToLogicSwWelName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.H2L_SWWEL);
 	}
 
 	public  String getHwToLogicSwWeName() {
-		return getHwToLogicSwWeName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.H2L_SWWE);
 	}
 
 	public  String getLogicToHwSwAccName() {
-		return getLogicToHwSwAccName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.L2H_SWACC);
 	}
 	
 	public  String getLogicToHwSwModName() {
-		return getLogicToHwSwModName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.L2H_SWMOD);
 	}
 
 	public  String getHwToLogicIntrName() {
-		return getHwToLogicIntrName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.H2L_INTR);
 	}
 	
 	public  String getPrevIntrName() {
-		return getPrevIntrName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.PREVINTR);
 	}
 
 	public  String getHwToLogicDataName() {
-		return getHwToLogicDataName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.H2L_DATA);
 	}
 
 	// counter signals
 	public  String getHwToLogicIncrName() {  // increment input
-		return getHwToLogicIncrName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.H2L_INCR);
 	}
 
 	public  String getHwToLogicDecrName() {  // decrement input
-		return getHwToLogicDecrName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.H2L_DECR);
 	}
 
 	public  String getLogicToHwOverflowName() {  // overflow output
-		return getLogicToHwOverflowName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.L2H_OVERFLOW);
 	}
 
 	public  String getLogicToHwUnderflowName() {  // underflow output
-		return getLogicToHwUnderflowName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.L2H_UNDERFLOW);
 	}
 	
 	public  String getHwToLogicIncrValueName() {  // increment value input 
-		return getHwToLogicIncrValueName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.H2L_INCRVALUE);
 	}
 
 	public  String getHwToLogicDecrValueName() {  // decrement value input 
-		return getHwToLogicDecrValueName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.H2L_DECRVALUE);
 	}
 	
 	public  String getNextCountName() {  // next value of counter 
-		return getNextCountName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.CNTR_NEXT);
 	}
 		
 	public  String getLogicToHwIncrSatName() {  // incr saturate output
-		return getLogicToHwIncrSatName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.L2H_INCRSAT);
 	}
 
 	public  String getLogicToHwDecrSatName() {  // decr saturate output
-		return getLogicToHwDecrSatName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.L2H_DECRSAT);
 	}
 	
 	public  String getLogicToHwIncrTholdName() {  // incr threshold output
-		return getLogicToHwIncrTholdName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.L2H_INCRTHOLD);
 	}
 
 	public  String getLogicToHwDecrTholdName() {  // decr threshold output
-		return getLogicToHwDecrTholdName(getBaseName(), true);   
+		return getFullSignalName(DefSignalType.L2H_DECRTHOLD);
 	}
 	
 	// bitwise operator signals
 	public  String getLogicToHwAndedName() {  // anded output
-		return getLogicToHwAndedName(getBaseName(), true);
+		return getFullSignalName(DefSignalType.L2H_ANDED);
 	}
 
 	public  String getLogicToHwOredName() {  // ored output
-		return getLogicToHwOredName(getBaseName(), true);
+		return getFullSignalName(DefSignalType.L2H_ORED);
 	}
 
 	public  String getLogicToHwXoredName() {  // xored output
-		return getLogicToHwXoredName(getBaseName(), true);
+		return getFullSignalName(DefSignalType.L2H_XORED);
 	}
 
 	// -------------------------- field property methods ------------------------------

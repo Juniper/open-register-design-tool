@@ -7,6 +7,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import ordt.extract.Ordt;
+import ordt.output.systemverilog.SystemVerilogDefinedSignals;
 
 /** class describing a single reference in a rhs assignment **/
 public class RhsReference {
@@ -204,45 +205,8 @@ public class RhsReference {
    /** return the signal name according to deRef type of this RhsReference */
    private String getResolvedSignalName(String instancePath, boolean addPrefix) {
 	   // no deref so signal name is field itself (or signal)
-	   if (this.deRef == null)
-		   return FieldProperties.getFieldRegisterName(instancePath, addPrefix);  // fyi, could also be a signal not a field
-	   // otherwise build signal name based on dref
-	   if (this.deRef.equals("next"))
-		   return FieldProperties.getFieldRegisterNextName(instancePath, addPrefix);  
-	   // special next edge properties
-	   if (this.deRef.equals("nextposedge"))
-		   return "(" + FieldProperties.getFieldRegisterNextName(instancePath, addPrefix) + 
-				   " & ~" + FieldProperties.getFieldRegisterName(instancePath, addPrefix) + ")"; 
-	   if (this.deRef.equals("nextnegedge"))
-		   return "(" + FieldProperties.getFieldRegisterName(instancePath, addPrefix) + 
-				   " & ~" + FieldProperties.getFieldRegisterNextName(instancePath, addPrefix) + ")"; 
-	   //
-	   if ((this.deRef.equals("saturate")) || (this.deRef.equals("incrsaturate")))
-		   return FieldProperties.getLogicToHwIncrSatName(instancePath, addPrefix);  
-	   if ((this.deRef.equals("threshold")) || (this.deRef.equals("incrthreshold")))
-		   return FieldProperties.getLogicToHwIncrTholdName(instancePath, addPrefix);  
-	   if (this.deRef.equals("decrsaturate"))
-		   return FieldProperties.getLogicToHwDecrSatName(instancePath, addPrefix);  
-	   if (this.deRef.equals("decrthreshold"))
-		   return FieldProperties.getLogicToHwDecrTholdName(instancePath, addPrefix);  
-	   if (this.deRef.equals("underflow"))
-		   return FieldProperties.getLogicToHwUnderflowName(instancePath, addPrefix);  
-	   if (this.deRef.equals("overflow"))
-		   return FieldProperties.getLogicToHwOverflowName(instancePath, addPrefix);  
-	   if (this.deRef.equals("intr"))
-		   return RegProperties.getLogicToHwIntrName(instancePath, addPrefix);  
-	   if (this.deRef.equals("halt"))
-		   return RegProperties.getLogicToHwHaltName(instancePath, addPrefix);  
-	   if (this.deRef.equals("anded"))
-		   return FieldProperties.getLogicToHwAndedName(instancePath, addPrefix);  
-	   if (this.deRef.equals("ored"))
-		   return FieldProperties.getLogicToHwOredName(instancePath, addPrefix);  
-	   if (this.deRef.equals("xored"))
-		   return FieldProperties.getLogicToHwXoredName(instancePath, addPrefix);  
-	   if (this.deRef.equals("swacc"))
-		   return FieldProperties.getLogicToHwSwAccName(instancePath, addPrefix);  
-	   if (this.deRef.equals("swmod"))
-		   return FieldProperties.getLogicToHwSwModName(instancePath, addPrefix);  
+	   String resName = SystemVerilogDefinedSignals.getResolvedRhsSignalExpression(deRef, instancePath, addPrefix);
+	   if (resName != null) return resName;
 	   // if not supported flag an error
 	   Ordt.errorExit("unsupported right hand assignment reference: " + getRawReference());
 	   return null;
