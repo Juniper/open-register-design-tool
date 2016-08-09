@@ -1036,7 +1036,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   }
 		   
 		   // now assign the next count value to the reg
-		   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, fieldRegisterNextName + " = " + nextCountName + SystemVerilogBuilder.genDefArrayString(0, fieldWidth) + ";");			
+		   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, fieldRegisterNextName + " = " + nextCountName + SystemVerilogSignal.genDefArrayString(0, fieldWidth) + ";");			
 		
 	}
 
@@ -1620,19 +1620,6 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		return (decoder.hasInterface(SVDecodeInterfaceTypes.LEAF) || decoder.hasInterface(SVDecodeInterfaceTypes.RING16)) && ExtParameters.systemverilogBaseAddrIsParameter();
 	}
 
-	/** generate a (little endian) array definition string given a starting bit and size */
-	public static String genDefArrayString(int lowIndex, int size) {
-		if (size < 2) return "";
-	   	return " [" + (size + lowIndex - 1) + ":" + lowIndex + "] ";
-	}
-
-	/** generate a (little endian) array reference string given a starting bit and size */
-	public static String genRefArrayString(int lowIndex, int size) {
-		if (size < 1) return " ";
-		if (size == 1) return " [" + lowIndex + "] ";
-	   	return " [" + (size + lowIndex - 1) + ":" + lowIndex + "] ";
-	}
-
 	/** return address bit width from current addrmap size (high bit of mapSize-1) */
 	public int getMapAddressWidth() {
 		return getAddressWidth(getCurrentMapSize());
@@ -1643,7 +1630,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		int lowIndex = getAddressLowBit();   // remove low bits using reg width in bytes
 		// compute total address map size
 		int size = getMapAddressWidth();   // get high bit of mapSize-1  
-	   	return SystemVerilogBuilder.genDefArrayString(lowIndex, size);  
+	   	return SystemVerilogSignal.genDefArrayString(lowIndex, size);  
 	}
 	
 	/** generate a (little endian) reference array string corresponding to the internal address range for addrmap */  
@@ -1651,7 +1638,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		int lowIndex = getAddressLowBit();   // remove low bits using reg width in bytes
 		// compute total address map size
 		int size = getMapAddressWidth();   // get high bit of mapSize-1  
-	   	return SystemVerilogBuilder.genRefArrayString(lowIndex, size);  
+	   	return SystemVerilogSignal.genRefArrayString(lowIndex, size);  
 	}
 	
 	/** return the bit string for block select compare */
@@ -1661,7 +1648,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		int size = getMapAddressWidth();   // get high bit of mapSize-1  
 	   	int lowSelectBit =  lowIndex + size;  
 		int selectSize = ExtParameters.getLeafAddressSize() - lowSelectBit;
-		return SystemVerilogBuilder.genRefArrayString(lowSelectBit, selectSize);
+		return SystemVerilogSignal.genRefArrayString(lowSelectBit, selectSize);
 	}
 	
 	/** return the number of bits to select max sized wide reg */   

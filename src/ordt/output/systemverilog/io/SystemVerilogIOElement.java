@@ -78,11 +78,6 @@ public abstract class SystemVerilogIOElement {
 	public String getFullName() {   
 		return getFullName("", true);
 	}
-	
-	/** return sv string instancing this element */
-	public String getInstanceString(String pathPrefix, boolean addTagPrefix) {
-		return getType() + " " + getFullName(pathPrefix, addTagPrefix) + ";";
-	}
 		
 	// abstract methods
 	
@@ -90,7 +85,7 @@ public abstract class SystemVerilogIOElement {
 	public abstract String getType();
 	
 	/** return sv string instancing this element - assumes element name is full instance name */
-	public abstract String getInstanceString();
+	public abstract String getInstanceString(boolean addTagPrefix);
 
 	/** return a simple IOSignal with full generated name for this element */
 	public abstract SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix);  

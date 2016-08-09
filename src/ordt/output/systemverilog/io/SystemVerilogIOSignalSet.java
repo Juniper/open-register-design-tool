@@ -87,8 +87,9 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 
 	/** return sv string instancing this element - assumes element name is full instance name */
 	@Override
-	public String getInstanceString() {
-		return getType() + " " + getRepArray() + getFullName();
+	public String getInstanceString(boolean addTagPrefix) {
+        //System.out.println("SystemVerilogIOSignalSet getInstanceString: addTagPrefix=" + addTagPrefix + ", fullName=" + getFullName(null, addTagPrefix));
+		return getType() + " " + getFullName(null, addTagPrefix) + getRepArray() + "();";
 	}
 
 	/** get rep array string */
@@ -112,13 +113,14 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	 * @param addTagPrefix - if true, defined signal prefixes will be added to names
 	 * @param stopOnNonVirtualSets - if true, recursion stops when a non-virtual signalset is hit (eg an interface)
 	 * @param validEncap - if true, any matching elements in this signalset should be added, otherwise only those encapsulated in a non-virtual set
+	 * @param omitCurrentName - if true, the name of the root set will not be appended to the prefix
 	 * @return - list of SystemVerilogIOSignal
 	 */
 	public List<SystemVerilogIOElement> getIOElementList(Integer fromLoc, Integer toLoc, String pathPrefix, boolean addTagPrefix, 
-			boolean stopOnNonVirtualSets, boolean validEncap) {
+			boolean stopOnNonVirtualSets, boolean validEncap, boolean omitCurrentName) {
 		List<SystemVerilogIOElement> outList = new ArrayList<SystemVerilogIOElement>();
-		//System.out.println("SystemVerilogIOSignalSet getIOElementList: from=" + fromLoc + ", to=" + toLoc + ", pPrefix=" + pathPrefix + ", addTagPrefix=" + addTagPrefix + ", stopOnNonVirtualSets=" + stopOnNonVirtualSets + ", validEncap=" + validEncap);
-		String prefix = getFullName(pathPrefix, false);  // add current name to prefix
+		//System.out.println("SystemVerilogIOSignalSet getIOElementList: from=" + fromLoc + ", to=" + toLoc + ", pPrefix=" + pathPrefix + ", addTagPrefix=" + addTagPrefix + ", stopOnNonVirtualSets=" + stopOnNonVirtualSets + ", validEncap=" + validEncap + ", omitCurrentName=" + omitCurrentName);
+		String prefix = omitCurrentName? pathPrefix : getFullName(pathPrefix, false);  // add current name to prefix
 		String suffixChar = hasNoName()? "" : "_";
 		for (SystemVerilogIOElement ioElem : childList) {
 			boolean newValidEncap = validEncap || !isVirtual();  // child elems are valid if this element in non-virtual
@@ -128,14 +130,15 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		    // process each rep of this elem
 			for (int idx=0; idx<getReps(); idx++) {
 				String repSuffix = isReplicated()? "_" + idx : ""; 
-				String fullPrefix = prefix + repSuffix + suffixChar;
+				String fullPrefix = (prefix == null)? "" : prefix + repSuffix + suffixChar;
+				//System.out.println("SystemVerilogIOSignalSet getIOElementList: fullPrefix=" + fullPrefix);
 				// if this is leaf element then return it
 				if (validLeaf && validLoc) {
 					outList.add(ioElem.getFullNameIOElement(fullPrefix, addTagPrefix));  // create a new IOElem and add to list
 				}		
 				// otherwise if a signalset, make recursive call 
 				else if (ioElem.isSignalSet()) {
-					List<SystemVerilogIOElement> newList = ((SystemVerilogIOSignalSet) ioElem).getIOElementList(fromLoc, toLoc, fullPrefix, addTagPrefix, stopOnNonVirtualSets, newValidEncap);
+					List<SystemVerilogIOElement> newList = ((SystemVerilogIOSignalSet) ioElem).getIOElementList(fromLoc, toLoc, fullPrefix, addTagPrefix, stopOnNonVirtualSets, newValidEncap, false);
 					outList.addAll(newList);
   			    }
 			}
@@ -151,7 +154,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	 * @return - list of SystemVerilogIOSignal
 	 */
 	public List<SystemVerilogIOElement> getIOElementList(Integer fromLoc, Integer toLoc) {
-		return getIOElementList(fromLoc, toLoc, null, true, false, true);
+		return getIOElementList(fromLoc, toLoc, null, true, false, true, false);
 	}
 	
 	/** return a flat list of simple SystemVerilogIOElement with full generated names for this signalset - recursively builds names top down 
@@ -161,14 +164,14 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	 * @return - list of SystemVerilogIOSignal
 	 */
 	public List<SystemVerilogIOElement> getEncapsulatedIOElementList(Integer fromLoc, Integer toLoc) {
-		return getIOElementList(fromLoc, toLoc, null, true, false, false);
+		return getIOElementList(fromLoc, toLoc, null, true, false, false, false);
 	}
 
 	/** return a simple IOelement list of this signalset's first-level non-virtual descendents that match specified from/to params.  
 	 *  Assumes no pathPrefix and addTagPrefix=true. Called by module input/output gen methods
 	 */
 	public List<SystemVerilogIOElement> getDescendentIOElementList(Integer fromLoc, Integer toLoc) {  // was getEncapsulatedIOSignalList
-		List<SystemVerilogIOElement> outList = getIOElementList(fromLoc, toLoc, null, true, true, true);
+		List<SystemVerilogIOElement> outList = getIOElementList(fromLoc, toLoc, null, true, true, true, false);
 		return outList;
 	}
 	
@@ -176,7 +179,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	 *  Assumes no pathPrefix and addTagPrefix=false. Called in Non-virtual signalset instance string generation
 	 */
 	public List<SystemVerilogIOElement> getLocalDescendentIOElementList() {  
-		List<SystemVerilogIOElement> outList = getIOElementList(null, null, null, false, true, true);
+		List<SystemVerilogIOElement> outList = getIOElementList(null, null, null, false, true, true, true); // omitCurrentName=true
 		return outList;
 	}
 

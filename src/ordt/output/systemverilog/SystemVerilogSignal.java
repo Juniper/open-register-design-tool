@@ -20,12 +20,12 @@ public class SystemVerilogSignal {
 	
 	/** return the name used for definitions (includes) prefixed array string */
 	public String getDefName() {
-		return SystemVerilogBuilder.genDefArrayString(lowIndex, size) + name;
+		return genDefArrayString(lowIndex, size) + name;
 	}
 	
 	/** return the array string used for definitions (includes) prefixed array string */
 	public String getDefArray() {
-		return SystemVerilogBuilder.genDefArrayString(lowIndex, size);
+		return genDefArrayString(lowIndex, size);
 	}
 	
 	/** return the name of the signal */
@@ -48,6 +48,19 @@ public class SystemVerilogSignal {
 
 	/** by default return definition format */
 	public String toString () {
-		return SystemVerilogBuilder.genDefArrayString(lowIndex, size) + name;
+		return SystemVerilogSignal.genDefArrayString(lowIndex, size) + name;
+	}
+
+	/** generate a (little endian) array reference string given a starting bit and size */
+	public static String genRefArrayString(int lowIndex, int size) {
+		if (size < 1) return " ";
+		if (size == 1) return " [" + lowIndex + "] ";
+	   	return " [" + (size + lowIndex - 1) + ":" + lowIndex + "] ";
+	}
+
+	/** generate a (little endian) array definition string given a starting bit and size */
+	public static String genDefArrayString(int lowIndex, int size) {
+		if (size < 2) return "";
+	   	return " [" + (size + lowIndex - 1) + ":" + lowIndex + "] ";
 	}
 }

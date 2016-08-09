@@ -1,6 +1,6 @@
 package ordt.output.systemverilog.io;
 
-import ordt.output.systemverilog.SystemVerilogBuilder;
+import ordt.output.systemverilog.SystemVerilogSignal;
 
 public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 	protected int lowIndex;
@@ -30,7 +30,7 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 	
 	/** return the array string used for definitions (includes) prefixed array string */
 	public String getDefArray() {
-		return SystemVerilogBuilder.genDefArrayString(lowIndex, size);
+		return SystemVerilogSignal.genDefArrayString(lowIndex, size);
 	}
 
     // ------------ methods overriding super
@@ -43,14 +43,16 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 
 	/** return sv string instancing this element - assumes element name is full instance name */
 	@Override
-	public String getInstanceString() {
-		return getType() + " " + getFullName() + getDefArray();
+	public String getInstanceString(boolean addTagPrefix) {
+        //System.out.println("SystemVerilogIOSignal getInstanceString: addTagPrefix=" + addTagPrefix + ", fullName=" + getFullName(null, addTagPrefix));
+		return getType() + " " + getDefArray() + getFullName(null, addTagPrefix) + ";";
 	}
 
 	/** return a simple IOElement with full generated name */
 	@Override
 	public SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix) {
 		String newTagPrefix = addTagPrefix? tagPrefix : "";
+        //System.out.println("SystemVerilogIOSignal getFullNameIOElement: addTagPrefix=" + addTagPrefix + ", newTagPrefix=" + newTagPrefix + ", pathPrefix=" + pathPrefix);
 		return new SystemVerilogIOSignal(from, to, newTagPrefix, pathPrefix + name, lowIndex, size);
 	}
 

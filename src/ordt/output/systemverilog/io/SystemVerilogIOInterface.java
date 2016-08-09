@@ -51,8 +51,10 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
     	// get a list of child elements
     	List<SystemVerilogIOElement> children = getLocalDescendentIOElementList();
     	// loop through the list and generate an instance
-    	for (SystemVerilogIOElement child: children)
-    		outList.add("  " + child.getInstanceString());
+    	for (SystemVerilogIOElement child: children) {
+    		//System.out.println("SystemVerilogIOInterface getChildInstanceStrings: calling getInstanceString");
+    		outList.add("  " + child.getInstanceString(false));  // do not add tagPrefix
+    	}
   	    return outList;
     }
 

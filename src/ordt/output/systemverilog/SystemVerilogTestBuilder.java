@@ -388,11 +388,11 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 
 	   	benchtop.addStatement("// " + width + "b read task");
 	   	benchtop.addStatement("task read" + width + ";");
-		benchtop.addStatement("  input " + genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "in_address;");
-		benchtop.addStatement("  output " + genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "address;");
-		benchtop.addStatement("  output " + genDefArrayString(0, getMaxRegWidth()) + "wr_data;");  
+		benchtop.addStatement("  input " + SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "in_address;");
+		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "address;");
+		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, getMaxRegWidth()) + "wr_data;");  
 		benchtop.addStatement("  output [1:0] type;");
-		benchtop.addStatement("  output " + genDefArrayString(0, dataSizeBits) + "size;");  
+		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, dataSizeBits) + "size;");  
 		benchtop.addStatement("  output leaf_go;");
 	   	benchtop.addStatement("  begin");
 		benchtop.addStatement("    address = #1 in_address;");
@@ -411,12 +411,12 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 
 	   	benchtop.addStatement("// " + width + "b write task");
 	   	benchtop.addStatement("task write" + width + ";");
-		benchtop.addStatement("  input " + genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "in_address;");
-		benchtop.addStatement("  input " + genDefArrayString(0, width) + "in_wr_data;");  
-		benchtop.addStatement("  output " + genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "address;");
-		benchtop.addStatement("  output " + genDefArrayString(0, getMaxRegWidth()) + "wr_data;");  
+		benchtop.addStatement("  input " + SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "in_address;");
+		benchtop.addStatement("  input " + SystemVerilogSignal.genDefArrayString(0, width) + "in_wr_data;");  
+		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "address;");
+		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, getMaxRegWidth()) + "wr_data;");  
 		benchtop.addStatement("  output [1:0] type;");
-		benchtop.addStatement("  output " + genDefArrayString(0, dataSizeBits) + "size;");  
+		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, dataSizeBits) + "size;");  
 		benchtop.addStatement("  output leaf_go;");
 	   	benchtop.addStatement("  begin");
 		benchtop.addStatement("    address = #1 in_address;");
