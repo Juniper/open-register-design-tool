@@ -21,6 +21,7 @@ import ordt.extract.RegNumber;
 import ordt.extract.Ordt.InputType;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
+import ordt.output.InstanceProperties.ExternalType;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 
@@ -54,6 +55,7 @@ public abstract class OutputBuilder {
 	private boolean visitEachRegSet = true;  // should each regset in a replicated group be visited
 	private boolean visitExternalRegisters = false;  // should any register group/regset in an external group be visited
 	private boolean visitEachExternalRegister = false;  // should each register in an external group be visited (treated as internal)
+	private boolean allowLocalMapInternals = true;  // if true, address map instances encountered in builder will have local non-external regions
 
 	private RegNumber externalBaseAddress;  // starting address of current external reg group
 		
@@ -78,7 +80,7 @@ public abstract class OutputBuilder {
 	/** get builderID
 	 *  @return the builderID
 	 */
-	protected int getBuilderID() {
+	public int getBuilderID() {
 		return builderID; 
 	}
 
@@ -208,7 +210,7 @@ public abstract class OutputBuilder {
       */
 	public  void addRegister(RegProperties rProperties, int rep) {  
 		if (rProperties != null) {
-		   //System.out.println("OutputBuilder addRegister, path=" + getInstancePath() + ", id=" + rProperties.getId() + ", addr=" + rProperties.getExtractInstance().getAddress());
+		   System.out.println("OutputBuilder " + getBuilderID() + " addRegister, path=" + getInstancePath() + ", id=" + rProperties.getId() + ", addr=" + rProperties.getExtractInstance().getAddress());
 
 		   // extract properties from instance/component
 		   regProperties = rProperties; 
@@ -524,11 +526,13 @@ public abstract class OutputBuilder {
 	/** add the root address map to this output - addRegMap is only called on root addrmap in Builder */
 	public  void addRegMap(ModInstance regMapInst) {  
 		if (regMapInst != null) {
-		   regSetProperties = new RegSetProperties(regMapInst);  // extract basic properties  TODO -  add checks for address, external, etc?
+		   regSetProperties = new RegSetProperties(regMapInst);  // extract basic properties  (maxregwidth, id, external, default properties)
+		   regSetProperties.setAddressMap(true);
+		   regSetProperties.setInternal();   // first map in a new builder is treated as internal (overrides RegSetProperties constructor)
 		   rootMapProperties = regSetProperties;  // save these so can restore if empty rs stack
 		   //System.out.println("OutputBuilder addRegMap: adding regmap,  path=" + getInstancePath() + ", id=" + regMapInst.getId()+ ", comp=" + regMapInst.getRegComp().getId());
            //regSetProperties.display();
-			// regmap is special case so only allow name/desc property assign, not full extract
+			// regmap is special case, so only allow name/desc property assign, not full extract
 			if (regMapInst.hasProperty("name")) regSetProperties.setTextName(regMapInst.getProperty("name")); 
 			if (regMapInst.hasProperty("desc")) regSetProperties.setTextDescription(regMapInst.getProperty("desc")); 
 		   // if instance has an id then use it for modulename
@@ -685,7 +689,7 @@ public abstract class OutputBuilder {
 		this.addressMapName = moduleName;
 	}
 
-	/** get firstAddressMap - indication of first addrmap visited in model
+	/** get firstAddressMap - indication of first addrmap visited in this builder
 	 *  @return the firstAddressMap
 	 */
 	public boolean isFirstAddressMap() {
@@ -704,11 +708,14 @@ public abstract class OutputBuilder {
 	/** push an instance onto instanceStack
 	 */
 	public  void pushInstance(InstanceProperties inst) {
-		/*if (inst.isExternal()) {
-			System.out.println("OutputBuilder " + getBuilderID() + ": pushInstance, external inst " + inst.getId() + " found, stack depth=" + instancePropertyStack.size());  
-		}
-		else {
-			System.out.println("OutputBuilder " + getBuilderID() + ": pushInstance, internal inst " + inst.getId() + " found, stack depth=" + instancePropertyStack.size());  
+		/*boolean l3_bregs = false;
+		int targetBuilder = 2;
+		if (getBuilderID() == targetBuilder) {  // 0=base 1=l3child 2=l2_r16_child
+			if (inst.isExternal()) 
+				System.out.println("OutputBuilder " + getBuilderID() + ": pushInstance, external inst " + inst.getId() + " found, stack depth=" + instancePropertyStack.size());  
+			else 
+				System.out.println("OutputBuilder " + getBuilderID() + ": pushInstance, internal inst " + inst.getId() + " found, stack depth=" + instancePropertyStack.size());
+			l3_bregs = "base_regs".equals(inst.getId()) && (!inst.isExternal());
 		}*/
 
 		// need to set external early so rootExternal can be determined
@@ -725,9 +732,9 @@ public abstract class OutputBuilder {
 		}
 		// if parent is external, this instance is external (regs are already set, but not regsets)
 		if (!instancePropertyStack.isEmpty()) {
-			if (instancePropertyStack.peek().isLocalMapExternal()) {
+			if (instancePropertyStack.peek().isLocalMapExternal(allowLocalMapInternals())) {  // FIXME - never fires after addrmap since these are not ext in child builders!
 				inst.setExternalType(instancePropertyStack.peek().getExternalType());
-				//System.out.println("OutputBuilder " + getBuilderID() + ": pushInstance, setting external type for inst=" + inst.getId() + " to " + inst.getExternalType());
+				//if (getBuilderID() == targetBuilder) System.out.println("OutputBuilder " + getBuilderID() + ": pushInstance, setting external type for inst=" + inst.getId() + " to " + inst.getExternalType() + " based on parent");
 			}
 			//if (instancePropertyStack.peek().isExternalDecode()) inst.setExternal(true);
 		}
@@ -962,6 +969,18 @@ public abstract class OutputBuilder {
 	 */
 	public void setVisitEachExternalRegister(boolean visitEachExternalRegister) {
 		this.visitEachExternalRegister = visitEachExternalRegister;
+	}
+
+	/** get allowLocalMapExternals
+	 */
+	public boolean allowLocalMapInternals() {
+		return allowLocalMapInternals;
+	}
+
+	/** set allowLocalMapExternals
+	 */
+	public void setAllowLocalMapInternals(boolean allowLocalMapInternals) {
+		this.allowLocalMapInternals = allowLocalMapInternals;
 	}
 
 	/** get next address  */

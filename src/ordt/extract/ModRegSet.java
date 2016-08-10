@@ -125,7 +125,7 @@ public class ModRegSet extends ModComponent {
 	
 		// each subclass should override to create appropriate code based on calling instance
 		if (callingInst == null) return;
-
+		
 		// get replication count
 		int repCount = callingInst.getRepCount();  // get non-null repCount  
 		// check for replicated addrmaps
@@ -136,10 +136,10 @@ public class ModRegSet extends ModComponent {
 		
 		//System.err.println("--- ModRegSet " + callingInst.getId() + ", reps=" + repCount);
 		
-		// if this is the first address map instance (in each builder) treat special (no builder instance stack push/pop)
+		// if this is the first address map instance encountered (in each builder) treat special (no builder instance stack push/pop)
 		if (isAddressMap() && outputBuilder.isFirstAddressMap()) {  
-			//System.out.println("--- ModRegSet.generateOutput: root address map, mod instance=" + callingInst.getId() + ", root=" + callingInst.isRootInstance());
-			outputBuilder.addRegMap(callingInst);  
+			System.out.println("--- ModRegSet.generateOutput: root address map, mod instance=" + callingInst.getId() + ", root=" + callingInst.isRootInstance() + ", this is amap=" + isAddressMap() + ", rs amap=" + ", bid=" + outputBuilder.getBuilderID());
+			outputBuilder.addRegMap(callingInst);  // regSetProperties will be created for root map in this builder, indicate we're done with first map 
 
 			// generate each direct instance in this component
 			for (ModInstance regInst : childInstances) {
@@ -158,9 +158,12 @@ public class ModRegSet extends ModComponent {
 				regSetProperties = new RegSetProperties(callingInst);  // extract basic properties
 				// treat sub-level addr maps as an external reg set
 				if (isAddressMap()) {
+					//System.out.println("ModRegSet generateOutput: addrmap instance=" + regSetProperties.getId() + ", ext type=" + regSetProperties.getExternalType());
 					regSetProperties.setAddressMap(true);  // mark this as an address map
-					regSetProperties.setExternal("DEFAULT");  // address map is treated as external reg set					
-					//System.out.println("--- ModRegSet.generateOutput: setting DEFAULT external  address map, null instance=" + callingInst.getId() + ", rep=" + rep);
+					if (!regSetProperties.isExternal()) {
+						regSetProperties.setExternal("DEFAULT");  // address map is treated as external reg set					
+						//System.out.println("ModRegSet generateOutput: setting DEFAULT external on address map, callinginstance=" + callingInst.getId() + ", rep=" + rep);
+					}
 				}
 				// use rep number in regset name if output is visiting each
 				else if (outputBuilder.visitEachRegSet() && (outputBuilder.visitExternalRegisters() || !regSetProperties.isExternal())) 

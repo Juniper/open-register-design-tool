@@ -86,6 +86,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	    setVisitEachRegSet(true);   // gen code for each reg set
 	    setVisitExternalRegisters(false);  // do not visit externals - only ext root will be visited
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
+	    setAllowLocalMapInternals(false);  // cascaded addrmaps will not result in local non-ext regions   
 		setLegacyVerilog(false);  // rtl uses systemverilog constructs
 		initIOLists();  // setup IO lists for logic, decode, and top modules
 		decoder.setInterfaceType(ExtParameters.getSysVerRootDecoderInterface()); // set root pio interface type from specified params
@@ -99,6 +100,8 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	    setVisitEachReg(true);   // gen code for each reg
 	    setVisitEachRegSet(true);   // gen code for each reg set
 	    setVisitExternalRegisters(false);  // do not visit externals - only ext root will be visited
+	    setVisitEachExternalRegister(false);	    // handle externals as a group
+	    setAllowLocalMapInternals(false);  // cascaded addrmaps will not result in local non-ext regions   
 		setLegacyVerilog(SystemVerilogBuilder.isLegacyVerilog());  // cascade state for systemverilog construct gen
 		initIOLists();  // setup IO lists for logic, decode, and top modules
 	    // inherit name prefixes from parent
@@ -118,7 +121,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	    this.topRegProperties = parentBuilder.regProperties;
 		//System.out.println("SystemVerilogBuilder creating new builder, regset id=" + regSetProperties.getId() + ", regset ext=" + regSetProperties.getExternalType());
 		//System.out.println("SystemVerilogBuilder                     , topreg id=" + topRegProperties.getId() + ", topreg ext=" + topRegProperties.getExternalType());
-		//System.out.println("SystemVerilogBuilder                     , parent mod=" + parentBuilder.getModuleName() + ", new mod=" + this.getModuleName());
+		//System.out.println("SystemVerilogBuilder                     , parent mod=" + parentBuilder.getModuleName() + ", new mod=" + this.getModuleName()+ ", bid=" + this.getBuilderID());
 
 		// if child is in a bb root region, change its interface to leaf
 		if (topRegProperties.hasExternalType(ExtType.BBV5))
@@ -131,11 +134,15 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			decoder.setInterfaceType(SVDecodeInterfaceTypes.RING16); 
 
 	    // now generate output starting at this regmap
-		//System.out.println("SystemVerilogBuilder - regset inst id=" + regSetProperties.getId() + ", inst stack top=" + instancePropertyStack.peek().getId());
+		System.out.println("SystemVerilogBuilder: pre generate - regset inst id=" + regSetProperties.getId() + ", ext=" + regSetProperties.getExternalType() + ", amap=" + regSetProperties.isAddressMap() + ", inst stack top=" + instancePropertyStack.peek().getId());
+		//System.out.println("SystemVerilogBuilder: pre generate - topreg inst id=" + topRegProperties.getId() + ", ext=" + topRegProperties.getExternalType() + ", builderID=" + getBuilderID());
 	    ModInstance mapInstance = regSetProperties.getExtractInstance();
 		mapInstance.getRegComp().generateOutput(mapInstance, this);   // generate output structures recursively starting at new adressmap root
 		//System.out.println("--- VerilogBuilder - creating child, inst=" + mapInstance.getFullId() + ", base addr=" + getBaseAddress());
 		//mapInstance.getRegComp().display(null);
+	    this.regSetProperties.setExternalType(topRegProperties.getExternalType()); // restore parent ext type now that child gen is complete
+		System.out.println("SystemVerilogBuilder: post generate - regset inst id=" + regSetProperties.getId() + ", ext=" + regSetProperties.getExternalType() + ", amap=" + regSetProperties.isAddressMap() + ", inst stack top=" + instancePropertyStack.peek().getId());
+		//System.out.println("SystemVerilogBuilder: post generate - topreg inst id=" + topRegProperties.getId() + ", ext=" + topRegProperties.getExternalType()+ ", builderID=" + getBuilderID());
 	}
 	
 	/** initialize signal lists used by generated modules */
@@ -174,7 +181,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	    this.regSetProperties.setRootExternal(false);
 	    this.instancePropertyStack.addAll(parentBuilder.instancePropertyStack);
 	    this.regSetPropertyStack.addAll(parentBuilder.regSetPropertyStack);
-		//System.out.println("SystemVerilogBuilder updateRegSetState: updating state for path=" + getInstancePath() + ", rs base=" + regSetProperties.getBaseAddress());
+		//System.out.println("SystemVerilogBuilder updateRegSetState: updating state for path=" + getInstancePath() + ", rs addrmap=" + regSetProperties.isAddressMap());
 	}
 
 	//---------------------------- OutputBuilder methods to load verilog structures ----------------------------------------
@@ -281,6 +288,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   if (!resetsLocked) lockResets();  
 		   if (!regProperties.isExternal()) decoder.addToDecode(regProperties);    // put reg info on address list for decoder gen
 
+		   //System.out.println("SystemVerilogBuilder " + getBuilderID() + " addRegister: adding reg=" + regProperties.getInstancePath());
 		   // if new interface then add it to logic-hw list
 		   startNewInterfaces(regProperties);
 		   

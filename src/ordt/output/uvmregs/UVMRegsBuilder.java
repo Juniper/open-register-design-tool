@@ -57,6 +57,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	    setVisitEachRegSet(false);   // only need to call once for replicated reg set groups
 	    setVisitExternalRegisters(true);  // we will visit externals 
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
+	    setAllowLocalMapInternals(true);  // cascaded addrmaps will result in local non-ext regions   
 	    model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
     }
 

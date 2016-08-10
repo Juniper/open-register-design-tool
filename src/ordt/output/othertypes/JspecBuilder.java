@@ -36,6 +36,7 @@ public class JspecBuilder extends OutputBuilder {
 	    setVisitEachRegSet(false);   // only need to call once for replicated reg set groups
 	    setVisitExternalRegisters(true);  // we will visit externals since jspec wont be used for code gen
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
+	    setAllowLocalMapInternals(true);  // cascaded addrmaps will result in local non-ext regions   
 	    // override fieldList comparator to generate descending ordered list by idx
 	    fieldList = new PriorityQueue<FieldProperties>(
 	    	128, new Comparator<FieldProperties>(){

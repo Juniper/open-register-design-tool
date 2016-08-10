@@ -41,7 +41,7 @@ output systemverilog {
     //root_decoder_interface = ring16      // default | leaf | serial8 | ring16
 	base_addr_is_parameter = false     // base address parameter will be added to top module
 	//module_tag = "_version1"         // tag to be added to generated module names
-	use_gated_logic_clock = false       // use separate gated clock for registers
+	//use_gated_logic_clock = false       // use separate gated clock for registers
 	//use_external_select = true         // use an externally generated block select  DEPRECATED
 	//block_select_mode = always       // is block select generated internally, externally or always
 	//export_start_end = true           // create addr_start, addr_end outputs 

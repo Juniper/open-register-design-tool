@@ -23,7 +23,7 @@ public class InstanceProperties {
 	public enum ExtType { INTERNAL, DEFAULT, EXTERNAL_DECODE, BBV5, SRAM, SERIAL8, RING16 }
 	private ExternalType externalType = new ExternalType(ExtType.INTERNAL);   // external interface type (init to internal)
 	private boolean rootExternal = false;   // is instance root instance of an external reg set
-	protected boolean addressMap = false;   // is an external address map
+	private boolean addressMap = false;   // is an external address map
 	
 	private String textName;  // text name of this instance
 	private String textDescription;  // text description of this instance
@@ -179,9 +179,12 @@ public class InstanceProperties {
 		return ((externalType != null) && externalType.isExternal());
 	}
 
-	/** set external
-	 *  @param external the external to set
-	 */
+	/** set this instance as internal  */
+	public void setInternal() {
+		this.externalType = new ExternalType(ExtType.INTERNAL);  // internal
+	}
+
+	/** set external type for this instance from a string ("DEFAULT", "EXTERNAL_DECODE", "BBV5_8", "SRAM", or null for internal) */
 	public void setExternal(String externalStr) {
 		if (externalStr == null) this.externalType = new ExternalType(ExtType.INTERNAL);  // internal
 		else if ("DEFAULT".equals(externalStr)) this.externalType = new ExternalType(ExtType.DEFAULT);
@@ -261,9 +264,9 @@ public class InstanceProperties {
 		this.addressMap = addressMap;
 	}
 
-	/** returns true if this instance is external within the local map (ie, external and not an addrmap) */
-	public boolean isLocalMapExternal() {
-		return isExternal() && !isAddressMap();
+	/** returns true if this instance is external within the local map (ie, external and not an addrmap) */  
+	public boolean isLocalMapExternal(boolean allowLocalMapInternals) {
+		return isExternal() && !(isAddressMap() && allowLocalMapInternals);
 	}
 
 	/** get total replication count
