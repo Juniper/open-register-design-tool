@@ -134,14 +134,14 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			decoder.setInterfaceType(SVDecodeInterfaceTypes.RING16); 
 
 	    // now generate output starting at this regmap
-		System.out.println("SystemVerilogBuilder: pre generate - regset inst id=" + regSetProperties.getId() + ", ext=" + regSetProperties.getExternalType() + ", amap=" + regSetProperties.isAddressMap() + ", inst stack top=" + instancePropertyStack.peek().getId());
+		//System.out.println("SystemVerilogBuilder: pre generate - regset inst id=" + regSetProperties.getId() + ", ext=" + regSetProperties.getExternalType() + ", amap=" + regSetProperties.isAddressMap() + ", inst stack top=" + instancePropertyStack.peek().getId());
 		//System.out.println("SystemVerilogBuilder: pre generate - topreg inst id=" + topRegProperties.getId() + ", ext=" + topRegProperties.getExternalType() + ", builderID=" + getBuilderID());
 	    ModInstance mapInstance = regSetProperties.getExtractInstance();
 		mapInstance.getRegComp().generateOutput(mapInstance, this);   // generate output structures recursively starting at new adressmap root
 		//System.out.println("--- VerilogBuilder - creating child, inst=" + mapInstance.getFullId() + ", base addr=" + getBaseAddress());
 		//mapInstance.getRegComp().display(null);
 	    this.regSetProperties.setExternalType(topRegProperties.getExternalType()); // restore parent ext type now that child gen is complete
-		System.out.println("SystemVerilogBuilder: post generate - regset inst id=" + regSetProperties.getId() + ", ext=" + regSetProperties.getExternalType() + ", amap=" + regSetProperties.isAddressMap() + ", inst stack top=" + instancePropertyStack.peek().getId());
+		//System.out.println("SystemVerilogBuilder: post generate - regset inst id=" + regSetProperties.getId() + ", ext=" + regSetProperties.getExternalType() + ", amap=" + regSetProperties.isAddressMap() + ", inst stack top=" + instancePropertyStack.peek().getId());
 		//System.out.println("SystemVerilogBuilder: post generate - topreg inst id=" + topRegProperties.getId() + ", ext=" + topRegProperties.getExternalType()+ ", builderID=" + getBuilderID());
 	}
 	
