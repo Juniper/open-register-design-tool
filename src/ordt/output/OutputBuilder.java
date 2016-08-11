@@ -21,7 +21,6 @@ import ordt.extract.RegNumber;
 import ordt.extract.Ordt.InputType;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
-import ordt.output.InstanceProperties.ExternalType;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 

@@ -24,7 +24,7 @@ import ordt.parameters.ExtParameters.SVDecodeInterfaceTypes;
 public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 	// set default (internal) pio interface signal names
-	protected String pioInterfaceAddressName = "pio_dec_address";
+	protected String pioInterfaceAddressName = "pio_dec_address";   // TODO - move these to static and change default case behavior
 	protected String pioInterfaceWriteDataName = "pio_dec_write_data";
 	protected String pioInterfaceTransactionSizeName = "pio_dec_trans_size";
 	protected String pioInterfaceRetTransactionSizeName = "dec_pio_trans_size";
@@ -318,13 +318,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign("leaf i/f",  "if (dec_pio_ack_next | dec_pio_nack_next | leaf_dec_valid) leaf_dec_wr_dvld_hld1_next = 1'b0;");  
 		this.addScalarWire("leaf_dec_wr_dvld_active");  //  active if wr_dvld or wr_dvld_dly
 		
-		// if gated logic clock, create enable output and delay read_write activation
+		// if gated logic clock, create enable output and delay read_write activation  // TODO - move this to pioInterfaceReName / WeName generation so it works for other intr types
 		if (ExtParameters.systemverilogUseGatedLogicClk()) {
 			this.addScalarTo(SystemVerilogBuilder.PIO, "gclk_enable");  // clock enable output
 			this.addWireAssign("gclk_enable = leaf_dec_valid_hld1;");
 			
 			// create delayed valid signal
-			int maxDelay = 6;
+			int maxDelay = ExtParameters.systemverilogGatedLogicAccessDelay();
+			maxDelay = (maxDelay < 1)? 1 : maxDelay;
 			for (int dly = 2; dly <= maxDelay; dly++) {
 				this.addScalarReg("leaf_dec_valid_hld" + dly);  //  delayed valid active
 				this.addResetAssign("leaf i/f", builder.getDefaultReset(), "leaf_dec_valid_hld" + dly + " <= #1  1'b0;");  

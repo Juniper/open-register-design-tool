@@ -113,6 +113,7 @@ ext_parm_defs
    | 'base_addr_is_parameter' EQ bool 
    | 'module_tag' EQ STR 
    | 'use_gated_logic_clock' EQ bool 
+   | 'gated_logic_access_delay' EQ NUM 
    | 'use_external_select' EQ bool 
    | 'block_select_mode' EQ ('internal' | 'external' | 'always') 
    | 'export_start_end' EQ bool 

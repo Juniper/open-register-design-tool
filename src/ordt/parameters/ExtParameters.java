@@ -103,6 +103,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("base_addr_is_parameter", false); 
 		initStringParameter("module_tag", "");
 		initBooleanParameter("use_gated_logic_clock", false);
+		initIntegerParameter("gated_logic_access_delay", 6); 	
 		systemverilogBlockSelectMode = SVBlockSelectModes.EXTERNAL;  
 		initBooleanParameter("export_start_end", false);
 		initBooleanParameter("always_generate_iwrap", false);
@@ -520,6 +521,13 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	 */
 	public static Boolean systemverilogUseGatedLogicClk() {
 		return getBooleanParameter("use_gated_logic_clock");
+	}
+
+	/** get systemverilogGatedLogicAccessDelay
+	 *  @return the systemverilogGatedLogicAccessDelay
+	 */
+	public static Integer systemverilogGatedLogicAccessDelay() {
+		return getIntegerParameter("gated_logic_access_delay");
 	}
 
 	/** get systemverilogExportStartEnd
