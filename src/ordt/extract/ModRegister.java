@@ -130,7 +130,7 @@ public class ModRegister extends ModComponent  {
      	boolean regIsExternal = callingInst.hasProperty("external") || ((rsProps != null) && rsProps.isLocalMapExternal(outputBuilder.allowLocalMapInternals()));  
      	
      	//if (regIsExternal && rsProps.isAddressMap())
-     	System.out.println("ModRegister generateOutput: register instance=" + callingInst.getId() + ",  regIsExternal=" + regIsExternal + ", rs id=" + rsProps.getId() + ", rs addrmap=" + rsProps.isAddressMap() + ", rs isLocalMapExternal=" + rsProps.isLocalMapExternal(outputBuilder.allowLocalMapInternals()) + ", bid=" + outputBuilder.getBuilderID());
+     	//System.out.println("ModRegister generateOutput: register instance=" + callingInst.getId() + ",  regIsExternal=" + regIsExternal + ", rs id=" + rsProps.getId() + ", rs addrmap=" + rsProps.isAddressMap() + ", rs isLocalMapExternal=" + rsProps.isLocalMapExternal(outputBuilder.allowLocalMapInternals()) + ", bid=" + outputBuilder.getBuilderID());
      	
 	    // if an extern register, call once per replicated set
 		if (regIsExternal && !outputBuilder.visitEachExternalRegister()) {

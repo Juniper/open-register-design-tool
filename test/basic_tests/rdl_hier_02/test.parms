@@ -1,0 +1,57 @@
+// ---- top down generation of hierarchical address maps for test
+//      adds single register child addrmaps, gated clock option
+//
+
+global {
+	base_address = 0x0                // set block base address
+}
+output systemverilog {
+	block_select_mode = always        // all transactions to leaf decoders are valid (leaf uses start/end)
+	export_start_end = true           // create addr_start, addr_end outputs (these feed corresponding leaf)
+	generate_child_addrmaps = true    // generate child address maps
+	ring16_inter_node_delay = 2       // delay stages added between nodes in a ring16
+	//use_gated_logic_clock = true       // use separate gated clock for registers
+}
+output bench {
+    // read root
+	add_test_command = "read 32 0x0"  // read 
+	add_test_command = "write 32 0x0 0x12345678"  // write
+	add_test_command = "read 32 0x0"  // read 
+	// read l2 r16 child
+	add_test_command = "read 32 0x20000"  // read 
+	add_test_command = "write 32 0x20000 0x12345678"  // write
+	add_test_command = "read 32 0x20000"  // read 
+	// read l2 s8 child
+	add_test_command = "read 32 0x30000"  // read 
+	add_test_command = "write 32 0x30000 0x12345678"  // write
+	add_test_command = "read 32 0x30000"  // read 
+	// read l3 r16-s8 child
+	add_test_command = "read 32 0x22000"  // read 
+	add_test_command = "write 32 0x22000 0x12345678"  // write
+	add_test_command = "read 32 0x22000"  // read 
+	// read l3 s8-s8 child
+	add_test_command = "read 32 0x32000"  // read 
+	add_test_command = "write 32 0x32000 0x12345678"  // write
+	add_test_command = "read 32 0x32000"  // read 
+	// read l3 dflt-s8 child
+	add_test_command = "read 32 0x42000"  // read 
+	add_test_command = "write 32 0x42000 0x12345678"  // write
+	add_test_command = "read 32 0x42000"  // read 
+	// read s8 l2 singleton
+	add_test_command = "read 32 0x50000"  // read 
+	add_test_command = "write 32 0x50000 0x12345678"  // write
+	add_test_command = "read 32 0x50000"  // read 
+	// read r16 l2 singleton
+	add_test_command = "read 32 0x60000"  // read 
+	add_test_command = "write 32 0x60000 0x12345678"  // write
+	add_test_command = "read 32 0x60000"  // read 
+	// read dflt l2 singleton
+	add_test_command = "read 32 0x70000"  // read 
+	add_test_command = "write 32 0x70000 0x12345678"  // write
+	add_test_command = "read 32 0x70000"  // read 
+	// read root external region
+	//add_test_command = "read 32 0x10000"  // read 
+	//add_test_command = "write 32 0x10000 0x12345678"  // write
+	//add_test_command = "read 32 0x10000"  // read 
+	//
+}

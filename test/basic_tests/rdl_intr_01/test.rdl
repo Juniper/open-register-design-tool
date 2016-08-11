@@ -1,0 +1,73 @@
+// interrupt rdl test w/ logging, enables, maskintrbits, cascaded intr regs
+
+addrmap foo_map {
+
+    regfile bar_regs  {
+        
+	    reg {
+            field { sw=rw; hw=rw; we; } fld1[9:0] = 10'd0;
+            field { sw=rw; hw=r; } fld2[15:15];
+	    } a_reg[2];
+	    
+	    reg intr_reg {
+	        default reset = 0;
+            field { sw=r; hw=na; intr; woclr; name="interrupt 1"; } int1;
+            field { sw=r; hw=na; intr; woclr; name="interrupt 2"; } int2;
+	    };
+	    reg log_reg {
+ 	        default reset = 0;
+            field { sw=rw; hw=w; 
+                    name="error log field";
+            } err_log[10];
+	    };
+	    
+	    intr_reg intr_reg1 @0x100;
+	    log_reg log_reg1;
+	    log_reg log_reg2;
+	    log_reg log_reg3;
+	    
+	    log_reg1.err_log->desc = "this field will capture the incoming value of the hw write bus while intr_reg1.int1 is inactive"; 
+	    log_reg1.err_log->wel = intr_reg1.int1;  // negative write enable using interrupt reg value
+	    
+	    log_reg2.err_log->desc = "this field will capture the incoming value of the hw write bus once when intr_reg1.int1 fires"; 
+	    log_reg2.err_log->we = intr_reg1.int1->nextposedge;  // positive write enable using nextposedge of interrupt (jrdl extension)
+	    
+	    log_reg3.err_log->desc = "this field will capture the incoming value of the hw write bus while all interrupts in intr_reg1 are inactive"; 
+	    log_reg3.err_log->wel = intr_reg1->intr;  // negative write enable using interrupt reg output
+
+        regfile sub_regs {
+	       intr_reg intr_reg2 @0x0;
+
+	       intr_reg intr_reg3 @0x100;
+	    } sub @0x200;
+	    
+	    sub.intr_reg2.*->enable = intr_reg1.*;
+	    sub.intr_reg2.int2->maskintrbits = true;
+	    sub.intr_reg3.*->enable = sub.intr_reg2.*;
+	    sub.intr_reg3.int2->maskintrbits = true;
+        
+	    reg {
+            field fld { sw=rw; hw=r; } fld1[7:4] =1;
+            field { reset = 2; sw=rw; hw=r; } fld2[3:0];
+            fld fld3[3] = 3;
+            fld fld4[3];
+	    } rst_reg;
+        rst_reg.fld4->reset=4;
+ 	    
+    } bar;
+    
+    regfile {
+        //default nonsticky intr;
+	    reg {
+	        default reset = 0;
+            field { sw=r; hw=na; intr; } fld1;
+            field { sw=r; hw=na; intr; } fld2;
+	    } merge;
+    } intr_cascade @0x1000;
+    
+    intr_cascade.merge.fld1->next = bar.intr_reg1->intr;
+    //intr_cascade.merge.fld2->nonsticky = true;
+    
+} foo;   
+
+

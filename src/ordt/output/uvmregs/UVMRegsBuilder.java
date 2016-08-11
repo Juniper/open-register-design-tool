@@ -919,11 +919,11 @@ public class UVMRegsBuilder extends OutputBuilder {
 				if (field.isMaskIntrBits())  // if maskintrbits then define a callback
 					outputList.add(new OutputLine(indentLvl, "rdl_mask_intr_field_cbs " + field.getPrefixedId() + "_mask_cb;")); // define mask field callback
 			}
-			/* disabling intr cascade callback 
+			// intr cascade (callback disabled) 
 			if (field.isInterrupt() && (field.hasRef(RhsRefType.NEXT) || (field.hasRef(RhsRefType.INTR) && (field.getIntrType() == FieldProperties.IntrType.LEVEL)))) {
 				intrCascadeDetected = true;
-				outputList.add(new OutputLine(indentLvl, "rdl_cascade_intr_field_cbs " + field.getPrefixedId() + "_cascade_cb;")); // define cascade field callback
-			}*/
+				//outputList.add(new OutputLine(indentLvl, "rdl_cascade_intr_field_cbs " + field.getPrefixedId() + "_cascade_cb;")); // define cascade field callback
+			}
 		} 
 		
 		// if fields require add_callbacks() to be called,

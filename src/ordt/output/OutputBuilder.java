@@ -210,7 +210,7 @@ public abstract class OutputBuilder {
       */
 	public  void addRegister(RegProperties rProperties, int rep) {  
 		if (rProperties != null) {
-		   System.out.println("OutputBuilder " + getBuilderID() + " addRegister, path=" + getInstancePath() + ", id=" + rProperties.getId() + ", addr=" + rProperties.getExtractInstance().getAddress());
+		   //System.out.println("OutputBuilder " + getBuilderID() + " addRegister, path=" + getInstancePath() + ", id=" + rProperties.getId() + ", addr=" + rProperties.getExtractInstance().getAddress());
 
 		   // extract properties from instance/component
 		   regProperties = rProperties; 

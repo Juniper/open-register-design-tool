@@ -138,7 +138,7 @@ public class ModRegSet extends ModComponent {
 		
 		// if this is the first address map instance encountered (in each builder) treat special (no builder instance stack push/pop)
 		if (isAddressMap() && outputBuilder.isFirstAddressMap()) {  
-			System.out.println("--- ModRegSet.generateOutput: root address map, mod instance=" + callingInst.getId() + ", root=" + callingInst.isRootInstance() + ", this is amap=" + isAddressMap() + ", rs amap=" + ", bid=" + outputBuilder.getBuilderID());
+			//System.out.println("--- ModRegSet.generateOutput: root address map, mod instance=" + callingInst.getId() + ", root=" + callingInst.isRootInstance() + ", this is amap=" + isAddressMap() + ", rs amap=" + ", bid=" + outputBuilder.getBuilderID());
 			outputBuilder.addRegMap(callingInst);  // regSetProperties will be created for root map in this builder, indicate we're done with first map 
 
 			// generate each direct instance in this component
