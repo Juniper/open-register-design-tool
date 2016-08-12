@@ -331,8 +331,8 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		   	benchtop.addStatement("   uclk = CLK;");
 		   	benchtop.addStatement("always @(*)");
 		   	benchtop.addStatement("   gclk = CLK & delayed_gclk_enable;");
-		   	benchtop.addStatement("always @(*)");
-		   	benchtop.addStatement("   delayed_gclk_enable = #" + (clkPeriod*4) + " gclk_enable;");
+		   	benchtop.addStatement("always @(posedge CLK)");
+		   	benchtop.addStatement("   delayed_gclk_enable <= #1 gclk_enable;");
 		}
 		else {
 		   	// generate clocks

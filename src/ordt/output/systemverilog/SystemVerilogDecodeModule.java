@@ -355,9 +355,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarFrom(SystemVerilogBuilder.PIO, "leaf_dec_wr_dvld");  // write transaction valid indicator
 		this.addVectorFrom(SystemVerilogBuilder.PIO, "leaf_dec_cycle", 0, 2);  // transaction type indicator
 
-		// generate internal read/write active signals
-		this.addWireAssign(pioInterfaceReName + " = block_sel & leaf_dec_valid_active & (leaf_dec_cycle == 2'b10);");   
-		this.addWireAssign(pioInterfaceWeName + " = block_sel & leaf_dec_wr_dvld_active & (leaf_dec_cycle[1] == 1'b0);");
+		// generate re/we assigns directly or from delayed versions if clock gating is enabled
+		assignReadWriteRequests("leaf_dec_valid_active & (leaf_dec_cycle == 2'b10)",
+				                "leaf_dec_wr_dvld_active & (leaf_dec_cycle[1] == 1'b0)");
+		// generate internal read/write active signals // TODO
+		//this.addWireAssign(pioInterfaceReName + " = block_sel & leaf_dec_valid_active & (leaf_dec_cycle == 2'b10);");   
+		//this.addWireAssign(pioInterfaceWeName + " = block_sel & leaf_dec_wr_dvld_active & (leaf_dec_cycle[1] == 1'b0);");
 
 		// generate atomic retry output if a write smaller than reg_width being accessed  
 		this.addScalarTo(SystemVerilogBuilder.PIO, "dec_leaf_retry_atomic");
@@ -390,6 +393,38 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			// min sized reg space so just set size to zero and inhibit retry
 			this.addWireAssign("dec_leaf_retry_atomic = 1'b0;");  
 			this.addWireAssign("dec_leaf_data_width" + " = " + externalDataBitSize + "'b0;"); 
+		}
+	}
+	
+	/** generate re/we assigns directly or from delayed versions if clock gating is enabled */
+	private void assignReadWriteRequests(String readReqStr, String writeReqStr) {
+		// if gated logic clock, create an enable output and delay read/write activation  // TODO - fix this and move
+		if (ExtParameters.systemverilogUseGatedLogicClk()) {
+			/*
+			this.addScalarTo(SystemVerilogBuilder.PIO, "gclk_enable");  // clock enable output
+			this.addWireAssign("gclk_enable = leaf_dec_valid_hld1;");
+			
+			// create delayed valid signal
+			int maxDelay = ExtParameters.systemverilogGatedLogicAccessDelay();
+			maxDelay = (maxDelay < 1)? 1 : maxDelay;
+			for (int dly = 2; dly <= maxDelay; dly++) {
+				this.addScalarReg("leaf_dec_valid_hld" + dly);  //  delayed valid active
+				this.addResetAssign("leaf i/f", builder.getDefaultReset(), "leaf_dec_valid_hld" + dly + " <= #1  1'b0;");  
+				this.addRegAssign("leaf i/f",  "leaf_dec_valid_hld" + dly + " <= #1 leaf_dec_valid_hld" + (dly - 1) + ";");				
+			}
+			
+			// use delayed value for active sigs
+			this.addWireAssign("leaf_dec_wr_dvld_active = leaf_dec_wr_dvld_hld1 & leaf_dec_valid_hld" + maxDelay + ";");	
+			this.addWireAssign("leaf_dec_valid_active = leaf_dec_valid_hld1 & leaf_dec_valid_hld" + maxDelay + ";");
+			*/			
+			this.addWireAssign(pioInterfaceReName + " = " + readReqStr + ";");   // FIXME
+			this.addWireAssign(pioInterfaceWeName + " = " + writeReqStr + ";");
+			
+		}
+		// otherwise just generate request signals with no delay
+		else {
+			this.addWireAssign(pioInterfaceReName + " = " + readReqStr + ";");   
+			this.addWireAssign(pioInterfaceWeName + " = " + writeReqStr + ";");
 		}
 	}
 
