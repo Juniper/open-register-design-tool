@@ -25,6 +25,8 @@ input jspec {
     process_typedef = "av_sd16_rx_24ch"
     process_typedef = "av_sd16_tx_24ch"
 */
+  process_typedef = "ccl_ZTXZF_regs"
+
 }
 
 // rdl input parameters  
