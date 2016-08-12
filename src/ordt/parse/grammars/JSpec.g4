@@ -326,6 +326,11 @@ JSTR
   : LJQUOTE
       .*?
     RJQUOTE
+        {
+           String s = getText();
+           if (s != null) setText(s.replaceAll("\\n#[^\\n]*", "")); /* SL_COMMENTs can be embedded in JSTR - remove these */
+           /* if (s.contains("#")) System.out.println("jspec str parse...\n" + s);*/
+        }
   ;
   
 STR

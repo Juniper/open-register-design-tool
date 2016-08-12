@@ -167,7 +167,7 @@ public class JspecBuilder extends OutputBuilder {
 		String mapId = getAddressMapName();
 		
 		String textName = regSetProperties.getTextName();
-		String textDescription = clobberComments(regSetProperties.getTextDescription());
+		String textDescription = regSetProperties.getTextDescription();
 		if (textName == null) textName = "Registers for " + mapId;
 		
 		// if root not to be instanced, make this a typedef
@@ -204,7 +204,7 @@ public class JspecBuilder extends OutputBuilder {
 		// create text name and description if null
 		String id = regSetProperties.getId();
 		String textName = regSetProperties.getTextName();
-		String textDescription = clobberComments(regSetProperties.getTextDescription());
+		String textDescription = regSetProperties.getTextDescription();
 		if (textName == null) textName = id + " register_set";
 		
 		outputList.add(new OutputLine(indentLvl, "register_set " + id + " \"" + textName + "\" {"));
@@ -234,7 +234,7 @@ public class JspecBuilder extends OutputBuilder {
 		// create text name and description if null
 		String id = regProperties.getId();
 		String textName = regProperties.getTextName();
-		String textDescription = clobberComments(regProperties.getTextDescription());
+		String textDescription = regProperties.getTextDescription();
 		if (textName == null) textName = id + " register";
 		//else System.out.println("JSpecBuilder buildRegHeader: name=" + textName);
 		
@@ -359,7 +359,7 @@ public class JspecBuilder extends OutputBuilder {
 
 	/** create field parameter jspac stmts */ 
 	private void buildFieldParams(FieldProperties field) {
-		String textDescription = clobberComments(field.getTextDescription());
+		String textDescription = field.getTextDescription();
 		// add description for this reg
 		if (textDescription != null) {
 			outputList.add(new OutputLine(indentLvl, "description = \"{"));
@@ -394,8 +394,9 @@ public class JspecBuilder extends OutputBuilder {
 			outputList.add(new OutputLine(indentLvl, "superset_check = " + field.getJspecSupersetCheck() + ";"));
 	}
 
-	/** hack output string to remove embedded sl_comments from description */  // TODO - fix js parser to eliminate these
-	private static String clobberComments(String textDescription) {
+	/** hack output string to remove embedded sl_comments from description */  
+	@SuppressWarnings("unused")
+	private static String clobberCommentss(String textDescription) {
 		if (textDescription == null) return null;
         String newTextDescription = textDescription.replaceAll("\\n#[^\\n]*", "");
         /*if (!newTextDescription.equals(textDescription)) {
