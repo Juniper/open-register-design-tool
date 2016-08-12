@@ -356,8 +356,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorFrom(SystemVerilogBuilder.PIO, "leaf_dec_cycle", 0, 2);  // transaction type indicator
 
 		// generate re/we assigns directly or from delayed versions if clock gating is enabled
-		assignReadWriteRequests("leaf_dec_valid_active & (leaf_dec_cycle == 2'b10)",
-				                "leaf_dec_wr_dvld_active & (leaf_dec_cycle[1] == 1'b0)");
+		assignReadWriteRequests("block_sel & leaf_dec_valid_active & (leaf_dec_cycle == 2'b10)",
+				                "block_sel & leaf_dec_wr_dvld_active & (leaf_dec_cycle[1] == 1'b0)");
 		// generate internal read/write active signals // TODO
 		//this.addWireAssign(pioInterfaceReName + " = block_sel & leaf_dec_valid_active & (leaf_dec_cycle == 2'b10);");   
 		//this.addWireAssign(pioInterfaceWeName + " = block_sel & leaf_dec_wr_dvld_active & (leaf_dec_cycle[1] == 1'b0);");
