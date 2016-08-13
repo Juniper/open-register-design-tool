@@ -24,15 +24,15 @@ import ordt.parameters.ExtParameters.SVDecodeInterfaceTypes;
 public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 	// set default (internal) pio interface signal names
-	protected String pioInterfaceAddressName = "pio_dec_address";   // TODO - move these to static and change default case behavior
-	protected String pioInterfaceWriteDataName = "pio_dec_write_data";
-	protected String pioInterfaceTransactionSizeName = "pio_dec_trans_size";
-	protected String pioInterfaceRetTransactionSizeName = "dec_pio_trans_size";
-	protected String pioInterfaceWeName = "pio_dec_write";
-	protected String pioInterfaceReName = "pio_dec_read";
-	protected String pioInterfaceReadDataName = "dec_pio_read_data";
-	protected String pioInterfaceAckName = "dec_pio_ack";
-	protected String pioInterfaceNackName = "dec_pio_nack";
+	protected final String pioInterfaceAddressName = "pio_dec_address";
+	protected final String pioInterfaceWriteDataName = "pio_dec_write_data";
+	protected final String pioInterfaceTransactionSizeName = "pio_dec_trans_size";
+	protected final String pioInterfaceRetTransactionSizeName = "dec_pio_trans_size";
+	protected final String pioInterfaceWeName = "pio_dec_write";
+	protected final String pioInterfaceReName = "pio_dec_read";
+	protected final String pioInterfaceReadDataName = "dec_pio_read_data";
+	protected final String pioInterfaceAckName = "dec_pio_ack";
+	protected final String pioInterfaceNackName = "dec_pio_nack";
 	
 	protected List<RegProperties> decoderList = new ArrayList<RegProperties>();    // list of address regs 
 	protected SVDecodeInterfaceTypes interfaceType = SVDecodeInterfaceTypes.DEFAULT;  // default interface
@@ -66,20 +66,6 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		return (this.interfaceType == type);
 	}
 
-	/** set internal signal names for child pio interface (interfacing to master decoder via DEFAULT) */
-	public void setChildAddrmapPioNames(RegProperties topRegProperties) {
-		// set child signal names that can be directly brought out as io that attach to master
-		pioInterfaceAddressName = topRegProperties.getDecodeToHwAddrName();   
-		pioInterfaceWriteDataName = topRegProperties.getDecodeToHwName();
-		pioInterfaceTransactionSizeName = topRegProperties.getDecodeToHwTransSizeName();
-		pioInterfaceRetTransactionSizeName = topRegProperties.getHwToDecodeTransSizeName();
-		pioInterfaceWeName = topRegProperties.getDecodeToHwWeName();
-		pioInterfaceReName = topRegProperties.getDecodeToHwReName();
-		pioInterfaceReadDataName = topRegProperties.getHwToDecodeName();
-		pioInterfaceAckName = topRegProperties.getHwToDecodeAckName();
-		pioInterfaceNackName = topRegProperties.getHwToDecodeNackName();
-	}
-	
 	/** add pio-decoder signals and capture signals to decoder lists */
 	public void genPioInterface(RegProperties topRegProperties) {
         //System.out.println("SystemVerilogDecode genPioInterface: type=" + getInterfaceType() + ", isS8=" + hasInterface(SVDecodeInterfaceTypes.SERIAL8));
@@ -178,22 +164,40 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	/** add interface signals for nested addrmaps */
 	private void genDefaultPioInterface(RegProperties topRegProperties) {
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with external interface, id=" + topRegProperties.getInstancePath());
-		// first set correct names to be used
-		setChildAddrmapPioNames(topRegProperties);
-		// generate IO
-		if (mapHasMultipleAddresses()) this.addVectorFrom(SystemVerilogBuilder.PIO, pioInterfaceAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  // address
-		this.addVectorFrom(SystemVerilogBuilder.PIO, pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  // write data
+		// generate name-base IO names
+		if (mapHasMultipleAddresses()) this.addVectorFrom(SystemVerilogBuilder.PIO, topRegProperties.getDecodeToHwAddrName(), builder.getAddressLowBit(), builder.getMapAddressWidth());  // address
+		this.addVectorFrom(SystemVerilogBuilder.PIO, topRegProperties.getDecodeToHwName(), 0, builder.getMaxRegWidth());  // write data
 		// if max transaction for this addrmap is larger than 1, add transaction size signals
 		if (builder.getMaxRegWordWidth() > 1) {
-		   this.addVectorFrom(SystemVerilogBuilder.PIO, pioInterfaceTransactionSizeName, 0, builder.getMaxWordBitSize());  // transaction size
-		   this.addVectorTo(SystemVerilogBuilder.PIO, pioInterfaceRetTransactionSizeName, 0, builder.getMaxWordBitSize());  // return transaction size
+		   this.addVectorFrom(SystemVerilogBuilder.PIO, topRegProperties.getDecodeToHwTransSizeName(), 0, builder.getMaxWordBitSize());  // transaction size
+		   this.addVectorTo(SystemVerilogBuilder.PIO, topRegProperties.getHwToDecodeTransSizeName(), 0, builder.getMaxWordBitSize());  // return transaction size
 		}
-		this.addScalarFrom(SystemVerilogBuilder.PIO, pioInterfaceWeName);  // write indication
-		this.addScalarFrom(SystemVerilogBuilder.PIO, pioInterfaceReName);  // read indication
+		this.addScalarFrom(SystemVerilogBuilder.PIO, topRegProperties.getDecodeToHwWeName());  // write indication
+		this.addScalarFrom(SystemVerilogBuilder.PIO, topRegProperties.getDecodeToHwReName());  // read indication
 	
-		this.addVectorTo(SystemVerilogBuilder.PIO, pioInterfaceReadDataName, 0, builder.getMaxRegWidth());  // read data
-		this.addScalarTo(SystemVerilogBuilder.PIO, pioInterfaceAckName);  // ack indication
-		this.addScalarTo(SystemVerilogBuilder.PIO, pioInterfaceNackName);  // nack indication
+		this.addVectorTo(SystemVerilogBuilder.PIO, topRegProperties.getHwToDecodeName(), 0, builder.getMaxRegWidth());  // read data
+		this.addScalarTo(SystemVerilogBuilder.PIO, topRegProperties.getHwToDecodeAckName());  // ack indication
+		this.addScalarTo(SystemVerilogBuilder.PIO, topRegProperties.getHwToDecodeNackName());  // nack indication
+		
+		// define internal interface inputs
+		if (mapHasMultipleAddresses()) this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  //  address to be used internally 
+		this.addVectorWire(pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
+		if (builder.getMaxRegWordWidth() > 1) this.addVectorWire(pioInterfaceTransactionSizeName, 0, builder.getMaxWordBitSize());  //  internal transaction size
+		this.addScalarWire(pioInterfaceReName);  //  read enable to be used internally 
+		this.addScalarWire(pioInterfaceWeName);  //  write enable be used internally 
+		
+		// assign input IOs to internal interface
+		if (mapHasMultipleAddresses()) this.addWireAssign(pioInterfaceAddressName + " = " + topRegProperties.getDecodeToHwAddrName() + ";");   
+		this.addWireAssign(pioInterfaceWriteDataName + " = " + topRegProperties.getDecodeToHwName() + ";");		
+		if (builder.getMaxRegWordWidth() > 1) this.addWireAssign(pioInterfaceTransactionSizeName + " = " + topRegProperties.getDecodeToHwTransSizeName() + ";");
+		// generate re/we assigns directly or from delayed versions if clock gating is enabled
+		assignReadWriteRequests(topRegProperties.getDecodeToHwReName(), topRegProperties.getDecodeToHwWeName());
+		
+		// assign output IOs to internal interface
+		if (builder.getMaxRegWordWidth() > 1) this.addWireAssign(topRegProperties.getHwToDecodeTransSizeName() + " = " + pioInterfaceRetTransactionSizeName + ";");	
+		this.addWireAssign(topRegProperties.getHwToDecodeName() + " = " + pioInterfaceReadDataName + ";");
+		this.addWireAssign(topRegProperties.getHwToDecodeAckName() + " = " + pioInterfaceAckName + ";");
+		this.addWireAssign(topRegProperties.getHwToDecodeNackName() + " = " + pioInterfaceNackName + ";");
 	}
 
 	/** add interface signals for address maps talking to a leaf */
@@ -201,7 +205,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with leaf interface, root instance");
 		// add interface signals for base address maps - convert leaf interface to internal interface
 		
-		// define the internal interface signals (these are external on child addrmaps)
+		// define the internal interface signals
 		this.addVectorWire(pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
 		if (mapHasMultipleAddresses()) this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  //  address to be used internally 
 		this.addScalarWire(pioInterfaceReName);  //  read enable to be used internally 
@@ -317,32 +321,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign("leaf i/f",  "leaf_dec_wr_dvld_hld1_next = leaf_dec_wr_dvld | leaf_dec_wr_dvld_hld1;");  
 		this.addCombinAssign("leaf i/f",  "if (dec_pio_ack_next | dec_pio_nack_next | leaf_dec_valid) leaf_dec_wr_dvld_hld1_next = 1'b0;");  
 		this.addScalarWire("leaf_dec_wr_dvld_active");  //  active if wr_dvld or wr_dvld_dly
-		
-		// if gated logic clock, create enable output and delay read_write activation  // TODO - move this to pioInterfaceReName / WeName generation so it works for other intr types
-		if (ExtParameters.systemverilogUseGatedLogicClk()) {
-			this.addScalarTo(SystemVerilogBuilder.PIO, "gclk_enable");  // clock enable output
-			this.addWireAssign("gclk_enable = leaf_dec_valid_hld1;");
-			
-			// create delayed valid signal
-			int maxDelay = ExtParameters.systemverilogGatedLogicAccessDelay();
-			maxDelay = (maxDelay < 1)? 1 : maxDelay;
-			for (int dly = 2; dly <= maxDelay; dly++) {
-				this.addScalarReg("leaf_dec_valid_hld" + dly);  //  delayed valid active
-				this.addResetAssign("leaf i/f", builder.getDefaultReset(), "leaf_dec_valid_hld" + dly + " <= #1  1'b0;");  
-				this.addRegAssign("leaf i/f",  "leaf_dec_valid_hld" + dly + " <= #1 leaf_dec_valid_hld" + (dly - 1) + ";");				
-			}
-			
-			// use delayed value for active sigs
-			this.addWireAssign("leaf_dec_wr_dvld_active = leaf_dec_wr_dvld_hld1 & leaf_dec_valid_hld" + maxDelay + ";");	
-			this.addWireAssign("leaf_dec_valid_active = leaf_dec_valid_hld1 & leaf_dec_valid_hld" + maxDelay + ";");			
-			
-		}
-		// otherwise just generate active signals with no delay
-		else {
-			this.addWireAssign("leaf_dec_wr_dvld_active = leaf_dec_wr_dvld | leaf_dec_wr_dvld_hld1;");	
-			this.addWireAssign("leaf_dec_valid_active = leaf_dec_valid | leaf_dec_valid_hld1;");			
-		}
-		
+
+		this.addWireAssign("leaf_dec_wr_dvld_active = leaf_dec_wr_dvld | leaf_dec_wr_dvld_hld1;");	
+		this.addWireAssign("leaf_dec_valid_active = leaf_dec_valid | leaf_dec_valid_hld1;");			
+				
 		// generate accept/reject signals
 		this.addScalarTo(SystemVerilogBuilder.PIO, "dec_leaf_accept");  // block accept indication
 		this.addWireAssign("dec_leaf_accept = leaf_dec_valid & block_sel;");
@@ -358,9 +340,6 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// generate re/we assigns directly or from delayed versions if clock gating is enabled
 		assignReadWriteRequests("block_sel & leaf_dec_valid_active & (leaf_dec_cycle == 2'b10)",
 				                "block_sel & leaf_dec_wr_dvld_active & (leaf_dec_cycle[1] == 1'b0)");
-		// generate internal read/write active signals // TODO
-		//this.addWireAssign(pioInterfaceReName + " = block_sel & leaf_dec_valid_active & (leaf_dec_cycle == 2'b10);");   
-		//this.addWireAssign(pioInterfaceWeName + " = block_sel & leaf_dec_wr_dvld_active & (leaf_dec_cycle[1] == 1'b0);");
 
 		// generate atomic retry output if a write smaller than reg_width being accessed  
 		this.addScalarTo(SystemVerilogBuilder.PIO, "dec_leaf_retry_atomic");
@@ -393,38 +372,6 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			// min sized reg space so just set size to zero and inhibit retry
 			this.addWireAssign("dec_leaf_retry_atomic = 1'b0;");  
 			this.addWireAssign("dec_leaf_data_width" + " = " + externalDataBitSize + "'b0;"); 
-		}
-	}
-	
-	/** generate re/we assigns directly or from delayed versions if clock gating is enabled */
-	private void assignReadWriteRequests(String readReqStr, String writeReqStr) {
-		// if gated logic clock, create an enable output and delay read/write activation  // TODO - fix this and move
-		if (ExtParameters.systemverilogUseGatedLogicClk()) {
-			/*
-			this.addScalarTo(SystemVerilogBuilder.PIO, "gclk_enable");  // clock enable output
-			this.addWireAssign("gclk_enable = leaf_dec_valid_hld1;");
-			
-			// create delayed valid signal
-			int maxDelay = ExtParameters.systemverilogGatedLogicAccessDelay();
-			maxDelay = (maxDelay < 1)? 1 : maxDelay;
-			for (int dly = 2; dly <= maxDelay; dly++) {
-				this.addScalarReg("leaf_dec_valid_hld" + dly);  //  delayed valid active
-				this.addResetAssign("leaf i/f", builder.getDefaultReset(), "leaf_dec_valid_hld" + dly + " <= #1  1'b0;");  
-				this.addRegAssign("leaf i/f",  "leaf_dec_valid_hld" + dly + " <= #1 leaf_dec_valid_hld" + (dly - 1) + ";");				
-			}
-			
-			// use delayed value for active sigs
-			this.addWireAssign("leaf_dec_wr_dvld_active = leaf_dec_wr_dvld_hld1 & leaf_dec_valid_hld" + maxDelay + ";");	
-			this.addWireAssign("leaf_dec_valid_active = leaf_dec_valid_hld1 & leaf_dec_valid_hld" + maxDelay + ";");
-			*/			
-			this.addWireAssign(pioInterfaceReName + " = " + readReqStr + ";");   // FIXME
-			this.addWireAssign(pioInterfaceWeName + " = " + writeReqStr + ";");
-			
-		}
-		// otherwise just generate request signals with no delay
-		else {
-			this.addWireAssign(pioInterfaceReName + " = " + readReqStr + ";");   
-			this.addWireAssign(pioInterfaceWeName + " = " + writeReqStr + ";");
 		}
 	}
 
@@ -546,15 +493,17 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addRegAssign(groupName,  s8DataCntName + " <= #1  " + s8DataCntNextName + ";"); 
 
 		// define internal interface signals that will be set in sm 
-		this.addScalarReg(pioInterfaceReName);
-		this.addScalarReg(pioInterfaceWeName);
+		String s8pioInterfaceReName = "s8_" + pioInterfaceReName;
+		String s8pioInterfaceWeName = "s8_" + pioInterfaceWeName;
+		this.addScalarReg(s8pioInterfaceReName);
+		this.addScalarReg(s8pioInterfaceWeName);
 		
 		// state machine init values
 		this.addCombinAssign(groupName,  s8StateNextName + " = " + s8StateName + ";");  
 		this.addCombinAssign(groupName,  serial8ResValidName + " =  1'b0;");  // return valid
 		this.addCombinAssign(groupName,  serial8ResDataName + " =  8'b0;");   // return data
-		this.addCombinAssign(groupName,  pioInterfaceWeName + " =  1'b0;");  // write active
-		this.addCombinAssign(groupName,  pioInterfaceReName + " =  1'b0;");  // read active
+		this.addCombinAssign(groupName,  s8pioInterfaceWeName + " =  1'b0;");  // write active
+		this.addCombinAssign(groupName,  s8pioInterfaceReName + " =  1'b0;");  // read active
 		this.addCombinAssign(groupName,  s8WrStateCaptureNextName + " = " + s8WrStateCaptureName + ";");  // write indicator
 		if (addressWidth > 0)
 			this.addCombinAssign(groupName,  s8AddrAccumNextName + " = " + s8AddrAccumName + ";");  // address accumulate
@@ -665,8 +614,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// RES_WAIT
 		this.addCombinAssign(groupName, "  " + RES_WAIT + ": begin  // RES_WAIT");
 		// activate either read or write request
-		this.addCombinAssign(groupName, "      " + pioInterfaceWeName + " = " + s8WrStateCaptureName + ";");  // write active
-		this.addCombinAssign(groupName, "      " + pioInterfaceReName + " = ~" + s8WrStateCaptureName + ";");  // read active
+		this.addCombinAssign(groupName, "      " + s8pioInterfaceWeName + " = " + s8WrStateCaptureName + ";");  // write active
+		this.addCombinAssign(groupName, "      " + s8pioInterfaceReName + " = ~" + s8WrStateCaptureName + ";");  // read active
 		// go on ack/nack, capture read data and set first word of response (contains ack/nack and return xfer size) 
 		this.addCombinAssign(groupName, "      " + "if (" + pioInterfaceAckName + " | " + pioInterfaceNackName + ") begin"); 
 		this.addCombinAssign(groupName, "        " + serial8ResValidName + " =  1'b1;");  // res is valid
@@ -713,6 +662,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "    " + s8StateNextName + " = " + IDLE + ";");  
 
 		this.addCombinAssign(groupName, "endcase"); 				
+
+		this.addScalarWire(pioInterfaceReName);  //  read enable internal interface
+		this.addScalarWire(pioInterfaceWeName);  //  write enable internal interface
+		// generate re/we assigns directly or from delayed versions if clock gating is enabled
+		assignReadWriteRequests(s8pioInterfaceReName, s8pioInterfaceWeName);
 		
 	}
 
@@ -916,15 +870,17 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addRegAssign(groupName,  r16DataCntName + " <= #1  " + r16DataCntNextName + ";"); 
 
 		// define internal interface signals that will be set in sm 
-		this.addScalarReg(pioInterfaceReName);
-		this.addScalarReg(pioInterfaceWeName);
+		String r16pioInterfaceReName = "r16_" + pioInterfaceReName;
+		String r16pioInterfaceWeName = "r16_" + pioInterfaceWeName;
+		this.addScalarReg(r16pioInterfaceReName);
+		this.addScalarReg(r16pioInterfaceWeName);
 		
 		// state machine init values
 		this.addCombinAssign(groupName,  r16StateNextName + " = " + r16StateName + ";");  
 		this.addCombinAssign(groupName,  resValidDlyName[0] + " =  1'b0;");  // return valid
 		this.addCombinAssign(groupName,  resDataDlyName[0] + " =  16'b0;");   // return data
-		this.addCombinAssign(groupName,  pioInterfaceWeName + " =  1'b0;");  // write active
-		this.addCombinAssign(groupName,  pioInterfaceReName + " =  1'b0;");  // read active 
+		this.addCombinAssign(groupName,  r16pioInterfaceWeName + " =  1'b0;");  // write active
+		this.addCombinAssign(groupName,  r16pioInterfaceReName + " =  1'b0;");  // read active 
 		this.addCombinAssign(groupName,  r16WrStateCaptureNextName + " = " + r16WrStateCaptureName + ";");  // write indicator
 		this.addCombinAssign(groupName,  r16AddrCntCaptureNextName + " = " + r16AddrCntCaptureName + ";");  // address xfer count
 		if (addressWidth > 0)
@@ -1052,8 +1008,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// RES_WAIT
 		this.addCombinAssign(groupName, "  " + RES_WAIT + ": begin  // RES_WAIT");
 		// activate either read or write request
-		this.addCombinAssign(groupName, "      " + pioInterfaceWeName + " = " + r16WrStateCaptureName + ";");  // set internal write active
-		this.addCombinAssign(groupName, "      " + pioInterfaceReName + " = ~" + r16WrStateCaptureName + ";");  // set internal read active
+		this.addCombinAssign(groupName, "      " + r16pioInterfaceWeName + " = " + r16WrStateCaptureName + ";");  // set internal write active
+		this.addCombinAssign(groupName, "      " + r16pioInterfaceReName + " = ~" + r16WrStateCaptureName + ";");  // set internal read active
 		// go on ack/nack, capture read data and set first word of response (contains ack/nack and return xfer size) 
 		this.addCombinAssign(groupName,   "      " + "if (" + pioInterfaceAckName + " | " + pioInterfaceNackName + ") begin");  
 		this.addCombinAssign(groupName,   "        " + resValidDlyName[0] + " =  1'b1;");  // res is valid
@@ -1155,8 +1111,58 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "    " + r16StateNextName + " = " + IDLE + ";");  
 
 		this.addCombinAssign(groupName, "endcase"); 				
+
+		this.addScalarWire(pioInterfaceReName);  //  read enable internal interface
+		this.addScalarWire(pioInterfaceWeName);  //  write enable internal interface
+		// generate re/we assigns directly or from delayed versions if clock gating is enabled
+		assignReadWriteRequests(r16pioInterfaceReName, r16pioInterfaceWeName);
 		
 	}
+	
+	/** generate re/we assigns directly or from delayed versions if clock gating is enabled */
+	private void assignReadWriteRequests(String readReqStr, String writeReqStr) {
+		// if gated logic clock, create an enable output and delay read/write activation 
+		if (ExtParameters.systemverilogUseGatedLogicClk()) {
+			
+			// delayed request signals
+			String cgateDelayedReName = pioInterfaceReName + "_cgate_dly";
+			String cgateDelayedWeName = pioInterfaceWeName + "_cgate_dly";
+			int maxDelay = ExtParameters.systemverilogGatedLogicAccessDelay();
+			maxDelay = (maxDelay < 1)? 1 : maxDelay;
+			
+			// define delayed elements
+			for (int dly = 1; dly <= maxDelay; dly++) {
+				this.addScalarReg(cgateDelayedReName + dly);  //  delayed read active
+				this.addScalarReg(cgateDelayedWeName + dly);  //  delayed write active
+				this.addResetAssign("clock gate delay", builder.getDefaultReset(), cgateDelayedReName + dly + " <= #1  1'b0;");  
+				this.addResetAssign("clock gate delay", builder.getDefaultReset(), cgateDelayedWeName + dly + " <= #1  1'b0;");  
+				if (dly == 1) {
+					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= #1 " + readReqStr + ";");
+					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= #1 " + writeReqStr + ";");
+				}
+				else {
+					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= #1 " + cgateDelayedReName + (dly - 1) + ";");
+					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= #1 " + cgateDelayedWeName + (dly - 1) + ";");
+				}
+			}
+			
+			// create gate enable output on first delay
+			String suffix = (builder.getBuilderID() > 0)? "_" + builder.getBuilderID() : "";
+			this.addScalarTo(SystemVerilogBuilder.PIO, "gclk_enable" + suffix);  // clock enable output
+			this.addWireAssign("gclk_enable" + suffix + " = " + cgateDelayedReName + "1 | " + cgateDelayedWeName + "1;");
+			
+			// assign the delayed read/write requests		
+			this.addWireAssign(pioInterfaceReName + " = " + readReqStr + "&" + cgateDelayedReName + maxDelay + ";"); 
+			this.addWireAssign(pioInterfaceWeName + " = " + writeReqStr + "&" + cgateDelayedWeName + maxDelay + ";");
+			
+		}
+		// otherwise just generate request signals with no delay
+		else {
+			this.addWireAssign(pioInterfaceReName + " = " + readReqStr + ";");   
+			this.addWireAssign(pioInterfaceWeName + " = " + writeReqStr + ";");
+		}
+	}
+
 
 	// ------------------------------ decoder external hw interface methods -------------------------------
 	

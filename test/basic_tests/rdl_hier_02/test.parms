@@ -10,7 +10,7 @@ output systemverilog {
 	export_start_end = true           // create addr_start, addr_end outputs (these feed corresponding leaf)
 	generate_child_addrmaps = true    // generate child address maps
 	ring16_inter_node_delay = 2       // delay stages added between nodes in a ring16
-	//use_gated_logic_clock = true       // use separate gated clock for registers
+	use_gated_logic_clock = true       // use separate gated clock for registers
 }
 output bench {
     // read root
