@@ -74,7 +74,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// create interface logic differently for base addrmap vs children
 		if (hasInterface(SVDecodeInterfaceTypes.LEAF)) this.genLeafPioInterface(topRegProperties);
 		else if (hasInterface(SVDecodeInterfaceTypes.SERIAL8)) this.genSerial8PioInterface(topRegProperties);
-		else if (hasInterface(SVDecodeInterfaceTypes.RING16)) this.genRing16PioInterface(topRegProperties);
+		else if (hasInterface(SVDecodeInterfaceTypes.RING16)) this.genRingPioInterface(16, topRegProperties);
 		else this.genDefaultPioInterface(topRegProperties);
 		
 		// generate common internal pio interface code
@@ -244,7 +244,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		else if (!alwaysSelected || ExtParameters.systemverilogExportStartEnd()) 
 		   this.addWireAssign("block_sel_addr = " + baseAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ";");  // constant define
 		
-		// check for ignored lower bits in base address  // TODO should this check also be in others (ring16 eg)
+		// check for ignored lower bits in base address  // TODO should this check also be in others (ring eg)
 		int lowAddrBit = builder.getAddressLowBit();   
 		int addrSize = builder.getMapAddressWidth();    
 		RegNumber lowBaseBits = baseAddr.getSubVector(lowAddrBit, addrSize);
@@ -672,25 +672,26 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 	}
 
-	/** add ring16 pio interface */  
-	private void genRing16PioInterface(RegProperties topRegProperties) {  
+	/** add ring pio interface */  
+	private void genRingPioInterface(int ringWidth, RegProperties topRegProperties) {  // TODO - eventually allow multiple widths
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with external interface, id=" + topRegProperties.getInstancePath());
+		
 		// add interface signals - convert serial interface to internal interface
 		// create module IOs
-		String prefix = (topRegProperties == null)? "r16" : "d2r_" + topRegProperties.getBaseName();  
-		String ring16CmdValidName = prefix + "_cmd_valid";                      
-		String ring16CmdDataName = prefix + "_cmd_data";                      	
-		prefix = (topRegProperties == null)? "r16" : "r2d_" + topRegProperties.getBaseName();
-		String ring16ResValidName = prefix + "_res_valid";                      
-		String ring16ResDataName = prefix + "_res_data";                      
+		String prefix = (topRegProperties == null)? "r" + ringWidth : "d2r_" + topRegProperties.getBaseName();  
+		String ringCmdValidName = prefix + "_cmd_valid";                      
+		String ringCmdDataName = prefix + "_cmd_data";                      	
+		prefix = (topRegProperties == null)? "r" + ringWidth : "r2d_" + topRegProperties.getBaseName();
+		String ringResValidName = prefix + "_res_valid";                      
+		String ringResDataName = prefix + "_res_data";                      
 		
 		//  inputs
-		this.addScalarFrom(SystemVerilogBuilder.PIO, ring16CmdValidName);     // stays high while all cmd addr/data/cntl xferred 
-		this.addVectorFrom(SystemVerilogBuilder.PIO, ring16CmdDataName, 0, 16);  
+		this.addScalarFrom(SystemVerilogBuilder.PIO, ringCmdValidName);     // stays high while all cmd addr/data/cntl xferred 
+		this.addVectorFrom(SystemVerilogBuilder.PIO, ringCmdDataName, 0, ringWidth);  
 
 		// outputs  
-		this.addScalarTo(SystemVerilogBuilder.PIO, ring16ResValidName);     // stays high while all res cntl/data xferred
-		this.addVectorTo(SystemVerilogBuilder.PIO, ring16ResDataName, 0, 16);     
+		this.addScalarTo(SystemVerilogBuilder.PIO, ringResValidName);     // stays high while all res cntl/data xferred
+		this.addVectorTo(SystemVerilogBuilder.PIO, ringResDataName, 0, ringWidth);     
 		
 		// create the block base address
 		this.addVectorWire("block_base_address", 0, ExtParameters.getLeafAddressSize());  //  base address of block 
@@ -704,117 +705,117 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		else  
 		   this.addWireAssign("block_base_address = " + baseAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ";");  // constant define
 		
-		// calculate max number of 16b xfers required for address 
+		// calculate max number of ringWidth b xfers required for address 
 		int addressWidth = builder.getMapAddressWidth();
-		int maxAddrXferCount = (int) Math.ceil(ExtParameters.getLeafAddressSize()/16.0);  // max address xfers (not determined by local size)
-		//System.out.println("SystemVerilogBuilder genRing16PioInterface: addr width=" + addressWidth + ", max addr count=" + maxAddrXferCount);
+		int maxAddrXferCount = (int) Math.ceil(ExtParameters.getLeafAddressSize()/(double) ringWidth);  // max address xfers (not determined by local size)
+		//System.out.println("SystemVerilogBuilder genRingPioInterface: addr width=" + addressWidth + ", max addr count=" + maxAddrXferCount);
 		
 		// compute max transaction size in 32b words and number of bits to represent (4 max) 
 		int regWidth = builder.getMaxRegWidth();
 		int regWords = builder.getMaxRegWordWidth();
 		int regWordBits = Utils.getBits(regWords);
 		boolean useTransactionSize = (regWords > 1);  // if transaction sizes need to be sent/received
-		//System.out.println("SystemVerilogBuilder genRing16PioInterface: max width=" + regWidth + ", top max=" + topRegProperties.getRegWidth() + ", words=" + regWords + ", useT=" + useTransactionSize);
+		//System.out.println("SystemVerilogBuilder genRingPioInterface: max width=" + regWidth + ", top max=" + topRegProperties.getRegWidth() + ", words=" + regWords + ", useT=" + useTransactionSize);
 		
 		// now create state machine vars
-		String r16StateName = "r16_state";                      
-		String r16StateNextName = "r16_state_next";                      
-		String r16DataCntName = "r16_data_cnt";                      
-		String r16DataCntNextName = "r16_data_cnt_next"; 
+		String ringStateName = "r" + ringWidth + "_state";                      
+		String ringStateNextName = "r" + ringWidth + "_state_next";                      
+		String ringDataCntName = "r" + ringWidth + "_data_cnt";                      
+		String ringDataCntNextName = "r" + ringWidth + "_data_cnt_next"; 
 		
-		String groupName = "ring16 i/f";  
+		String groupName = "ring" + ringWidth + " i/f";  
 		int stateBits = 4;
-		this.addVectorReg(r16StateName, 0, stateBits);  
-		this.addVectorReg(r16StateNextName, 0, stateBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), r16StateName + " <= #1  " + stateBits + "'b0;");  
-		this.addRegAssign(groupName,  r16StateName + " <= #1  " + r16StateNextName + ";");  
+		this.addVectorReg(ringStateName, 0, stateBits);  
+		this.addVectorReg(ringStateNextName, 0, stateBits);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), ringStateName + " <= #1  " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  ringStateName + " <= #1  " + ringStateNextName + ";");  
 
-		// r16 cmd inputs will feed into sm (after cmd delay regs)
-		this.addScalarWire(ring16CmdValidName);  
-		this.addVectorWire(ring16CmdDataName, 0, 16); 
-        // r16 res outputs will be set in sm (after res delay regs)
-		this.addScalarWire(ring16ResValidName);  
-		this.addVectorWire(ring16ResDataName, 0, 16); 
+		// ring cmd inputs will feed into sm (after cmd delay regs)
+		this.addScalarWire(ringCmdValidName);  
+		this.addVectorWire(ringCmdDataName, 0, ringWidth); 
+        // ring res outputs will be set in sm (after res delay regs)
+		this.addScalarWire(ringResValidName);  
+		this.addVectorWire(ringResDataName, 0, ringWidth); 
 
 		// create out fifo signals  
 		int outFifoSize = maxAddrXferCount + 1;  // max depth is addr words plus 1 cntl word
-		String outFifoAdvanceName = "r16_out_fifo_advance";  // set in sm
+		String outFifoAdvanceName = "r" + ringWidth + "_out_fifo_advance";  // set in sm
 		String [] outFifoDataName = new String [outFifoSize+1];
 		for (int idx=0; idx<outFifoSize+1; idx++) {
-			outFifoDataName[idx] = "r16_out_fifo_data_dly" + idx;
+			outFifoDataName[idx] = "r" + ringWidth + "_out_fifo_data_dly" + idx;
 		}
 		this.addScalarReg(outFifoAdvanceName); 
-		this.addVectorReg(outFifoDataName[0], 0, 16); // out data 0 is set in state machine
+		this.addVectorReg(outFifoDataName[0], 0, ringWidth); // out data 0 is set in state machine
 		for (int idx=1; idx<outFifoSize+1; idx++) {
-			this.addVectorReg(outFifoDataName[idx], 0, 16); 
-			this.addResetAssign(groupName, builder.getDefaultReset(), outFifoDataName[idx] + " <= #1  16'b0;");  
+			this.addVectorReg(outFifoDataName[idx], 0, ringWidth); 
+			this.addResetAssign(groupName, builder.getDefaultReset(), outFifoDataName[idx] + " <= #1  " + ringWidth + "'b0;");  
 			this.addRegAssign(groupName,  "if (" + outFifoAdvanceName +") " + outFifoDataName[idx] + " <= #1  " + outFifoDataName[idx-1] + ";");  
 		}
 
 		// create delayed cmd signals
-		int cmdDelayCount = (int) Math.ceil(ExtParameters.sysVerRing16InterNodeDelay()/2.0);  // half of delay
+		int cmdDelayCount = (int) Math.ceil(ExtParameters.sysVerRingInterNodeDelay()/2.0);  // half of delay
 		String [] cmdValidDlyName = new String [cmdDelayCount+1];
 		String [] cmdDataDlyName = new String [cmdDelayCount+1];
 		for (int idx=0; idx<cmdDelayCount+1; idx++) {
-			cmdValidDlyName[idx] = "r16_cmdValid_dly" + idx;
-			cmdDataDlyName[idx] = "r16_cmdData_dly" + idx;
+			cmdValidDlyName[idx] = "r" + ringWidth + "_cmdValid_dly" + idx;
+			cmdDataDlyName[idx] = "r" + ringWidth + "_cmdData_dly" + idx;
 		}
 		this.addScalarWire(cmdValidDlyName[0]);  // cmd delay 0 is set from IO
-		this.addVectorWire(cmdDataDlyName[0], 0, 16); 
+		this.addVectorWire(cmdDataDlyName[0], 0, ringWidth); 
 		for (int idx=1; idx<cmdDelayCount+1; idx++) {
 			this.addScalarReg(cmdValidDlyName[idx]);  
-			this.addVectorReg(cmdDataDlyName[idx], 0, 16); 
+			this.addVectorReg(cmdDataDlyName[idx], 0, ringWidth); 
 			this.addResetAssign(groupName, builder.getDefaultReset(), cmdValidDlyName[idx] + " <= #1  1'b0;");  
-			this.addResetAssign(groupName, builder.getDefaultReset(), cmdDataDlyName[idx] + " <= #1  16'b0;");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), cmdDataDlyName[idx] + " <= #1  " + ringWidth + "'b0;");  
 			this.addRegAssign(groupName,  cmdValidDlyName[idx] + " <= #1  " + cmdValidDlyName[idx-1] + ";");  
 			this.addRegAssign(groupName,  cmdDataDlyName[idx] + " <= #1  " + cmdDataDlyName[idx-1] + ";");  
 		}
-        // assign r16 cmd inputs to predelay 
-		this.addWireAssign(cmdValidDlyName[0] + " = " + ring16CmdValidName + ";");  
-		this.addWireAssign(cmdDataDlyName[0] + " = " + ring16CmdDataName + ";");
+        // assign ring cmd inputs to predelay 
+		this.addWireAssign(cmdValidDlyName[0] + " = " + ringCmdValidName + ";");  
+		this.addWireAssign(cmdDataDlyName[0] + " = " + ringCmdDataName + ";");
 
 		// create delayed res signals  
-		int resDelayCount = (int) Math.floor(ExtParameters.sysVerRing16InterNodeDelay()/2.0);  // half of delay
+		int resDelayCount = (int) Math.floor(ExtParameters.sysVerRingInterNodeDelay()/2.0);  // half of delay
 		String [] resValidDlyName = new String [resDelayCount+1];
 		String [] resDataDlyName = new String [resDelayCount+1];
 		for (int idx=0; idx<resDelayCount+1; idx++) {
-			resValidDlyName[idx] = "r16_resValid_dly" + idx;
-			resDataDlyName[idx] = "r16_resData_dly" + idx;
+			resValidDlyName[idx] = "r" + ringWidth + "_resValid_dly" + idx;
+			resDataDlyName[idx] = "r" + ringWidth + "_resData_dly" + idx;
 		}
 		
 		this.addScalarReg(resValidDlyName[0]);  // res delay 0 is set in state machine
-		this.addVectorReg(resDataDlyName[0], 0, 16); 
+		this.addVectorReg(resDataDlyName[0], 0, ringWidth); 
 		for (int idx=1; idx<resDelayCount+1; idx++) {
 			this.addScalarReg(resValidDlyName[idx]);  
-			this.addVectorReg(resDataDlyName[idx], 0, 16); 
+			this.addVectorReg(resDataDlyName[idx], 0, ringWidth); 
 			this.addResetAssign(groupName, builder.getDefaultReset(), resValidDlyName[idx] + " <= #1  1'b0;");  
-			this.addResetAssign(groupName, builder.getDefaultReset(), resDataDlyName[idx] + " <= #1  16'b0;");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), resDataDlyName[idx] + " <= #1  " + ringWidth + "'b0;");  
 			this.addRegAssign(groupName,  resValidDlyName[idx] + " <= #1  " + resValidDlyName[idx-1] + ";");  
 			this.addRegAssign(groupName,  resDataDlyName[idx] + " <= #1  " + resDataDlyName[idx-1] + ";");  
 		}
-        // assign r16 outputs outputs to delayed versions 
-		this.addWireAssign(ring16ResValidName + " = " + resValidDlyName[resDelayCount] + ";");
-		this.addWireAssign(ring16ResDataName + " = " + resDataDlyName[resDelayCount] + ";");
+        // assign ring outputs outputs to delayed versions 
+		this.addWireAssign(ringResValidName + " = " + resValidDlyName[resDelayCount] + ";");
+		this.addWireAssign(ringResDataName + " = " + resDataDlyName[resDelayCount] + ";");
 
 		// add address accumulate reg 
-		String r16AddrAccumName = "r16_addr_accum";                      
-		String r16AddrAccumNextName = "r16_addr_accum_next";                      
+		String ringAddrAccumName = "r" + ringWidth + "_addr_accum";                      
+		String ringAddrAccumNextName = "r" + ringWidth + "_addr_accum_next";                      
 		if (addressWidth > 0) {
-			this.addVectorReg(r16AddrAccumName, builder.getAddressLowBit(), addressWidth);  
-			this.addVectorReg(r16AddrAccumNextName, builder.getAddressLowBit(), addressWidth);  
-			this.addRegAssign(groupName,  r16AddrAccumName + " <= #1  " + r16AddrAccumNextName + ";");  
+			this.addVectorReg(ringAddrAccumName, builder.getAddressLowBit(), addressWidth);  
+			this.addVectorReg(ringAddrAccumNextName, builder.getAddressLowBit(), addressWidth);  
+			this.addRegAssign(groupName,  ringAddrAccumName + " <= #1  " + ringAddrAccumNextName + ";");  
 			this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), addressWidth);  
-			this.addWireAssign(pioInterfaceAddressName + " = " + r16AddrAccumName + ";");  // input addr is set from accum reg			
+			this.addWireAssign(pioInterfaceAddressName + " = " + ringAddrAccumName + ";");  // input addr is set from accum reg			
 		}
 
 		// add write data accumulate reg
-		String r16WrAccumName = "r16_wdata_accum";                      
-		String r16WrAccumNextName = "r16_wdata_accum_next";                      
-		this.addVectorReg(r16WrAccumName, 0, regWidth);  
-		this.addVectorReg(r16WrAccumNextName, 0, regWidth);  
-		this.addRegAssign(groupName,  r16WrAccumName + " <= #1  " + r16WrAccumNextName + ";");  
+		String ringWrAccumName = "r" + ringWidth + "_wdata_accum";                      
+		String ringWrAccumNextName = "r" + ringWidth + "_wdata_accum_next";                      
+		this.addVectorReg(ringWrAccumName, 0, regWidth);  
+		this.addVectorReg(ringWrAccumNextName, 0, regWidth);  
+		this.addRegAssign(groupName,  ringWrAccumName + " <= #1  " + ringWrAccumNextName + ";");  
 		this.addVectorWire(pioInterfaceWriteDataName, 0, regWidth);  
-		this.addWireAssign(pioInterfaceWriteDataName + " = " + r16WrAccumName + ";");  // input data is set from accum reg
+		this.addWireAssign(pioInterfaceWriteDataName + " = " + ringWrAccumName + ";");  // input data is set from accum reg
 		
 		// will need to capture cmd size
 		String pioInterfaceTransactionSizeNextName = pioInterfaceTransactionSizeName + "_next";  // cmd size next will be set in sm
@@ -826,77 +827,77 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		}
 
 		// add capture reg for write transaction indicator
-		String r16WrStateCaptureName = "r16_wr_state_capture";                      
-		String r16WrStateCaptureNextName = "r16_wr_state_capture_next";                      
-		this.addScalarReg(r16WrStateCaptureName);  
-		this.addScalarReg(r16WrStateCaptureNextName);  
-		this.addRegAssign(groupName,  r16WrStateCaptureName + " <= #1  " + r16WrStateCaptureNextName + ";");  
+		String ringWrStateCaptureName = "r" + ringWidth + "_wr_state_capture";                      
+		String ringWrStateCaptureNextName = "r" + ringWidth + "_wr_state_capture_next";                      
+		this.addScalarReg(ringWrStateCaptureName);  
+		this.addScalarReg(ringWrStateCaptureNextName);  
+		this.addRegAssign(groupName,  ringWrStateCaptureName + " <= #1  " + ringWrStateCaptureNextName + ";");  
 
 		// add capture reg for read data
-		String r16RdCaptureName = "r16_rdata_capture";                      
-		String r16RdCaptureNextName = "r16_rdata_capture_next";                      
-		this.addVectorReg(r16RdCaptureName, 0, regWidth);  
-		this.addVectorReg(r16RdCaptureNextName, 0, regWidth);  
-		this.addRegAssign(groupName,  r16RdCaptureName + " <= #1  " + r16RdCaptureNextName + ";"); 
+		String ringRdCaptureName = "r" + ringWidth + "_rdata_capture";                      
+		String ringRdCaptureNextName = "r" + ringWidth + "_rdata_capture_next";                      
+		this.addVectorReg(ringRdCaptureName, 0, regWidth);  
+		this.addVectorReg(ringRdCaptureNextName, 0, regWidth);  
+		this.addRegAssign(groupName,  ringRdCaptureName + " <= #1  " + ringRdCaptureNextName + ";"); 
 
 		// address xfer count
-		String r16AddrCntName = "r16_addr_cnt";                      
-		String r16AddrCntNextName = "r16_addr_cnt_next";                      
+		String ringAddrCntName = "r" + ringWidth + "_addr_cnt";                      
+		String ringAddrCntNextName = "r" + ringWidth + "_addr_cnt_next";                      
 		int addrXferCountBits = Utils.getBits(maxAddrXferCount+1);  // always > 0 unlike serial case / need + 1 since comparing w next count
-		this.addVectorReg(r16AddrCntName, 0, addrXferCountBits);  
-		this.addVectorReg(r16AddrCntNextName, 0, addrXferCountBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), r16AddrCntName + " <= #1  " + addrXferCountBits + "'b0;");  
-		this.addRegAssign(groupName,  r16AddrCntName + " <= #1  " + r16AddrCntNextName + ";");  
+		this.addVectorReg(ringAddrCntName, 0, addrXferCountBits);  
+		this.addVectorReg(ringAddrCntNextName, 0, addrXferCountBits);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), ringAddrCntName + " <= #1  " + addrXferCountBits + "'b0;");  
+		this.addRegAssign(groupName,  ringAddrCntName + " <= #1  " + ringAddrCntNextName + ";");  
 		
 		// add capture reg for address xfer count
-		String r16AddrCntCaptureName = "r16_addr_cnt_capture";                      
-		String r16AddrCntCaptureNextName = "r16_addr_cnt_capture_next";                      
-		this.addVectorReg(r16AddrCntCaptureName, 0, addrXferCountBits);  
-		this.addVectorReg(r16AddrCntCaptureNextName, 0, addrXferCountBits);  
-		this.addRegAssign(groupName,  r16AddrCntCaptureName + " <= #1  " + r16AddrCntCaptureNextName + ";"); 
+		String ringAddrCntCaptureName = "r" + ringWidth + "_addr_cnt_capture";                      
+		String ringAddrCntCaptureNextName = "r" + ringWidth + "_addr_cnt_capture_next";                      
+		this.addVectorReg(ringAddrCntCaptureName, 0, addrXferCountBits);  
+		this.addVectorReg(ringAddrCntCaptureNextName, 0, addrXferCountBits);  
+		this.addRegAssign(groupName,  ringAddrCntCaptureName + " <= #1  " + ringAddrCntCaptureNextName + ";"); 
 		
 		// add ring msb no match indicator
-		String r16NotMineName = "r16_not_mine";                      
-		String r16NotMineNextName = "r16_not_mine_next";                      
-		this.addScalarReg(r16NotMineName);  
-		this.addScalarReg(r16NotMineNextName);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), r16NotMineName + " <= #1  1'b0;");  
-		this.addRegAssign(groupName,  r16NotMineName + " <= #1  " + r16NotMineNextName + ";");  
+		String ringNotMineName = "r" + ringWidth + "_not_mine";                      
+		String ringNotMineNextName = "r" + ringWidth + "_not_mine_next";                      
+		this.addScalarReg(ringNotMineName);  
+		this.addScalarReg(ringNotMineNextName);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), ringNotMineName + " <= #1  1'b0;");  
+		this.addRegAssign(groupName,  ringNotMineName + " <= #1  " + ringNotMineNextName + ";");  
 		
 		// data byte count
 		int maxDataXferCount = regWords * 2;
 		int maxDataXferCountBits = Utils.getBits(maxDataXferCount);
-		this.addVectorReg(r16DataCntName, 0, maxDataXferCountBits);  
-		this.addVectorReg(r16DataCntNextName, 0, maxDataXferCountBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), r16DataCntName + " <= #1  " + maxDataXferCountBits + "'b0;");  
-		this.addRegAssign(groupName,  r16DataCntName + " <= #1  " + r16DataCntNextName + ";"); 
+		this.addVectorReg(ringDataCntName, 0, maxDataXferCountBits);  
+		this.addVectorReg(ringDataCntNextName, 0, maxDataXferCountBits);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), ringDataCntName + " <= #1  " + maxDataXferCountBits + "'b0;");  
+		this.addRegAssign(groupName,  ringDataCntName + " <= #1  " + ringDataCntNextName + ";"); 
 
 		// define internal interface signals that will be set in sm 
-		String r16pioInterfaceReName = "r16_" + pioInterfaceReName;
-		String r16pioInterfaceWeName = "r16_" + pioInterfaceWeName;
-		this.addScalarReg(r16pioInterfaceReName);
-		this.addScalarReg(r16pioInterfaceWeName);
+		String ringpioInterfaceReName = "r" + ringWidth + "_" + pioInterfaceReName;
+		String ringpioInterfaceWeName = "r" + ringWidth + "_" + pioInterfaceWeName;
+		this.addScalarReg(ringpioInterfaceReName);
+		this.addScalarReg(ringpioInterfaceWeName);
 		
 		// state machine init values
-		this.addCombinAssign(groupName,  r16StateNextName + " = " + r16StateName + ";");  
+		this.addCombinAssign(groupName,  ringStateNextName + " = " + ringStateName + ";");  
 		this.addCombinAssign(groupName,  resValidDlyName[0] + " =  1'b0;");  // return valid
-		this.addCombinAssign(groupName,  resDataDlyName[0] + " =  16'b0;");   // return data
-		this.addCombinAssign(groupName,  r16pioInterfaceWeName + " =  1'b0;");  // write active
-		this.addCombinAssign(groupName,  r16pioInterfaceReName + " =  1'b0;");  // read active 
-		this.addCombinAssign(groupName,  r16WrStateCaptureNextName + " = " + r16WrStateCaptureName + ";");  // write indicator
-		this.addCombinAssign(groupName,  r16AddrCntCaptureNextName + " = " + r16AddrCntCaptureName + ";");  // address xfer count
+		this.addCombinAssign(groupName,  resDataDlyName[0] + " =  " + ringWidth + "'b0;");   // return data
+		this.addCombinAssign(groupName,  ringpioInterfaceWeName + " =  1'b0;");  // write active
+		this.addCombinAssign(groupName,  ringpioInterfaceReName + " =  1'b0;");  // read active 
+		this.addCombinAssign(groupName,  ringWrStateCaptureNextName + " = " + ringWrStateCaptureName + ";");  // write indicator
+		this.addCombinAssign(groupName,  ringAddrCntCaptureNextName + " = " + ringAddrCntCaptureName + ";");  // address xfer count
 		if (addressWidth > 0)
-			this.addCombinAssign(groupName,  r16AddrAccumNextName + " = " + r16AddrAccumName + ";");  // address accumulate
-		this.addCombinAssign(groupName,  r16NotMineNextName + " =  1'b0;");  // default to matching address
-		this.addCombinAssign(groupName,  r16WrAccumNextName + " = " + r16WrAccumName + ";");  // write data accumulate
-		this.addCombinAssign(groupName,  r16RdCaptureNextName + " = " + r16RdCaptureName + ";");  // read data capture
+			this.addCombinAssign(groupName,  ringAddrAccumNextName + " = " + ringAddrAccumName + ";");  // address accumulate
+		this.addCombinAssign(groupName,  ringNotMineNextName + " =  1'b0;");  // default to matching address
+		this.addCombinAssign(groupName,  ringWrAccumNextName + " = " + ringWrAccumName + ";");  // write data accumulate
+		this.addCombinAssign(groupName,  ringRdCaptureNextName + " = " + ringRdCaptureName + ";");  // read data capture
 		// init cmd size capture
 		if (useTransactionSize)
 			this.addCombinAssign(groupName,  pioInterfaceTransactionSizeNextName + " = " + pioInterfaceTransactionSizeName + ";"); 
 		// init counter values
-		this.addCombinAssign(groupName,  r16AddrCntNextName + " = "  + addrXferCountBits + "'b0;");
+		this.addCombinAssign(groupName,  ringAddrCntNextName + " = "  + addrXferCountBits + "'b0;");
 		
-		this.addCombinAssign(groupName,  r16DataCntNextName + " = "  + maxDataXferCountBits + "'b0;"); 
+		this.addCombinAssign(groupName,  ringDataCntNextName + " = "  + maxDataXferCountBits + "'b0;"); 
 		this.addCombinAssign(groupName,  outFifoAdvanceName + " =  1'b0;");  // no fifo advance 
 		this.addCombinAssign(groupName,  outFifoDataName[0] + " = " + cmdDataDlyName[cmdDelayCount] + ";");   
 			
@@ -911,77 +912,77 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String RESPONSE_BYPASS = stateBits + "'h7";   
 		String RESPONSE_FLUSH = stateBits + "'h8";   
 				
-		this.addCombinAssign(groupName, "case (" + r16StateName + ")"); 
+		this.addCombinAssign(groupName, "case (" + ringStateName + ")"); 
 
 		// IDLE
 		this.addCombinAssign(groupName,     "  " + IDLE + ": begin // IDLE");
 		// init accumulator/capture regs
-		this.addCombinAssign(groupName,     "      " + r16WrStateCaptureNextName + " = 1'b0;");  
+		this.addCombinAssign(groupName,     "      " + ringWrStateCaptureNextName + " = 1'b0;");  
 		if (addressWidth > 0)
-			this.addCombinAssign(groupName, "      " + r16AddrAccumNextName + " = " + addressWidth + "'b0;");
-		this.addCombinAssign(groupName,     "      " + r16WrAccumNextName + " = " + regWidth + "'b0;");
+			this.addCombinAssign(groupName, "      " + ringAddrAccumNextName + " = " + addressWidth + "'b0;");
+		this.addCombinAssign(groupName,     "      " + ringWrAccumNextName + " = " + regWidth + "'b0;");
 		// go on cmd valid - capture r/w indicator, addr size, and transaction size
 		this.addCombinAssign(groupName,     "      if (" + cmdValidDlyName[cmdDelayCount] + ") begin");  
 		this.addCombinAssign(groupName,     "        " + outFifoAdvanceName + " =  1'b1;");  // save cntl word
-		this.addCombinAssign(groupName,     "        " + r16WrStateCaptureNextName + " = " + cmdDataDlyName[cmdDelayCount] + "[7];");  // bit 7 = write 
-		this.addCombinAssign(groupName,     "        " + r16AddrCntCaptureNextName + " = " + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(4, addrXferCountBits) + ";");  // bits 6:4 = addr xfers
+		this.addCombinAssign(groupName,     "        " + ringWrStateCaptureNextName + " = " + cmdDataDlyName[cmdDelayCount] + "[7];");  // bit 7 = write 
+		this.addCombinAssign(groupName,     "        " + ringAddrCntCaptureNextName + " = " + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(4, addrXferCountBits) + ";");  // bits 6:4 = addr xfers
 		if (useTransactionSize)
 		    this.addCombinAssign(groupName, "        " + pioInterfaceTransactionSizeNextName + " = " + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + ";");  // bits 3:0 = transaction size
 		// if ack or nack are already set then skip
 		this.addCombinAssign(groupName,     "        if (" + cmdDataDlyName[cmdDelayCount] + "[15] | " + cmdDataDlyName[cmdDelayCount] + "[14]) begin");  
-		this.addCombinAssign(groupName,     "          if (~" +  r16WrStateCaptureNextName + ") " + r16StateNextName + " = " + RESPONSE_BYPASS + ";"); // bypass data also if a read response 
-		this.addCombinAssign(groupName,     "          else " + r16StateNextName + " = " + RESPONSE_FLUSH + ";"); // flush cmd word from fifo if a write response 
+		this.addCombinAssign(groupName,     "          if (~" +  ringWrStateCaptureNextName + ") " + ringStateNextName + " = " + RESPONSE_BYPASS + ";"); // bypass data also if a read response 
+		this.addCombinAssign(groupName,     "          else " + ringStateNextName + " = " + RESPONSE_FLUSH + ";"); // flush cmd word from fifo if a write response 
 		this.addCombinAssign(groupName,     "        end");  //cmd valid
         // if an address then get it next  
-		this.addCombinAssign(groupName,     "        else if (" + r16AddrCntCaptureNextName + " > " + addrXferCountBits + "'d0) " + r16StateNextName + " = " + CMD_ADDR + ";");  
+		this.addCombinAssign(groupName,     "        else if (" + ringAddrCntCaptureNextName + " > " + addrXferCountBits + "'d0) " + ringStateNextName + " = " + CMD_ADDR + ";");  
 		// otherwise get cmd data if a write or assert read and wait for internal read response
-		this.addCombinAssign(groupName,     "        else if (" + r16WrStateCaptureNextName + ") " + r16StateNextName + " = " + CMD_DATA + ";");  
-		this.addCombinAssign(groupName,     "        else " + r16StateNextName + " = " + RES_WAIT + ";");  
+		this.addCombinAssign(groupName,     "        else if (" + ringWrStateCaptureNextName + ") " + ringStateNextName + " = " + CMD_DATA + ";");  
+		this.addCombinAssign(groupName,     "        else " + ringStateNextName + " = " + RES_WAIT + ";");  
 		this.addCombinAssign(groupName,     "      end");  //cmd valid
 		this.addCombinAssign(groupName,     "    end"); 
 		
 		// CMD_ADDR
 		this.addCombinAssign(groupName,  "  " + CMD_ADDR + ": begin // CMD_ADDR");
-		this.addCombinAssign(groupName,  "      " + r16AddrCntNextName + " = " + r16AddrCntName + ";"); // hold value
-		this.addCombinAssign(groupName,  "      " + r16NotMineNextName + " = " + r16NotMineName + ";");  // hold matching address value 
+		this.addCombinAssign(groupName,  "      " + ringAddrCntNextName + " = " + ringAddrCntName + ";"); // hold value
+		this.addCombinAssign(groupName,  "      " + ringNotMineNextName + " = " + ringNotMineName + ";");  // hold matching address value 
 		this.addCombinAssign(groupName,  "      if (" + cmdValidDlyName[cmdDelayCount] + ") begin");  
 		this.addCombinAssign(groupName,  "        " + outFifoAdvanceName + " =  1'b1;");  // save addr word
-		this.addCombinAssign(groupName,  "        " + r16AddrCntNextName + " = " + r16AddrCntName + " + " + addrXferCountBits + "'b1;");
+		this.addCombinAssign(groupName,  "        " + ringAddrCntNextName + " = " + ringAddrCntName + " + " + addrXferCountBits + "'b1;");
 		// accumulate the address
 		for (int idx=0; idx<maxAddrXferCount; idx++) {
 			prefix = (idx == 0)? "" : "else ";
-			this.addCombinAssign(groupName, "        " + prefix + "if (" + r16AddrCntName + " == " + addrXferCountBits + "'d" + idx + ") begin");
-			int lowbit = idx*16 + builder.getAddressLowBit();
-			int lsbCheckSize = ((idx+1)*16 > addressWidth)? Math.max(0, addressWidth - idx*16) : 16;  // last valid local addr xfer is btwn 0 and 16b (0 after)
-			int msbCheckSize = 16 - lsbCheckSize;  // for ring, we'll use base address to test uppr addr bits in this xfer, could be all check size
+			this.addCombinAssign(groupName, "        " + prefix + "if (" + ringAddrCntName + " == " + addrXferCountBits + "'d" + idx + ") begin");
+			int lowbit = idx*ringWidth + builder.getAddressLowBit();
+			int lsbCheckSize = ((idx+1)*ringWidth > addressWidth)? Math.max(0, addressWidth - idx*ringWidth) : ringWidth;  // last valid local addr xfer is btwn 0 and ringWidth b (0 after)
+			int msbCheckSize = ringWidth - lsbCheckSize;  // for ring, we'll use base address to test uppr addr bits in this xfer, could be all check size
 			// if msbs are in this xfer, then look for an address mismatch 
 			if (msbCheckSize > 0) {
-				if ((lowbit + 16) > ExtParameters.getLeafAddressSize()) 
+				if ((lowbit + ringWidth) > ExtParameters.getLeafAddressSize()) 
 					msbCheckSize = ExtParameters.getLeafAddressSize() - lowbit;
 				//String matchStr = topRegProperties.getFullBaseAddress().getSubVector(lowbit + lsbCheckSize, msbCheckSize).toFormat(NumBase.Hex, NumFormat.Verilog);
 				String matchStr = "block_base_address" + SystemVerilogSignal.genRefArrayString(lowbit + lsbCheckSize, msbCheckSize);
 				//block_base_address
-				this.addCombinAssign(groupName, "          " + r16NotMineNextName + " = " + r16NotMineName + " | (" + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(lsbCheckSize, msbCheckSize) + " != " + matchStr + ");");  // default to matching address
+				this.addCombinAssign(groupName, "          " + ringNotMineNextName + " = " + ringNotMineName + " | (" + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(lsbCheckSize, msbCheckSize) + " != " + matchStr + ");");  // default to matching address
 			}
 			//  only accumulate address if in local range
-			int maxLocalAddrXferCount = (int) Math.ceil(addressWidth/16.0);  // max valid local address xfers
+			int maxLocalAddrXferCount = (int) Math.ceil(addressWidth/(double) ringWidth);  // max valid local address xfers
 			if (idx < maxLocalAddrXferCount) {
 				String addrRangeString = (addressWidth > 1)? SystemVerilogSignal.genRefArrayString(lowbit, lsbCheckSize) : "";
-			    this.addCombinAssign(groupName, "          " + r16AddrAccumNextName + addrRangeString + " = " + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(0, lsbCheckSize) + ";");		
+			    this.addCombinAssign(groupName, "          " + ringAddrAccumNextName + addrRangeString + " = " + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(0, lsbCheckSize) + ";");		
 			}
 			this.addCombinAssign(groupName, "        end"); 
 		}
 
 		// if addr done, send data if a write or wait for read response 
 		// if this xfer isn't for me then either capture write data or just send the accumulated data in the bypass fifo
-		this.addCombinAssign(groupName, "        if (" + r16AddrCntNextName + " == " + r16AddrCntCaptureName + ") begin"); 
-		this.addCombinAssign(groupName, "          if (" + r16NotMineNextName + ") begin");  
-		this.addCombinAssign(groupName, "            " +  r16AddrCntNextName + " = "  + addrXferCountBits + "'b0;");
-		this.addCombinAssign(groupName, "            if (" + r16WrStateCaptureNextName + ") " + r16StateNextName + " = " + CMD_BYPASS + ";");  
-		this.addCombinAssign(groupName, "            else " + r16StateNextName + " = " + CMD_FLUSH + ";");  
+		this.addCombinAssign(groupName, "        if (" + ringAddrCntNextName + " == " + ringAddrCntCaptureName + ") begin"); 
+		this.addCombinAssign(groupName, "          if (" + ringNotMineNextName + ") begin");  
+		this.addCombinAssign(groupName, "            " +  ringAddrCntNextName + " = "  + addrXferCountBits + "'b0;");
+		this.addCombinAssign(groupName, "            if (" + ringWrStateCaptureNextName + ") " + ringStateNextName + " = " + CMD_BYPASS + ";");  
+		this.addCombinAssign(groupName, "            else " + ringStateNextName + " = " + CMD_FLUSH + ";");  
 		this.addCombinAssign(groupName, "          end"); 
-		this.addCombinAssign(groupName, "          else if (" + r16WrStateCaptureName + ") " + r16StateNextName + " = " + CMD_DATA + ";");  
-		this.addCombinAssign(groupName, "          else " + r16StateNextName + " = " + RES_WAIT + ";");
+		this.addCombinAssign(groupName, "          else if (" + ringWrStateCaptureName + ") " + ringStateNextName + " = " + CMD_DATA + ";");  
+		this.addCombinAssign(groupName, "          else " + ringStateNextName + " = " + RES_WAIT + ";");
 		this.addCombinAssign(groupName, "        end"); 
 
 		this.addCombinAssign(groupName, "      end"); 
@@ -989,42 +990,42 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// CMD_DATA - capture write data
 		this.addCombinAssign(groupName, "  " + CMD_DATA + ": begin // CMD_DATA");
-		this.addCombinAssign(groupName,  "      " + r16DataCntNextName + " = " + r16DataCntName + ";");
+		this.addCombinAssign(groupName,  "      " + ringDataCntNextName + " = " + ringDataCntName + ";");
 		this.addCombinAssign(groupName, "      if (" + cmdValidDlyName[cmdDelayCount] + ") begin");  
 		//  bump the data count
-		this.addCombinAssign(groupName,  "        " + r16DataCntNextName + " = " + r16DataCntName + " + " + maxDataXferCountBits + "'b1;");
+		this.addCombinAssign(groupName,  "        " + ringDataCntNextName + " = " + ringDataCntName + " + " + maxDataXferCountBits + "'b1;");
 		// get the data slice
 		for (int idx=0; idx<maxDataXferCount; idx++) {
 			prefix = (idx == 0)? "" : "else ";
-			this.addCombinAssign(groupName, "        "+ prefix + "if (" + r16DataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
-			this.addCombinAssign(groupName, "          "  + r16WrAccumNextName + SystemVerilogSignal.genRefArrayString(16*idx, 16) + " = " + cmdDataDlyName[cmdDelayCount] + ";");
+			this.addCombinAssign(groupName, "        "+ prefix + "if (" + ringDataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
+			this.addCombinAssign(groupName, "          "  + ringWrAccumNextName + SystemVerilogSignal.genRefArrayString(ringWidth*idx, ringWidth) + " = " + cmdDataDlyName[cmdDelayCount] + ";");
 		}
 		// if done, move to res wait
 		String finalCntStr = "1'b1";
 		if (useTransactionSize) finalCntStr = "{" + pioInterfaceTransactionSizeName + ", 1'b1}";
-		this.addCombinAssign(groupName, "        if (" + r16DataCntName + " == " + finalCntStr + ")");
-		this.addCombinAssign(groupName, "          " + r16StateNextName + " = " + RES_WAIT + ";");
+		this.addCombinAssign(groupName, "        if (" + ringDataCntName + " == " + finalCntStr + ")");
+		this.addCombinAssign(groupName, "          " + ringStateNextName + " = " + RES_WAIT + ";");
 		this.addCombinAssign(groupName, "      end"); 
 		this.addCombinAssign(groupName, "    end"); 
 			
 		// RES_WAIT
 		this.addCombinAssign(groupName, "  " + RES_WAIT + ": begin  // RES_WAIT");
 		// activate either read or write request
-		this.addCombinAssign(groupName, "      " + r16pioInterfaceWeName + " = " + r16WrStateCaptureName + ";");  // set internal write active
-		this.addCombinAssign(groupName, "      " + r16pioInterfaceReName + " = ~" + r16WrStateCaptureName + ";");  // set internal read active
+		this.addCombinAssign(groupName, "      " + ringpioInterfaceWeName + " = " + ringWrStateCaptureName + ";");  // set internal write active
+		this.addCombinAssign(groupName, "      " + ringpioInterfaceReName + " = ~" + ringWrStateCaptureName + ";");  // set internal read active
 		// go on ack/nack, capture read data and set first word of response (contains ack/nack and return xfer size) 
 		this.addCombinAssign(groupName,   "      " + "if (" + pioInterfaceAckName + " | " + pioInterfaceNackName + ") begin");  
 		this.addCombinAssign(groupName,   "        " + resValidDlyName[0] + " =  1'b1;");  // res is valid
-		this.addCombinAssign(groupName,   "        " + r16RdCaptureNextName + " = " + pioInterfaceReadDataName + ";");  // capture read data  
+		this.addCombinAssign(groupName,   "        " + ringRdCaptureNextName + " = " + pioInterfaceReadDataName + ";");  // capture read data  
 		this.addCombinAssign(groupName,   "        " + resDataDlyName[0] + "[15] = " + pioInterfaceNackName + ";");  // set nack bit  
 		this.addCombinAssign(groupName,   "        " + resDataDlyName[0] + "[14] = ~" + pioInterfaceNackName + ";");  // set ack bit  
-		this.addCombinAssign(groupName,   "        " + resDataDlyName[0] + "[7] = " + r16WrStateCaptureName + ";");  // set write bit  
+		this.addCombinAssign(groupName,   "        " + resDataDlyName[0] + "[7] = " + ringWrStateCaptureName + ";");  // set write bit  
 		if (useTransactionSize) {
 			this.addCombinAssign(groupName,  "        " + resDataDlyName[0] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + " = " + pioInterfaceRetTransactionSizeName + ";");  
 		}
 		// if a read then send the data else we're done
-		this.addCombinAssign(groupName,   "        if (~" + r16WrStateCaptureName + ") " + r16StateNextName + " = " + RES_READ + ";");  
-		this.addCombinAssign(groupName,   "        else "+ r16StateNextName + " = " + IDLE + ";");
+		this.addCombinAssign(groupName,   "        if (~" + ringWrStateCaptureName + ") " + ringStateNextName + " = " + RES_READ + ";");  
+		this.addCombinAssign(groupName,   "        else "+ ringStateNextName + " = " + IDLE + ";");
 		this.addCombinAssign(groupName,   "      end"); 
 		this.addCombinAssign(groupName,   "    end");
 		
@@ -1032,37 +1033,37 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName,     "  " + RES_READ + ": begin  // RES_READ");  
 		this.addCombinAssign(groupName,     "      " + resValidDlyName[0] + " =  1'b1;");  // res is valid
 		//  bump the data count
-		this.addCombinAssign(groupName,     "      " + r16DataCntNextName + " = " + r16DataCntName + " + " + maxDataXferCountBits + "'b1;");
+		this.addCombinAssign(groupName,     "      " + ringDataCntNextName + " = " + ringDataCntName + " + " + maxDataXferCountBits + "'b1;");
 		// send the data slice while 
 		for (int idx=0; idx<maxDataXferCount; idx++) {
 			prefix = (idx == 0)? "" : "else ";
-			this.addCombinAssign(groupName, "      "+ prefix + "if (" + r16DataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
-			this.addCombinAssign(groupName, "        " + resDataDlyName[0] + " = " + r16RdCaptureName + SystemVerilogSignal.genRefArrayString(16*idx, 16) + ";");
+			this.addCombinAssign(groupName, "      "+ prefix + "if (" + ringDataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
+			this.addCombinAssign(groupName, "        " + resDataDlyName[0] + " = " + ringRdCaptureName + SystemVerilogSignal.genRefArrayString(ringWidth*idx, ringWidth) + ";");
 		}
 		// if final count we're done
 		if (useTransactionSize)
-			this.addCombinAssign(groupName, "      if (" + r16DataCntName + " == {" + pioInterfaceRetTransactionSizeName + ", 1'b1}) " + r16StateNextName + " = " + IDLE + ";");
+			this.addCombinAssign(groupName, "      if (" + ringDataCntName + " == {" + pioInterfaceRetTransactionSizeName + ", 1'b1}) " + ringStateNextName + " = " + IDLE + ";");
 		else
-			this.addCombinAssign(groupName, "      if (" + r16DataCntName + " == 1'b1) " + r16StateNextName + " = " + IDLE + ";");
+			this.addCombinAssign(groupName, "      if (" + ringDataCntName + " == 1'b1) " + ringStateNextName + " = " + IDLE + ";");
 		this.addCombinAssign(groupName,     "    end"); 
 		
 		// CMD_BYPASS - feed write data into bypass fifo  
 		this.addCombinAssign(groupName,     "  " + CMD_BYPASS + ": begin // CMD_BYPASS");
-		this.addCombinAssign(groupName,     "      " + r16DataCntNextName + " = " + r16DataCntName + ";");
+		this.addCombinAssign(groupName,     "      " + ringDataCntNextName + " = " + ringDataCntName + ";");
 		this.addCombinAssign(groupName,     "      if (" + cmdValidDlyName[cmdDelayCount] + ") begin");  
 		//  bump the data count
-		this.addCombinAssign(groupName,     "        " + r16DataCntNextName + " = " + r16DataCntName + " + " + maxDataXferCountBits + "'b1;");
+		this.addCombinAssign(groupName,     "        " + ringDataCntNextName + " = " + ringDataCntName + " + " + maxDataXferCountBits + "'b1;");
         // advance the fifo and set output valid
 		this.addCombinAssign(groupName,     "        " + outFifoAdvanceName + " =  1'b1;");  // advance fifo
 		this.addCombinAssign(groupName,     "        " + resValidDlyName[0] + " =  1'b1;");  // res is valid
 		// if done, move to flush
-		this.addCombinAssign(groupName,     "        if (" + r16DataCntName + " == " + finalCntStr + ")"); 
-		this.addCombinAssign(groupName,     "          " + r16StateNextName + " = " + CMD_FLUSH + ";");
+		this.addCombinAssign(groupName,     "        if (" + ringDataCntName + " == " + finalCntStr + ")"); 
+		this.addCombinAssign(groupName,     "          " + ringStateNextName + " = " + CMD_FLUSH + ";");
 		this.addCombinAssign(groupName,     "      end"); 
 		// set the RES_output to fifo element depending on xfer addr size 
 		for (int idx=0; idx<maxAddrXferCount; idx++) {
 			prefix = (idx == 0)? "" : "else ";
-			this.addCombinAssign(groupName, "      " + prefix + "if (" + r16AddrCntCaptureName + " == " + addrXferCountBits + "'d" + idx + ")");
+			this.addCombinAssign(groupName, "      " + prefix + "if (" + ringAddrCntCaptureName + " == " + addrXferCountBits + "'d" + idx + ")");
 			this.addCombinAssign(groupName, "        " + resDataDlyName[0] + " = " + outFifoDataName[idx+1] + ";");
 		}
 		this.addCombinAssign(groupName,     "    end"); 
@@ -1071,29 +1072,29 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName,     "  " + CMD_FLUSH + ": begin  // CMD_FLUSH"); 
         // transfer out address xfer count + 1
 		this.addCombinAssign(groupName,     "      " + outFifoAdvanceName + " =  1'b1;");  // save addr word
-		this.addCombinAssign(groupName,     "      " + r16AddrCntNextName + " = " + r16AddrCntName + " + " + addrXferCountBits + "'b1;");
-		this.addCombinAssign(groupName,     "      if (" + r16AddrCntName + " == " + r16AddrCntCaptureName + ") " + r16StateNextName + " = " + IDLE + ";");
+		this.addCombinAssign(groupName,     "      " + ringAddrCntNextName + " = " + ringAddrCntName + " + " + addrXferCountBits + "'b1;");
+		this.addCombinAssign(groupName,     "      if (" + ringAddrCntName + " == " + ringAddrCntCaptureName + ") " + ringStateNextName + " = " + IDLE + ";");
 		// set the RES_output to fifo element depending on xfer addr size 
 		this.addCombinAssign(groupName,     "      " + resValidDlyName[0] + " =  1'b1;");  // res is valid
 		for (int idx=0; idx<maxAddrXferCount; idx++) {
 			prefix = (idx == 0)? "" : "else ";
-			this.addCombinAssign(groupName, "      " + prefix + "if (" + r16AddrCntCaptureName + " == " + addrXferCountBits + "'d" + idx + ")");
+			this.addCombinAssign(groupName, "      " + prefix + "if (" + ringAddrCntCaptureName + " == " + addrXferCountBits + "'d" + idx + ")");
 			this.addCombinAssign(groupName, "        " + resDataDlyName[0] + " = " + outFifoDataName[idx+1] + ";");
 		}
 		this.addCombinAssign(groupName,     "    end"); 
 		
 		// RESPONSE_BYPASS - forward responses from previous nodes on the ring  
 		this.addCombinAssign(groupName,     "  " + RESPONSE_BYPASS + ": begin // RESPONSE_BYPASS");
-		this.addCombinAssign(groupName,     "      " + r16DataCntNextName + " = " + r16DataCntName + ";");
+		this.addCombinAssign(groupName,     "      " + ringDataCntNextName + " = " + ringDataCntName + ";");
 		this.addCombinAssign(groupName,     "      if (" + cmdValidDlyName[cmdDelayCount] + ") begin");  
 		//  bump the data count
-		this.addCombinAssign(groupName,     "        " + r16DataCntNextName + " = " + r16DataCntName + " + " + maxDataXferCountBits + "'b1;");
+		this.addCombinAssign(groupName,     "        " + ringDataCntNextName + " = " + ringDataCntName + " + " + maxDataXferCountBits + "'b1;");
         //  set output valid
 		this.addCombinAssign(groupName,     "        " + outFifoAdvanceName + " =  1'b1;");  // save word
 		this.addCombinAssign(groupName,     "        " + resValidDlyName[0] + " =  1'b1;");  // res is valid
 		// if done, flush fifo and back to idle
-		this.addCombinAssign(groupName,     "        if (" + r16DataCntName + " == " + finalCntStr + ")");
-		this.addCombinAssign(groupName,     "          " + r16StateNextName + " = " + RESPONSE_FLUSH + ";");
+		this.addCombinAssign(groupName,     "        if (" + ringDataCntName + " == " + finalCntStr + ")");
+		this.addCombinAssign(groupName,     "          " + ringStateNextName + " = " + RESPONSE_FLUSH + ";");
 		this.addCombinAssign(groupName,     "      end"); 
 		this.addCombinAssign(groupName,     "      " + resDataDlyName[0] + " = " + outFifoDataName[1] + ";");
 		this.addCombinAssign(groupName,     "    end"); 
@@ -1102,7 +1103,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName,     "  " + RESPONSE_FLUSH + ": begin  // RESPONSE_FLUSH"); 
         // transfer out 1 word
 		this.addCombinAssign(groupName,     "      " + outFifoAdvanceName + " =  1'b1;");  // save addr word
-		this.addCombinAssign(groupName,     "      " + r16StateNextName + " = " + IDLE + ";");
+		this.addCombinAssign(groupName,     "      " + ringStateNextName + " = " + IDLE + ";");
 		// set the RES_output to fifo element depending on xfer addr size 
 		this.addCombinAssign(groupName,     "      " + resValidDlyName[0] + " =  1'b1;");  // res is valid
 		this.addCombinAssign(groupName,     "      " + resDataDlyName[0] + " = " + outFifoDataName[1] + ";");
@@ -1110,14 +1111,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// default
 		this.addCombinAssign(groupName, "  default:");
-		this.addCombinAssign(groupName, "    " + r16StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "    " + ringStateNextName + " = " + IDLE + ";");  
 
 		this.addCombinAssign(groupName, "endcase"); 				
 
 		this.addScalarWire(pioInterfaceReName);  //  read enable internal interface
 		this.addScalarWire(pioInterfaceWeName);  //  write enable internal interface
 		// generate re/we assigns directly or from delayed versions if clock gating is enabled
-		assignReadWriteRequests(r16pioInterfaceReName, r16pioInterfaceWeName);
+		assignReadWriteRequests(ringpioInterfaceReName, ringpioInterfaceWeName);
 		
 	}
 	
@@ -2007,9 +2008,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "endcase"); 				
 	}
 
-	/** generate RING16 external interface shim logic */    
-	public void generateExternalInterface_RING16(AddressableInstanceProperties addrInstProperties) {   
-		//Jrdl.warnMessage("SystemVerilogBuilder gen_RING16, ext type=" + regProperties.getExternalType()  + ", id=" + regProperties.getId());
+	/** generate RING external interface shim logic */    
+	public void generateExternalInterface_RING(int ringWidth, AddressableInstanceProperties addrInstProperties) {   // TODO - eventually allow multiple widths
+		//Jrdl.warnMessage("SystemVerilogBuilder gen_RING, ext type=" + regProperties.getExternalType()  + ", id=" + regProperties.getId());
 		
 		// create verilog names associated with external
 		String decodeToHwName = addrInstProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
@@ -2028,25 +2029,25 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarReg(hwToDecodeNackName);
 		
 		// create module IOs
-		String ring16CmdValidName = "d2r_" + addrInstProperties.getBaseName() + "_cmd_valid";                      
-		String ring16CmdDataName = "d2r_" + addrInstProperties.getBaseName() + "_cmd_data";                      
+		String ringCmdValidName = "d2r_" + addrInstProperties.getBaseName() + "_cmd_valid";                      
+		String ringCmdDataName = "d2r_" + addrInstProperties.getBaseName() + "_cmd_data";                      
 		
-		String ring16ResValidName = "r2d_" + addrInstProperties.getBaseName() + "_res_valid";                      
-		String ring16ResDataName = "r2d_" + addrInstProperties.getBaseName() + "_res_data";                      
+		String ringResValidName = "r2d_" + addrInstProperties.getBaseName() + "_res_valid";                      
+		String ringResDataName = "r2d_" + addrInstProperties.getBaseName() + "_res_data";                      
 		
 		//  outputs
-		this.addScalarTo(SystemVerilogBuilder.HW, ring16CmdValidName);     // stays high while all cmd addr/data/cntl xferred 
-		this.addVectorTo(SystemVerilogBuilder.HW, ring16CmdDataName, 0, 16);  
+		this.addScalarTo(SystemVerilogBuilder.HW, ringCmdValidName);     // stays high while all cmd addr/data/cntl xferred 
+		this.addVectorTo(SystemVerilogBuilder.HW, ringCmdDataName, 0, ringWidth);  
 
 		// inputs  
-		this.addScalarFrom(SystemVerilogBuilder.HW, ring16ResValidName);     // stays high while all res cntl/data xferred
-		this.addVectorFrom(SystemVerilogBuilder.HW, ring16ResDataName, 0, 16);     
+		this.addScalarFrom(SystemVerilogBuilder.HW, ringResValidName);     // stays high while all res cntl/data xferred
+		this.addVectorFrom(SystemVerilogBuilder.HW, ringResDataName, 0, ringWidth);     
 		
 		// calculate number of 8b xfers required for address (same for all transctions to this i/f)
 		int addrXferCount = 0;
 		if ( (addrInstProperties.getExtAddressWidth() > 0)  && !addrInstProperties.isSingleExtReg()) {
-			addrXferCount = (int) Math.ceil(addrInstProperties.getExtAddressWidth()/16.0);
-			//System.out.println("SystemVerilogBuilder generateExternalInterface_ring16: addr width=" + regProperties.getExtAddressWidth() + ", addr count=" + addrXferCount);
+			addrXferCount = (int) Math.ceil(addrInstProperties.getExtAddressWidth()/(double) ringWidth);
+			//System.out.println("SystemVerilogBuilder generateExternalInterface_ring: addr width=" + regProperties.getExtAddressWidth() + ", addr count=" + addrXferCount);
 		}
 		
 		// compute max transaction size in 32b words and number of bits to represent (4 max) 
@@ -2055,72 +2056,72 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		boolean useTransactionSize = (regWords > 1) && !addrInstProperties.isSingleExtReg();  // if transaction sizes need to be sent/received
 		
 		// now create state machine vars
-		String r16StateName = "r16_" + addrInstProperties.getBaseName() + "_state";                      
-		String r16StateNextName = "r16_" + addrInstProperties.getBaseName() + "_state_next";                      
-		String r16AddrCntName = "r16_" + addrInstProperties.getBaseName() + "_addr_cnt";                      
-		String r16AddrCntNextName = "r16_" + addrInstProperties.getBaseName() + "_addr_cnt_next";                      
-		String r16DataCntName = "r16_" + addrInstProperties.getBaseName() + "_data_cnt";                      
-		String r16DataCntNextName = "r16_" + addrInstProperties.getBaseName() + "_data_cnt_next"; 
+		String ringStateName = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_state";                      
+		String ringStateNextName = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_state_next";                      
+		String ringAddrCntName = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_addr_cnt";                      
+		String ringAddrCntNextName = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_addr_cnt_next";                      
+		String ringDataCntName = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_data_cnt";                      
+		String ringDataCntNextName = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_data_cnt_next"; 
 
-		String groupName = addrInstProperties.getBaseName() + " ring16 i/f";  
+		String groupName = addrInstProperties.getBaseName() + " ring" + ringWidth + " i/f";  
 		int stateBits = 3;
-		this.addVectorReg(r16StateName, 0, stateBits);  
-		this.addVectorReg(r16StateNextName, 0, stateBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), r16StateName + " <= #1  " + stateBits + "'b0;");  
-		this.addRegAssign(groupName,  r16StateName + " <= #1  " + r16StateNextName + ";");  
+		this.addVectorReg(ringStateName, 0, stateBits);  
+		this.addVectorReg(ringStateNextName, 0, stateBits);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), ringStateName + " <= #1  " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  ringStateName + " <= #1  " + ringStateNextName + ";");  
 
 		// create delayed cmd signals
 		int delayCount = addrInstProperties.getExternalType().getParm1();
 		String [] cmdValidDlyName = new String [delayCount+1];
 		String [] cmdDataDlyName = new String [delayCount+1];
 		for (int idx=0; idx<delayCount+1; idx++) {
-			cmdValidDlyName[idx] = "r16_" + addrInstProperties.getBaseName() + "_cmdValid_dly" + idx;
-			cmdDataDlyName[idx] = "r16_" + addrInstProperties.getBaseName() + "_cmdData_dly" + idx;
+			cmdValidDlyName[idx] = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_cmdValid_dly" + idx;
+			cmdDataDlyName[idx] = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_cmdData_dly" + idx;
 		}
 		this.addScalarReg(cmdValidDlyName[0]);  // cmd delay 0 is set in state machine
-		this.addVectorReg(cmdDataDlyName[0], 0, 16); 
+		this.addVectorReg(cmdDataDlyName[0], 0, ringWidth); 
 		for (int idx=1; idx<delayCount+1; idx++) {
 			this.addScalarReg(cmdValidDlyName[idx]);  
-			this.addVectorReg(cmdDataDlyName[idx], 0, 16); 
+			this.addVectorReg(cmdDataDlyName[idx], 0, ringWidth); 
 			this.addResetAssign(groupName, builder.getDefaultReset(), cmdValidDlyName[idx] + " <= #1  1'b0;");  
-			this.addResetAssign(groupName, builder.getDefaultReset(), cmdDataDlyName[idx] + " <= #1  16'b0;");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), cmdDataDlyName[idx] + " <= #1  " + ringWidth + "'b0;");  
 			this.addRegAssign(groupName,  cmdValidDlyName[idx] + " <= #1  " + cmdValidDlyName[idx-1] + ";");  
 			this.addRegAssign(groupName,  cmdDataDlyName[idx] + " <= #1  " + cmdDataDlyName[idx-1] + ";");  
 		}
-        // assign r16 outputs outputs to delayed versions 
-		this.addScalarWire(ring16CmdValidName);  
-		this.addVectorWire(ring16CmdDataName, 0, 16); 
-		this.addWireAssign(ring16CmdValidName + " = " + cmdValidDlyName[delayCount] + ";");
-		this.addWireAssign(ring16CmdDataName + " = " + cmdDataDlyName[delayCount] + ";");
+        // assign ring outputs outputs to delayed versions 
+		this.addScalarWire(ringCmdValidName);  
+		this.addVectorWire(ringCmdDataName, 0, ringWidth); 
+		this.addWireAssign(ringCmdValidName + " = " + cmdValidDlyName[delayCount] + ";");
+		this.addWireAssign(ringCmdDataName + " = " + cmdDataDlyName[delayCount] + ";");
 
 		// create delayed res signals  
 		String [] resValidDlyName = new String [delayCount+1];
 		String [] resDataDlyName = new String [delayCount+1];
 		for (int idx=0; idx<delayCount+1; idx++) {
-			resValidDlyName[idx] = "r16_" + addrInstProperties.getBaseName() + "_resValid_dly" + idx;
-			resDataDlyName[idx] = "r16_" + addrInstProperties.getBaseName() + "_resData_dly" + idx;
+			resValidDlyName[idx] = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_resValid_dly" + idx;
+			resDataDlyName[idx] = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_resData_dly" + idx;
 		}
 		this.addScalarWire(resValidDlyName[0]);  // res delay 0 is set from IO
-		this.addVectorWire(resDataDlyName[0], 0, 16); 
+		this.addVectorWire(resDataDlyName[0], 0, ringWidth); 
 		for (int idx=1; idx<delayCount+1; idx++) {
 			this.addScalarReg(resValidDlyName[idx]);  
-			this.addVectorReg(resDataDlyName[idx], 0, 16); 
+			this.addVectorReg(resDataDlyName[idx], 0, ringWidth); 
 			this.addResetAssign(groupName, builder.getDefaultReset(), resValidDlyName[idx] + " <= #1  1'b0;");  
-			this.addResetAssign(groupName, builder.getDefaultReset(), resDataDlyName[idx] + " <= #1  16'b0;");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), resDataDlyName[idx] + " <= #1  " + ringWidth + "'b0;");  
 			this.addRegAssign(groupName,  resValidDlyName[idx] + " <= #1  " + resValidDlyName[idx-1] + ";");  
 			this.addRegAssign(groupName,  resDataDlyName[idx] + " <= #1  " + resDataDlyName[idx-1] + ";");  
 		}
-        // assign r16 inputs to predelay 
-		this.addWireAssign(resValidDlyName[0] + " = " + ring16ResValidName + ";");  
-		this.addWireAssign(resDataDlyName[0] + " = " + ring16ResDataName + ";");
+        // assign ring inputs to predelay 
+		this.addWireAssign(resValidDlyName[0] + " = " + ringResValidName + ";");  
+		this.addWireAssign(resDataDlyName[0] + " = " + ringResDataName + ";");
 		
 		// add read data accumulate reg
-		String r16RdAccumName = "r16_" + addrInstProperties.getBaseName() + "_rdata_accum";                      
-		String r16RdAccumNextName = "r16_" + addrInstProperties.getBaseName() + "_rdata_accum_next";                      
-		this.addVectorReg(r16RdAccumName, 0, addrInstProperties.getMaxRegWidth());  
-		this.addVectorReg(r16RdAccumNextName, 0, addrInstProperties.getMaxRegWidth());  
-		this.addRegAssign(groupName,  r16RdAccumName + " <= #1  " + r16RdAccumNextName + ";");  
-		this.addWireAssign(hwToDecodeName + " = " + r16RdAccumName + ";");
+		String ringRdAccumName = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_rdata_accum";                      
+		String ringRdAccumNextName = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_rdata_accum_next";                      
+		this.addVectorReg(ringRdAccumName, 0, addrInstProperties.getMaxRegWidth());  
+		this.addVectorReg(ringRdAccumNextName, 0, addrInstProperties.getMaxRegWidth());  
+		this.addRegAssign(groupName,  ringRdAccumName + " <= #1  " + ringRdAccumNextName + ";");  
+		this.addWireAssign(hwToDecodeName + " = " + ringRdAccumName + ";");
 		
 		//  will need to capture res width
 		String hwToDecodeTransactionSizeNextName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE) + "_next";  // res size will be set in sm
@@ -2134,36 +2135,36 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
         // address byte count
 		int addrXferCountBits = Utils.getBits(addrXferCount);
 		if (addrXferCountBits > 0) {
-			this.addVectorReg(r16AddrCntName, 0, addrXferCountBits);  
-			this.addVectorReg(r16AddrCntNextName, 0, addrXferCountBits);  
-			this.addResetAssign(groupName, builder.getDefaultReset(), r16AddrCntName + " <= #1  " + addrXferCountBits + "'b0;");  
-			this.addRegAssign(groupName,  r16AddrCntName + " <= #1  " + r16AddrCntNextName + ";");  			
+			this.addVectorReg(ringAddrCntName, 0, addrXferCountBits);  
+			this.addVectorReg(ringAddrCntNextName, 0, addrXferCountBits);  
+			this.addResetAssign(groupName, builder.getDefaultReset(), ringAddrCntName + " <= #1  " + addrXferCountBits + "'b0;");  
+			this.addRegAssign(groupName,  ringAddrCntName + " <= #1  " + ringAddrCntNextName + ";");  			
 		}
 		
 		// data byte count
 		int maxDataXferCount = regWords * 2;
 		int maxDataXferCountBits = Utils.getBits(maxDataXferCount);
-		this.addVectorReg(r16DataCntName, 0, maxDataXferCountBits);  
-		this.addVectorReg(r16DataCntNextName, 0, maxDataXferCountBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), r16DataCntName + " <= #1  " + maxDataXferCountBits + "'b0;");  
-		this.addRegAssign(groupName,  r16DataCntName + " <= #1  " + r16DataCntNextName + ";"); 
-		//System.out.println("SystemVerilogBuilder generateExternalInterface_ring16: max data xfers=" + maxDataXferCount);
+		this.addVectorReg(ringDataCntName, 0, maxDataXferCountBits);  
+		this.addVectorReg(ringDataCntNextName, 0, maxDataXferCountBits);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), ringDataCntName + " <= #1  " + maxDataXferCountBits + "'b0;");  
+		this.addRegAssign(groupName,  ringDataCntName + " <= #1  " + ringDataCntNextName + ";"); 
+		//System.out.println("SystemVerilogBuilder generateExternalInterface_ring: max data xfers=" + maxDataXferCount);
 				
 		// state machine init values
-		this.addCombinAssign(groupName,  r16StateNextName + " = " + r16StateName + ";");  
+		this.addCombinAssign(groupName,  ringStateNextName + " = " + ringStateName + ";");  
 		this.addCombinAssign(groupName,  cmdValidDlyName[0] + " =  1'b0;");  
-		this.addCombinAssign(groupName,  cmdDataDlyName[0] + " =  16'b0;");  
+		this.addCombinAssign(groupName,  cmdDataDlyName[0] + " =  " + ringWidth + "'b0;");  
 		this.addCombinAssign(groupName,  hwToDecodeAckName + " =  1'b0;"); 
 		this.addCombinAssign(groupName,  hwToDecodeNackName + " =  1'b0;");
-		this.addCombinAssign(groupName,  r16RdAccumNextName + " = " + r16RdAccumName + ";");
+		this.addCombinAssign(groupName,  ringRdAccumNextName + " = " + ringRdAccumName + ";");
 		// init res size capture
 		if (useTransactionSize)
 			this.addCombinAssign(groupName,  hwToDecodeTransactionSizeNextName + " = " + hwToDecodeTransactionSizeName + ";"); 
 		// init counter values
 		if (addrXferCountBits > 0) {
-			this.addCombinAssign(groupName,  r16AddrCntNextName + " = "  + addrXferCountBits + "'b0;");
+			this.addCombinAssign(groupName,  ringAddrCntNextName + " = "  + addrXferCountBits + "'b0;");
 		}
-		this.addCombinAssign(groupName,  r16DataCntNextName + " = "  + maxDataXferCountBits + "'b0;");
+		this.addCombinAssign(groupName,  ringDataCntNextName + " = "  + maxDataXferCountBits + "'b0;");
 			
 		// state machine 
 		String IDLE = stateBits + "'h0"; 
@@ -2174,11 +2175,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String RES_DONE_ACK = stateBits + "'h5";
 		String RES_DONE_NACK = stateBits + "'h6";
 		
-		this.addCombinAssign(groupName, "case (" + r16StateName + ")"); 
+		this.addCombinAssign(groupName, "case (" + ringStateName + ")"); 
 
 		// IDLE
 		this.addCombinAssign(groupName, "  " + IDLE + ": begin // IDLE");
-		this.addCombinAssign(groupName, "      " + r16RdAccumNextName + " = " + addrInstProperties.getMaxRegWidth() + "'b0;");
+		this.addCombinAssign(groupName, "      " + ringRdAccumNextName + " = " + addrInstProperties.getMaxRegWidth() + "'b0;");
 		// go on read or write request
 		this.addCombinAssign(groupName, "      if (" + decodeToHwReName + " | " + decodeToHwWeName + ") begin");  
 		this.addCombinAssign(groupName, "        " + cmdValidDlyName[0] + " =  1'b1;");  // valid is set  
@@ -2188,12 +2189,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		    this.addCombinAssign(groupName, "        " + cmdDataDlyName[0] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + " = " + decodeToHwTransactionSizeName + ";");  // bits 3:0 = transaction size
         // if an address then send it next
 		if (addrXferCount > 0) {  
-			this.addCombinAssign(groupName, "        " + r16StateNextName + " = " + CMD_ADDR + ";");  
+			this.addCombinAssign(groupName, "        " + ringStateNextName + " = " + CMD_ADDR + ";");  
 		}
 		// otherwise send data if a write or wait for read response
 		else {
-			this.addCombinAssign(groupName, "        if (" + decodeToHwWeName + ") " + r16StateNextName + " = " + CMD_DATA + ";");  
-			this.addCombinAssign(groupName, "        else " + r16StateNextName + " = " + RES_WAIT + ";");  
+			this.addCombinAssign(groupName, "        if (" + decodeToHwWeName + ") " + ringStateNextName + " = " + CMD_DATA + ";");  
+			this.addCombinAssign(groupName, "        else " + ringStateNextName + " = " + RES_WAIT + ";");  
 		}
 		this.addCombinAssign(groupName, "      end");  
 		this.addCombinAssign(groupName, "    end"); 
@@ -2205,16 +2206,16 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addCombinAssign(groupName, "      " + cmdValidDlyName[0] + " =  1'b1;");  // valid is set 
 			// if more than one address then bump the count
 			if (addrXferCountBits > 0) {  
-				this.addCombinAssign(groupName,  "      " + r16AddrCntNextName + " = " + r16AddrCntName + " + " + addrXferCountBits + "'b1;");
+				this.addCombinAssign(groupName,  "      " + ringAddrCntNextName + " = " + ringAddrCntName + " + " + addrXferCountBits + "'b1;");
 				// select address slice
 				for (int idx=0; idx<addrXferCount; idx++) {
 					String prefix = (idx == 0)? "" : "else ";
-					this.addCombinAssign(groupName, "      " + prefix + "if (" + r16AddrCntName + " == " + addrXferCountBits + "'d" + idx + ")");
-					int lowbit = idx*16 + addrInstProperties.getExtLowBit();
-					int size = ((idx+1)*16 > addrInstProperties.getExtAddressWidth())? addrInstProperties.getExtAddressWidth() - idx*16 : 16;  // last xfer can be smaller
+					this.addCombinAssign(groupName, "      " + prefix + "if (" + ringAddrCntName + " == " + addrXferCountBits + "'d" + idx + ")");
+					int lowbit = idx*ringWidth + addrInstProperties.getExtLowBit();
+					int size = ((idx+1)*ringWidth > addrInstProperties.getExtAddressWidth())? addrInstProperties.getExtAddressWidth() - idx*ringWidth : ringWidth;  // last xfer can be smaller
 					int addrPadLowbit = lowbit + addrInstProperties.getExtAddressWidth();  // for ring, we'll use base address to fill all addr bits in this xfer
-					int addrPadSize = Math.min(ExtParameters.getLeafAddressSize() - addrPadLowbit, 16 - size);  // for ring, we'll use base address to fill all addr bits in this xfer
-					int zeroPadSize = 16 - size - addrPadSize;
+					int addrPadSize = Math.min(ExtParameters.getLeafAddressSize() - addrPadLowbit, ringWidth - size);  // for ring, we'll use base address to fill all addr bits in this xfer
+					int zeroPadSize = ringWidth - size - addrPadSize;
 					String zeroPadStr = (zeroPadSize>0)? zeroPadSize + "'d0, " : "";
 					if (addrPadSize>0) {
 						String addrPadStr = addrInstProperties.getFullBaseAddress().getSubVector(addrPadLowbit, addrPadSize).toFormat(NumBase.Hex, NumFormat.Verilog);
@@ -2226,9 +2227,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				}
 	
 				// if addr done, send data if a write or wait for read response 
-				this.addCombinAssign(groupName, "      if (" + r16AddrCntName + " == " + addrXferCountBits + "'d" + (addrXferCount-1) + ") begin");
-				this.addCombinAssign(groupName, "        if (" + decodeToHwWeName + ") " + r16StateNextName + " = " + CMD_DATA + ";");  
-				this.addCombinAssign(groupName, "        else " + r16StateNextName + " = " + RES_WAIT + ";");
+				this.addCombinAssign(groupName, "      if (" + ringAddrCntName + " == " + addrXferCountBits + "'d" + (addrXferCount-1) + ") begin");
+				this.addCombinAssign(groupName, "        if (" + decodeToHwWeName + ") " + ringStateNextName + " = " + CMD_DATA + ";");  
+				this.addCombinAssign(groupName, "        else " + ringStateNextName + " = " + RES_WAIT + ";");
 				this.addCombinAssign(groupName, "      end"); 
 			}
 			// else a single addr xfer
@@ -2237,7 +2238,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				int lowbit = addrInstProperties.getExtLowBit();
 				int size = addrInstProperties.getExtAddressWidth();  // single xfer so just use addr size
 				int addrPadLowbit = lowbit + addrInstProperties.getExtAddressWidth();  // for ring, we'll use base address to fill all addr bits in this xfer
-				int addrPadSize = Math.min(ExtParameters.getLeafAddressSize() - addrPadLowbit, 16 - size);  // for ring, we'll use base address to fill all addr bits in this xfer
+				int addrPadSize = Math.min(ExtParameters.getLeafAddressSize() - addrPadLowbit, ringWidth - size);  // for ring, we'll use base address to fill all addr bits in this xfer
 				if (addrPadSize>0) {
 					String addrPadStr = addrInstProperties.getFullBaseAddress().getSubVector(addrPadLowbit, addrPadSize).toFormat(NumBase.Hex, NumFormat.Verilog);
 					this.addCombinAssign(groupName, "      " + cmdDataDlyName[0] + " = {" + addrPadStr + ", " + decodeToHwAddrName + "};");						
@@ -2245,8 +2246,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				else
 					this.addCombinAssign(groupName, "      " + cmdDataDlyName[0] + " = " + decodeToHwAddrName + ";");						
 				// next send data if a write or wait for read response 
-				this.addCombinAssign(groupName, "      if (" + decodeToHwWeName + ") " + r16StateNextName + " = " + CMD_DATA + ";");  
-				this.addCombinAssign(groupName, "      else " + r16StateNextName + " = " + RES_WAIT + ";");  
+				this.addCombinAssign(groupName, "      if (" + decodeToHwWeName + ") " + ringStateNextName + " = " + CMD_DATA + ";");  
+				this.addCombinAssign(groupName, "      else " + ringStateNextName + " = " + RES_WAIT + ";");  
 			}
 			this.addCombinAssign(groupName, "    end"); 
 		}
@@ -2255,18 +2256,18 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "  " + CMD_DATA + ": begin // CMD_DATA");
 		this.addCombinAssign(groupName, "      " + cmdValidDlyName[0] + " =  1'b1;");  // valid is set 
 		//  bump the data count
-		this.addCombinAssign(groupName,  "      " + r16DataCntNextName + " = " + r16DataCntName + " + " + maxDataXferCountBits + "'b1;");
+		this.addCombinAssign(groupName,  "      " + ringDataCntNextName + " = " + ringDataCntName + " + " + maxDataXferCountBits + "'b1;");
 		// select the data slice
 		for (int idx=0; idx<maxDataXferCount; idx++) {
 			String prefix = (idx == 0)? "" : "else ";
-			this.addCombinAssign(groupName, "      "+ prefix + "if (" + r16DataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
-			this.addCombinAssign(groupName, "        "  + cmdDataDlyName[0] + " = " + decodeToHwName + SystemVerilogSignal.genRefArrayString(16*idx, 16) + ";");
+			this.addCombinAssign(groupName, "      "+ prefix + "if (" + ringDataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
+			this.addCombinAssign(groupName, "        "  + cmdDataDlyName[0] + " = " + decodeToHwName + SystemVerilogSignal.genRefArrayString(ringWidth*idx, ringWidth) + ";");
 		}
 		// if done, move to res wait
 		String finalCntStr = "1'b1";
 		if (useTransactionSize) finalCntStr = "{" + decodeToHwTransactionSizeName + ", 1'b1}";
-		this.addCombinAssign(groupName, "      if (" + r16DataCntName + " == " + finalCntStr + ")"); 
-		this.addCombinAssign(groupName, "        " + r16StateNextName + " = " + RES_WAIT + ";");
+		this.addCombinAssign(groupName, "      if (" + ringDataCntName + " == " + finalCntStr + ")"); 
+		this.addCombinAssign(groupName, "        " + ringStateNextName + " = " + RES_WAIT + ";");
 		this.addCombinAssign(groupName, "    end"); 
 			
 		// RES_WAIT
@@ -2277,47 +2278,47 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addCombinAssign(groupName,  "        " + hwToDecodeTransactionSizeNextName + " = " + resDataDlyName[delayCount] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + ";");  
 		}
 		// if a valid read response then get the data else ack/nack
-		this.addCombinAssign(groupName,   "        if (" + decodeToHwReName + " & " + resDataDlyName[delayCount] + "[14] & ~" + resDataDlyName[delayCount] + "[15]) " + r16StateNextName + " = " + RES_READ + ";");  
-		this.addCombinAssign(groupName,   "        else if (~" + resDataDlyName[delayCount] + "[14]) " + r16StateNextName + " = " + RES_DONE_NACK + ";"); // if no ack then nack it
-		this.addCombinAssign(groupName,   "        else "+ r16StateNextName + " = " + RES_DONE_ACK + ";");  // write ack
+		this.addCombinAssign(groupName,   "        if (" + decodeToHwReName + " & " + resDataDlyName[delayCount] + "[14] & ~" + resDataDlyName[delayCount] + "[15]) " + ringStateNextName + " = " + RES_READ + ";");  
+		this.addCombinAssign(groupName,   "        else if (~" + resDataDlyName[delayCount] + "[14]) " + ringStateNextName + " = " + RES_DONE_NACK + ";"); // if no ack then nack it
+		this.addCombinAssign(groupName,   "        else "+ ringStateNextName + " = " + RES_DONE_ACK + ";");  // write ack
 		this.addCombinAssign(groupName,   "      end"); 
 		this.addCombinAssign(groupName,   "    end"); 
 		
 		// RES_READ
 		this.addCombinAssign(groupName,     "  " + RES_READ + ": begin  // RES_READ");  
 		//  bump the data count
-		this.addCombinAssign(groupName,     "      " + r16DataCntNextName + " = " + r16DataCntName + ";");
+		this.addCombinAssign(groupName,     "      " + ringDataCntNextName + " = " + ringDataCntName + ";");
 		// collect the data slice while res valid is asserted  
 		this.addCombinAssign(groupName,     "      " + "if (" + resValidDlyName[delayCount] + ") begin");
-		this.addCombinAssign(groupName,     "        " + r16DataCntNextName + " = " + r16DataCntName + " + " + maxDataXferCountBits + "'b1;");
+		this.addCombinAssign(groupName,     "        " + ringDataCntNextName + " = " + ringDataCntName + " + " + maxDataXferCountBits + "'b1;");
 		for (int idx=0; idx<maxDataXferCount; idx++) {
 			String prefix = (idx == 0)? "" : "else ";
-			this.addCombinAssign(groupName, "        "+ prefix + "if (" + r16DataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
-			this.addCombinAssign(groupName, "          " + r16RdAccumNextName + SystemVerilogSignal.genRefArrayString(16*idx, 16) + " = " + resDataDlyName[delayCount] + ";");
+			this.addCombinAssign(groupName, "        "+ prefix + "if (" + ringDataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
+			this.addCombinAssign(groupName, "          " + ringRdAccumNextName + SystemVerilogSignal.genRefArrayString(ringWidth*idx, ringWidth) + " = " + resDataDlyName[delayCount] + ";");
 		}
 		this.addCombinAssign(groupName,     "      end"); 
 		// move to ack when done 
 		if (useTransactionSize) 
-		    this.addCombinAssign(groupName, "      if (" + r16DataCntName + " == {" + hwToDecodeTransactionSizeName + ", 1'b1}) " + r16StateNextName + " = " + RES_DONE_ACK + ";");
+		    this.addCombinAssign(groupName, "      if (" + ringDataCntName + " == {" + hwToDecodeTransactionSizeName + ", 1'b1}) " + ringStateNextName + " = " + RES_DONE_ACK + ";");
 		else
-		    this.addCombinAssign(groupName, "      if (" + r16DataCntName + " == 1'b1) " + r16StateNextName + " = " + RES_DONE_ACK + ";");
+		    this.addCombinAssign(groupName, "      if (" + ringDataCntName + " == 1'b1) " + ringStateNextName + " = " + RES_DONE_ACK + ";");
 		this.addCombinAssign(groupName,     "    end"); 
 		
 		// RES_DONE_ACK
 		this.addCombinAssign(groupName, "  " + RES_DONE_ACK + ": begin // RES_DONE_ACK");
 		this.addCombinAssign(groupName, "      " + hwToDecodeAckName + " = 1'b1;");   
-		this.addCombinAssign(groupName, "      " + r16StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "      " + ringStateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// RES_DONE_NACK
 		this.addCombinAssign(groupName, "  " + RES_DONE_NACK + ": begin // RES_DONE_NACK");
 		this.addCombinAssign(groupName, "      " + hwToDecodeNackName + " = 1'b1;");   
-		this.addCombinAssign(groupName, "      " + r16StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "      " + ringStateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// default
 		this.addCombinAssign(groupName, "  default:");
-		this.addCombinAssign(groupName, "    " + r16StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "    " + ringStateNextName + " = " + IDLE + ";");  
 
 		this.addCombinAssign(groupName, "endcase"); 				
 	}

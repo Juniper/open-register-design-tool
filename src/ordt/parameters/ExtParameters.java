@@ -561,10 +561,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getBooleanParameter("generate_child_addrmaps");
 	}
 	
-	/** get sysVerRing16InterNodeDelay
-	 *  @return the sysVerRing16InterNodeDelay
+	/** get sysVerRingInterNodeDelay
+	 *  @return the sysVerRingInterNodeDelay
 	 */
-	public static int sysVerRing16InterNodeDelay() {
+	public static int sysVerRingInterNodeDelay() {
 		return getIntegerParameter("ring16_inter_node_delay");
 	}
 	

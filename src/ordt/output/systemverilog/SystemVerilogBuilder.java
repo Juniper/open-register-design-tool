@@ -378,7 +378,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   if (regProperties.hasExternalType(ExtType.BBV5)) decoder.generateExternalInterface_BBV5(regProperties);
 		   else if (regProperties.hasExternalType(ExtType.SRAM)) decoder.generateExternalInterface_SRAM(regProperties);
 		   else if (regProperties.hasExternalType(ExtType.SERIAL8)) decoder.generateExternalInterface_SERIAL8(regProperties);
-		   else if (regProperties.hasExternalType(ExtType.RING16)) decoder.generateExternalInterface_RING16(regProperties);
+		   else if (regProperties.hasExternalType(ExtType.RING16)) decoder.generateExternalInterface_RING(16, regProperties);
 		   
 		   endNewInterfaces(regProperties);  // close out interface 
 	}
