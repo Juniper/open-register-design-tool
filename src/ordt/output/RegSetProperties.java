@@ -43,23 +43,10 @@ public class RegSetProperties extends AddressableInstanceProperties {
 		if (pList.hasTrueProperty("external_decode")) setExternalDecode(true);
 	} 
 	
-	/** get maxRegWidth
-	 *  @return the maxRegWidth
+	/** return the max reg width in this regset in bits
 	 */
 	public int getMaxRegWidth() {
 		return maxRegWidth;
-	}
-	
-	/** get maxRegWidth in bytes
-	 */
-	public int getMaxRegByteWidth() {
-		return getMaxRegWidth() / 8;
-	}
-	
-	/** get maxRegWidth in words
-	 */
-	public int getMaxRegWordWidth() {
-		return getMaxRegWidth() / ExtParameters.getMinDataSize();
 	}
 
 	/** set maxRegWidth
@@ -101,6 +88,11 @@ public class RegSetProperties extends AddressableInstanceProperties {
 		fullHigh.setNumFormat(NumFormat.Address);
 		fullHigh.add(getHighAddress());
 		return fullHigh;
+	}
+
+	@Override
+	public boolean isRegister() {
+		return false;
 	}
 
 }

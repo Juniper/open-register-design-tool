@@ -10,6 +10,7 @@ import ordt.extract.Ordt;
 import ordt.output.FieldProperties;
 import ordt.output.RhsReference;
 import ordt.output.SignalProperties;
+import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.output.FieldProperties.RhsRefType;
 import ordt.parameters.ExtParameters;
 
@@ -28,7 +29,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 
 	/** save user defined signal info */
 	public void addUserDefinedSignal(String rtlName, SignalProperties signalProperties) {
-		userDefinedSignals.put(signalProperties.getRtlName(), signalProperties);  
+		userDefinedSignals.put(signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), signalProperties);  
 	}
 	
 	/** determine if a rhs reference is a signal or a field and return modified name if a signal.
@@ -76,13 +77,13 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			if (sig.hasAssignExpr()) {
 				//System.out.println("SystemVerilogLogicModule createSignalAssigns: raw expr=" + sig.getAssignExpr().getRawExpression() + ", res expr=" + sig.getAssignExpr().getResolvedExpression(sig, userDefinedSignals));
 				String rhsSigExpression = sig.getAssignExpr().getResolvedExpression(sig, userDefinedSignals); 
-				this.addCombinAssign("user defined signal assigns", sig.getRtlName() + " = " + rhsSigExpression + ";");
+				this.addCombinAssign("user defined signal assigns", sig.getFullSignalName(DefSignalType.USR_SIGNAL) + " = " + rhsSigExpression + ";");
 			}
 			// if not assigned a ref, must be an input, so verify use in an assign
 			else {
 				// if not used internally, issue an error
 				if (!sig.isRhsReference())
-					Ordt.errorMessage("user defined signal " + sig.getRtlName() + " is not used");		
+					Ordt.errorMessage("user defined signal " + sig.getFullSignalName(DefSignalType.USR_SIGNAL) + " is not used");		
 			}
 		}
 	}
@@ -120,7 +121,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		if ((fieldProperties.generateRtlCoverage() || ExtParameters.sysVerIncludeDefaultCoverage()) && fieldProperties.isInterrupt()) {
 			// add coverage on input intr signal (if it exists)
 			if (!fieldProperties.hasRef(RhsRefType.INTR) && !fieldProperties.hasRef(RhsRefType.NEXT)) {
-				String intrName = fieldProperties.getHwToLogicIntrName();
+				String intrName = fieldProperties.getFullSignalName(DefSignalType.H2L_INTR);
 				this.addCoverPoint("interrupt_cg", intrName, intrName, null);
 			}			
 		}
@@ -128,19 +129,19 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		else if ((fieldProperties.generateRtlCoverage() || ExtParameters.sysVerIncludeDefaultCoverage()) && fieldProperties.isCounter()) {
 			// add coverage on input incr signal (if it exists)
 			if (fieldProperties.isIncrCounter() && !fieldProperties.hasRef(RhsRefType.INCR)) {
-				String incrName = fieldProperties.getHwToLogicIncrName();
+				String incrName = fieldProperties.getFullSignalName(DefSignalType.H2L_INCR);
 				this.addCoverPoint("counter_cg", incrName, incrName, null);
 			}			
 			// add coverage on input decr signal (if it exists)
 			if (fieldProperties.isDecrCounter() && !fieldProperties.hasRef(RhsRefType.DECR)) {
-				String decrName = fieldProperties.getHwToLogicDecrName();
+				String decrName = fieldProperties.getFullSignalName(DefSignalType.H2L_DECR);
 				this.addCoverPoint("counter_cg", decrName, decrName, null);
 			}			
 			// TODO - add rollover / saturate test?
 		}
 		// otherwise if rtl_coverage is explicitly specified
 		else if (fieldProperties.generateRtlCoverage()) {
-			String fldReg = fieldProperties.getFieldRegisterName();
+			String fldReg = fieldProperties.getFullSignalName(DefSignalType.FIELD);
 			this.addCoverPoint("field_cg", fldReg, fldReg, null);
 		}
 		

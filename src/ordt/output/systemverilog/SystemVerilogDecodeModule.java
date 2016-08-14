@@ -12,6 +12,8 @@ import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.output.RegProperties;
+import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.AddressableInstanceProperties;
 import ordt.output.InstanceProperties.ExtType;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
@@ -34,7 +36,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	protected final String pioInterfaceAckName = "dec_pio_ack";
 	protected final String pioInterfaceNackName = "dec_pio_nack";
 	
-	protected List<RegProperties> decoderList = new ArrayList<RegProperties>();    // list of address regs 
+	protected List<AddressableInstanceProperties> decoderList = new ArrayList<AddressableInstanceProperties>();    // list of address regs 
 	protected SVDecodeInterfaceTypes interfaceType = SVDecodeInterfaceTypes.DEFAULT;  // default interface
 
 	public SystemVerilogDecodeModule(SystemVerilogBuilder builder, int insideLocs, String clkName) {
@@ -47,7 +49,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		//if (regProperties.isExternal()) System.out.println("SystemVerilogDecoder addToDecode: adding ext " + regProperties.getInstancePath() + " at base=" + regProperties.getBaseAddress());
 	}
 
-	public List<RegProperties> getDecodeList() {
+	public List<AddressableInstanceProperties> getDecodeList() {
 		return decoderList;
 	}
 
@@ -165,19 +167,19 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	private void genDefaultPioInterface(RegProperties topRegProperties) {
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with external interface, id=" + topRegProperties.getInstancePath());
 		// generate name-base IO names
-		if (mapHasMultipleAddresses()) this.addVectorFrom(SystemVerilogBuilder.PIO, topRegProperties.getDecodeToHwAddrName(), builder.getAddressLowBit(), builder.getMapAddressWidth());  // address
-		this.addVectorFrom(SystemVerilogBuilder.PIO, topRegProperties.getDecodeToHwName(), 0, builder.getMaxRegWidth());  // write data
+		if (mapHasMultipleAddresses()) this.addVectorFrom(SystemVerilogBuilder.PIO, topRegProperties.getFullSignalName(DefSignalType.D2H_ADDR), builder.getAddressLowBit(), builder.getMapAddressWidth());  // address
+		this.addVectorFrom(SystemVerilogBuilder.PIO, topRegProperties.getFullSignalName(DefSignalType.D2H_DATA), 0, builder.getMaxRegWidth());  // write data
 		// if max transaction for this addrmap is larger than 1, add transaction size signals
 		if (builder.getMaxRegWordWidth() > 1) {
-		   this.addVectorFrom(SystemVerilogBuilder.PIO, topRegProperties.getDecodeToHwTransSizeName(), 0, builder.getMaxWordBitSize());  // transaction size
-		   this.addVectorTo(SystemVerilogBuilder.PIO, topRegProperties.getHwToDecodeTransSizeName(), 0, builder.getMaxWordBitSize());  // return transaction size
+		   this.addVectorFrom(SystemVerilogBuilder.PIO, topRegProperties.getFullSignalName(DefSignalType.D2H_SIZE), 0, builder.getMaxWordBitSize());  // transaction size
+		   this.addVectorTo(SystemVerilogBuilder.PIO, topRegProperties.getFullSignalName(DefSignalType.H2D_RETSIZE), 0, builder.getMaxWordBitSize());  // return transaction size
 		}
-		this.addScalarFrom(SystemVerilogBuilder.PIO, topRegProperties.getDecodeToHwWeName());  // write indication
-		this.addScalarFrom(SystemVerilogBuilder.PIO, topRegProperties.getDecodeToHwReName());  // read indication
+		this.addScalarFrom(SystemVerilogBuilder.PIO, topRegProperties.getFullSignalName(DefSignalType.D2H_WE));  // write indication
+		this.addScalarFrom(SystemVerilogBuilder.PIO, topRegProperties.getFullSignalName(DefSignalType.D2H_RE));  // read indication
 	
-		this.addVectorTo(SystemVerilogBuilder.PIO, topRegProperties.getHwToDecodeName(), 0, builder.getMaxRegWidth());  // read data
-		this.addScalarTo(SystemVerilogBuilder.PIO, topRegProperties.getHwToDecodeAckName());  // ack indication
-		this.addScalarTo(SystemVerilogBuilder.PIO, topRegProperties.getHwToDecodeNackName());  // nack indication
+		this.addVectorTo(SystemVerilogBuilder.PIO, topRegProperties.getFullSignalName(DefSignalType.H2D_DATA), 0, builder.getMaxRegWidth());  // read data
+		this.addScalarTo(SystemVerilogBuilder.PIO, topRegProperties.getFullSignalName(DefSignalType.H2D_ACK));  // ack indication
+		this.addScalarTo(SystemVerilogBuilder.PIO, topRegProperties.getFullSignalName(DefSignalType.H2D_NACK));  // nack indication
 		
 		// define internal interface inputs
 		if (mapHasMultipleAddresses()) this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  //  address to be used internally 
@@ -187,17 +189,17 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarWire(pioInterfaceWeName);  //  write enable be used internally 
 		
 		// assign input IOs to internal interface
-		if (mapHasMultipleAddresses()) this.addWireAssign(pioInterfaceAddressName + " = " + topRegProperties.getDecodeToHwAddrName() + ";");   
-		this.addWireAssign(pioInterfaceWriteDataName + " = " + topRegProperties.getDecodeToHwName() + ";");		
-		if (builder.getMaxRegWordWidth() > 1) this.addWireAssign(pioInterfaceTransactionSizeName + " = " + topRegProperties.getDecodeToHwTransSizeName() + ";");
+		if (mapHasMultipleAddresses()) this.addWireAssign(pioInterfaceAddressName + " = " + topRegProperties.getFullSignalName(DefSignalType.D2H_ADDR) + ";");   
+		this.addWireAssign(pioInterfaceWriteDataName + " = " + topRegProperties.getFullSignalName(DefSignalType.D2H_DATA) + ";");		
+		if (builder.getMaxRegWordWidth() > 1) this.addWireAssign(pioInterfaceTransactionSizeName + " = " + topRegProperties.getFullSignalName(DefSignalType.D2H_SIZE) + ";");
 		// generate re/we assigns directly or from delayed versions if clock gating is enabled
-		assignReadWriteRequests(topRegProperties.getDecodeToHwReName(), topRegProperties.getDecodeToHwWeName());
+		assignReadWriteRequests(topRegProperties.getFullSignalName(DefSignalType.D2H_RE), topRegProperties.getFullSignalName(DefSignalType.D2H_WE));
 		
 		// assign output IOs to internal interface
-		if (builder.getMaxRegWordWidth() > 1) this.addWireAssign(topRegProperties.getHwToDecodeTransSizeName() + " = " + pioInterfaceRetTransactionSizeName + ";");	
-		this.addWireAssign(topRegProperties.getHwToDecodeName() + " = " + pioInterfaceReadDataName + ";");
-		this.addWireAssign(topRegProperties.getHwToDecodeAckName() + " = " + pioInterfaceAckName + ";");
-		this.addWireAssign(topRegProperties.getHwToDecodeNackName() + " = " + pioInterfaceNackName + ";");
+		if (builder.getMaxRegWordWidth() > 1) this.addWireAssign(topRegProperties.getFullSignalName(DefSignalType.H2D_RETSIZE) + " = " + pioInterfaceRetTransactionSizeName + ";");	
+		this.addWireAssign(topRegProperties.getFullSignalName(DefSignalType.H2D_DATA) + " = " + pioInterfaceReadDataName + ";");
+		this.addWireAssign(topRegProperties.getFullSignalName(DefSignalType.H2D_ACK) + " = " + pioInterfaceAckName + ";");
+		this.addWireAssign(topRegProperties.getFullSignalName(DefSignalType.H2D_NACK) + " = " + pioInterfaceNackName + ";");
 	}
 
 	/** add interface signals for address maps talking to a leaf */
@@ -1173,12 +1175,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		   boolean isDEFAULT = regProperties.hasExternalType(ExtType.DEFAULT);
 			   
 		   // create verilog names associated with external
-		   String decodeToHwName = regProperties.getDecodeToHwName();   // write data                   
-		   String decodeToHwWeName = regProperties.getDecodeToHwWeName(); // we
-		   String decodeToHwReName = regProperties.getDecodeToHwReName(); // re
-		   String hwToDecodeName = regProperties.getHwToDecodeName(); // read data
-		   String hwToDecodeAckName = regProperties.getHwToDecodeAckName(); // ext ack
-		   String hwToDecodeNackName = regProperties.getHwToDecodeNackName(); // ext nack
+		   String decodeToHwName = regProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
+		   String decodeToHwWeName = regProperties.getFullSignalName(DefSignalType.D2H_WE); // we
+		   String decodeToHwReName = regProperties.getFullSignalName(DefSignalType.D2H_RE); // re
+		   String hwToDecodeName = regProperties.getFullSignalName(DefSignalType.H2D_DATA); // read data
+		   String hwToDecodeAckName = regProperties.getFullSignalName(DefSignalType.H2D_ACK); // ext ack
+		   String hwToDecodeNackName = regProperties.getFullSignalName(DefSignalType.H2D_NACK); // ext nack
 		   
 		   // add default signals to module IO lists if DEFAULT
 		   if (isDEFAULT) {
@@ -1210,7 +1212,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		   // if size of external range is greater than one reg we'll need an external address  
 		   if ( (regProperties.getExtAddressWidth() > 0)  && !regProperties.isSingleExtReg()) {  
-			   String decodeToHwAddrName = regProperties.getDecodeToHwAddrName(); // address
+			   String decodeToHwAddrName = regProperties.getFullSignalName(DefSignalType.D2H_ADDR); // address
 			   if (isDEFAULT) this.addVectorTo(SystemVerilogBuilder.HW, decodeToHwAddrName, regProperties.getExtLowBit(), regProperties.getExtAddressWidth());     
 			   this.addVectorReg(decodeToHwAddrName, regProperties.getExtLowBit(), regProperties.getExtAddressWidth());  
 			   this.addVectorReg(decodeToHwAddrName + "_next", regProperties.getExtLowBit(), regProperties.getExtAddressWidth());  
@@ -1219,8 +1221,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		   
 		   // if size of max pio transaction is greater than one word need to add transaction size/retry info 
 		   if ( (regProperties.getRegWidth() > ExtParameters.getMinDataSize()) && !regProperties.isSingleExtReg()) { 
-			   String decodeToHwTransactionSizeName = regProperties.getDecodeToHwTransSizeName();  // size of r/w transaction in words
-			   String hwToDecodeTransactionSizeName = regProperties.getHwToDecodeTransSizeName();  // size of return read transaction in words
+			   String decodeToHwTransactionSizeName = regProperties.getFullSignalName(DefSignalType.D2H_SIZE);  // size of r/w transaction in words
+			   String hwToDecodeTransactionSizeName = regProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
 
 			   if (isDEFAULT) this.addVectorTo(SystemVerilogBuilder.HW, decodeToHwTransactionSizeName, 0, Utils.getBits(regProperties.getRegWordWidth()));     
 			   this.addVectorReg(decodeToHwTransactionSizeName, 0, Utils.getBits(regProperties.getRegWordWidth()));  
@@ -1239,12 +1241,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		//Jrdl.warnMessage("SystemVerilogBuilder gen_BBV5, ext type=" + regProperties.getExternalType() + ", id=" + regProperties.getId());
 		
 		// create verilog names associated with external
-		String decodeToHwName = regProperties.getDecodeToHwName();   // write data                   
-		String decodeToHwWeName = regProperties.getDecodeToHwWeName(); // we
-		String decodeToHwReName = regProperties.getDecodeToHwReName(); // re
-		String hwToDecodeName = regProperties.getHwToDecodeName(); // read data
-		String hwToDecodeAckName = regProperties.getHwToDecodeAckName(); // ext ack
-		String hwToDecodeNackName = regProperties.getHwToDecodeNackName(); // ext nack
+		String decodeToHwName = regProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
+		String decodeToHwWeName = regProperties.getFullSignalName(DefSignalType.D2H_WE); // we
+		String decodeToHwReName = regProperties.getFullSignalName(DefSignalType.D2H_RE); // re
+		String hwToDecodeName = regProperties.getFullSignalName(DefSignalType.H2D_DATA); // read data
+		String hwToDecodeAckName = regProperties.getFullSignalName(DefSignalType.H2D_ACK); // ext ack
+		String hwToDecodeNackName = regProperties.getFullSignalName(DefSignalType.H2D_NACK); // ext nack
 		
 		// create incoming signals (default IOs that now need to be set)
 		this.addVectorWire(hwToDecodeName, 0, regProperties.getRegWidth());
@@ -1300,7 +1302,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		//newBase.setVectorLen(ExtParameters.getLeafAddressSize());
 		//newBase.add(regProperties.getBaseAddress());
 		if ( (regProperties.getExtAddressWidth() > 0)  && !regProperties.isSingleExtReg()) {
-			String decodeToHwAddrName = regProperties.getDecodeToHwAddrName(); // address
+			String decodeToHwAddrName = regProperties.getFullSignalName(DefSignalType.D2H_ADDR); // address
 			//decodes.get(regProperties.getBaseName() + " (external BBV5)", topBackboneAddrName + " = " + 
 			//    newBase.toFormat(NumBase.Hex, NumFormat.Verilog) + "& " + decodeToHwAddrName + ";");    
 			this.addWireAssign(topBackboneAddrName + " = " + newBase.toFormat(NumBase.Hex, NumFormat.Verilog) + " | (" + decodeToHwAddrName + " << " + regProperties.getExtLowBit() + ");");
@@ -1315,8 +1317,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int regWordBits = Utils.getBits(regWords);
 		//System.out.println("SystemVerilogBuilder generateExternalInterface_BBV5: regwords=" + regWords + ", bits=" + regWordBits);
 		if ((regWords > 1) && !regProperties.isSingleExtReg()) {
-			String decodeToHwTransactionSizeName = regProperties.getDecodeToHwTransSizeName();  // size of r/w transaction in words
-			String hwToDecodeTransactionSizeName = regProperties.getHwToDecodeTransSizeName();  // size of return read transaction in words
+			String decodeToHwTransactionSizeName = regProperties.getFullSignalName(DefSignalType.D2H_SIZE);  // size of r/w transaction in words
+			String hwToDecodeTransactionSizeName = regProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
 			this.addWireAssign(topBackboneWrWidthName + " = 4'b0 | " + decodeToHwTransactionSizeName + ";");
 			// create inbound size signal
 			this.addVectorWire(hwToDecodeTransactionSizeName, 0, regWordBits);
@@ -1535,13 +1537,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		//Jrdl.warnMessage("SystemVerilogBuilder gen_SRAM, ext type=" + regProperties.getExternalType() + ", id=" + regProperties.getId());
 		
 		// create verilog names associated with default external
-		String decodeToHwName = regProperties.getDecodeToHwName();   // write data                   
-		String decodeToHwWeName = regProperties.getDecodeToHwWeName(); // we
-		String decodeToHwReName = regProperties.getDecodeToHwReName(); // re
-		String hwToDecodeName = regProperties.getHwToDecodeName(); // read data
-		String hwToDecodeAckName = regProperties.getHwToDecodeAckName(); // ext ack
-		String hwToDecodeNackName = regProperties.getHwToDecodeNackName(); // ext nack
-		String decodeToHwAddrName = regProperties.getDecodeToHwAddrName(); // address
+		String decodeToHwName = regProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
+		String decodeToHwWeName = regProperties.getFullSignalName(DefSignalType.D2H_WE); // we
+		String decodeToHwReName = regProperties.getFullSignalName(DefSignalType.D2H_RE); // re
+		String hwToDecodeName = regProperties.getFullSignalName(DefSignalType.H2D_DATA); // read data
+		String hwToDecodeAckName = regProperties.getFullSignalName(DefSignalType.H2D_ACK); // ext ack
+		String hwToDecodeNackName = regProperties.getFullSignalName(DefSignalType.H2D_NACK); // ext nack
+		String decodeToHwAddrName = regProperties.getFullSignalName(DefSignalType.D2H_ADDR); // address
 		
 		// create incoming signals (default IOs that now need to be set)
 		this.addVectorWire(hwToDecodeName, 0, regProperties.getRegWidth());
@@ -1590,7 +1592,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String srValidSizeName = "dsr_" + regProperties.getBaseName() + "_valid_size"; 
 		this.addScalarWire(srValidSizeName);
 		if ((regProperties.getRegWordWidth() > 1) && !regProperties.isSingleExtReg()) {
-			String decodeToHwTransactionSizeName = regProperties.getDecodeToHwTransSizeName();  // size of w transaction in words
+			String decodeToHwTransactionSizeName = regProperties.getFullSignalName(DefSignalType.D2H_SIZE);  // size of w transaction in words
 			this.addWireAssign(srValidSizeName + " = (" + decodeToHwTransactionSizeName + " == " + srRegSize + ");");
 		}
 		else
@@ -1598,7 +1600,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// set fixed external reg size
 		if ((regProperties.getRegWordWidth() > 1) && !regProperties.isSingleExtReg()) {
-			String hwToDecodeTransactionSizeName = regProperties.getHwToDecodeTransSizeName();  // size of return read transaction in words
+			String hwToDecodeTransactionSizeName = regProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
 			this.addVectorWire(hwToDecodeTransactionSizeName, 0, regWordBits);
 			this.addWireAssign(hwToDecodeTransactionSizeName + " = " + srRegSize + ";");
 		}
@@ -1702,15 +1704,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		//Jrdl.warnMessage("SystemVerilogBuilder gen_SERIAL8, ext type=" + regProperties.getExternalType()  + ", id=" + regProperties.getId());
 		
 		// create verilog names associated with external
-		String decodeToHwName = regProperties.getDecodeToHwName();   // write data                   
-		String decodeToHwWeName = regProperties.getDecodeToHwWeName(); // we
-		String decodeToHwReName = regProperties.getDecodeToHwReName(); // re
-		String hwToDecodeName = regProperties.getHwToDecodeName(); // read data
-		String hwToDecodeAckName = regProperties.getHwToDecodeAckName(); // ext ack
-		String hwToDecodeNackName = regProperties.getHwToDecodeNackName(); // ext nack
-		String decodeToHwAddrName = regProperties.getDecodeToHwAddrName(); // address
-		String decodeToHwTransactionSizeName = regProperties.getDecodeToHwTransSizeName();  // size of r/w transaction in words
-		String hwToDecodeTransactionSizeName = regProperties.getHwToDecodeTransSizeName();  // size of return read transaction in words
+		String decodeToHwName = regProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
+		String decodeToHwWeName = regProperties.getFullSignalName(DefSignalType.D2H_WE); // we
+		String decodeToHwReName = regProperties.getFullSignalName(DefSignalType.D2H_RE); // re
+		String hwToDecodeName = regProperties.getFullSignalName(DefSignalType.H2D_DATA); // read data
+		String hwToDecodeAckName = regProperties.getFullSignalName(DefSignalType.H2D_ACK); // ext ack
+		String hwToDecodeNackName = regProperties.getFullSignalName(DefSignalType.H2D_NACK); // ext nack
+		String decodeToHwAddrName = regProperties.getFullSignalName(DefSignalType.D2H_ADDR); // address
+		String decodeToHwTransactionSizeName = regProperties.getFullSignalName(DefSignalType.D2H_SIZE);  // size of r/w transaction in words
+		String hwToDecodeTransactionSizeName = regProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
 		
 		// create incoming signals (default IOs that now need to be set)
 		this.addVectorWire(hwToDecodeName, 0, regProperties.getRegWidth());
@@ -1813,7 +1815,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addWireAssign(hwToDecodeName + " = " + s8RdAccumName + ";");
 		
 		//  will need to capture res width
-		String hwToDecodeTransactionSizeNextName = regProperties.getHwToDecodeTransSizeName() + "_next";  // res size will be set in sm
+		String hwToDecodeTransactionSizeNextName = regProperties.getFullSignalName(DefSignalType.H2D_RETSIZE) + "_next";  // res size will be set in sm
 		if (useTransactionSize) {
 			this.addVectorReg(hwToDecodeTransactionSizeName, 0, regWordBits);  
 			this.addVectorReg(hwToDecodeTransactionSizeNextName, 0, regWordBits);  // res size will be set in sm
@@ -2010,15 +2012,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		//Jrdl.warnMessage("SystemVerilogBuilder gen_RING16, ext type=" + regProperties.getExternalType()  + ", id=" + regProperties.getId());
 		
 		// create verilog names associated with external
-		String decodeToHwName = regProperties.getDecodeToHwName();   // write data                   
-		String decodeToHwWeName = regProperties.getDecodeToHwWeName(); // we
-		String decodeToHwReName = regProperties.getDecodeToHwReName(); // re
-		String hwToDecodeName = regProperties.getHwToDecodeName(); // read data
-		String hwToDecodeAckName = regProperties.getHwToDecodeAckName(); // ext ack
-		String hwToDecodeNackName = regProperties.getHwToDecodeNackName(); // ext nack
-		String decodeToHwAddrName = regProperties.getDecodeToHwAddrName(); // address
-		String decodeToHwTransactionSizeName = regProperties.getDecodeToHwTransSizeName();  // size of r/w transaction in words
-		String hwToDecodeTransactionSizeName = regProperties.getHwToDecodeTransSizeName();  // size of return read transaction in words
+		String decodeToHwName = regProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
+		String decodeToHwWeName = regProperties.getFullSignalName(DefSignalType.D2H_WE); // we
+		String decodeToHwReName = regProperties.getFullSignalName(DefSignalType.D2H_RE); // re
+		String hwToDecodeName = regProperties.getFullSignalName(DefSignalType.H2D_DATA); // read data
+		String hwToDecodeAckName = regProperties.getFullSignalName(DefSignalType.H2D_ACK); // ext ack
+		String hwToDecodeNackName = regProperties.getFullSignalName(DefSignalType.H2D_NACK); // ext nack
+		String decodeToHwAddrName = regProperties.getFullSignalName(DefSignalType.D2H_ADDR); // address
+		String decodeToHwTransactionSizeName = regProperties.getFullSignalName(DefSignalType.D2H_SIZE);  // size of r/w transaction in words
+		String hwToDecodeTransactionSizeName = regProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
 		
 		// create incoming signals (default IOs that now need to be set)
 		this.addVectorWire(hwToDecodeName, 0, regProperties.getRegWidth());
@@ -2121,7 +2123,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addWireAssign(hwToDecodeName + " = " + r16RdAccumName + ";");
 		
 		//  will need to capture res width
-		String hwToDecodeTransactionSizeNextName = regProperties.getHwToDecodeTransSizeName() + "_next";  // res size will be set in sm
+		String hwToDecodeTransactionSizeNextName = regProperties.getFullSignalName(DefSignalType.H2D_RETSIZE) + "_next";  // res size will be set in sm
 		if (useTransactionSize) {
 			this.addVectorReg(hwToDecodeTransactionSizeName, 0, regWordBits);  
 			this.addVectorReg(hwToDecodeTransactionSizeNextName, 0, regWordBits);  // res size will be set in sm
@@ -2363,40 +2365,40 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		}
 
 		// set decoder defaults by iterating through reglist  
-		Iterator<RegProperties> it = decoderList.iterator();   
+		Iterator<AddressableInstanceProperties> it = decoderList.iterator();   
 		writeStmt(indentLevel, "");
 		while (it.hasNext()) {
-			RegProperties elem = it.next();
+			AddressableInstanceProperties elem = it.next();
 			
 			// generate default assigns for externals
 			if (elem.isExternal()) {
 				// generate reg write data assignment
-				writeStmt(indentLevel, elem.getDecodeToHwName() + "_next = pio_dec_write_data_d1" + SystemVerilogSignal.genRefArrayString(0, elem.getRegWidth()) + ";"); // regardless of transaction size assign based on regsize
-				writeStmt(indentLevel, elem.getDecodeToHwWeName() + "_next = 1'b0;");  // we defaults to 0
-				writeStmt(indentLevel, elem.getDecodeToHwReName() + "_next = 1'b0;");  // we defaults to 0
+				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_DATA) + "_next = pio_dec_write_data_d1" + SystemVerilogSignal.genRefArrayString(0, elem.getMaxRegWidth()) + ";"); // regardless of transaction size assign based on regsize
+				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_WE) + "_next = 1'b0;");  // we defaults to 0
+				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_RE) + "_next = 1'b0;");  // we defaults to 0
 				// if an address is required then add it 
 				if ( (elem.getExtAddressWidth() > 0 ) && !elem.isSingleExtReg())
-				   writeStmt(indentLevel, elem.getDecodeToHwAddrName() + "_next = pio_dec_address_d1 " + elem.getExtAddressArrayString() + ";");  // address is resistered value from pio
+				   writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_ADDR) + "_next = pio_dec_address_d1 " + elem.getExtAddressArrayString() + ";");  // address is resistered value from pio
 				// if data sizes are needed then add - also check for single register here and inhibit
-				if ( (elem.getRegWidth() > ExtParameters.getMinDataSize())  && !elem.isSingleExtReg()) {
-				       int widthBits = Utils.getBits(elem.getRegWordWidth());	   
-					   writeStmt(indentLevel, elem.getDecodeToHwTransSizeName() + "_next = pio_dec_trans_size_d1" + SystemVerilogSignal.genRefArrayString(0, widthBits) + ";");
+				if ( (elem.getMaxRegWidth() > ExtParameters.getMinDataSize())  && !elem.isSingleExtReg()) {
+				       int widthBits = Utils.getBits(elem.getMaxRegWordWidth());	   
+					   writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_SIZE) + "_next = pio_dec_trans_size_d1" + SystemVerilogSignal.genRefArrayString(0, widthBits) + ";");
 				}
 			}
 			// internal reg so init enables and data
 			else {
-				writeStmt(indentLevel, elem.getDecodeToLogicName() + " = pio_dec_write_data_d1 " + SystemVerilogSignal.genRefArrayString(0, elem.getRegWidth()) +";");  // regardless of transaction size assign based on regsize
-				writeStmt(indentLevel, elem.getDecodeToLogicWeName() + " = 1'b0;");  // we defaults to 0
-				writeStmt(indentLevel, elem.getDecodeToLogicReName() + " = 1'b0;");  // re defaults to 0
+				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2L_DATA) + " = pio_dec_write_data_d1 " + SystemVerilogSignal.genRefArrayString(0, elem.getMaxRegWidth()) +";");  // regardless of transaction size assign based on regsize
+				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2L_WE) + " = 1'b0;");  // we defaults to 0
+				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2L_RE) + " = 1'b0;");  // re defaults to 0
 			}
 		}	
-		
+
 		// now build case statement by iterating through reg list
 		writeStmt(indentLevel, "");
 		if (mapHasMultipleAddresses()) writeStmt(indentLevel, "casez(pio_dec_address_d1)");   // begin case statement
 		it = decoderList.iterator();
 		while (it.hasNext()) {
-			RegProperties elem = it.next();
+			AddressableInstanceProperties elem = it.next();
 			writeStmt(indentLevel, "//  Register: "+ elem.getInstancePath() + "     Address: " + elem.getBaseAddress() + "     External: " + elem.isExternal()); 
  			//System.out.println("//  Register: "+ elem.getInstancePath() + "     Address: " + elem.getBaseAddress() + "     External: " + elem.isExternal()); 
 			//System.out.println("  reg width=" + elem.getRegWidth() + ",  words=" + regWords + "  bits=" + regWordBits);
@@ -2409,73 +2411,74 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				//System.out.println("VerilogBuilder: external region, regsize=" + elem.getRegWidth() + ", regwordbits=" + getBits(elem.getRegWordWidth()) + ", sizebits=" + elem.getExtAddressWidth());
 
 	            // if this is a wide register 
-				if (elem.getRegWordWidth() > 1) {
+				if (elem.getMaxRegWordWidth() > 1) {
 					
 					// if this is a single ext register, handle size internally
 					if (elem.isSingleExtReg()) {
 						// write the size dependent assigns
-						writeStmt(indentLevel, "reg_width = " + builder.getMaxWordBitSize() + "'d" + (elem.getRegWordWidth() - 1) + ";");  // set size for this register  						
+						writeStmt(indentLevel, "reg_width = " + builder.getMaxWordBitSize() + "'d" + (elem.getMaxRegWordWidth() - 1) + ";");  // set size for this register  						
 						// assign write enable / clobber the we if wrong size
-						writeStmt(indentLevel, elem.getDecodeToHwWeName() + "_next = pio_write_active & (pio_dec_trans_size_d1 >= reg_width) & ~(pio_external_ack | pio_external_nack);");
+						writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_WE) + "_next = pio_write_active & (pio_dec_trans_size_d1 >= reg_width) & ~(pio_external_ack | pio_external_nack);");
 						// generate a fake ack on invalid size
-						writeStmt(indentLevel, "pio_external_ack_next = " + elem.getHwToDecodeAckName() + " | (pio_write_active & (pio_dec_trans_size_d1 < reg_width));"); 
+						writeStmt(indentLevel, "pio_external_ack_next = " + elem.getFullSignalName(DefSignalType.H2D_ACK) + " | (pio_write_active & (pio_dec_trans_size_d1 < reg_width));"); 
 					}
 					
 					// otherwise this is a larger ext region so use size io
 					else {
 						// write the size dependent assigns
-						writeStmt(indentLevel, "reg_width" + SystemVerilogSignal.genRefArrayString(0, Utils.getBits(elem.getRegWordWidth())) + " = " + elem.getHwToDecodeTransSizeName() + "_d1;");  // set size for this register  
+						writeStmt(indentLevel, "reg_width" + SystemVerilogSignal.genRefArrayString(0, Utils.getBits(elem.getMaxRegWordWidth())) + " = " + elem.getFullSignalName(DefSignalType.H2D_RETSIZE) + "_d1;");  // set size for this register  
 						// assign write enable 
-						writeStmt(indentLevel, elem.getDecodeToHwWeName() + "_next = pio_write_active & ~(pio_external_ack | pio_external_nack);");		// write goes thru even if invalid				
-						writeStmt(indentLevel, "pio_external_ack_next = " + elem.getHwToDecodeAckName() + ";"); 
+						writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_WE) + "_next = pio_write_active & ~(pio_external_ack | pio_external_nack);");		// write goes thru even if invalid				
+						writeStmt(indentLevel, "pio_external_ack_next = " + elem.getFullSignalName(DefSignalType.H2D_ACK) + ";"); 
 					}
 				   
 				}
 				else {
-					writeStmt(indentLevel, elem.getDecodeToHwWeName() + "_next = pio_write_active & ~(pio_external_ack | pio_external_nack);"); 
-					writeStmt(indentLevel, "pio_external_ack_next = " + elem.getHwToDecodeAckName() + ";"); 
+					writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_WE) + "_next = pio_write_active & ~(pio_external_ack | pio_external_nack);"); 
+					writeStmt(indentLevel, "pio_external_ack_next = " + elem.getFullSignalName(DefSignalType.H2D_ACK) + ";"); 
 				}
 				
 				// ext transaction is active if a valid read or write
 				writeStmt(indentLevel, "external_transaction_active = pio_read_active | pio_write_active;"); 
 				// create read enable
-				writeStmt(indentLevel, elem.getDecodeToHwReName() + "_next = pio_read_active & ~(pio_external_ack | pio_external_nack);"); 
+				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_RE) + "_next = pio_read_active & ~(pio_external_ack | pio_external_nack);"); 
 				// capture ack/nack/read data
-				writeStmt(indentLevel, "pio_external_nack_next = " + elem.getHwToDecodeNackName() + ";");  
-				writeStmt(indentLevel--, "dec_pio_read_data_next " + elem.getRegArrayString() + " = " + elem.getHwToDecodeName() + ";");
+				writeStmt(indentLevel, "pio_external_nack_next = " + elem.getFullSignalName(DefSignalType.H2D_NACK) + ";");  
+				writeStmt(indentLevel--, "dec_pio_read_data_next " + elem.getMaxRegArrayString() + " = " + elem.getFullSignalName(DefSignalType.H2D_DATA) + ";");
 				writeStmt(indentLevel--, "end");  								
 			}
 			
 			// else internal, so create internal ack, re/we to logic, and capture read data
 			else {
+				RegProperties regElem = (RegProperties) elem;  // internal must be a reg so cast
 				// getNextAddress holds max value of address map at this point 
-				if (mapHasMultipleAddresses()) writeStmt(indentLevel++, getIntDecodeAddressString(elem) + ":");  
+				if (mapHasMultipleAddresses()) writeStmt(indentLevel++, getIntDecodeAddressString(regElem) + ":");  
 				writeStmt(indentLevel++, "begin");
 				
 	            // if this is a wide register 
-				if (elem.getRegWordWidth() > 1) {
+				if (regElem.getMaxRegWordWidth() > 1) {
 					String writeEnableString = "pio_write_active & ~" + pioInterfaceAckName + " & (pio_dec_trans_size_d1 >= reg_width)";  // suppress write if invalid trans size
 					
 					// write the size dependent assigns
-					writeStmt(indentLevel, "reg_width = " + builder.getMaxWordBitSize() + "'d" + (elem.getRegWordWidth() - 1) + ";");  // set size for this register  						
+					writeStmt(indentLevel, "reg_width = " + builder.getMaxWordBitSize() + "'d" + (regElem.getMaxRegWordWidth() - 1) + ";");  // set size for this register  						
 					// create write enable
-					writeStmt(indentLevel, elem.getDecodeToLogicWeName() + " = " + writeEnableString + ";");  
+					writeStmt(indentLevel, regElem.getFullSignalName(DefSignalType.D2L_WE) + " = " + writeEnableString + ";");  
 					// create read enable
-					writeStmt(indentLevel, elem.getDecodeToLogicReName() + " = pio_read_active & ~" + pioInterfaceAckName + ";");   					
+					writeStmt(indentLevel, regElem.getFullSignalName(DefSignalType.D2L_RE) + " = pio_read_active & ~" + pioInterfaceAckName + ";");   					
 				}
 				else {
-					writeStmt(indentLevel, elem.getDecodeToLogicWeName() + " = pio_write_active & ~" + pioInterfaceAckName + ";");  
-					writeStmt(indentLevel, elem.getDecodeToLogicReName() + " = pio_read_active & ~" + pioInterfaceAckName + ";");   					
+					writeStmt(indentLevel, regElem.getFullSignalName(DefSignalType.D2L_WE) + " = pio_write_active & ~" + pioInterfaceAckName + ";");  
+					writeStmt(indentLevel, regElem.getFullSignalName(DefSignalType.D2L_RE) + " = pio_read_active & ~" + pioInterfaceAckName + ";");   					
 				}
 				// generate internal ack based on sw r/w settings of register
-				if (!elem.isSwWriteable()) 
+				if (!regElem.isSwWriteable()) 
 				   writeStmt(indentLevel, "pio_internal_ack =  pio_read_active;");  
-				else if (!elem.isSwReadable()) 
+				else if (!regElem.isSwReadable()) 
 				   writeStmt(indentLevel, "pio_internal_ack =  pio_write_active;");  
 				else 
 				   writeStmt(indentLevel, "pio_internal_ack =  pio_read_active | pio_write_active;"); 
 				
-				writeStmt(indentLevel--, "dec_pio_read_data_next " + elem.getRegArrayString() + " = " + elem.getLogicToDecodeName() + ";");  
+				writeStmt(indentLevel--, "dec_pio_read_data_next " + regElem.getMaxRegArrayString() + " = " + regElem.getFullSignalName(DefSignalType.L2D_DATA) + ";");  
 				writeStmt(indentLevel--, "end");  				
 			}
 		}	
@@ -2491,12 +2494,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** generate the bit string for decoder case statement w/ an internal address */
-	private  String getIntDecodeAddressString(RegProperties elem) {
+	private  String getIntDecodeAddressString(AddressableInstanceProperties elem) {
 		// compute the size of this address map
 		RegNumber mapSize = builder.getCurrentMapSize();
 		StringBuilder decodeString = new StringBuilder(elem.getBaseAddress().getBinString(builder.getAddressLowBit(), builder.getAddressHighBit(mapSize)));  
 		// if this is a wide word then dont care lsbs
-		int regWordBits = elem.getRegWordHighBit() + 1;
+		int regWordBits = elem.getMaxRegWordHighBit() + 1;
 		int adrLen = decodeString.length();
 		if (regWordBits > 0) {
 			for (int idx=adrLen-regWordBits; idx<adrLen; idx++)
@@ -2506,7 +2509,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 	
 	/** generate the bit string for decoder case statement w/ an external address */
-	private  String getExtDecodeAddressString(RegProperties elem) {
+	private  String getExtDecodeAddressString(AddressableInstanceProperties elem) {
 		String intString = getIntDecodeAddressString(elem).replace('?', '0');  // start with internal string for base address (remove wildcards) // FIXME - this has base addr of last rep
 		int decodeAddrWidth = intString.length();
 		int extAddrWidth = elem.getExtAddressWidth();

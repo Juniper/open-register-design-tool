@@ -9,7 +9,6 @@ import ordt.extract.ModInstance;
 import ordt.extract.ModRegister;
 import ordt.extract.PropertyList;
 import ordt.extract.RegNumber;
-import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 
@@ -49,6 +48,11 @@ public class RegProperties extends AddressableInstanceProperties {
 	public RegProperties(ModInstance regInst, boolean fieldOffsetsFromZero) {
 		super(regInst);  // init instance, id, external
 		this.fieldOffsetsFromZero = fieldOffsetsFromZero;
+	}
+
+	@Override
+	public boolean isRegister() {
+		return true;
 	}
 	
 	// TODO - add clone constructor and display for regprops
@@ -136,10 +140,15 @@ public class RegProperties extends AddressableInstanceProperties {
 			Ordt.errorMessage("invalid register width (" + regWidth + ") specified");
 		}
 	}
+
+	@Override
+	public int getMaxRegWidth() {
+		return getRegWidth();
+	}
 	
 	/** get regWidth
 	 */
-	public Integer getRegWidth() {
+	public Integer getRegWidth() {   // TODO - all the following could change to getMaxRegWidth
 		return regWidth;
 	}
 	
@@ -155,6 +164,12 @@ public class RegProperties extends AddressableInstanceProperties {
 		return getRegWidth()/ExtParameters.getMinDataSize();
 	}
 	
+	/** get bits needed to address register words  // TODO - dup with getRegWordBits?
+	 */
+	public Integer getRegWordHighBit() {
+		return (new RegNumber(getRegWordWidth())).getMinusOneHighestBit();
+	}
+	
 	/** get the address stride for this reg (specified increment or width) */
 	public RegNumber getAddrStride() {
 		RegNumber incr = this.getExtractInstance().getAddressIncrement();
@@ -164,12 +179,6 @@ public class RegProperties extends AddressableInstanceProperties {
 			incr = new RegNumber(incBytes);   
 		}
 		return incr;
-	}
-	
-	/** get bits needed to address register words  // TODO - dup with getRegWordBits?
-	 */
-	public Integer getRegWordHighBit() {
-		return (new RegNumber(getRegWordWidth())).getMinusOneHighestBit();
 	}
 
 	/** returns true if at least one category is set
@@ -336,8 +345,6 @@ public class RegProperties extends AddressableInstanceProperties {
 		RegNumber dontTestMask = getDontTestMask();
 		return (dontTestMask.isNonZero());
 	}*/
-	
-	//  ------------------- internal reg signals -------------------------
 
 	/** get jspecAttributes
 	 *  @return the jspecAttributes
@@ -352,85 +359,6 @@ public class RegProperties extends AddressableInstanceProperties {
 	public void setJspecAttributes(String jspecAttributes) {
 		this.jspecAttributes = jspecAttributes;
 	}
-
-	/** return the logic module input name for register */
-	public String getDecodeToLogicName() {
-		return getFullSignalName(DefSignalType.D2L_DATA);
-	}
-
-	/** return the logic module input name for register */
-	public String getLogicToDecodeName() {
-		return getFullSignalName(DefSignalType.L2D_DATA);
-	}
-
-	/** return the logic module write enable name for register */
-	public String getDecodeToLogicWeName() {
-		return getFullSignalName(DefSignalType.D2L_WE);
-	}
-
-	/** return the logic module read enable name for register */
-	public String getDecodeToLogicReName() {
-		return getFullSignalName(DefSignalType.D2L_RE);
-	}
-
-	//  ------------------- external reg signals -------------------------
-	
-	/** return the external reg write data name */
-	public String getDecodeToHwAddrName() {
-		return getFullSignalName(DefSignalType.D2H_ADDR);
-	}
-	
-	/** return the external reg write data name */
-	public String getDecodeToHwName() {
-		return getFullSignalName(DefSignalType.D2H_DATA);
-	}
-	
-	/** return the external reg transaction size name */
-	public String getDecodeToHwTransSizeName() {
-		return getFullSignalName(DefSignalType.D2H_SIZE);
-	}
-	
-	/** return the external reg return transaction size name */
-	public String getHwToDecodeTransSizeName() {
-		return getFullSignalName(DefSignalType.H2D_RETSIZE);
-	}
-
-	/** return the external reg read data name */
-	public String getHwToDecodeName() {
-		return getFullSignalName(DefSignalType.H2D_DATA);
-	}
-
-	/** return the external reg we name */
-	public String getDecodeToHwWeName() {
-		return getFullSignalName(DefSignalType.D2H_WE);
-	}
-	
-	/** return the external reg re name */
-	public String getDecodeToHwReName() {
-		return getFullSignalName(DefSignalType.D2H_RE);
-	}
-
-	/** return the external reg ack name */
-	public String getHwToDecodeAckName() {
-		return getFullSignalName(DefSignalType.H2D_ACK);
-	}
-
-	/** return the external reg nack name */
-	public String getHwToDecodeNackName() {
-		return getFullSignalName(DefSignalType.H2D_NACK);
-	}
-	
-	/** return the external reg interrupt output name */
-	public String getLogicToHwIntrName() {
-		return getFullSignalName(DefSignalType.L2H_INTR);
-	}
-
-	/** return the external reg halt output name */
-	public String getLogicToHwHaltName() {
-		return getFullSignalName(DefSignalType.L2H_HALT);
-	}
-	
-	//  --------------------------------------------------------
 
 	/** get filledBits
 	 *  @return the filledBits
@@ -523,22 +451,6 @@ public class RegProperties extends AddressableInstanceProperties {
 	 */
 	public boolean hasNopBits() {
 		return getRegWidth() != filledBits;
-	}
-
-	/** return the array string for this register */
-	public String getRegArrayString() {
-		return  " [" + (getRegWidth() - 1) + ":0] ";
-	}
-
-	/** return index range for a group of replicated external registers */
-	public String getExtAddressArrayString() {
-		if (getExtAddressWidth() > 1) return " [" + (getExtLowBit() + getExtAddressWidth() - 1) + ":" + getExtLowBit() + "] ";
-		else return "";
-	}
-
-	/** true if address size is same as reg size */
-	public boolean isSingleExtReg() {
-		return (isExternal() && (Utils.getBits(getRegWordWidth()) == getExtAddressWidth()));
 	}
 
 }

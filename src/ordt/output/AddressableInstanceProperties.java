@@ -9,13 +9,14 @@ import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.parameters.ExtParameters;
+import ordt.parameters.Utils;
 
 /** extracted properties of an addressable instance (reg/regset properties) created during model walk */
-public class AddressableInstanceProperties extends InstanceProperties {
+public abstract class AddressableInstanceProperties extends InstanceProperties {
 
 	protected RegNumber baseAddress;
 	protected RegNumber relativeBaseAddress;   // base address of reg relative to parent
-	
+
 	// external register group parameters
 	protected int extAddressWidth = 0;   // width of word address range for this group
 	protected int extLowBit = 0;  // low bit in external address range
@@ -118,6 +119,17 @@ public class AddressableInstanceProperties extends InstanceProperties {
 		this.extLowBit = extLowBit;
 	}
 
+	/** return index range for a group of replicated external registers */
+	public String getExtAddressArrayString() {
+		if (getExtAddressWidth() > 1) return " [" + (getExtLowBit() + getExtAddressWidth() - 1) + ":" + getExtLowBit() + "] ";
+		else return "";
+	}
+
+	/** true if address size is same as reg size */
+	public boolean isSingleExtReg() {
+		return (isRegister() && isExternal() && (Utils.getBits(getMaxRegWordWidth()) == getExtAddressWidth()));
+	}
+	
 	/** get extractInstance
 	 *  @return the extractInstance
 	 */
@@ -139,6 +151,32 @@ public class AddressableInstanceProperties extends InstanceProperties {
 	public void setExternalDecode(boolean externalDecode) {
 		//System.out.println("AddressableInstanceProperties setExternalDecode: " + externalDecode);
 		this.externalDecode = externalDecode;
+	}
+
+	/** return true if this addressable instance is a register */
+	public abstract boolean isRegister();
+	
+    /** return the max register width within this addressable instance */
+	public abstract int getMaxRegWidth();
+	
+	/** get max register width within this addressable instance in bytes */
+	public int getMaxRegByteWidth() {
+		return getMaxRegWidth()/8;
+	}
+	
+	/** get max register width within this addressable instance in words */
+	public int getMaxRegWordWidth() {
+		return getMaxRegWidth()/ExtParameters.getMinDataSize();
+	}
+	
+	/** get bits needed to address register words within this addressable instance */
+	public Integer getMaxRegWordHighBit() {
+		return (new RegNumber(getMaxRegWordWidth())).getMinusOneHighestBit();
+	}
+
+	/** return the array string for this max width register in this AddressableInstance */
+	public String getMaxRegArrayString() {
+		return  " [" + (getMaxRegWidth() - 1) + ":0] ";
 	}
 
 }
