@@ -705,18 +705,50 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		else  
 		   this.addWireAssign("block_base_address = " + baseAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ";");  // constant define
 		
-		// calculate max number of ringWidth b xfers required for address 
-		int addressWidth = builder.getMapAddressWidth();
-		int maxAddrXferCount = (int) Math.ceil(ExtParameters.getLeafAddressSize()/(double) ringWidth);  // max address xfers (not determined by local size)
-		//System.out.println("SystemVerilogBuilder genRingPioInterface: addr width=" + addressWidth + ", max addr count=" + maxAddrXferCount);
+        // set field info according to ringWidth
+		//                addr bits         data size bits   r/w bit   ack/nack
+		// ring  8 -    2 = max 3 = 24b   3 = max 8 = 256b     5          7/6
+		// ring 16 -    2 = max 3 = 48b   4 = max 16 = 512b    7          15/14
+		// ring 32 -    2 = max 3 = 96b   4 = max 16 = 512b    7          15/14
 		
+		// defaults (16b ring)
+		int addrBitIndex = 4;      // low index for address is 4
+		int maxAddrXferCount = 3;  // max 3 addr xfers allowed in all width cases
+		int maxRegWordBits = 4;    // max 4 32b words allowed
+		
+		// overrides if an alternate width
+		if (ringWidth == 8) {
+			addrBitIndex = 3;   // low index for address is 3
+			maxRegWordBits = 3;    // limit to 3 32b words allowed
+			
+		}
+		else if (ringWidth == 32) {
+			
+		}
+		
+		// further limit max number of address transfers by the full address range
+		int fullAddressMaxXfers = (int) Math.ceil(ExtParameters.getLeafAddressSize()/(double) ringWidth);
+		maxAddrXferCount = fullAddressMaxXfers < maxAddrXferCount ? fullAddressMaxXfers : maxAddrXferCount;
+		int addrXferCountBits = Utils.getBits(maxAddrXferCount+1);  // need + 1 since comparing w next count
+		
+		// error if insufficient bits to address this addrmap region 
+		int addressWidth = builder.getMapAddressWidth();
+		int addressableBits = ringWidth * maxAddrXferCount;
+		if (addressableBits < addressWidth) 
+			Ordt.errorExit("Insufficient address bits in " + ringWidth + "b ring decoder interface (" + addressableBits + ") for " + addressWidth +"b region " + topRegProperties.getInstancePath());
+		//System.out.println("SystemVerilogDecodeModule genRingPioInterface: addressWidth=" + addressWidth + ", maxAddrXferCount=" + maxAddrXferCount + ", addrXferCountBits=" + addrXferCountBits);
+				
 		// compute max transaction size in 32b words and number of bits to represent (4 max) 
 		int regWidth = builder.getMaxRegWidth();
 		int regWords = builder.getMaxRegWordWidth();
 		int regWordBits = Utils.getBits(regWords);
 		boolean useTransactionSize = (regWords > 1);  // if transaction sizes need to be sent/received
-		//System.out.println("SystemVerilogBuilder genRingPioInterface: max width=" + regWidth + ", top max=" + topRegProperties.getRegWidth() + ", words=" + regWords + ", useT=" + useTransactionSize);
+		//System.out.println("SystemVerilogDecodeModule genRingPioInterface: max width=" + regWidth + ", top max=" + topRegProperties.getRegWidth() + ", words=" + regWords + ", useT=" + useTransactionSize);
 		
+		// error if insufficient data count bits for max reg width
+		if (regWordBits > maxRegWordBits)
+			Ordt.errorExit("Unable to access " + regWidth + "b registers within " + ringWidth + "b ring decoder for region " + topRegProperties.getInstancePath());
+
 		// now create state machine vars
 		String ringStateName = "r" + ringWidth + "_state";                      
 		String ringStateNextName = "r" + ringWidth + "_state_next";                      
@@ -843,7 +875,6 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// address xfer count
 		String ringAddrCntName = "r" + ringWidth + "_addr_cnt";                      
 		String ringAddrCntNextName = "r" + ringWidth + "_addr_cnt_next";                      
-		int addrXferCountBits = Utils.getBits(maxAddrXferCount+1);  // always > 0 unlike serial case / need + 1 since comparing w next count
 		this.addVectorReg(ringAddrCntName, 0, addrXferCountBits);  
 		this.addVectorReg(ringAddrCntNextName, 0, addrXferCountBits);  
 		this.addResetAssign(groupName, builder.getDefaultReset(), ringAddrCntName + " <= #1  " + addrXferCountBits + "'b0;");  
@@ -925,7 +956,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName,     "      if (" + cmdValidDlyName[cmdDelayCount] + ") begin");  
 		this.addCombinAssign(groupName,     "        " + outFifoAdvanceName + " =  1'b1;");  // save cntl word
 		this.addCombinAssign(groupName,     "        " + ringWrStateCaptureNextName + " = " + cmdDataDlyName[cmdDelayCount] + "[7];");  // bit 7 = write 
-		this.addCombinAssign(groupName,     "        " + ringAddrCntCaptureNextName + " = " + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(4, addrXferCountBits) + ";");  // bits 6:4 = addr xfers
+		this.addCombinAssign(groupName,     "        " + ringAddrCntCaptureNextName + " = " + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(addrBitIndex, addrXferCountBits) + ";");  // addr xfer count bits
 		if (useTransactionSize)
 		    this.addCombinAssign(groupName, "        " + pioInterfaceTransactionSizeNextName + " = " + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + ";");  // bits 3:0 = transaction size
 		// if ack or nack are already set then skip
