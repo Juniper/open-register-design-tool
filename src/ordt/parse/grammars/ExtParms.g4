@@ -109,7 +109,7 @@ ext_parm_defs
  systemverilog_out_parm_assign
    : 'leaf_address_size' EQ NUM
    | 'root_has_leaf_interface' EQ bool 
-   | 'root_decoder_interface' EQ ('default' | 'leaf' | 'serial8' | 'ring16') 
+   | 'root_decoder_interface' EQ ('leaf' | 'parallel' | 'serial8' | 'ring8' | 'ring16' | 'ring32') 
    | 'base_addr_is_parameter' EQ bool 
    | 'module_tag' EQ STR 
    | 'use_gated_logic_clock' EQ bool 
@@ -120,7 +120,7 @@ ext_parm_defs
    | 'always_generate_iwrap' EQ bool 
    | 'suppress_no_reset_warnings' EQ bool
    | 'generate_child_addrmaps' EQ bool
-   | 'ring16_inter_node_delay' EQ NUM
+   | 'ring_inter_node_delay' EQ NUM
    | 'bbv5_timeout_input' EQ bool
    | 'include_default_coverage' EQ bool
    | 'generate_external_regs' EQ bool   // also allowed in bench output

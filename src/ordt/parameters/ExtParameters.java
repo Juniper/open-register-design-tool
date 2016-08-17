@@ -44,7 +44,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	private static SVBlockSelectModes systemverilogBlockSelectMode;  
 	
 	public enum SVBlockSelectModes { INTERNAL, EXTERNAL, ALWAYS } 
-	public enum SVDecodeInterfaceTypes { DEFAULT, LEAF, SERIAL8, RING16 } 
+	public enum SVDecodeInterfaceTypes { PARALLEL, LEAF, SERIAL8, RING8, RING16, RING32 } 
 
 	private static int maxInternalRegReps = 4096;  // max internal reg reps allowed (not set externally)
 	
@@ -109,7 +109,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("always_generate_iwrap", false);
 		initBooleanParameter("suppress_no_reset_warnings", false); 
 		initBooleanParameter("generate_child_addrmaps", false); 
-		initIntegerParameter("ring16_inter_node_delay", 0); 	
+		initIntegerParameter("ring_inter_node_delay", 0); 	
 		initBooleanParameter("bbv5_timeout_input", false); 
 		initBooleanParameter("include_default_coverage", false);
 
@@ -347,14 +347,16 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		}
 		
 		else if (name.equals("root_has_leaf_interface")) {  // DEPRECATED 
-			sysVerRootDecoderInterface = value.equals("true") ? SVDecodeInterfaceTypes.LEAF : SVDecodeInterfaceTypes.DEFAULT;
+			sysVerRootDecoderInterface = value.equals("true") ? SVDecodeInterfaceTypes.LEAF : SVDecodeInterfaceTypes.PARALLEL;
 			Ordt.warnMessage("Use of control parameter 'root_has_leaf_interface' is deprecated. Use 'root_decoder_interface = leaf' instead.");
 		}
 		else if (name.equals("root_decoder_interface")) {  
 			if (value.equals("leaf")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.LEAF;
 			else if (value.equals("serial8")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.SERIAL8;
+			else if (value.equals("ring8")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.RING8;
 			else if (value.equals("ring16")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.RING16;
-			else sysVerRootDecoderInterface = SVDecodeInterfaceTypes.DEFAULT;
+			else if (value.equals("ring32")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.RING32;
+			else sysVerRootDecoderInterface = SVDecodeInterfaceTypes.PARALLEL;  // parallel interface is default
 		}
 		else if (name.equals("use_external_select")) {  // DEPRECATED 
 			systemverilogBlockSelectMode = value.equals("true") ? SVBlockSelectModes.EXTERNAL : SVBlockSelectModes.INTERNAL;
@@ -565,7 +567,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	 *  @return the sysVerRingInterNodeDelay
 	 */
 	public static int sysVerRingInterNodeDelay() {
-		return getIntegerParameter("ring16_inter_node_delay");
+		return getIntegerParameter("ring_inter_node_delay");
 	}
 	
 	public static Boolean sysVerBBV5TimeoutInput() {

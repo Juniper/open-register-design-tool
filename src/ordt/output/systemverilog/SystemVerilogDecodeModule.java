@@ -37,7 +37,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	protected final String pioInterfaceNackName = "dec_pio_nack";
 	
 	protected List<AddressableInstanceProperties> decoderList = new ArrayList<AddressableInstanceProperties>();    // list of address regs 
-	protected SVDecodeInterfaceTypes interfaceType = SVDecodeInterfaceTypes.DEFAULT;  // default interface
+	protected SVDecodeInterfaceTypes interfaceType = SVDecodeInterfaceTypes.PARALLEL;  // default to parallel interface
 
 	public SystemVerilogDecodeModule(SystemVerilogBuilder builder, int insideLocs, String clkName) {
 		super(builder, insideLocs, clkName);
@@ -74,8 +74,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// create interface logic differently for base addrmap vs children
 		if (hasInterface(SVDecodeInterfaceTypes.LEAF)) this.genLeafPioInterface(topRegProperties);
 		else if (hasInterface(SVDecodeInterfaceTypes.SERIAL8)) this.genSerial8PioInterface(topRegProperties);
+		else if (hasInterface(SVDecodeInterfaceTypes.RING8)) this.genRingPioInterface(8, topRegProperties);
 		else if (hasInterface(SVDecodeInterfaceTypes.RING16)) this.genRingPioInterface(16, topRegProperties);
-		else this.genDefaultPioInterface(topRegProperties);
+		else if (hasInterface(SVDecodeInterfaceTypes.RING32)) this.genRingPioInterface(32, topRegProperties);
+		else this.genParallelPioInterface(topRegProperties);
 		
 		// generate common internal pio interface code
 		this.generateCommonPio();	
@@ -164,7 +166,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** add interface signals for nested addrmaps */
-	private void genDefaultPioInterface(RegProperties topRegProperties) {
+	private void genParallelPioInterface(RegProperties topRegProperties) {
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with external interface, id=" + topRegProperties.getInstancePath());
 		// generate name-base IO names
 		if (mapHasMultipleAddresses()) this.addVectorFrom(SystemVerilogBuilder.PIO, topRegProperties.getFullSignalName(DefSignalType.D2H_ADDR), builder.getAddressLowBit(), builder.getMapAddressWidth());  // address
@@ -673,7 +675,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** add ring pio interface */  
-	private void genRingPioInterface(int ringWidth, RegProperties topRegProperties) {  // TODO - eventually allow multiple widths
+	private void genRingPioInterface(int ringWidth, RegProperties topRegProperties) {
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with external interface, id=" + topRegProperties.getInstancePath());
 		
 		// add interface signals - convert serial interface to internal interface
@@ -706,28 +708,38 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		   this.addWireAssign("block_base_address = " + baseAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ";");  // constant define
 		
         // set field info according to ringWidth
-		//                addr bits         data size bits   r/w bit   ack/nack
-		// ring  8 -    2 = max 3 = 24b   3 = max 8 = 256b     5          7/6
-		// ring 16 -    2 = max 3 = 48b   4 = max 16 = 512b    7          15/14
-		// ring 32 -    2 = max 3 = 96b   4 = max 16 = 512b    7          15/14
+		//                addr bits      offset         data size bits   r/w bit   ack/nack
+		// ring  8 -    2 = max 3 = 24b  + 0 = 24b     3 = max 8 = 256b     5        7/6
+		// ring 16 -    2 = max 3 = 48b  + 0 = 48b     4 = max 16 = 512b    7        15/14
+		// ring 32 -    2 = max 3 = 96b  + 16 = 112b   4 = max 16 = 512b    7        15/14
 		
 		// defaults (16b ring)
-		int addrBitIndex = 4;      // low index for address is 4
+		int addrBitIndex = 4;      // low index for address
+		int rwBitIndex = 7;        // read/write index 
+		int ackBitIndex = 14;      // index for ack
+		int nackBitIndex = 15;      // index for nack 
+		
 		int maxAddrXferCount = 3;  // max 3 addr xfers allowed in all width cases
+		int addrOffset = 0;  // default to no address bits in control word
 		int maxRegWordBits = 4;    // max 4 32b words allowed
 		
 		// overrides if an alternate width
 		if (ringWidth == 8) {
-			addrBitIndex = 3;   // low index for address is 3
+			// shift fields to fit in 8b
+			addrBitIndex = 3;   // low index for address
+			rwBitIndex = 5;        // read/write index 
+			ackBitIndex = 6;      // index for ack
+			nackBitIndex = 7;      // index for nack 
 			maxRegWordBits = 3;    // limit to 3 32b words allowed
-			
 		}
 		else if (ringWidth == 32) {
-			
+			addrOffset = 16;  // upper 16b are address bits in control word 
 		}
 		
 		// further limit max number of address transfers by the full address range
-		int fullAddressMaxXfers = (int) Math.ceil(ExtParameters.getLeafAddressSize()/(double) ringWidth);
+		int maxAddrBits = ExtParameters.getLeafAddressSize() - builder.getAddressLowBit(); 
+		int nonCntlAddrBits = (maxAddrBits > addrOffset)? maxAddrBits - addrOffset : 0;
+		int fullAddressMaxXfers = (int) Math.ceil(nonCntlAddrBits/(double) ringWidth);
 		maxAddrXferCount = fullAddressMaxXfers < maxAddrXferCount ? fullAddressMaxXfers : maxAddrXferCount;
 		int addrXferCountBits = Utils.getBits(maxAddrXferCount+1);  // need + 1 since comparing w next count
 		
@@ -955,12 +967,17 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// go on cmd valid - capture r/w indicator, addr size, and transaction size
 		this.addCombinAssign(groupName,     "      if (" + cmdValidDlyName[cmdDelayCount] + ") begin");  
 		this.addCombinAssign(groupName,     "        " + outFifoAdvanceName + " =  1'b1;");  // save cntl word
-		this.addCombinAssign(groupName,     "        " + ringWrStateCaptureNextName + " = " + cmdDataDlyName[cmdDelayCount] + "[7];");  // bit 7 = write 
+		this.addCombinAssign(groupName,     "        " + ringWrStateCaptureNextName + " = " + cmdDataDlyName[cmdDelayCount] + "[" + rwBitIndex + "];");  // write bit 
 		this.addCombinAssign(groupName,     "        " + ringAddrCntCaptureNextName + " = " + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(addrBitIndex, addrXferCountBits) + ";");  // addr xfer count bits
 		if (useTransactionSize)
-		    this.addCombinAssign(groupName, "        " + pioInterfaceTransactionSizeNextName + " = " + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + ";");  // bits 3:0 = transaction size
+		    this.addCombinAssign(groupName, "        " + pioInterfaceTransactionSizeNextName + " = " + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + ";");  // bits n:0 = transaction size
+        // if an address offset then detect an address mismatch and save these bits
+		if (addrOffset > 0) {
+            genRingAddrSliceAssigns(groupName, 0, addrOffset, addressWidth, 
+            		ringNotMineNextName, ringNotMineName, ringAddrAccumNextName, cmdDataDlyName[cmdDelayCount]);
+		}
 		// if ack or nack are already set then skip
-		this.addCombinAssign(groupName,     "        if (" + cmdDataDlyName[cmdDelayCount] + "[15] | " + cmdDataDlyName[cmdDelayCount] + "[14]) begin");  
+		this.addCombinAssign(groupName,     "        if (" + cmdDataDlyName[cmdDelayCount] + "[" + nackBitIndex + "] | " + cmdDataDlyName[cmdDelayCount] + "[" + ackBitIndex + "]) begin");  
 		this.addCombinAssign(groupName,     "          if (~" +  ringWrStateCaptureNextName + ") " + ringStateNextName + " = " + RESPONSE_BYPASS + ";"); // bypass data also if a read response 
 		this.addCombinAssign(groupName,     "          else " + ringStateNextName + " = " + RESPONSE_FLUSH + ";"); // flush cmd word from fifo if a write response 
 		this.addCombinAssign(groupName,     "        end");  //cmd valid
@@ -983,7 +1000,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		for (int idx=0; idx<maxAddrXferCount; idx++) {
 			prefix = (idx == 0)? "" : "else ";
 			this.addCombinAssign(groupName, "        " + prefix + "if (" + ringAddrCntName + " == " + addrXferCountBits + "'d" + idx + ") begin");
-			int lowbit = idx*ringWidth + builder.getAddressLowBit();
+			// generate compare/assign strings
+            genRingAddrSliceAssigns(groupName, idx*ringWidth, ringWidth, addressWidth, 
+            		ringNotMineNextName, ringNotMineName, ringAddrAccumNextName, cmdDataDlyName[cmdDelayCount]);
+		/*	int lowbit = idx*ringWidth + builder.getAddressLowBit();  // full address offset
 			int lsbCheckSize = ((idx+1)*ringWidth > addressWidth)? Math.max(0, addressWidth - idx*ringWidth) : ringWidth;  // last valid local addr xfer is btwn 0 and ringWidth b (0 after)
 			int msbCheckSize = ringWidth - lsbCheckSize;  // for ring, we'll use base address to test uppr addr bits in this xfer, could be all check size
 			// if msbs are in this xfer, then look for an address mismatch 
@@ -1000,7 +1020,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			if (idx < maxLocalAddrXferCount) {
 				String addrRangeString = (addressWidth > 1)? SystemVerilogSignal.genRefArrayString(lowbit, lsbCheckSize) : "";
 			    this.addCombinAssign(groupName, "          " + ringAddrAccumNextName + addrRangeString + " = " + cmdDataDlyName[cmdDelayCount] + SystemVerilogSignal.genRefArrayString(0, lsbCheckSize) + ";");		
-			}
+			} */
 			this.addCombinAssign(groupName, "        end"); 
 		}
 
@@ -1048,9 +1068,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName,   "      " + "if (" + pioInterfaceAckName + " | " + pioInterfaceNackName + ") begin");  
 		this.addCombinAssign(groupName,   "        " + resValidDlyName[0] + " =  1'b1;");  // res is valid
 		this.addCombinAssign(groupName,   "        " + ringRdCaptureNextName + " = " + pioInterfaceReadDataName + ";");  // capture read data  
-		this.addCombinAssign(groupName,   "        " + resDataDlyName[0] + "[15] = " + pioInterfaceNackName + ";");  // set nack bit  
-		this.addCombinAssign(groupName,   "        " + resDataDlyName[0] + "[14] = ~" + pioInterfaceNackName + ";");  // set ack bit  
-		this.addCombinAssign(groupName,   "        " + resDataDlyName[0] + "[7] = " + ringWrStateCaptureName + ";");  // set write bit  
+		this.addCombinAssign(groupName,   "        " + resDataDlyName[0] + "[" + nackBitIndex + "] = " + pioInterfaceNackName + ";");  // set nack bit  
+		this.addCombinAssign(groupName,   "        " + resDataDlyName[0] + "[" + ackBitIndex + "] = ~" + pioInterfaceNackName + ";");  // set ack bit  
+		this.addCombinAssign(groupName,   "        " + resDataDlyName[0] + "[" + rwBitIndex + "] = " + ringWrStateCaptureName + ";");  // set write bit  
 		if (useTransactionSize) {
 			this.addCombinAssign(groupName,  "        " + resDataDlyName[0] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + " = " + pioInterfaceRetTransactionSizeName + ";");  
 		}
@@ -1153,6 +1173,39 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 	}
 	
+	/** generate address accumulate and match detect assigns 
+	 * 
+	 * @param groupName - lable for comb assigns
+	 * @param currentAddressOffset - current bit offset (number of addr bits already accumulated)
+	 * @param currentAddrSliceWidth - size of slice being accumulated
+	 * @param addressWidth - address width of current map
+	 * @param ringNotMineNextName - addr mismatch next state signal
+	 * @param ringNotMineName - addr mismatch current state signal
+	 * @param ringAddrAccumNextName - address accumulator signal
+	 * @param ringData - incoming ring data signal
+	 */
+	private void genRingAddrSliceAssigns(String groupName, int currentAddressOffset, int currentAddrSliceWidth, int addressWidth, 
+			String ringNotMineNextName, String ringNotMineName, String ringAddrAccumNextName, String ringData) {
+		int lowbit = currentAddressOffset + builder.getAddressLowBit();  // full address offset
+		int lsbCheckSize = (currentAddressOffset + currentAddrSliceWidth > addressWidth)? Math.max(0, addressWidth - currentAddressOffset) : currentAddrSliceWidth;  // last valid local addr xfer is btwn 0 and ringWidth b (0 after)
+		int msbCheckSize = currentAddrSliceWidth - lsbCheckSize;  // for ring, we'll use base address to test uppr addr bits in this xfer, could be all check size
+		// if msbs are in this xfer, then look for an address mismatch 
+		if (msbCheckSize > 0) {
+			if ((lowbit + currentAddrSliceWidth) > ExtParameters.getLeafAddressSize()) 
+				msbCheckSize = ExtParameters.getLeafAddressSize() - lowbit;
+			//String matchStr = topRegProperties.getFullBaseAddress().getSubVector(lowbit + lsbCheckSize, msbCheckSize).toFormat(NumBase.Hex, NumFormat.Verilog);
+			String matchStr = "block_base_address" + SystemVerilogSignal.genRefArrayString(lowbit + lsbCheckSize, msbCheckSize);
+			//block_base_address
+			this.addCombinAssign(groupName, "          " + ringNotMineNextName + " = " + ringNotMineName + " | (" + ringData + SystemVerilogSignal.genRefArrayString(lsbCheckSize, msbCheckSize) + " != " + matchStr + ");");  // default to matching address
+		}
+		//  only accumulate address if in local range
+		if (currentAddressOffset < addressWidth) {
+			String addrRangeString = (addressWidth > 1)? SystemVerilogSignal.genRefArrayString(lowbit, lsbCheckSize) : "";
+		    this.addCombinAssign(groupName, "          " + ringAddrAccumNextName + addrRangeString + " = " + ringData + SystemVerilogSignal.genRefArrayString(0, lsbCheckSize) + ";");		
+		}
+		
+	}
+
 	/** generate re/we assigns directly or from delayed versions if clock gating is enabled */
 	private void assignReadWriteRequests(String readReqStr, String writeReqStr) {
 		// if gated logic clock, create an enable output and delay read/write activation 

@@ -5,7 +5,7 @@ output systemverilog {
 	block_select_mode = always        // all transactions to leaf decoders are valid (leaf uses start/end)
 	export_start_end = true           // create addr_start, addr_end outputs (these feed corresponding leaf)
 	generate_child_addrmaps = true    // generate child address maps
-	ring16_inter_node_delay = 2       // delay stages added between nodes in a ring16
+	ring_inter_node_delay = 2       // delay stages added between nodes in a ring16
 }
 output bench {
     // read root
