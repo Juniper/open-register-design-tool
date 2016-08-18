@@ -131,8 +131,12 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		else if (topRegProperties.hasExternalType(ExtType.SERIAL8))
 			decoder.setInterfaceType(SVDecodeInterfaceTypes.SERIAL8); 
 		// else if a ring16 region use this decoder interface
-		else if (topRegProperties.hasExternalType(ExtType.RING16))
-			decoder.setInterfaceType(SVDecodeInterfaceTypes.RING16); 
+		else if (topRegProperties.hasExternalType(ExtType.RING)) {
+			int width = topRegProperties.getExternalType().getParm("width");
+			if (width == 8) decoder.setInterfaceType(SVDecodeInterfaceTypes.RING8); 
+			else if (width == 16) decoder.setInterfaceType(SVDecodeInterfaceTypes.RING16); 
+			else if (width == 32) decoder.setInterfaceType(SVDecodeInterfaceTypes.RING32); 			
+		}
 
 	    // now generate output starting at this regmap
 		//System.out.println("SystemVerilogBuilder: pre generate - regset inst id=" + regSetProperties.getId() + ", ext=" + regSetProperties.getExternalType() + ", amap=" + regSetProperties.isAddressMap() + ", inst stack top=" + instancePropertyStack.peek().getId());
@@ -378,7 +382,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   if (regProperties.hasExternalType(ExtType.BBV5)) decoder.generateExternalInterface_BBV5(regProperties);
 		   else if (regProperties.hasExternalType(ExtType.SRAM)) decoder.generateExternalInterface_SRAM(regProperties);
 		   else if (regProperties.hasExternalType(ExtType.SERIAL8)) decoder.generateExternalInterface_SERIAL8(regProperties);
-		   else if (regProperties.hasExternalType(ExtType.RING16)) decoder.generateExternalInterface_RING(16, regProperties);
+		   else if (regProperties.hasExternalType(ExtType.RING)) decoder.generateExternalInterface_RING(regProperties.getExternalType().getParm("width"), regProperties);
 		   
 		   endNewInterfaces(regProperties);  // close out interface 
 	}

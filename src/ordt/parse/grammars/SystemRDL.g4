@@ -144,8 +144,8 @@ anonymous_component_inst_elems
 
 external_clause
   : ( 'external_decode' 
-    | 'external' ( LPAREN ( 'DEFAULT' | 'BBV5_8' | 'BBV5_16' | 'SRAM' 
-                          | SERIAL8 | RING16 ) RPAREN )?
+    | 'external' ( LPAREN ( 'DEFAULT' | 'PARALLEL' | 'BBV5_8' | 'BBV5_16' | 'SRAM' 
+                          | SERIAL8 | RING8 | RING16 | RING32 ) RPAREN )?
     )
   ;
 
@@ -478,8 +478,16 @@ SERIAL8
   : 'SERIAL8_D' '0'..'9'
   ;
   
+RING8
+  : 'RING8_D' '0'..'9'
+  ;
+  
 RING16
   : 'RING16_D' '0'..'9'
+  ;
+  
+RING32
+  : 'RING32_D' '0'..'9'
   ;
 
 ID

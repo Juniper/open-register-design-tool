@@ -6,6 +6,8 @@ package ordt.output;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ordt.extract.Ordt;
 import ordt.extract.ModComponent;
@@ -20,7 +22,7 @@ public class InstanceProperties {
 	private String  id = "";           // current instance id (contains rep count suffix)
 	private String instancePath = "";      // instance path
 	//private boolean external = false;   // is instance set declared as external
-	public enum ExtType { INTERNAL, DEFAULT, EXTERNAL_DECODE, BBV5, SRAM, SERIAL8, RING16 }
+	public enum ExtType { INTERNAL, PARALLEL, EXTERNAL_DECODE, BBV5, SRAM, SERIAL8, RING }
 	private ExternalType externalType = new ExternalType(ExtType.INTERNAL);   // external interface type (init to internal)
 	private boolean rootExternal = false;   // is instance root instance of an external reg set
 	private boolean addressMap = false;   // is an external address map
@@ -185,39 +187,47 @@ public class InstanceProperties {
 		this.externalType = new ExternalType(ExtType.INTERNAL);  // internal
 	}
 
-	/** set external type for this instance from a string ("DEFAULT", "EXTERNAL_DECODE", "BBV5_8", "SRAM", or null for internal) */
+	/** set external type for this instance from a string (null for internal) */
 	public void setExternal(String externalStr) {
 		if (externalStr == null) this.externalType = new ExternalType(ExtType.INTERNAL);  // internal
-		else if ("DEFAULT".equals(externalStr)) this.externalType = new ExternalType(ExtType.DEFAULT);
+		else if ("DEFAULT".equals(externalStr)) this.externalType = new ExternalType(ExtType.PARALLEL);
 		else if ("EXTERNAL_DECODE".equals(externalStr)) this.externalType = new ExternalType(ExtType.EXTERNAL_DECODE);
-		else if ("BBV5_8".equals(externalStr)) this.externalType = new ExternalType(ExtType.BBV5, 8);
-		else if ("BBV5_16".equals(externalStr)) this.externalType = new ExternalType(ExtType.BBV5, 16);
+		else if ("BBV5_8".equals(externalStr)) {
+			this.externalType = new ExternalType(ExtType.BBV5);
+			this.externalType.addParm("width", 8);
+		}
+		else if ("BBV5_16".equals(externalStr)) {
+			this.externalType = new ExternalType(ExtType.BBV5);
+			this.externalType.addParm("width", 16);
+		}
 		else if ("SRAM".equals(externalStr)) this.externalType = new ExternalType(ExtType.SRAM);
 		else if (externalStr.matches("^SERIAL8_D\\d$")) {
 			int delay = Integer.valueOf(externalStr.substring(externalStr.indexOf('_')+2));
-			this.externalType = new ExternalType(ExtType.SERIAL8, delay);
+			this.externalType = new ExternalType(ExtType.SERIAL8);
+			this.externalType.addParm("delay", delay);
 		}
-		else if (externalStr.matches("^RING16_D\\d$")) {
-			int delay = Integer.valueOf(externalStr.substring(externalStr.indexOf('_')+2));
-			this.externalType = new ExternalType(ExtType.RING16, delay);
+		else {
+			Pattern p = Pattern.compile("^RING(\\d+)_D(\\d+)$");
+			Matcher m = p.matcher(externalStr);
+			if (m.matches()) {
+				this.externalType = new ExternalType(ExtType.RING);
+				this.externalType.addParm("width", Integer.valueOf(m.group(1)));
+				this.externalType.addParm("delay", Integer.valueOf(m.group(2)));
+			}
+			else Ordt.errorExit("Invalid external interface type (" + externalStr + ") detected in instance " + getId());
 		}
-		else Ordt.errorExit("Invalid external interface type (" + externalStr + ") detected in instance " + getId());
 		//System.out.println("InstanceProperties setExternal: input=" + externalStr + ", new val=" + this.externalType + ", inst=" + getId());
 	}
 
 	/** ExternalType class carrying parameters */
 	public class ExternalType {
 		private ExtType type = ExtType.INTERNAL;
-		private Integer parm1;
+		private HashMap<String, Integer> parms = new HashMap<String, Integer>();
 		// constructors
-		public ExternalType(ExtType type, Integer parm1) {
-			this.type = type;
-			this.parm1 = parm1;
-		}
 		public ExternalType(ExtType type) {
 			this.type = type;
 		}
-		// getters setters
+		// type getters setters
 		public ExtType getType() {
 			return type;
 		}
@@ -227,15 +237,19 @@ public class InstanceProperties {
 		public void setType(ExtType type) {
 			this.type = type;
 		}
-		public Integer getParm1() {
-			return parm1;
+		// parm getters/setters
+		public Integer getParm(String parm) {
+			return parms.get(parm);
 		}
-		public void setParm1(Integer parm1) {
-			this.parm1 = parm1;
+		public boolean hasParm(String parm) {
+			return parms.containsKey(parm);
+		}
+		public void addParm(String parm, Integer value) {
+			parms.put(parm,  value);
 		}
 		@Override
 		public String toString() {
-			return type.toString() + "(" + parm1 + ")";
+			return type.toString() + parms;
 		}
 	}
 	
