@@ -2479,19 +2479,21 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	 */
 	private void genRingExtAddrAssign(String groupName, AddressableInstanceProperties addrInstProperties, int currentAddressOffset, int ringDataOffset,
 			int currentAddrSliceWidth, String decodeToHwAddrName, String ringData) {
-		int lowbit = currentAddressOffset + addrInstProperties.getExtLowBit();
-		int size = (currentAddressOffset + currentAddrSliceWidth > addrInstProperties.getExtAddressWidth())? addrInstProperties.getExtAddressWidth() - currentAddressOffset : currentAddrSliceWidth;  // last xfer can be smaller
-		int addrPadLowbit = lowbit + addrInstProperties.getExtAddressWidth();  // for ring, we'll use base address to fill all addr bits in this xfer
-		int addrPadSize = Math.min(ExtParameters.getLeafAddressSize() - addrPadLowbit, currentAddrSliceWidth - size);  // for ring, we'll use base address to fill all addr bits in this xfer
-		int zeroPadSize = currentAddrSliceWidth - size - addrPadSize;
+		int lowbit = currentAddressOffset + addrInstProperties.getExtLowBit();  // low bit index in full address
+		//System.out.println("SystemVerilogDecodeModule genRingExtAddrAssign: , currentAddressOffset=" + currentAddressOffset + ", getExtLowBit=" + addrInstProperties.getExtLowBit() + ", lowbit=" + lowbit );
+		int regionAddrSize = (currentAddressOffset + currentAddrSliceWidth > addrInstProperties.getExtAddressWidth())? addrInstProperties.getExtAddressWidth() - currentAddressOffset : currentAddrSliceWidth;  // last xfer can be smaller
+		int addrPadLowbit = lowbit + regionAddrSize;  // for ring, we'll use base address to fill all addr bits in this xfer
+		int addrPadSize = Math.min(ExtParameters.getLeafAddressSize() - addrPadLowbit, currentAddrSliceWidth - regionAddrSize);  // for ring, we'll use base address to fill all addr bits in this xfer
+		int zeroPadSize = currentAddrSliceWidth - regionAddrSize - addrPadSize;
 		String zeroPadStr = (zeroPadSize>0)? zeroPadSize + "'d0, " : "";
 		String ringDataRange = (ringDataOffset > 0)? SystemVerilogSignal.genRefArrayString(ringDataOffset, currentAddrSliceWidth) : "";
-		if (addrPadSize>0) {
-			String addrPadStr = addrInstProperties.getFullBaseAddress().getSubVector(addrPadLowbit, addrPadSize).toFormat(NumBase.Hex, NumFormat.Verilog);
-			this.addCombinAssign(groupName, "        " + ringData + ringDataRange + " = {" + zeroPadStr + addrPadStr + ", " + decodeToHwAddrName + SystemVerilogSignal.genRefArrayString(lowbit, size) + "};");						
+		if ((addrPadSize>0) || (zeroPadSize > 0)) {
+			String addrPadStr = (addrPadSize>0)?  addrInstProperties.getFullBaseAddress().getSubVector(addrPadLowbit, addrPadSize).toFormat(NumBase.Hex, NumFormat.Verilog) : "";
+			//System.out.println("SystemVerilogDecodeModule genRingExtAddrAssign: adding outbound addr padding, size=" + regionAddrSize + ", FullBaseAddress=" + addrInstProperties.getFullBaseAddress() + ", addrPadLowbit=" + addrPadLowbit + ", addrPadSize=" + addrPadSize + ", addrPad=" + addrPadStr + ", zeroPadSize=" + zeroPadSize);
+			this.addCombinAssign(groupName, "        " + ringData + ringDataRange + " = {" + zeroPadStr + addrPadStr + ", " + decodeToHwAddrName + SystemVerilogSignal.genRefArrayString(lowbit, regionAddrSize) + "};");						
 		}
 		else
-			this.addCombinAssign(groupName, "        " + ringData + ringDataRange + " = " + decodeToHwAddrName + SystemVerilogSignal.genRefArrayString(lowbit, size) + ";");						
+			this.addCombinAssign(groupName, "        " + ringData + ringDataRange + " = " + decodeToHwAddrName + SystemVerilogSignal.genRefArrayString(lowbit, regionAddrSize) + ";");						
 	}
 
 
