@@ -323,7 +323,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	/** start up clocks and init sim */
 	private void addSimStartBlocks(int clkPeriod) {
 		int clkHalfPeriod = clkPeriod/2;
-		int simEndTime = 5000;
+		int simEndTime = ExtParameters.benchTotalTestTime();
 		
 		if (ExtParameters.systemverilogUseGatedLogicClk()) {
 		   	// generate clocks

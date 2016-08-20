@@ -168,6 +168,7 @@ ext_parm_defs
    : 'add_test_command' EQ STR
    | 'generate_external_regs' EQ bool 
    | 'only_output_dut_instances' EQ bool 
+   | 'total_test_time' EQ NUM 
    ;
    
 /*   

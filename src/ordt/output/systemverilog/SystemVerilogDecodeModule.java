@@ -2469,7 +2469,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	
 	/** generate address accumulate and match detect assigns 
 	 * 
-	 * @param groupName - lable for comb assigns
+	 * @param groupName - label for comb assigns
 	 * @param addrInstProperties - current prorerties for this external region
 	 * @param currentAddressOffset - current bit offset (number of addr bits already accumulated)
 	 * @param ringDataOffset - bit offset in ring data where address info starts

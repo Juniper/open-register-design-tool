@@ -97,4 +97,5 @@ output uvmregs {
 // testbench output parameters
 //output bench {
 //  add_test_command = "write 32 0x0 0x12345678"  // add a test command to the output bench
+//  total_test_time = 10000               // test run time
 //}

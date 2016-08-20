@@ -138,6 +138,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initStringListParameter("add_test_command", new ArrayList<String>());
 		initBooleanParameter("generate_external_regs", false); 
 		initBooleanParameter("only_output_dut_instances", false); 
+		initIntegerParameter("total_test_time", 5000);
 	}
 	
 	static void initBooleanParameter(String name, Boolean value) {
@@ -670,6 +671,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	
 	public static Boolean benchOnlyOutputDutInstances() {
 		return getBooleanParameter("only_output_dut_instances");
+	}
+	
+	public static int benchTotalTestTime() {
+		return getIntegerParameter("total_test_time");
 	}
 
 	/**
