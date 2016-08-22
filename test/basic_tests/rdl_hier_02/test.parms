@@ -13,6 +13,7 @@ output systemverilog {
 	use_gated_logic_clock = true       // use separate gated clock for registers
 }
 output bench {
+    total_test_time = 8000
     // read root
 	add_test_command = "read 32 0x0"  // read 
 	add_test_command = "write 32 0x0 0x12345678"  // write
