@@ -11,6 +11,8 @@ import java.util.List;
 
 import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
+import ordt.output.systemverilog.oldio.SystemVerilogIOSignal;
+import ordt.output.systemverilog.oldio.SystemVerilogIOSignalList;
 import ordt.parameters.ExtParameters;
 
 /** system verilog module generation class

@@ -1,11 +1,14 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.output.systemverilog;
+package ordt.output.systemverilog.oldio;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+
+import ordt.output.systemverilog.SystemVerilogSignal;
+import ordt.output.systemverilog.SystemVerilogSignalList;
 
 /** extended SV interface list for defining SVbuilder level IO signal lists - tracks the active SV interface for adds */  
 public class SystemVerilogIOSignalList extends SystemVerilogInterface { 

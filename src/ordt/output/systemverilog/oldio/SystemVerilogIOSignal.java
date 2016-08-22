@@ -1,10 +1,12 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.output.systemverilog;
+package ordt.output.systemverilog.oldio;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import ordt.output.systemverilog.SystemVerilogSignal;
 
 /** extended signal class which also contains source/dest info and may represent a SV interface */  
 public class SystemVerilogIOSignal extends SystemVerilogSignal {

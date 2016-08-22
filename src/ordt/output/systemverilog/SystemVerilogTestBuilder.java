@@ -17,6 +17,8 @@ import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.output.systemverilog.SystemVerilogModule;
 import ordt.output.systemverilog.SystemVerilogSignal;
+import ordt.output.systemverilog.oldio.SystemVerilogIOSignal;
+import ordt.output.systemverilog.oldio.SystemVerilogIOSignalList;
 import ordt.parameters.ExtParameters;
 
 public class SystemVerilogTestBuilder extends SystemVerilogBuilder {

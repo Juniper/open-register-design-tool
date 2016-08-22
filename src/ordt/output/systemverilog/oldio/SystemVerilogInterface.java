@@ -1,13 +1,15 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.output.systemverilog;
+package ordt.output.systemverilog.oldio;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import ordt.output.systemverilog.SystemVerilogSignal;
 
 /** class defining a a SV interface containing list of child signals/interfaces.  This class is
  * used as part of composite class SystemVerilogIOSignal to represent SV interface hierarchy  */
