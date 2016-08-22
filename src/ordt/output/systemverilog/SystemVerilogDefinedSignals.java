@@ -17,7 +17,11 @@ public class SystemVerilogDefinedSignals {
 		H2D_RETSIZE, H2D_DATA, H2D_ACK, H2D_NACK, 
 		L2H_INTR, L2H_HALT, 
 		USR_SIGNAL,
-		LH_INTERFACE, SIGSET
+		LH_INTERFACE, DH_INTERFACE, SIGSET;
+		
+		public boolean isInterface() {
+			return ((this == LH_INTERFACE) || (this == DH_INTERFACE));
+		}
 	};
 	
 	// define io locations
@@ -91,6 +95,7 @@ public class SystemVerilogDefinedSignals {
 		newList.put(DefSignalType.USR_SIGNAL, new SystemVerilogDefinedSignal(DefSignalAssoc.SIGNAL, NONE, NONE, "sig_", null));  // default to no from/to
 		newList.put(DefSignalType.SIGSET, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, NONE, NONE, null, null));
 		newList.put(DefSignalType.LH_INTERFACE, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, LOGIC, HW, "lh_", null)); 
+		newList.put(DefSignalType.DH_INTERFACE, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, DECODE, HW, "dh_", null)); 
 		return newList;
 	}
 	

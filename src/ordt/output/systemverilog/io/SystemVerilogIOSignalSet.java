@@ -45,13 +45,13 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 
 	/** add a new scalar signal to the child list (extended w/ to/from info)
 	 */
-	public void addScalar(Integer from, Integer to, String namePrefix, String name) {
+	protected void addScalar(Integer from, Integer to, String namePrefix, String name) {
 		this.addVector(from, to, namePrefix, name, 0, 1);
 	}
 	
 	/** add a new vector signal to the child list 
 	 */
-	public void addVector(Integer from, Integer to, String namePrefix, String name, int lowIndex, int size) {
+	protected void addVector(Integer from, Integer to, String namePrefix, String name, int lowIndex, int size) {
 		SystemVerilogIOSignal sig = new SystemVerilogIOSignal(from, to, namePrefix, name, lowIndex, size);
 		childList.add(sig);
 		//System.out.println("SystemVerilogIOSignalSet addVector: adding " + name + " to set " + getName());
@@ -60,12 +60,12 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	/** add children of another IOsignallist to this list
 	 * @param sigSet - signalset whose children will be added
 	 */
-	public void addList(SystemVerilogIOSignalSet sigSet) {
+	protected void addList(SystemVerilogIOSignalSet sigSet) {
 		childList.addAll(sigSet.getChildList());  
 	}
 
 	/** add a nested signalset to this signalset */
-	public void addSignalSet(SystemVerilogIOSignalSet newSigSet) {
+	protected void addSignalSet(SystemVerilogIOSignalSet newSigSet) {
 		childList.add(newSigSet);  // add set to signal list 
 		//System.out.println("  SystemVerilogIOSignalSet addSignalSet: new intf=" + newSigSet.getName() + " to " + getName());
 	}

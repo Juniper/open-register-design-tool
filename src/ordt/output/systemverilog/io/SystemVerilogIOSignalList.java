@@ -30,7 +30,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 
 	/** add a new vector signal to the active list */
 	@Override
-	public void addVector(Integer from, Integer to, String tagPrefix, String name, int lowIndex, int size) {
+	protected void addVector(Integer from, Integer to, String tagPrefix, String name, int lowIndex, int size) {
 		if (inhibitAdd()) return;
 		if (activeSetStack.isEmpty()) super.addVector(from, to, tagPrefix, name, lowIndex, size);  // empty stack, so add to this list
 		else activeSetStack.peek().addVector(from, to, tagPrefix, name, lowIndex, size);  // otherwise add to active list
@@ -99,7 +99,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	 * @param extType - externally defined type of this set, if null interface type is defined by path
 	 * @return
 	 */
-	public SystemVerilogIOSignalSet pushIOSignalSet(Integer from, Integer to, String namePrefix, String name, int reps, boolean isFirstRep, boolean isIntf, String extType) {
+	protected SystemVerilogIOSignalSet pushIOSignalSet(Integer from, Integer to, String namePrefix, String name, int reps, boolean isFirstRep, boolean isIntf, String extType) {
 		// first determine if push is inhibited
 		boolean inhibitAdd = inhibitAdd() || !isFirstRep;
 		inhibitInsertStack.push(inhibitAdd);  // always push to the inhibit stack 
@@ -130,11 +130,11 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	}
 
 	/** if initial rep, create a new signal set class, add it to active stack */
-	public SystemVerilogIOSignalSet pushIOSignalSet(Integer from, Integer to, DefSignalType sigType, int reps, boolean isFirstRep, String extType) {
+	public SystemVerilogIOSignalSet pushIOSignalSet(DefSignalType sigType, String name, int reps, boolean isFirstRep, String extType) {
+		Integer from = SystemVerilogDefinedSignals.getFrom(sigType);
+		Integer to = SystemVerilogDefinedSignals.getTo(sigType);
 		String prefix = SystemVerilogDefinedSignals.getPrefix(sigType);
-		String name = SystemVerilogDefinedSignals.getSuffix(sigType);
-		boolean isIntf = (sigType == DefSignalType.LH_INTERFACE);
-		return pushIOSignalSet(from, to, prefix, name,  reps,  isFirstRep,  isIntf,  extType);  
+		return pushIOSignalSet(from, to, prefix, name,  reps,  isFirstRep,  sigType.isInterface(),  extType);  
 	}
 
 	/** done defining signalset, so pop the stacks */
