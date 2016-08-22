@@ -43,13 +43,6 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		String name = SystemVerilogDefinedSignals.getSuffix(sigType);
 		addVector(from, to, prefix, name, lowIndex, size);
 	}
-	
-	/** add a new scalar signal to the active list */
-	public void addScalar(Integer from, Integer to, DefSignalType sigType) {
-		String prefix = SystemVerilogDefinedSignals.getPrefix(sigType);
-		String name = SystemVerilogDefinedSignals.getSuffix(sigType);
-		addVector(from, to, prefix, name, 0, 1);
-	}
 
 	/** add a new vector signal to the active list using defined signal locations */
 	public void addVector(DefSignalType sigType, int lowIndex, int size) {
@@ -57,6 +50,18 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		Integer to = SystemVerilogDefinedSignals.getTo(sigType);
 		addVector(from, to, sigType, lowIndex, size);
 		//System.out.println("SystemVerilogIOSignalList addVector: adding " + sigType + ", from=" + from + ", to=" + to + ", stack empty=" + activeSetStack.isEmpty());
+	}
+
+	/** add a new simple vector (no prefix) */
+	public void addSimpleVector(Integer from, Integer to, String name, int lowIndex, int size) {
+		addVector(from, to, null, name, lowIndex, size);
+	}
+	
+	/** add a new scalar signal to the active list */
+	public void addScalar(Integer from, Integer to, DefSignalType sigType) {
+		String prefix = SystemVerilogDefinedSignals.getPrefix(sigType);
+		String name = SystemVerilogDefinedSignals.getSuffix(sigType);
+		addVector(from, to, prefix, name, 0, 1);
 	}
 	
 	/** add a new scalar signal to the active list  using defined signal locations */
@@ -66,7 +71,12 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		addVector(from, to, sigType, 0, 1);
 		//System.out.println("SystemVerilogIOSignalList addVector: adding " + sigType + ", from=" + from + ", to=" + to + ", stack empty=" + activeSetStack.isEmpty());
 	}
-	
+
+	/** add a new simple scalar (no prefix) */
+	public void addSimpleScalar(Integer from, Integer to, String name) {
+		addVector(from, to, null, name, 0, 1);
+	}
+
 	/** add children of another IOsignallist to this list - use only in post signal build stage
 	 * as the active stack is cleared
 	 * @param sigSet - signalset to be added

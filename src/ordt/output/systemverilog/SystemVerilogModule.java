@@ -11,8 +11,10 @@ import java.util.List;
 
 import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
-import ordt.output.systemverilog.oldio.SystemVerilogIOSignal;
-import ordt.output.systemverilog.oldio.SystemVerilogIOSignalList;
+//import ordt.output.systemverilog.oldio.SystemVerilogIOSignal;
+//import ordt.output.systemverilog.oldio.SystemVerilogIOSignalList;
+import ordt.output.systemverilog.io.SystemVerilogIOSignal;
+import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.parameters.ExtParameters;
 
 /** system verilog module generation class
@@ -376,14 +378,14 @@ public class SystemVerilogModule {
 	public void addVectorTo(Integer to, String name, int lowIndex, int size) {
 		SystemVerilogIOSignalList sigList = ioHash.get(to);  // get the siglist
 		if (sigList == null) return;
-		sigList.addVector(insideLocs, to, name, lowIndex, size); 
+		sigList.addSimpleVector(insideLocs, to, name, lowIndex, size); 
 	}
 
 	/** add a new vector IO signal from the specified external location */
 	public void addVectorFrom(Integer from, String name, int lowIndex, int size) {
 		SystemVerilogIOSignalList sigList = ioHash.get(from);  // get the siglist
 		if (sigList == null) return;
-		sigList.addVector(from, insideLocs, name, lowIndex, size); 
+		sigList.addSimpleVector(from, insideLocs, name, lowIndex, size); 
 	}
 	
     /** add a freeform statement to this module */

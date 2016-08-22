@@ -20,8 +20,10 @@ import ordt.output.OutputBuilder;
 import ordt.output.RegProperties;
 import ordt.output.RhsReference;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
-import ordt.output.systemverilog.oldio.SystemVerilogIOSignal;
-import ordt.output.systemverilog.oldio.SystemVerilogIOSignalList;
+//import ordt.output.systemverilog.oldio.SystemVerilogIOSignal;
+//import ordt.output.systemverilog.oldio.SystemVerilogIOSignalList;
+import ordt.output.systemverilog.io.SystemVerilogIOSignal;
+import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.output.FieldProperties.RhsRefType;
 import ordt.output.InstanceProperties.ExtType;
 import ordt.parameters.ExtParameters;
@@ -299,22 +301,16 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   // if new interface then add it to logic-hw list
 		   startNewInterfaces(regProperties);
 		   
-		   // create verilog names
-		   String decodeToLogicName = regProperties.getFullSignalName(DefSignalType.D2L_DATA);   
-		   String logicToDecodeName = regProperties.getFullSignalName(DefSignalType.L2D_DATA); 
-		   String swWeName = regProperties.getFullSignalName(DefSignalType.D2L_WE); 
-		   String swReName = regProperties.getFullSignalName(DefSignalType.D2L_RE); 
-		   
 		   // add to verilog structure lists
-		   intSigList.addVector(DECODE, LOGIC, decodeToLogicName, 0, regProperties.getRegWidth());    // add write data to decode to logic signal list 
-		   intSigList.addScalar(DECODE, LOGIC, swWeName);    // add we to decode to logic signal list 
-		   intSigList.addScalar(DECODE, LOGIC, swReName);    // add re to decode to logic signal list 
-		   intSigList.addVector(LOGIC, DECODE, logicToDecodeName, 0, regProperties.getRegWidth());    // add read data to logic to decode signal list 
+		   intSigList.addVector(DefSignalType.D2L_DATA, 0, regProperties.getRegWidth());    // add write data to decode to logic signal list 
+		   intSigList.addScalar(DefSignalType.D2L_WE);    // add we to decode to logic signal list 
+		   intSigList.addScalar(DefSignalType.D2L_RE);    // add re to decode to logic signal list 
+		   intSigList.addVector(DefSignalType.L2D_DATA, 0, regProperties.getRegWidth());    // add read data to logic to decode signal list 
 		   
 		   // if register has an interrupt output then add and initialize
 		   if (regProperties.hasInterruptOutputDefined()) {
 			   String intName = regProperties.getFullSignalName(DefSignalType.L2H_INTR); 
-			   hwSigList.addScalar(LOGIC, HW, intName);    // add intr output signal  
+			   hwSigList.addScalar(DefSignalType.L2H_INTR);    // add intr output signal  
 			   logic.addScalarReg(intName);  
 			   logic.addCombinAssign(regProperties.getBaseName(), intName + " = 1'b0;");    // init interrupt to 0
 		   }
@@ -474,20 +470,20 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	private void loadCntlSigList() {
 		// if using a gated clock for logic add it
 		if (ExtParameters.systemverilogUseGatedLogicClk()) {
-			cntlSigList.addScalar(HW, DECODE, decodeClk);
-			cntlSigList.addScalar(HW, LOGIC, logicClk);
+			cntlSigList.addSimpleScalar(HW, DECODE, decodeClk);
+			cntlSigList.addSimpleScalar(HW, LOGIC, logicClk);
 		}
 		// otherwise add single clock to both internal modules
-		else cntlSigList.addScalar(HW, LOGIC|DECODE, decodeClk);
+		else cntlSigList.addSimpleScalar(HW, LOGIC|DECODE, decodeClk);
 		
 		// defined resets to input list 
 		if (logicReset != null)
-			cntlSigList.addScalar(HW, DECODE, defaultReset);  // logic module has its own reset so add separate decode module reset
+			cntlSigList.addSimpleScalar(HW, DECODE, defaultReset);  // logic module has its own reset so add separate decode module reset
 		else
-			cntlSigList.addScalar(HW, DECODE|LOGIC, defaultReset);  // else a common reset
+			cntlSigList.addSimpleScalar(HW, DECODE|LOGIC, defaultReset);  // else a common reset
 		// add non-default logic resets
 		for (String reset :logic.getRegisters().getResets().keySet())
-			if (!reset.equals(defaultReset)) cntlSigList.addScalar(HW, LOGIC, reset);
+			if (!reset.equals(defaultReset)) cntlSigList.addSimpleScalar(HW, LOGIC, reset);
 	}
 	
 	/** initialize module info at end of builder extract */
@@ -555,7 +551,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 				   // else no hw we/control sigs, so hw data value is just passed in (no register)
 				   else {
 					   logic.addVectorReg(fieldRegisterName, 0, fieldProperties.getFieldWidth());  // add field register to define list
-					   hwSigList.addVector(HW, LOGIC, hwToLogicDataName, 0, fieldProperties.getFieldWidth());  // add write data input
+					   hwSigList.addVector(DefSignalType.H2L_DATA, 0, fieldProperties.getFieldWidth());  // add write data input
 					   logic.addCombinAssign(regProperties.getBaseName(), fieldRegisterName + " =  " + hwToLogicDataName + ";");
 				   }
 			   }
@@ -611,7 +607,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   String fieldRegisterNextName = fieldProperties.getFullSignalName(DefSignalType.FIELD_NEXT);  //"reg_" + hwBaseName + "_next";
 		   
 		   // if hw is writable add the write data input
-		   if (fieldProperties.isHwWriteable()) hwSigList.addVector(HW, LOGIC, hwToLogicDataName, 0, fieldProperties.getFieldWidth());
+		   if (fieldProperties.isHwWriteable()) hwSigList.addVector(DefSignalType.H2L_DATA, 0, fieldProperties.getFieldWidth());
 
 		   // first set default next value, if hw write w/o enable use hw data
 		   if (fieldProperties.isHwWriteable()  && !fieldProperties.hasHwWriteControl() && !fieldProperties.isCounter()) 
@@ -776,7 +772,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   // if has sw access output
 		   if (fieldProperties.hasSwAcc()) {
 			   String logicToHwSwAccName = fieldProperties.getFullSignalName(DefSignalType.L2H_SWACC);
-			   hwSigList.addScalar(LOGIC, HW, logicToHwSwAccName);   // add sw access output
+			   hwSigList.addScalar(DefSignalType.L2H_SWACC);   // add sw access output
 			   logic.addScalarReg(logicToHwSwAccName);  
 			   logic.addPrecCombinAssign(regBaseName, swPrecedence, logicToHwSwAccName + 
 					   " = " + decodeToLogicReName + " | " + decodeToLogicWeName + ";");
@@ -784,7 +780,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   // if has sw modify output
 		   if (fieldProperties.hasSwMod()) {
 			   String logicToHwSwModName = fieldProperties.getFullSignalName(DefSignalType.L2H_SWMOD);
-			   hwSigList.addScalar(LOGIC, HW, logicToHwSwModName);   // add sw access output
+			   hwSigList.addScalar(DefSignalType.L2H_SWMOD);   // add sw access output
 			   logic.addScalarReg(logicToHwSwModName); 
 			   String readMod = (fieldProperties.isRclr() || fieldProperties.isRset())? "(" + decodeToLogicReName + " | " + decodeToLogicWeName + ")" : decodeToLogicWeName;
 			   logic.addPrecCombinAssign(regBaseName, swPrecedence, logicToHwSwModName + " = " + readMod + swWeStr + ";");
@@ -802,7 +798,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   String intrOutput = regProperties.getFullSignalName(DefSignalType.L2H_INTR);
 		   if (!regProperties.hasInterruptOutputDefined()) {
 			   regProperties.setHasInterruptOutputDefined(true);
-			   hwSigList.addScalar(LOGIC, HW, intrOutput);   // add hw interrupt output
+			   hwSigList.addScalar(DefSignalType.L2H_INTR);   // add hw interrupt output
 			   logic.addScalarReg(intrOutput);
 		       logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, intrOutput + " = 1'b0;");  // default to intr off
 		   }
@@ -811,7 +807,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   String haltOutput = regProperties.getFullSignalName(DefSignalType.L2H_HALT);
 		   if (fieldProperties.isHalt() && !regProperties.hasHaltOutputDefined()) {
 			   regProperties.setHasHaltOutputDefined(true);
-			   hwSigList.addScalar(LOGIC, HW, haltOutput);   // add hw interrupt output
+			   hwSigList.addScalar(DefSignalType.L2H_HALT);   // add hw interrupt output
 			   logic.addScalarReg(haltOutput);
 		       logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, haltOutput + " = 1'b0;");  // default to halt off
 		   }
@@ -826,7 +822,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   }
 		   // otherwise, if next property isn't set then add an intr input
 		   else if (!fieldProperties.hasRef(RhsRefType.NEXT)) {
-			   hwSigList.addVector(HW, LOGIC, hwToLogicIntrName, 0, fieldProperties.getFieldWidth());   // add hw interrupt input
+			   hwSigList.addVector(DefSignalType.H2L_INTR, 0, fieldProperties.getFieldWidth());   // add hw interrupt input
 			   logic.addVectorWire(hwToLogicIntrName, 0, fieldProperties.getFieldWidth());			   
 		   }
 
@@ -925,7 +921,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			   
 			   // add overflow output
 			   if (fieldProperties.hasOverflow()) {
-				   hwSigList.addScalar(LOGIC, HW, logicToHwOverflowName);   // add hw overflow output
+				   hwSigList.addScalar(DefSignalType.L2H_OVERFLOW);   // add hw overflow output
 				   logic.addScalarReg(logicToHwOverflowName);  
 				   logic.addRegAssign(regProperties.getBaseName(), logicToHwOverflowName +
 						   " <= #1 " + nextCountName + "[" + fieldWidth + "] & ~" +  logicToHwOverflowName + ";");  // only active for one cycle  
@@ -948,7 +944,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			   
 			   // add underflow output
 			   if (fieldProperties.hasUnderflow()) {
-				   hwSigList.addScalar(LOGIC, HW, logicToHwUnderflowName);   // add hw underflow output
+				   hwSigList.addScalar(DefSignalType.L2H_UNDERFLOW);   // add hw underflow output
 				   logic.addScalarReg(logicToHwUnderflowName);  
 				   logic.addRegAssign(regProperties.getBaseName(), logicToHwUnderflowName +
 						   " <= #1 " + nextCountName + "[" + fieldWidth + "] & ~" +  logicToHwUnderflowName + ";");  // only active for one cycle  
@@ -982,7 +978,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + nextCountName + " > " + incrSatValueString + ")");
 			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "   " + nextCountName + " = "  + incrSatValueString + ";");
 			   // add incrsat output
-			   if (fieldProperties.hasSaturateOutputs()) hwSigList.addScalar(LOGIC, HW, logicToHwIncrSatName);   // add hw incrsaturate output
+			   if (fieldProperties.hasSaturateOutputs()) hwSigList.addScalar(DefSignalType.L2H_INCRSAT);   // add hw incrsaturate output
 			   logic.addScalarReg(logicToHwIncrSatName);  
 			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, logicToHwIncrSatName + " = ( {1'b0, " + fieldRegisterName + "} == " + incrSatValueString + ");");
 		   }
@@ -1002,7 +998,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 				   incrTholdValueString = regNum.toString();
 			   }
 			   // add incrthold output
-			   hwSigList.addScalar(LOGIC, HW, logicToHwIncrTholdName);   // add hw incrthreshold output
+			   hwSigList.addScalar(DefSignalType.L2H_INCRTHOLD);   // add hw incrthreshold output
 			   logic.addScalarReg(logicToHwIncrTholdName);  
 			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, logicToHwIncrTholdName + " = ( {1'b0, " + fieldRegisterName + "} == " + incrTholdValueString + ");");
 		   }
@@ -1025,7 +1021,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + nextCountName + " < " + decrSatValueString + ")");
 			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "   " + nextCountName + " = "  + decrSatValueString + ";");
 			   // add decrsat output
-			   if (fieldProperties.hasSaturateOutputs()) hwSigList.addScalar(LOGIC, HW, logicToHwDecrSatName);   // add hw decrsaturate output
+			   if (fieldProperties.hasSaturateOutputs()) hwSigList.addScalar(DefSignalType.L2H_DECRSAT);   // add hw decrsaturate output
 			   logic.addScalarReg(logicToHwDecrSatName);  
 			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, logicToHwDecrSatName + " = ( {1'b0, " + fieldRegisterName + "} == " + decrSatValueString + ");");
 		   }
@@ -1045,7 +1041,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 				   decrTholdValueString = regNum.toString();
 			   }
 			   // add decrthold output
-			   hwSigList.addScalar(LOGIC, HW, logicToHwDecrTholdName);   // add hw decrthreshold output
+			   hwSigList.addScalar(DefSignalType.L2H_DECRTHOLD);   // add hw decrthreshold output
 			   logic.addScalarReg(logicToHwDecrTholdName);  
 			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, logicToHwDecrTholdName + " = ( {1'b0, " + fieldRegisterName + "} == " + decrTholdValueString + ");");
 		   }
@@ -1061,7 +1057,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		String hwToLogicIncrValueName = fieldProperties.getFullSignalName(DefSignalType.H2L_INCRVALUE);  // hwBaseName + "_incrvalue" 
 		Integer incrWidth = fieldProperties.getIncrWidth();
 		if (incrWidth != null) {  // if an external input is specified
-			hwSigList.addVector(HW, LOGIC, hwToLogicIncrValueName, 0, incrWidth);   // add hw incr value input
+			hwSigList.addVector(DefSignalType.H2L_INCRVALUE, 0, incrWidth);   // add hw incr value input
 			incrValueString = "{" + (countWidth - incrWidth) + "'b0, " + hwToLogicIncrValueName + "}";
 		}
 		else if (fieldProperties.hasRef(RhsRefType.INCR_VALUE)) {  // if a reference is specified
@@ -1082,7 +1078,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		String hwToLogicDecrValueName = fieldProperties.getFullSignalName(DefSignalType.H2L_DECRVALUE);  // hwBaseName + "_decrvalue" 
 		Integer decrWidth = fieldProperties.getDecrWidth();
 		if (decrWidth != null) {  // if an external input is specified
-			hwSigList.addVector(HW, LOGIC, hwToLogicDecrValueName, 0, decrWidth);   // add hw decr value input
+			hwSigList.addVector(DefSignalType.H2L_DECRVALUE, 0, decrWidth);   // add hw decr value input
 			decrValueString = "{" + (countWidth - decrWidth) + "'b0, " + hwToLogicDecrValueName + "}";
 		}
 		else if (fieldProperties.hasRef(RhsRefType.DECR_VALUE)) {  // if a reference is specified
@@ -1109,7 +1105,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   // if hw readable, add the interface and set output
 		   if (fieldProperties.isHwReadable()) {
 			   // add read signals from logic to hw
-			   hwSigList.addVector(LOGIC, HW,  logicToHwDataName, 0, fieldProperties.getFieldWidth());    // logic to hw list 
+			   hwSigList.addVector(DefSignalType.L2H_DATA, 0, fieldProperties.getFieldWidth());    // logic to hw list 
 			   
 			   // assign hw read data outputs
 			   logic.addVectorReg(logicToHwDataName, 0, fieldProperties.getFieldWidth());  // add outputs to define list since we'll use block assign
@@ -1130,19 +1126,19 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   
 		   // anded output
 		   if (fieldProperties.isAnded()) {
-			   hwSigList.addScalar(LOGIC, HW, logicToHwAndedName);    // logic to hw list 
+			   hwSigList.addScalar(DefSignalType.L2H_ANDED);    // logic to hw list 
 			   logic.addScalarReg(logicToHwAndedName);  // add outputs to define list since we'll use block assign
 			   logic.addCombinAssign(regProperties.getBaseName(), logicToHwAndedName + " = & " + fieldRegisterName + ";");  			   
 		   }
 		   // ored output
 		   if (fieldProperties.isOred()) {
-			   hwSigList.addScalar(LOGIC, HW, logicToHwOredName);    // logic to hw list 
+			   hwSigList.addScalar(DefSignalType.L2H_ORED);    // logic to hw list 
 			   logic.addScalarReg(logicToHwOredName);  // add outputs to define list since we'll use block assign
 			   logic.addCombinAssign(regProperties.getBaseName(), logicToHwOredName + " = | " + fieldRegisterName + ";");  			   
 		   }
 		   // xored output
 		   if (fieldProperties.isXored()) {
-			   hwSigList.addScalar(LOGIC, HW, logicToHwXoredName);    // logic to hw list 
+			   hwSigList.addScalar(DefSignalType.L2H_XORED);    // logic to hw list 
 			   logic.addScalarReg(logicToHwXoredName);  // add outputs to define list since we'll use block assign
 			   logic.addCombinAssign(regProperties.getBaseName(), logicToHwXoredName + " = ^ " + fieldRegisterName + ";");  			   
 		   }
