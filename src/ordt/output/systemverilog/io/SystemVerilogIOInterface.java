@@ -18,13 +18,13 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 		super(tagPrefix, name, reps);
 		this.from = from;
 		this.to = to;
-		this.type = hasExtType? type : getFullName(type, true);  // if not an ext type then build from path
+		this.type = hasExtType? type : getFullName(type, true) + "_intf";  // if not an ext type then build from path
 	}
 
 	/** returns true if this element is virtual (ie not an actually group in systemverilog output).
 	 *  This method is overridden in child classes */
     @Override
-	protected boolean isVirtual() { return false; }
+	public boolean isVirtual() { return false; }
 
     /** return a list of definitions for this sigset - overriden in SignalSet child classses  */  
     @Override

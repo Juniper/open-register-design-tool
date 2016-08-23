@@ -17,6 +17,7 @@ import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.output.systemverilog.SystemVerilogModule;
 import ordt.output.systemverilog.SystemVerilogSignal;
+import ordt.output.systemverilog.io.SystemVerilogIOElement;
 //import ordt.output.systemverilog.oldio.SystemVerilogIOSignal;
 //import ordt.output.systemverilog.oldio.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.io.SystemVerilogIOSignal;
@@ -457,17 +458,17 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		leafbfm.useIOList(pioSigList, null);  // null location since will use list as-is 
 		
 		// define all outputs as reg
-		List<SystemVerilogIOSignal> outputs = leafbfm.getOutputList();
-		for (SystemVerilogIOSignal sig: outputs) {
-			leafbfm.addVectorReg(sig.getName(), sig.getLowIndex(), sig.getSize());
+		List<SystemVerilogIOElement> outputs = leafbfm.getOutputList();
+		for (SystemVerilogIOElement sig: outputs) {
+			if (!sig.isSignalSet()) leafbfm.addVectorReg(sig.getName(), ((SystemVerilogIOSignal) sig).getLowIndex(), ((SystemVerilogIOSignal) sig).getSize());
 		}
 		// define internal regs
 		leafbfm.addVectorReg("trans_size", 0, dataSizeBits);
 
 		// init outputs from leaf bfm
 		leafbfm.addStatement("initial begin");
-		for (SystemVerilogIOSignal sig: outputs) {
-			leafbfm.addStatement("  " + sig.getName() + " = 0;");
+		for (SystemVerilogIOElement sig: outputs) {
+			if (!sig.isSignalSet()) leafbfm.addStatement("  " + sig.getName() + " = 0;");
 		}
 	   	leafbfm.addStatement("end");
 	   	leafbfm.addStatement("");

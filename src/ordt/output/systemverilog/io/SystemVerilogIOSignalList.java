@@ -145,18 +145,40 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	 
 	// -------
 
+	/** return a flat list of simple SystemVerilogIOElement with full generated names for this signalset - recursively builds names top down 
+	 *  and should be called from root of signal list (assumes addTagPrefix=true, stopOnNonVirtualSets=false, validEncap=true) 
+	 * @param fromLoc - only signals matching from will be returned
+	 * @param toLoc - only signals matching to will be returned
+	 * @return - list of SystemVerilogIOSignal
+	 */
+	public List<SystemVerilogIOElement> getIOElementList(Integer fromLoc, Integer toLoc) {
+		return getIOElementList(fromLoc, toLoc, null, true, false, true, false);
+	}
+	
+	/** return a flat list of simple SystemVerilogSignal with full generated names for this signalset. 
+	 *  Generates a list of SystemVerilogIOElement and then converts to SystemVerilogSignal -
+	 *  should be called from root of signal list
+	 * @param fromLoc - only signals matching from will be returned
+	 * @param toLoc - only signals matching to will be returned
+	 * @return - list of SystemVerilogSignal
+	 */
+	public List<SystemVerilogSignal> getSignalList(Integer fromLoc, Integer toLoc) {
+		List<SystemVerilogIOElement> IOElems = getIOElementList(fromLoc, toLoc);
+		return getSignalList(IOElems);
+	}
+
 	/** return a list of flat simple signals that are encapsulated in interfaces (no root sigs) - recursive *  was getIntfEncapsulatedSignalList
 	 *  <--- this is from SVIOSignalList, gets list of full signals in interfaces
 	 * @param insideLocations - encapsulated signals from and to this location are returned
 	 */
-	public List<SystemVerilogSignal> getEncapsulatedSignalList(int insideLocations) {
-		List<SystemVerilogSignal> outList = new ArrayList<SystemVerilogSignal>();
+	public List<SystemVerilogIOSignal> getEncapsulatedSignalList(int insideLocations) {
+		List<SystemVerilogIOSignal> outList = new ArrayList<SystemVerilogIOSignal>();
 		for (SystemVerilogIOElement ioElem: childList) {
 			// if this element is a sigset, call recursively to get all encapsulated signals
 			if (ioElem.isSignalSet()) {
 				SystemVerilogIOSignalSet ioSigSet = (SystemVerilogIOSignalSet) ioElem;
 				//System.err.println("   SystemVerilogIOSignalList getEncapsulatedSignalList: name=" + ioElem.getName());
-				List<SystemVerilogSignal> newList = ioSigSet.getEncapsulatedSignalList(null, insideLocations);  // get inputs
+				List<SystemVerilogIOSignal> newList = ioSigSet.getEncapsulatedSignalList(null, insideLocations);  // get inputs
 				outList.addAll(newList);
 				newList = ioSigSet.getEncapsulatedSignalList(insideLocations, null);  // get outputs
 				outList.addAll(newList);

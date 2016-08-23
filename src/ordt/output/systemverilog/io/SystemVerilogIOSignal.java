@@ -47,6 +47,15 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
         //System.out.println("SystemVerilogIOSignal getInstanceString: addTagPrefix=" + addTagPrefix + ", fullName=" + getFullName(null, addTagPrefix));
 		return getType() + " " + getDefArray() + getFullName(null, addTagPrefix) + ";";
 	}
+	
+	/** return sv string used in definition of this element in input/output lists - assumes element name is full instance name 
+	 *   includes type if non-virtual sigset, name, and array *
+	 *   @param addTagPrefix - if true signal tag prefix will be added to name
+	 *   @param sigIOType - this string will be used as IO define type for IOSignals */
+	@Override
+	public String getIODefString(boolean addTagPrefix, String sigIOType) {
+		return sigIOType + " " + getDefArray() + getFullName(null, addTagPrefix);
+	}
 
 	/** return a simple IOElement with full generated name */
 	@Override

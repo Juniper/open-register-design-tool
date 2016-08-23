@@ -20,10 +20,12 @@ import ordt.output.OutputBuilder;
 import ordt.output.RegProperties;
 import ordt.output.RhsReference;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.io.SystemVerilogIOInterface;
 //import ordt.output.systemverilog.oldio.SystemVerilogIOSignal;
 //import ordt.output.systemverilog.oldio.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.io.SystemVerilogIOSignal;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
+import ordt.output.systemverilog.io.SystemVerilogIOSignalSet;
 import ordt.output.FieldProperties.RhsRefType;
 import ordt.output.InstanceProperties.ExtType;
 import ordt.parameters.ExtParameters;
@@ -1515,22 +1517,19 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	/** write out the interface defines */
 	protected  void writeInterfaces() {
 		// get a list of all sv interfaces to be defined
-		List<SystemVerilogIOSignal> intfSigs = hwSigList.getIntfsToBeDefined();
+		List<SystemVerilogIOSignalSet> sigSets = hwSigList.getNonVirtualSignalSets(true);
 		//System.out.println("SystemVerilogBuilder writeInterfaces: found " + intfSigs.size() + " interfaces");
-		for (SystemVerilogIOSignal intfSig : intfSigs) writeInterface(intfSig);
+		for (SystemVerilogIOSignalSet sset : sigSets) writeIOSignalSetDefine(sset);
 	}
 
 	/** write out an interface define */
-	private void writeInterface(SystemVerilogIOSignal intfSig) {
+	private void writeIOSignalSetDefine(SystemVerilogIOSignalSet sset) {
 		int indentLevel = 0;
 		// set interface name and list of sigs
-		String intfName = intfSig.getInterfaceDefName();
-		List<String> intfDefStrings = intfSig.getIntfDefStrings();
+		List<String> intfDefStrings = sset.getDefStrings();
 		// write the interface
 		if (intfDefStrings.size() > 0) {
-			writeInterfaceBegin(indentLevel++, intfName);
 			for (String defStr: intfDefStrings) writeStmt(indentLevel, defStr);   
-			writeInterfaceEnd(--indentLevel);
 		}
 		//System.out.println("SystemVerilogBuilder writeInterface: " + intfName + ", def str n=" + intfDefStrings.size());	
 	}
@@ -1551,8 +1550,8 @@ public class SystemVerilogBuilder extends OutputBuilder {
         // create mappings from top module to wrapper IO
 		SystemVerilogIOSignalList wrapperIOList = intfWrapper.getFullIOSignalList();  
 		//System.out.println("SystemVerilogBuilder writeInterfaceWrapper: wrapper n=" + wrapperIOList.size());	
-		intfWrapper.addWireDefs(wrapperIOList.getIntfEncapsulatedSignalList(LOGIC|DECODE));
-		intfWrapper.addWireAssigns(wrapperIOList.getInterfaceAssignStrList(LOGIC|DECODE));  // sig to intf assigns
+		intfWrapper.addWireDefs(wrapperIOList.getEncapsulatedSignalList(LOGIC|DECODE));
+		intfWrapper.addWireAssigns(wrapperIOList.getNonVirtualAssignStrings(LOGIC|DECODE));  // sig to intf assigns
 
 		intfWrapper.write();  // write the wrapper using interfaces			
 	}

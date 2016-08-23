@@ -9,11 +9,11 @@ public abstract class SystemVerilogIOElement {
 	Integer from, to = 0;  // direction of this signal/signalset
 
 	/** returns true if this element is a set */
-	protected boolean isSignalSet() { return false; }
+	public boolean isSignalSet() { return false; }
 	
 	/** returns true if this element is virtual (ie not an actually group in systemverilog output).
 	 *  This method is overridden in child classes */
-	protected boolean isVirtual() { return false; }
+	public boolean isVirtual() { return false; }
 
 	/** return true if location specified is in from locations for this io element */
 	public Boolean isFrom(Integer loc) {
@@ -84,8 +84,15 @@ public abstract class SystemVerilogIOElement {
 	/** return type string for this element */
 	public abstract String getType();
 	
-	/** return sv string instancing this element - assumes element name is full instance name */
+	/** return sv string instancing this element - assumes element name is full instance name 
+	 *   includes type, name, array, semi eol */
 	public abstract String getInstanceString(boolean addTagPrefix);
+	
+	/** return sv string used in definition of this element in input/output lists - assumes element name is full instance name 
+	 *   includes type if non-virtual sigset, name, and array *
+	 *   @param addTagPrefix - if true signal tag prefix will be added to name
+	 *   @param sigIOType - this string will be used as IO define type for IOSignals */
+	public abstract String getIODefString(boolean addTagPrefix, String sigIOType);
 
 	/** return a simple IOSignal with full generated name for this element */
 	public abstract SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix);  
