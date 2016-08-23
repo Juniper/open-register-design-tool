@@ -27,7 +27,7 @@ import ordt.parameters.ExtParameters;
 public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	
     // define a new list to handle bench specific IO 
-	protected SystemVerilogIOSignalList benchSigList = new SystemVerilogIOSignalList();   // signals specific to the bench
+	protected SystemVerilogIOSignalList benchSigList = new SystemVerilogIOSignalList("bench");   // signals specific to the bench
 	// module defines  
 	protected SystemVerilogModule leafbfm = new SystemVerilogModule(this, PIO, defaultClk);  // leaf bfm
 	protected SystemVerilogModule benchtop = new SystemVerilogModule(this, PIO|HW|DECODE|LOGIC, defaultClk);  // bench top module

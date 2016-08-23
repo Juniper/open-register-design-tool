@@ -12,9 +12,6 @@ import java.util.List;
 import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
 import ordt.output.systemverilog.io.SystemVerilogIOElement;
-//import ordt.output.systemverilog.oldio.SystemVerilogIOSignal;
-//import ordt.output.systemverilog.oldio.SystemVerilogIOSignalList;
-import ordt.output.systemverilog.io.SystemVerilogIOSignal;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.parameters.ExtParameters;
 
@@ -151,10 +148,6 @@ public class SystemVerilogModule {
 		if (addDefinedSignal(name)) wireDefList.addScalar(name);	
 	}
 
-	public void addWireDefs(List<SystemVerilogIOSignal> wirelist) {  // FIXME
-		addWireDefs(wirelist.getSignalList());		
-	}
-
     /** add a list of signals to the wire def list - unroll the loop for uniqueness check */
 	public void addWireDefs(List<SystemVerilogSignal> wireList) {
 		for (SystemVerilogSignal sig : wireList) addVectorWire(sig.getName(), sig.getLowIndex(), sig.getSize());
@@ -234,7 +227,7 @@ public class SystemVerilogModule {
 
 	/** return a single combined IO List for the module */
 	public SystemVerilogIOSignalList getFullIOSignalList() {
-		SystemVerilogIOSignalList retList = new SystemVerilogIOSignalList();	
+		SystemVerilogIOSignalList retList = new SystemVerilogIOSignalList("full");	
 		// add io lists
 		for (SystemVerilogIOSignalList list : ioList)
 		   retList.addList(list);
@@ -500,7 +493,7 @@ public class SystemVerilogModule {
 		}
 		// write IO definitions  // TODO - using legacy vlog format if no interfaces for compatibility
 		if (useInterfaces) builder.writeStmts(indentLevel+1, getIODefStrList());   // sv format
-		else builder.writeStmts(0, getLegacyIODefStrList());  //vlog format
+		else builder.writeStmts(0, getLegacyIODefStrList());  //vlog format  getLegacyIODefStrList()  // TODO
 		builder.writeStmt(0, "");
 	}
 

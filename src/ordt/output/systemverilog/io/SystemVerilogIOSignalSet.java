@@ -3,8 +3,6 @@ package ordt.output.systemverilog.io;
 import java.util.ArrayList;
 import java.util.List;
 
-import ordt.output.systemverilog.SystemVerilogSignal;
-
 public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	protected List<SystemVerilogIOElement> childList = new ArrayList<SystemVerilogIOElement>(); // signals/signalsets in this signalset
 	protected String type = null;   // type of this signalset  
@@ -182,25 +180,6 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		return getIOElementList(fromLoc, toLoc, null, true, false, false, false);
 	}
 
-	// ---- methods returning SystemVerilogSignal lists
-
-	/** convert a flat list of SystemVerilogIOElement to a list of SystemVerilogSignal with full generated names for this signalset. 
-	 * @return - list of SystemVerilogSignal
-	 */
-	public List<SystemVerilogSignal> getSignalList(List<SystemVerilogIOElement> ioElemList) {
-		List<SystemVerilogSignal> outList = new ArrayList<SystemVerilogSignal>();
-		//System.out.println("  SystemVerilogInterface getSignalList: sigs size=" + sigs.size());
-		for (SystemVerilogIOElement ioElem : ioElemList) {
-			if (ioElem.isSignalSet())
-			    outList.add(new SystemVerilogSignal(ioElem.getFullName(null, true), 0, 1));
-			else {
-				SystemVerilogIOSignal ioSig = (SystemVerilogIOSignal) ioElem;
-			    outList.add(new SystemVerilogSignal(ioSig.getFullName(null, true), ioSig.getLowIndex(), ioSig.getSize()));
-			}
-		}
-		//System.out.println("  SystemVerilogIOSignalSet getSignalList: output size=" + outList.size());
-		return outList;
-	}	
  
 	// ------- methods returning IOSignalSets
 	

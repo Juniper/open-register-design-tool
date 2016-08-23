@@ -20,10 +20,6 @@ import ordt.output.OutputBuilder;
 import ordt.output.RegProperties;
 import ordt.output.RhsReference;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
-import ordt.output.systemverilog.io.SystemVerilogIOInterface;
-//import ordt.output.systemverilog.oldio.SystemVerilogIOSignal;
-//import ordt.output.systemverilog.oldio.SystemVerilogIOSignalList;
-import ordt.output.systemverilog.io.SystemVerilogIOSignal;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalSet;
 import ordt.output.FieldProperties.RhsRefType;
@@ -65,10 +61,10 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	protected boolean usesInterfaces = false;  // detect if sv interfaces are needed  
 
     // define IO lists
-	protected SystemVerilogIOSignalList cntlSigList = new SystemVerilogIOSignalList();   // clocks/resets
-	protected SystemVerilogIOSignalList hwSigList = new SystemVerilogIOSignalList();     // logic/decode to/from hw
-	protected SystemVerilogIOSignalList pioSigList = new SystemVerilogIOSignalList();    // pio to/from decoder
-	protected SystemVerilogIOSignalList intSigList = new SystemVerilogIOSignalList();    // logic to/from decoder
+	protected SystemVerilogIOSignalList cntlSigList = new SystemVerilogIOSignalList("cntl");   // clocks/resets
+	protected SystemVerilogIOSignalList hwSigList = new SystemVerilogIOSignalList("hw");     // logic/decode to/from hw
+	protected SystemVerilogIOSignalList pioSigList = new SystemVerilogIOSignalList("pio");    // pio to/from decoder
+	protected SystemVerilogIOSignalList intSigList = new SystemVerilogIOSignalList("internal");    // logic to/from decoder
 	
 	// module defines  
 	protected SystemVerilogDecodeModule decoder = new SystemVerilogDecodeModule(this, DECODE, decodeClk);
@@ -304,10 +300,10 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   startIOHierarchy(regProperties);
 		   
 		   // add to verilog structure lists
-		   intSigList.addVector(DefSignalType.D2L_DATA, 0, regProperties.getRegWidth());    // add write data to decode to logic signal list 
-		   intSigList.addScalar(DefSignalType.D2L_WE);    // add we to decode to logic signal list 
-		   intSigList.addScalar(DefSignalType.D2L_RE);    // add re to decode to logic signal list 
-		   intSigList.addVector(DefSignalType.L2D_DATA, 0, regProperties.getRegWidth());    // add read data to logic to decode signal list 
+		   intSigList.addSimpleVector(DefSignalType.D2L_DATA, regProperties.getBaseName(), 0, regProperties.getRegWidth());    // add write data to decode to logic signal list 
+		   intSigList.addSimpleScalar(DefSignalType.D2L_WE, regProperties.getBaseName());    // add we to decode to logic signal list 
+		   intSigList.addSimpleScalar(DefSignalType.D2L_RE, regProperties.getBaseName());    // add re to decode to logic signal list 
+		   intSigList.addSimpleVector(DefSignalType.L2D_DATA, regProperties.getBaseName(), 0, regProperties.getRegWidth());    // add read data to logic to decode signal list 
 		   
 		   // if register has an interrupt output then add and initialize
 		   if (regProperties.hasInterruptOutputDefined()) {

@@ -13,13 +13,19 @@ import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 /** this is the main class used to hold IO lists for building sv modules.
  * maintains a stack of active signalsets where new signals/sets will be added by svbuilder */
 public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
+	private String listName;
 
-	public SystemVerilogIOSignalList() {
+	public SystemVerilogIOSignalList(String listName) {
 		super(null, null, 1);  // IOsignalList has no tag, no name and one rep
+		this.listName = listName;
 	}
 
 	private Stack<SystemVerilogIOSignalSet> activeSetStack = new Stack<SystemVerilogIOSignalSet>();  // track active signalsets for inserts 
 	private Stack<Boolean> inhibitInsertStack = new Stack<Boolean>();  // track insert inhibited signalsets (inhibit subsequent reps) 
+
+	public String getListName() {
+		return listName;
+	}
 	
 	// --------------- child signal/interface add methods 
 	
@@ -28,13 +34,15 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		return (!inhibitInsertStack.isEmpty() && inhibitInsertStack.peek());
 	}
 
+	// --- add vectors
+	
 	/** add a new vector signal to the active list */
 	@Override
 	protected void addVector(Integer from, Integer to, String tagPrefix, String name, int lowIndex, int size) {
 		if (inhibitAdd()) return;
 		if (activeSetStack.isEmpty()) super.addVector(from, to, tagPrefix, name, lowIndex, size);  // empty stack, so add to this list
 		else activeSetStack.peek().addVector(from, to, tagPrefix, name, lowIndex, size);  // otherwise add to active list
-		//System.out.println("SystemVerilogIOSignalList addVector: adding " + name + ", from=" + from + ", to=" + to + ", stack empty=" + activeSetStack.isEmpty());
+		//System.out.println("SystemVerilogIOSignalList addVector: adding " + name + ", from=" + from + ", to=" + to + ", list=" + getListName() + ", stack empty=" + activeSetStack.isEmpty());
 	}
 
 	/** add a new vector signal to the active list */
@@ -42,6 +50,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		String prefix = SystemVerilogDefinedSignals.getPrefix(sigType);
 		String name = SystemVerilogDefinedSignals.getSuffix(sigType);
 		addVector(from, to, prefix, name, lowIndex, size);
+		//System.out.println("SystemVerilogIOSignalList addVector: adding " + sigType + ", from=" + from + ", to=" + to + ", stack empty=" + activeSetStack.isEmpty());
 	}
 
 	/** add a new vector signal to the active list using defined signal locations */
@@ -52,9 +61,26 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		//System.out.println("SystemVerilogIOSignalList addVector: adding " + sigType + ", from=" + from + ", to=" + to + ", stack empty=" + activeSetStack.isEmpty());
 	}
 
-	/** add a new simple vector (no prefix) */
+	/** add a new simple vector to the root child list (no prefix) */
 	public void addSimpleVector(Integer from, Integer to, String name, int lowIndex, int size) {
-		addVector(from, to, null, name, lowIndex, size);
+		super.addVector(from, to, null, name, lowIndex, size);
+		//System.out.println("SystemVerilogIOSignalList addSimpleVector: adding " + name + ", from=" + from + ", to=" + to + ", list=" + getListName());
+	}
+
+	/** add a new simple vector to the root child list (no prefix) */
+	public void addSimpleVector(DefSignalType sigType, String namePrefix, int lowIndex, int size) {
+		Integer from = SystemVerilogDefinedSignals.getFrom(sigType);
+		Integer to = SystemVerilogDefinedSignals.getTo(sigType);
+		String fullName = SystemVerilogDefinedSignals.getFullName(sigType, namePrefix, true);
+		addSimpleVector(from, to, fullName, lowIndex, size);
+	}
+	
+	// --- add scalars
+	
+	/** add a new scalar signal to the active list */
+	@Override
+	protected void addScalar(Integer from, Integer to, String namePrefix, String name) {
+		this.addVector(from, to, namePrefix, name, 0, 1);
 	}
 	
 	/** add a new scalar signal to the active list */
@@ -72,11 +98,18 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		//System.out.println("SystemVerilogIOSignalList addVector: adding " + sigType + ", from=" + from + ", to=" + to + ", stack empty=" + activeSetStack.isEmpty());
 	}
 
-	/** add a new simple scalar (no prefix) */
+	/** add a new simple scalar to the root child list (no prefix) */
 	public void addSimpleScalar(Integer from, Integer to, String name) {
-		addVector(from, to, null, name, 0, 1);
+		addSimpleVector(from, to, name, 0, 1);
 	}
 
+	/** add a new simple vector to the root child list (no prefix) */
+	public void addSimpleScalar(DefSignalType sigType, String namePrefix) {
+		addSimpleVector(sigType, namePrefix, 0, 1);
+	}
+
+	// --- add lists/signal sets
+	
 	/** add children of another IOsignallist to this list - use only in post signal build stage
 	 * as the active stack is cleared
 	 * @param sigSet - signalset to be added
@@ -115,6 +148,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		else activeSetStack.peek().addSignalSet(newSigSet);  // otherwise add to active set
 		// push this set onto the active definition stack (must push here always so pops match)
 		activeSetStack.push(newSigSet);  
+		//System.out.println("SystemVerilogIOSignalList pushIOSignalSet: adding " + name + ", from=" + from + ", to=" + to + ", list=" + getListName() + ", stack empty=" + activeSetStack.isEmpty());
 		return newSigSet;
 	}
 	
@@ -139,8 +173,12 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 
 	/** done defining signalset, so pop the stacks */
 	public void popIOSignalSet() {
-		if (!inhibitAdd()) activeSetStack.pop();  // pop this set if push wasn't inhibited
-		inhibitInsertStack.pop();  // always pop the inhibit stack 
+		//System.out.println("SystemVerilogIOSignalList popIOSignalSet: inhibitAdd=" + inhibitAdd());
+		if (!inhibitAdd() && !activeSetStack.isEmpty()) {
+			//System.out.println("SystemVerilogIOSignalList popIOSignalSet: popping " + activeSetStack.peek().getName() + " from active stack");
+			activeSetStack.pop();  // pop this set if push wasn't inhibited
+		}
+		if (!inhibitInsertStack.isEmpty()) inhibitInsertStack.pop();  // always pop the inhibit stack 
 	}
 	 
 	// -------
@@ -171,17 +209,17 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	 *  <--- this is from SVIOSignalList, gets list of full signals in interfaces
 	 * @param insideLocations - encapsulated signals from and to this location are returned
 	 */
-	public List<SystemVerilogIOSignal> getEncapsulatedSignalList(int insideLocations) {
-		List<SystemVerilogIOSignal> outList = new ArrayList<SystemVerilogIOSignal>();
+	public List<SystemVerilogSignal> getEncapsulatedSignalList(int insideLocations) {
+		List<SystemVerilogSignal> outList = new ArrayList<SystemVerilogSignal>();
 		for (SystemVerilogIOElement ioElem: childList) {
 			// if this element is a sigset, call recursively to get all encapsulated signals
 			if (ioElem.isSignalSet()) {
 				SystemVerilogIOSignalSet ioSigSet = (SystemVerilogIOSignalSet) ioElem;
 				//System.err.println("   SystemVerilogIOSignalList getEncapsulatedSignalList: name=" + ioElem.getName());
-				List<SystemVerilogIOSignal> newList = ioSigSet.getEncapsulatedSignalList(null, insideLocations);  // get inputs
-				outList.addAll(newList);
-				newList = ioSigSet.getEncapsulatedSignalList(insideLocations, null);  // get outputs
-				outList.addAll(newList);
+				List<SystemVerilogIOElement> newList = ioSigSet.getEncapsulatedIOElementList(null, insideLocations);  // get inputs
+				outList.addAll(getSignalList(newList));
+				newList = ioSigSet.getEncapsulatedIOElementList(insideLocations, null);  // get outputs
+				outList.addAll(getSignalList(newList));
 			}
 		}
 		return outList;
@@ -209,7 +247,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
     	//Integer PIO = 8;
     	
     	// create a list
-    	SystemVerilogIOSignalList list1 = new SystemVerilogIOSignalList();
+    	SystemVerilogIOSignalList list1 = new SystemVerilogIOSignalList("");
     	list1.addScalar(DECODE, HW, DefSignalType.D2H_ADDR);
     	list1.addScalar(DefSignalType.D2H_DATA);
     	list1.addVector(DefSignalType.H2D_DATA, 3, 5);
