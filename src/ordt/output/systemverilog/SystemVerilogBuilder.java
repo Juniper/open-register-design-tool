@@ -304,22 +304,24 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   intSigList.addSimpleScalar(DefSignalType.D2L_WE, regProperties.getBaseName());    // add we to decode to logic signal list 
 		   intSigList.addSimpleScalar(DefSignalType.D2L_RE, regProperties.getBaseName());    // add re to decode to logic signal list 
 		   intSigList.addSimpleVector(DefSignalType.L2D_DATA, regProperties.getBaseName(), 0, regProperties.getRegWidth());    // add read data to logic to decode signal list 
-		   
-		   // if register has an interrupt output then add and initialize
-		   if (regProperties.hasInterruptOutputDefined()) {
-			   String intName = regProperties.getFullSignalName(DefSignalType.L2H_INTR); 
-			   hwSigList.addScalar(DefSignalType.L2H_INTR);    // add intr output signal  
-			   logic.addScalarReg(intName);  
-			   logic.addCombinAssign(regProperties.getBaseName(), intName + " = 1'b0;");    // init interrupt to 0
-		   }
-		   
+		   		   
 		   tempAssignList.clear();   // clear the temp assign list
 	}
 
 	/** finish a register for a particular output */
 	@Override
 	public  void finishRegister() {
-	       // handle registers that need unused fields zero'd out
+		   // if register has an interrupt output then create it
+		   if (regProperties.hasInterruptOutputDefined()) {
+			   hwSigList.addScalar(DefSignalType.L2H_INTR);    // add intr output signal  
+		   }
+
+		   // if register has an halt output then create it
+		   if (regProperties.hasHaltOutputDefined()) {
+			   hwSigList.addScalar(DefSignalType.L2H_HALT);    // add halt output signal  
+		   }
+
+		   // handle registers that need unused fields zero'd out
 		   logic.addVectorReg(regProperties.getFullSignalName(DefSignalType.L2D_DATA), 0, regProperties.getRegWidth());  // make logic outputs regs
 		   if (regProperties.hasNopBits()) {
 			   logic.addCombinAssign(regProperties.getBaseName() + " (pio read data)", regProperties.getFullSignalName(DefSignalType.L2D_DATA) + " = " + regProperties.getRegWidth() + "'b0;");    
@@ -511,11 +513,11 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   if (properties.useInterface() && !properties.isRootInstance()) {
 			   usesInterfaces = true;
 			   //System.out.println("*** SystemVerilogBuilder startNewInterfaces: name=" + properties.getBaseName() + ", repCount=" + properties.getRepCount());
-			   if (properties.isExternal()) hwSigList.pushIOSignalSet(DefSignalType.DH_INTERFACE, properties.getId(), properties.getRepCount(), properties.isFirstRep(), properties.getExtInterfaceName());
-			   else hwSigList.pushIOSignalSet(DefSignalType.LH_INTERFACE, properties.getId(), properties.getRepCount(), properties.isFirstRep(), properties.getExtInterfaceName());
+			   if (properties.isExternal()) hwSigList.pushIOSignalSet(DefSignalType.DH_INTERFACE, properties.getNoRepId(), properties.getRepCount(), properties.isFirstRep(), properties.getExtInterfaceName());
+			   else hwSigList.pushIOSignalSet(DefSignalType.LH_INTERFACE, properties.getNoRepId(), properties.getRepCount(), properties.isFirstRep(), properties.getExtInterfaceName());
 		   }	
 		   // otherwise a non-interface hierarchy level
-		   else hwSigList.pushIOSignalSet(DefSignalType.SIGSET, properties.getId(), properties.getRepCount(), properties.isFirstRep(), null);
+		   else hwSigList.pushIOSignalSet(DefSignalType.SIGSET, properties.getNoRepId(), properties.getRepCount(), properties.isFirstRep(), null);
 	}
 
 	/** close out active IO hierarchy level */
@@ -793,20 +795,18 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   String fieldRegisterNextName = fieldProperties.getFullSignalName(DefSignalType.FIELD_NEXT);  //"reg_" + hwBaseName + "_next";
 		   int fieldWidth = fieldProperties.getFieldWidth();
 		   
-		   // if register is not already interrupt, then create output
+		   // if register is not already interrupt, then create signal assigns and mark for output creation in finishRegister
 		   String intrOutput = regProperties.getFullSignalName(DefSignalType.L2H_INTR);
 		   if (!regProperties.hasInterruptOutputDefined()) {
 			   regProperties.setHasInterruptOutputDefined(true);
-			   hwSigList.addScalar(DefSignalType.L2H_INTR);   // add hw interrupt output
 			   logic.addScalarReg(intrOutput);
 		       logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, intrOutput + " = 1'b0;");  // default to intr off
 		   }
 		   
-		   // if a halt field and register is not already halt, then create output
+		   // if a halt field and register is not already halt, then create signal assigns and mark for output creation in finishRegister
 		   String haltOutput = regProperties.getFullSignalName(DefSignalType.L2H_HALT);
 		   if (fieldProperties.isHalt() && !regProperties.hasHaltOutputDefined()) {
 			   regProperties.setHasHaltOutputDefined(true);
-			   hwSigList.addScalar(DefSignalType.L2H_HALT);   // add hw interrupt output
 			   logic.addScalarReg(haltOutput);
 		       logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, haltOutput + " = 1'b0;");  // default to halt off
 		   }

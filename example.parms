@@ -46,7 +46,7 @@ output systemverilog {
 	//use_gated_logic_clock = false       // use separate gated clock for registers and generate a clk enable output
 	//gated_logic_access_delay = 5     // number of clocks after clk enable before gated logic is accessed
 	//use_external_select = true         // use an externally generated block select  DEPRECATED
-	//block_select_mode = always       // is block select generated internally, externally or always
+	block_select_mode = always       // is block select generated internally, externally or always
 	//export_start_end = true           // create addr_start, addr_end outputs 
 	//always_generate_iwrap = false     // create int wrapper mod even if none specified in rdl
 	suppress_no_reset_warnings = true   // inhibit field no reset messages

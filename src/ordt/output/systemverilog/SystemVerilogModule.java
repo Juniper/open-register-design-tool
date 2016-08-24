@@ -291,7 +291,7 @@ public class SystemVerilogModule {
 		return outList;
 	}
 	
-	/** return a list of strings listing this module's IO (verilog compatible format) */ //TODO
+	/** return a list of strings listing this module's IO (verilog compatible module IO format) */ 
 	public List<String> getLegacyIOStrList() {
 		List<String> outList = new ArrayList<String>();
 		List<SystemVerilogIOElement> inputList = getInputList();
@@ -302,23 +302,21 @@ public class SystemVerilogModule {
 		Iterator<SystemVerilogIOElement> it = inputList.iterator();
 		while (it.hasNext()) {
 			SystemVerilogIOElement elem = it.next();
-				String suffix = (it.hasNext() || hasOutputs) ? "," : " );";
-				// ignore interfaces
-				if (!elem.isSignalSet())  outList.add("  " + elem.getName() + suffix);   // logic				
+			String suffix = (it.hasNext() || hasOutputs) ? "," : " );";
+			if (!elem.isSignalSet())  outList.add("  " + elem.getFullName() + suffix);				
 		}		   	
 		// generate output sig list
 		outList.add("");
 		it = outputList.iterator();
 		while (it.hasNext()) {
 			SystemVerilogIOElement elem = it.next();
-				String suffix = (it.hasNext()) ? "," : " );";
-				// ignore interfaces
-				if (!elem.isSignalSet())   outList.add("  " + elem.getName() + suffix);   // logic				
+			String suffix = (it.hasNext()) ? "," : " );";
+			if (!elem.isSignalSet())   outList.add("  " + elem.getFullName() + suffix);		
 		}		   	
 		return outList;
 	}
 	
-	/** return a list of strings defining this module's IO (verilog compatible format) */ //TODO
+	/** return a list of strings defining this module's IO (verilog compatible module IO format) */
 	public List<String> getLegacyIODefStrList() {
 		List<String> outList = new ArrayList<String>();
 		List<SystemVerilogIOElement> inputList = getInputList();
@@ -329,8 +327,7 @@ public class SystemVerilogModule {
 		Iterator<SystemVerilogIOElement> it = inputList.iterator();
 		while (it.hasNext()) {
 			SystemVerilogIOElement elem = it.next();
-				// ignore interfaces
-				if (!elem.isSignalSet())   outList.add("  input    " + elem + ";");   // logic
+			if (!elem.isSignalSet())   outList.add("  " + elem.getIODefString(true, "input   ") + ";");
 		}		   	
 		// generate output def list
 		outList.add("");
@@ -338,8 +335,7 @@ public class SystemVerilogModule {
 		it = outputList.iterator();
 		while (it.hasNext()) {
 			SystemVerilogIOElement elem = it.next();
-				// ignore interfaces
-				if (!elem.isSignalSet())   outList.add("  output    " + elem + ";");   // logic
+			if (!elem.isSignalSet())   outList.add("  " + elem.getIODefString(true, "output   ") + ";");
 		}		   	
 		return outList;
 	}
@@ -480,7 +476,7 @@ public class SystemVerilogModule {
 	 */
 	public void writeIOs(int indentLevel) {
 		// if legacy format, add the parm list
-		if (!useInterfaces) builder.writeStmts(0, getLegacyIOStrList());
+		if (!useInterfaces) builder.writeStmts(0, getLegacyIOStrList()); // legacy vlog io format
 		
 		// add base addr param if specified TODO - replace w generic parameter list
 		if (addBaseAddrParameter) {
@@ -493,7 +489,7 @@ public class SystemVerilogModule {
 		}
 		// write IO definitions  // TODO - using legacy vlog format if no interfaces for compatibility
 		if (useInterfaces) builder.writeStmts(indentLevel+1, getIODefStrList());   // sv format
-		else builder.writeStmts(0, getLegacyIODefStrList());  //vlog format  getLegacyIODefStrList()  // TODO
+		else builder.writeStmts(0, getLegacyIODefStrList());  // legacy vlog io format
 		builder.writeStmt(0, "");
 	}
 
@@ -517,12 +513,12 @@ public class SystemVerilogModule {
 			while (anotherElement) {
 				SystemVerilogIOElement elem = it.next();
 				if (it.hasNext()) {
-					builder.writeStmt(indentLevel, "." + elem.getName() + "(" + elem.getName() + "),");   // more elements so use comma
+					builder.writeStmt(indentLevel, "." + elem.getFullName() + "(" + elem.getFullName() + "),");   // more elements so use comma
 					anotherElement = true;
 				}
 				else {
 					anotherElement = false;
-					builder.writeStmt(indentLevel, "." + elem.getName() + "(" + elem.getName() + ") );");   // no more elements so close
+					builder.writeStmt(indentLevel, "." + elem.getFullName() + "(" + elem.getFullName() + ") );");   // no more elements so close
 				}
 			}		   		    	
 	    }
