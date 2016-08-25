@@ -202,13 +202,13 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	// -------
 
 	/** return a flat list of simple SystemVerilogIOElement with full generated names for this signalset - recursively builds names top down 
-	 *  and should be called from root of signal list (assumes addTagPrefix=true, stopOnNonVirtualSets=false, validEncap=true) 
+	 *  and should be called from root of signal list (assumes addTagPrefix=true, stopOnNonVirtualSets=false, validEncap=true, skipSets = false) 
 	 * @param fromLoc - only signals matching from will be returned
 	 * @param toLoc - only signals matching to will be returned
 	 * @return - list of SystemVerilogIOSignal
 	 */
 	public List<SystemVerilogIOElement> getIOElementList(Integer fromLoc, Integer toLoc) {
-		return getIOElementList(fromLoc, toLoc, null, true, false, true, false);
+		return getIOElementList(fromLoc, toLoc, null, true, false, true, false, false);
 	}
 	
 	/** return a flat list of simple SystemVerilogSignal with full generated names for this signalset. 
@@ -223,8 +223,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		return getSignalList(IOElems);
 	}
 
-	/** return a list of flat simple signals that are encapsulated in interfaces (no root sigs) - recursive *  was getIntfEncapsulatedSignalList
-	 *  <--- this is from SVIOSignalList, gets list of full signals in interfaces
+	/** return a list of flat simple signals that are encapsulated in interfaces (no root sigs) - recursive 
 	 * @param insideLocations - encapsulated signals from and to this location are returned
 	 */
 	public List<SystemVerilogSignal> getEncapsulatedSignalList(int insideLocations) {
@@ -290,7 +289,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
     	for (SystemVerilogIOElement ioElem : elemList) System.out.println("  " + ioElem + ", local inst=" + ioElem.getInstanceString(true) ); 
     	
     	// get a list of non-virtual child elems
-    	elemList = list1.getDescendentIOElementList(null, null);  //DECODE, HW
+    	elemList = list1.getDescendentIOElementList(null, null, true);  //DECODE, HW
     	System.out.println("Non-virtual child elems:");
     	for (SystemVerilogIOElement ioElem : elemList) System.out.println("  " + ioElem);
     	

@@ -234,17 +234,17 @@ public class SystemVerilogModule {
 		return retList;
 	}
 	
-	/** return inputs for this module */ 
+	/** return inputs for this module (signal sets are included) */ 
 	public List<SystemVerilogIOElement> getInputList() {
 		SystemVerilogIOSignalList fullList = getFullIOSignalList();	// start with the full list
-		return useInterfaces ? fullList.getDescendentIOElementList(null, insideLocs) :
+		return useInterfaces ? fullList.getDescendentIOElementList(null, insideLocs, false) :
 			                     fullList.getIOElementList(null, insideLocs);
 	}
 	
-	/** return inputs for this module */ 
+	/** return inputs for this module (signal sets are not included) */ 
 	public List<SystemVerilogIOElement> getOutputList() {
 		SystemVerilogIOSignalList fullList = getFullIOSignalList();	// start with the full list
-		return useInterfaces ? fullList.getDescendentIOElementList(insideLocs, null) :
+		return useInterfaces ? fullList.getDescendentIOElementList(insideLocs, null, true) : 
                                  fullList.getIOElementList(insideLocs, null);
 	}
 	

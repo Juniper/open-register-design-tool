@@ -28,6 +28,13 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
     @Override
 	public boolean isVirtual() { return false; }
 
+	/** return a simple IOElement with full generated name */
+	@Override
+	public SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix) {
+		String newTagPrefix = addTagPrefix? tagPrefix : "";
+		return new SystemVerilogIOInterface(from, to, newTagPrefix, pathPrefix + name, reps, type, hasExtType);
+	}
+
     /** return a list of definitions for this sigset - overriden in SignalSet child classses  */  
     @Override
     public List<String> getDefStrings() {

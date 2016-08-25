@@ -1517,7 +1517,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	protected  void writeInterfaces() {
 		// get a list of all sv interfaces to be defined
 		List<SystemVerilogIOSignalSet> sigSets = hwSigList.getNonVirtualSignalSets(true);
-		//System.out.println("SystemVerilogBuilder writeInterfaces: found " + intfSigs.size() + " interfaces");
+		//System.out.println("SystemVerilogBuilder writeInterfaces: found " + sigSets.size() + " interfaces");
 		for (SystemVerilogIOSignalSet sset : sigSets) writeIOSignalSetDefine(sset);
 	}
 
