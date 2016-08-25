@@ -14,21 +14,39 @@ import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
  * maintains a stack of active signalsets where new signals/sets will be added by svbuilder */
 public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	private String listName;
+	private Stack<SystemVerilogIOSignalSet> activeSetStack = new Stack<SystemVerilogIOSignalSet>();  // track active signalsets for inserts 
+	private Stack<Boolean> inhibitInsertStack = new Stack<Boolean>();  // track insert inhibited signalsets (inhibit subsequent reps) 
 
 	public SystemVerilogIOSignalList(String listName) {
 		super(null, null, 1);  // IOsignalList has no tag, no name and one rep
 		this.listName = listName;
 	}
 
-	private Stack<SystemVerilogIOSignalSet> activeSetStack = new Stack<SystemVerilogIOSignalSet>();  // track active signalsets for inserts 
-	private Stack<Boolean> inhibitInsertStack = new Stack<Boolean>();  // track insert inhibited signalsets (inhibit subsequent reps) 
-
 	public String getListName() {
 		return listName;
 	}
+
+	private Stack<SystemVerilogIOSignalSet> getActiveSetStack() {
+		return activeSetStack;
+	}
+
+	/*
+	public String listStack() {
+		String outStr = "[";
+		for (SystemVerilogIOSignalSet sigSet: activeSetStack) outStr += " " + sigSet.getName();
+		return outStr += " ]";
+	}*/
+
+	/** copy the activeStack contents from specified list to the current list */
+	public void copyActiveSetStack(SystemVerilogIOSignalList sigList) {
+		for (SystemVerilogIOSignalSet sigSet: sigList.getActiveSetStack()) {
+			//System.out.println("SystemVerilogIOSIgnalList copyActiveSetStack: adding sigSet " + sigSet.getName());
+			this.pushIOSignalSet(DefSignalType.SIGSET, sigSet.getName(), 1, true, null);
+		}
+	}
 	
 	// --------------- child signal/interface add methods 
-	
+
 	/** return true if a child element add should be inhibited due to non-first rep count */
 	private boolean inhibitAdd() {
 		return (!inhibitInsertStack.isEmpty() && inhibitInsertStack.peek());

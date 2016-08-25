@@ -91,7 +91,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
 	    setAllowLocalMapInternals(false);  // cascaded addrmaps will not result in local non-ext regions   
 		setLegacyVerilog(false);  // rtl uses systemverilog constructs
-		initIOLists();  // setup IO lists for logic, decode, and top modules
+		initIOLists(null);  // setup IO lists for logic, decode, and top modules
 		decoder.setInterfaceType(ExtParameters.getSysVerRootDecoderInterface()); // set root pio interface type from specified params
 		model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
 	}
@@ -106,7 +106,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
 	    setAllowLocalMapInternals(false);  // cascaded addrmaps will not result in local non-ext regions   
 		setLegacyVerilog(SystemVerilogBuilder.isLegacyVerilog());  // cascade state for systemverilog construct gen
-		initIOLists();  // setup IO lists for logic, decode, and top modules
+		initIOLists(parentBuilder);  // setup IO lists for logic, decode, and top modules
 	    // inherit name prefixes from parent
 	    this.setModulePrefix(parentBuilder.getModuleName());
 	    // save state of the current regSet and the instance stacks
@@ -152,8 +152,9 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		//System.out.println("SystemVerilogBuilder: post generate - topreg inst id=" + topRegProperties.getId() + ", ext=" + topRegProperties.getExternalType()+ ", builderID=" + getBuilderID());
 	}
 	
-	/** initialize signal lists used by generated modules */
-	private void initIOLists() {
+	/** initialize signal lists used by generated modules 
+	 * @param parentBuilder - if non-null, init the hwSigList stack */
+	private void initIOLists(SystemVerilogBuilder parentBuilder) {
 		// add decoder io lists
 		decoder.useIOList(cntlSigList, null);
 		decoder.useIOList(pioSigList, PIO); 
@@ -167,6 +168,8 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		top.useIOList(cntlSigList, null);
 		top.useIOList(hwSigList, HW);
 		top.useIOList(pioSigList, PIO); 
+		// copy the hw signal list stack
+		if (parentBuilder != null) hwSigList.copyActiveSetStack(parentBuilder.hwSigList);
 	}
 	
 	/** set legacyVerilog
@@ -364,7 +367,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   // if an addrmap create a new VerilogBuilder at new root instance and push onto list
 		   if (ExtParameters.sysVerGenerateChildAddrmaps() && regProperties.isAddressMap()) {
 			   SystemVerilogBuilder childVerilog = new SystemVerilogBuilder(this, false); // inherit some parent properties
-			   //System.out.println("SystemVerilogBuilder addRootExternalRegisters: current regset=" + regSetProperties.getInstancePath() + ", mod prefix=" + modulePrefix+ ", bid=" + getBuilderID() + ", mlevel=" + currentMapLevel());  
+			   //System.out.println("SystemVerilogBuilder addRootExternalRegisters: current regset=" + regSetProperties.getInstancePath() + ", mod prefix=" + modulePrefix+ ", bid=" + getBuilderID() + ", mlevel=" + currentMapLevel() + ", stack=" + hwSigList.listStack());  
 			   //System.out.println("SystemVerilogBuilder addRootExternalRegisters: reg=" + regProperties.getInstancePath() + ", regset=" + regSetProperties.getInstancePath() + ", mod prefix=" + modulePrefix + ", bId=" + getBuilderID() + ", mlevel=" + currentMapLevel() + ", testModule=" + isTestBuilder());  
 			   childAddrMaps.add(childVerilog);
 		   }
@@ -512,7 +515,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		// if an interface, push intf type onto IO stack
 		   if (properties.useInterface() && !properties.isRootInstance()) {
 			   usesInterfaces = true;
-			   //System.out.println("*** SystemVerilogBuilder startNewInterfaces: name=" + properties.getBaseName() + ", repCount=" + properties.getRepCount());
+			   //System.out.println("SystemVerilogBuilder startIOHierarchy: name=" + properties.getBaseName() + ", repCount=" + properties.getRepCount() + ", ExtInterfaceName=" + properties.getExtInterfaceName());
 			   if (properties.isExternal()) hwSigList.pushIOSignalSet(DefSignalType.DH_INTERFACE, properties.getNoRepId(), properties.getRepCount(), properties.isFirstRep(), properties.getExtInterfaceName());
 			   else hwSigList.pushIOSignalSet(DefSignalType.LH_INTERFACE, properties.getNoRepId(), properties.getRepCount(), properties.isFirstRep(), properties.getExtInterfaceName());
 		   }	

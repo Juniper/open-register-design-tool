@@ -18,7 +18,9 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 		super(tagPrefix, name, reps);
 		this.from = from;
 		this.to = to;
+		this.hasExtType = hasExtType;
 		this.type = hasExtType? type : getFullName(type, true) + "_intf";  // if not an ext type then build from path
+		//System.out.println("SystemVerilogIOInterface: name=" + name + ", type=" + type + ", hasExtType=" + hasExtType);
 	}
 
 	/** returns true if this element is virtual (ie not an actually group in systemverilog output).

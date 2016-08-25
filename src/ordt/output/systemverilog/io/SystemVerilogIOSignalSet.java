@@ -5,7 +5,7 @@ import java.util.List;
 
 public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	protected List<SystemVerilogIOElement> childList = new ArrayList<SystemVerilogIOElement>(); // signals/signalsets in this signalset
-	protected String type = null;   // type of this signalset  
+	protected String type;   // type of this signalset  
 	protected boolean hasExtType = false;   // type of this signalset  
 
 	public SystemVerilogIOSignalSet(String tagPrefix, String name, int reps) { 
@@ -96,6 +96,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	 *   @param sigIOType - this string will be used as IO define type for IOSignals */
 	@Override
 	public String getIODefString(boolean addTagPrefix, String sigIOType) {
+		System.out.println("SystemVerilogIOSignalSet getIODefString: type=" + getType() + ", name=" + getFullName(null, addTagPrefix));
 		return getType() + " " + getFullName(null, addTagPrefix) + getRepArray();
 	}
 

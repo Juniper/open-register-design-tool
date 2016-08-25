@@ -277,16 +277,16 @@ public class SystemVerilogModule {
 		Iterator<SystemVerilogIOElement> it = inputList.iterator();
 		while (it.hasNext()) {
 			SystemVerilogIOElement elem = it.next();
-				String suffix = (it.hasNext() || hasOutputs) ? "," : " );";
-				outList.add("  " + elem.getIODefString(true, "input   ") + suffix);
+			String suffix = (it.hasNext() || hasOutputs) ? "," : " );";
+			outList.add("  " + elem.getIODefString(true, "input   ") + suffix);
 		}		   	
 		// generate output def list
 		outList.add("");
 		it = outputList.iterator();
 		while (it.hasNext()) {
 			SystemVerilogIOElement elem = it.next();
-				String suffix = (it.hasNext()) ? "," : " );";
-				outList.add("  " + elem.getIODefString(true, "output   ") + suffix);
+			String suffix = (it.hasNext()) ? "," : " );";
+			outList.add("  " + elem.getIODefString(true, "output   ") + suffix);
 		}		   	
 		return outList;
 	}
