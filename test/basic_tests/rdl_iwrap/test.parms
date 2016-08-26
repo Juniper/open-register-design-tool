@@ -1,0 +1,12 @@
+// interrupt rdl test w/ logging, enables, maskintrbits, cascaded intr regs
+
+global {
+	base_address = 0x0                // set block base address
+}
+output bench {
+	add_test_command = "write 32 0x0 0x12345678"  // write
+	add_test_command = "read 32 0x0"  // read 
+	add_test_command = "read 32 0x104"  // read log
+	add_test_command = "read 32 0x108"  // read log
+	add_test_command = "read 32 0x10c"  // read log
+}

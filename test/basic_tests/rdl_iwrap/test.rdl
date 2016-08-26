@@ -1,0 +1,32 @@
+// iwrap example
+
+addrmap {
+
+  regfile regs {
+    
+    reg foo {
+    
+        field bar { 
+              reset=1'b0; sw=rw; hw=rw; we;
+        };
+        
+        bar fld_none;
+        bar fld_gen;
+        fld_gen->use_interface=interface;
+        bar fld_ext;
+        fld_ext->use_interface=my_interface;
+        bar fld_int;
+        fld_int->use_new_interface=true;
+    };
+    
+    foo reg_none;
+    foo reg_int;
+    reg_int->use_new_interface=true;
+
+  };
+  
+  regs regs_none;
+  regs regs_ext;
+  regs_ext->use_interface=top_interface;  // first level interface
+  
+} top;

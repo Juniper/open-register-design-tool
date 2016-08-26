@@ -221,7 +221,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	public List<String> getNonVirtualAssignStrings(Integer insideLocations, boolean sigsOnInside, String pathPrefix, String hierPathPrefix, 
 			boolean validEncap, boolean foundFirstNonVirtual) {
 		List<String> outList = new ArrayList<String>();
-		System.out.println("SystemVerilogIOSignalSet getNonVirtualAssignStrings: hierPathPrefix=" + hierPathPrefix);
+		//System.out.println("SystemVerilogIOSignalSet getNonVirtualAssignStrings: hierPathPrefix=" + hierPathPrefix);
 		String prefix = getFullName(pathPrefix, false);  // add current name to prefix
 		String suffixChar = hasNoName()? "" : "_";
 		String hierSuffixChar = hasNoName()? "" : isVirtual()? "_" : ".";

@@ -159,7 +159,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		SystemVerilogIOSignalSet newSigSet;
 		boolean hasExtType = (extType !=null);
 		String newType = hasExtType? extType : getCurrentStackPath();  // if internally defined, pass in the current path
-		if (isIntf) newSigSet = new SystemVerilogIOInterface (from, to, namePrefix, name, reps, newType, hasExtType);  // create a new interface
+		if (isIntf) newSigSet = new SystemVerilogIOInterface (from, to, namePrefix, name, reps, newType, hasExtType, true);  // create a new interface
 		else newSigSet = new SystemVerilogIOSignalSet (namePrefix, name, reps);  // otherwise create default set
 		// add to active element or root level
 		if (activeSetStack.isEmpty()) super.addSignalSet(newSigSet);  // add new set at root
