@@ -17,12 +17,17 @@ import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.output.systemverilog.SystemVerilogModule;
 import ordt.output.systemverilog.SystemVerilogSignal;
+import ordt.output.systemverilog.io.SystemVerilogIOElement;
+//import ordt.output.systemverilog.oldio.SystemVerilogIOSignal;
+//import ordt.output.systemverilog.oldio.SystemVerilogIOSignalList;
+import ordt.output.systemverilog.io.SystemVerilogIOSignal;
+import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.parameters.ExtParameters;
 
 public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	
     // define a new list to handle bench specific IO 
-	protected SystemVerilogIOSignalList benchSigList = new SystemVerilogIOSignalList();   // signals specific to the bench
+	protected SystemVerilogIOSignalList benchSigList = new SystemVerilogIOSignalList("bench");   // signals specific to the bench
 	// module defines  
 	protected SystemVerilogModule leafbfm = new SystemVerilogModule(this, PIO, defaultClk);  // leaf bfm
 	protected SystemVerilogModule benchtop = new SystemVerilogModule(this, PIO|HW|DECODE|LOGIC, defaultClk);  // bench top module
@@ -437,33 +442,33 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		leafbfm.setName(getModuleName() + "_test_leaf_bfm");
 		
 		// add bfm sigs to bench specific IO list
-		benchSigList.addVector(HW, PIO, "address", 0, ExtParameters.getLeafAddressSize());
-		benchSigList.addVector(HW, PIO, "wr_data", 0, getMaxRegWidth());
-		benchSigList.addVector(HW, PIO, "rd_data", 0, getMaxRegWidth());
-		benchSigList.addVector(HW, PIO, "type", 0,2);  
+		benchSigList.addSimpleVector(HW, PIO, "address", 0, ExtParameters.getLeafAddressSize());
+		benchSigList.addSimpleVector(HW, PIO, "wr_data", 0, getMaxRegWidth());
+		benchSigList.addSimpleVector(HW, PIO, "rd_data", 0, getMaxRegWidth());
+		benchSigList.addSimpleVector(HW, PIO, "type", 0,2);  
 		int dataSizeBits = (getMaxWordBitSize() <= 3) ? 3 : getMaxWordBitSize();
-		benchSigList.addVector(HW, PIO, "size", 0, dataSizeBits);
-		benchSigList.addVector(HW, PIO, "leaf_go", 0, 1);
-		benchSigList.addScalar(HW, PIO, "CLK");
-		benchSigList.addScalar(PIO, HW, "active");
-		benchSigList.addScalar(PIO, HW,  "done");
+		benchSigList.addSimpleVector(HW, PIO, "size", 0, dataSizeBits);
+		benchSigList.addSimpleVector(HW, PIO, "leaf_go", 0, 1);
+		benchSigList.addSimpleScalar(HW, PIO, "CLK");
+		benchSigList.addSimpleScalar(PIO, HW, "active");
+		benchSigList.addSimpleScalar(PIO, HW,  "done");
 		
 		// associate IO lists with the bfm
 		leafbfm.useIOList(benchSigList, HW);  // added sigs here will talk to bench 
 		leafbfm.useIOList(pioSigList, null);  // null location since will use list as-is 
 		
 		// define all outputs as reg
-		List<SystemVerilogIOSignal> outputs = leafbfm.getOutputList();
-		for (SystemVerilogIOSignal sig: outputs) {
-			leafbfm.addVectorReg(sig.getName(), sig.getLowIndex(), sig.getSize());
+		List<SystemVerilogIOElement> outputs = leafbfm.getOutputList();
+		for (SystemVerilogIOElement sig: outputs) {
+			if (!sig.isSignalSet()) leafbfm.addVectorReg(sig.getName(), ((SystemVerilogIOSignal) sig).getLowIndex(), ((SystemVerilogIOSignal) sig).getSize());
 		}
 		// define internal regs
 		leafbfm.addVectorReg("trans_size", 0, dataSizeBits);
 
 		// init outputs from leaf bfm
 		leafbfm.addStatement("initial begin");
-		for (SystemVerilogIOSignal sig: outputs) {
-			leafbfm.addStatement("  " + sig.getName() + " = 0;");
+		for (SystemVerilogIOElement sig: outputs) {
+			if (!sig.isSignalSet()) leafbfm.addStatement("  " + sig.getName() + " = 0;");
 		}
 	   	leafbfm.addStatement("end");
 	   	leafbfm.addStatement("");

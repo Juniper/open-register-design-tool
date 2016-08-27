@@ -13,18 +13,29 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 	 * @param reps - number of reps in this set
 	 * @param type - if hasExtType is true, this is the external type, otherwise it is the path string for an internally defined type
 	 * @param hasExtType - if true, interface has an externally defined type
+	 * @param genNewType - if true, interface type will generated for internal types, else type will be passed thru as-is
 	 */
-	public SystemVerilogIOInterface(Integer from, Integer to, String tagPrefix, String name, int reps, String type, boolean hasExtType) { 
+	public SystemVerilogIOInterface(Integer from, Integer to, String tagPrefix, String name, int reps, String type, boolean hasExtType, boolean genNewType) { 
 		super(tagPrefix, name, reps);
 		this.from = from;
 		this.to = to;
-		this.type = hasExtType? type : getFullName(type, true);  // if not an ext type then build from path
+		this.hasExtType = hasExtType;
+		String suffix = ((type==null) || type.isEmpty())? "" : "_";
+		this.type = (hasExtType || !genNewType)? type : getFullName(type + suffix, true) + "_intf";  // if not an ext type then build from path
+		//if (!hasExtType) System.out.println("SystemVerilogIOInterface: name=" + name + ", old type=" + type + ", new type=" + this.type + ", hasExtType=" + hasExtType);
 	}
 
 	/** returns true if this element is virtual (ie not an actually group in systemverilog output).
 	 *  This method is overridden in child classes */
     @Override
-	protected boolean isVirtual() { return false; }
+	public boolean isVirtual() { return false; }
+
+	/** return a simple IOElement with full generated name */
+	@Override
+	public SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix) {
+		String newTagPrefix = addTagPrefix? tagPrefix : "";
+		return new SystemVerilogIOInterface(from, to, newTagPrefix, pathPrefix + name, reps, type, hasExtType, false);
+	}
 
     /** return a list of definitions for this sigset - overriden in SignalSet child classses  */  
     @Override

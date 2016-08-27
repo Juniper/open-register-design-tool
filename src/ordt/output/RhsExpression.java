@@ -74,7 +74,7 @@ public class RhsExpression {
 	   return retList;
    }
 	
-   /** return list of resolved references in this expression */
+   /** return list of resolved references in this expression *
    public List<String> getResolvedRefNameList(InstanceProperties instProperties, HashMap<String, SignalProperties> userDefinedSignals) {
 	   List<String> retList = new ArrayList<String>();
 	   for (RhsReference ref: refs) {
@@ -86,7 +86,7 @@ public class RhsExpression {
 		   retList.add(fullRef);
 	   }
 	   return retList;
-   }
+   }*/
 
    /** return the resolved rtl expression */
    public String getResolvedExpression(InstanceProperties instProperties, HashMap<String, SignalProperties> userDefinedSignals) {

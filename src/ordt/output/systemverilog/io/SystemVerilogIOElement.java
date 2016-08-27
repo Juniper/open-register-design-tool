@@ -1,5 +1,10 @@
 package ordt.output.systemverilog.io;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import ordt.output.systemverilog.SystemVerilogSignal;
+
 /** io signal/signalset elements */
 public abstract class SystemVerilogIOElement {
 	
@@ -9,11 +14,11 @@ public abstract class SystemVerilogIOElement {
 	Integer from, to = 0;  // direction of this signal/signalset
 
 	/** returns true if this element is a set */
-	protected boolean isSignalSet() { return false; }
+	public boolean isSignalSet() { return false; }
 	
 	/** returns true if this element is virtual (ie not an actually group in systemverilog output).
 	 *  This method is overridden in child classes */
-	protected boolean isVirtual() { return false; }
+	public boolean isVirtual() { return false; }
 
 	/** return true if location specified is in from locations for this io element */
 	public Boolean isFrom(Integer loc) {
@@ -68,7 +73,7 @@ public abstract class SystemVerilogIOElement {
 	/** return the full name of this io element including any tagPrefix, pathPrefix, and local name 
 	 * used for top-down recursive name generation */ 
 	public String getFullName(String pathPrefix, boolean addTagPrefix) {   
-		String newTagPrefix = addTagPrefix? tagPrefix : "";
+		String newTagPrefix = ((tagPrefix == null) || !addTagPrefix)? "" : tagPrefix;
 		String newPathPrefix = (pathPrefix == null)? "" : pathPrefix;
 		return newTagPrefix + newPathPrefix + name;
 	}
@@ -78,14 +83,39 @@ public abstract class SystemVerilogIOElement {
 	public String getFullName() {   
 		return getFullName("", true);
 	}
+
+	/** convert a flat list of SystemVerilogIOElement to a list of SystemVerilogSignal with full generated names for this signalset. 
+	 * @return - list of SystemVerilogSignal
+	 */
+	public static List<SystemVerilogSignal> getSignalList(List<SystemVerilogIOElement> ioElemList) {
+		List<SystemVerilogSignal> outList = new ArrayList<SystemVerilogSignal>();
+		//System.out.println("  SystemVerilogInterface getSignalList: sigs size=" + sigs.size());
+		for (SystemVerilogIOElement ioElem : ioElemList) {
+			if (ioElem.isSignalSet())
+			    outList.add(new SystemVerilogSignal(ioElem.getFullName(null, true), 0, 1));
+			else {
+				SystemVerilogIOSignal ioSig = (SystemVerilogIOSignal) ioElem;
+			    outList.add(new SystemVerilogSignal(ioSig.getFullName(null, true), ioSig.getLowIndex(), ioSig.getSize()));
+			}
+		}
+		//System.out.println("  SystemVerilogIOSignalSet getSignalList: output size=" + outList.size());
+		return outList;
+	}	
 		
 	// abstract methods
 	
 	/** return type string for this element */
 	public abstract String getType();
 	
-	/** return sv string instancing this element - assumes element name is full instance name */
+	/** return sv string instancing this element - assumes element name is full instance name 
+	 *   includes type, name, array, semi eol */
 	public abstract String getInstanceString(boolean addTagPrefix);
+	
+	/** return sv string used in definition of this element in input/output lists - assumes element name is full instance name 
+	 *   includes type if non-virtual sigset, name, and array *
+	 *   @param addTagPrefix - if true signal tag prefix will be added to name
+	 *   @param sigIOType - this string will be used as IO define type for IOSignals */
+	public abstract String getIODefString(boolean addTagPrefix, String sigIOType);
 
 	/** return a simple IOSignal with full generated name for this element */
 	public abstract SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix);  

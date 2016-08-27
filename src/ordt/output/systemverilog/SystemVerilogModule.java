@@ -11,6 +11,8 @@ import java.util.List;
 
 import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
+import ordt.output.systemverilog.io.SystemVerilogIOElement;
+import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.parameters.ExtParameters;
 
 /** system verilog module generation class
@@ -146,10 +148,6 @@ public class SystemVerilogModule {
 		if (addDefinedSignal(name)) wireDefList.addScalar(name);	
 	}
 
-	public void addWireDefs(SystemVerilogSignalList wireList) {
-		addWireDefs(wireList.getSignalList());		
-	}
-
     /** add a list of signals to the wire def list - unroll the loop for uniqueness check */
 	public void addWireDefs(List<SystemVerilogSignal> wireList) {
 		for (SystemVerilogSignal sig : wireList) addVectorWire(sig.getName(), sig.getLowIndex(), sig.getSize());
@@ -229,30 +227,30 @@ public class SystemVerilogModule {
 
 	/** return a single combined IO List for the module */
 	public SystemVerilogIOSignalList getFullIOSignalList() {
-		SystemVerilogIOSignalList retList = new SystemVerilogIOSignalList();	
+		SystemVerilogIOSignalList retList = new SystemVerilogIOSignalList("full");	
 		// add io lists
 		for (SystemVerilogIOSignalList list : ioList)
 		   retList.addList(list);
 		return retList;
 	}
 	
-	/** return inputs for this module */ 
-	public List<SystemVerilogIOSignal> getInputList() {
+	/** return inputs for this module (signal sets are included) */ 
+	public List<SystemVerilogIOElement> getInputList() {
 		SystemVerilogIOSignalList fullList = getFullIOSignalList();	// start with the full list
-		return useInterfaces ? fullList.getEncapsulatedIOSignalList(null, insideLocs) :
-			                     fullList.getIOSignalList(null, insideLocs);
+		return useInterfaces ? fullList.getDescendentIOElementList(null, insideLocs, false) :
+			                     fullList.getIOElementList(null, insideLocs);
+	}
+	
+	/** return inputs for this module (signal sets are not included) */ 
+	public List<SystemVerilogIOElement> getOutputList() {
+		SystemVerilogIOSignalList fullList = getFullIOSignalList();	// start with the full list
+		return useInterfaces ? fullList.getDescendentIOElementList(insideLocs, null, true) : 
+                                 fullList.getIOElementList(insideLocs, null);
 	}
 	
 	/** return inputs for this module */ 
-	public List<SystemVerilogIOSignal> getOutputList() {
-		SystemVerilogIOSignalList fullList = getFullIOSignalList();	// start with the full list
-		return useInterfaces ? fullList.getEncapsulatedIOSignalList(insideLocs, null) :
-                                 fullList.getIOSignalList(insideLocs, null);
-	}
-	
-	/** return inputs for this module */ 
-	public List<SystemVerilogIOSignal> getInputOutputList() {
-		List<SystemVerilogIOSignal> retList = new ArrayList<SystemVerilogIOSignal>();
+	public List<SystemVerilogIOElement> getInputOutputList() {
+		List<SystemVerilogIOElement> retList = new ArrayList<SystemVerilogIOElement>();
 		retList.addAll(getInputList());
 		retList.addAll(getOutputList());
 		return retList;
@@ -271,91 +269,73 @@ public class SystemVerilogModule {
 	/** return a list of strings defining this module's IO (systemverilog format) */ 
 	public List<String> getIODefStrList() {
 		List<String> outList = new ArrayList<String>();
-		List<SystemVerilogIOSignal> inputList = getInputList();
-		List<SystemVerilogIOSignal> outputList = getOutputList();
+		List<SystemVerilogIOElement> inputList = getInputList();
+		List<SystemVerilogIOElement> outputList = getOutputList();
 		Boolean hasOutputs = (outputList.size() > 0);
 		outList.add("(");
 		// generate input def list
-		Iterator<SystemVerilogIOSignal> it = inputList.iterator();
+		Iterator<SystemVerilogIOElement> it = inputList.iterator();
 		while (it.hasNext()) {
-			SystemVerilogIOSignal elem = it.next();
-			if (elem.isFirstRep()) {
-				String suffix = (it.hasNext() || hasOutputs) ? "," : " );";
-				if (elem.isIntfSig()) outList.add("  " + elem.getInterfaceDefName() + "  " + elem.getNoRepName() + elem.getIntfDefArray() + suffix);   // interface
-				else outList.add("  input    " + elem + suffix);   // logic				
-			}
+			SystemVerilogIOElement elem = it.next();
+			String suffix = (it.hasNext() || hasOutputs) ? "," : " );";
+			outList.add("  " + elem.getIODefString(true, "input   ") + suffix);
 		}		   	
 		// generate output def list
 		outList.add("");
 		it = outputList.iterator();
 		while (it.hasNext()) {
-			SystemVerilogIOSignal elem = it.next();
-			if (elem.isFirstRep()) {
-				String suffix = (it.hasNext()) ? "," : " );";
-				if (elem.isIntfSig()) outList.add("  " + elem.getInterfaceDefName() + "  " + elem.getNoRepName() + elem.getIntfDefArray() + suffix);   // interface
-				else outList.add("  output    " + elem + suffix);   // logic				
-			}
+			SystemVerilogIOElement elem = it.next();
+			String suffix = (it.hasNext()) ? "," : " );";
+			outList.add("  " + elem.getIODefString(true, "output   ") + suffix);
 		}		   	
 		return outList;
 	}
 	
-	/** return a list of strings listing this module's IO (verilog compatible format) */ //TODO
+	/** return a list of strings listing this module's IO (verilog compatible module IO format) */ 
 	public List<String> getLegacyIOStrList() {
 		List<String> outList = new ArrayList<String>();
-		List<SystemVerilogIOSignal> inputList = getInputList();
-		List<SystemVerilogIOSignal> outputList = getOutputList();
+		List<SystemVerilogIOElement> inputList = getInputList();
+		List<SystemVerilogIOElement> outputList = getOutputList();
 		Boolean hasOutputs = (outputList.size() > 0);
 		outList.add("(");
 		// generate input sig list
-		Iterator<SystemVerilogIOSignal> it = inputList.iterator();
+		Iterator<SystemVerilogIOElement> it = inputList.iterator();
 		while (it.hasNext()) {
-			SystemVerilogIOSignal elem = it.next();
-			if (elem.isFirstRep()) {
-				String suffix = (it.hasNext() || hasOutputs) ? "," : " );";
-				// ignore interfaces
-				if (!elem.isIntfSig())  outList.add("  " + elem.getName() + suffix);   // logic				
-			}
+			SystemVerilogIOElement elem = it.next();
+			String suffix = (it.hasNext() || hasOutputs) ? "," : " );";
+			if (!elem.isSignalSet())  outList.add("  " + elem.getFullName() + suffix);				
 		}		   	
 		// generate output sig list
 		outList.add("");
 		it = outputList.iterator();
 		while (it.hasNext()) {
-			SystemVerilogIOSignal elem = it.next();
-			if (elem.isFirstRep()) {
-				String suffix = (it.hasNext()) ? "," : " );";
-				// ignore interfaces
-				if (!elem.isIntfSig())   outList.add("  " + elem.getName() + suffix);   // logic				
-			}
+			SystemVerilogIOElement elem = it.next();
+			String suffix = (it.hasNext()) ? "," : " );";
+			if (!elem.isSignalSet())   outList.add("  " + elem.getFullName() + suffix);		
 		}		   	
 		return outList;
 	}
 	
-	/** return a list of strings defining this module's IO (verilog compatible format) */ //TODO
+	/** return a list of strings defining this module's IO (verilog compatible module IO format) */
 	public List<String> getLegacyIODefStrList() {
 		List<String> outList = new ArrayList<String>();
-		List<SystemVerilogIOSignal> inputList = getInputList();
-		List<SystemVerilogIOSignal> outputList = getOutputList();
+		List<SystemVerilogIOElement> inputList = getInputList();
+		List<SystemVerilogIOElement> outputList = getOutputList();
 		outList.add("");
 		outList.add("  //------- inputs");
 		// generate input def list
-		Iterator<SystemVerilogIOSignal> it = inputList.iterator();
+		Iterator<SystemVerilogIOElement> it = inputList.iterator();
 		while (it.hasNext()) {
-			SystemVerilogIOSignal elem = it.next();
-			if (elem.isFirstRep()) {
-				// ignore interfaces
-				if (!elem.isIntfSig())   outList.add("  input    " + elem + ";");   // logic				
-			}
+			SystemVerilogIOElement elem = it.next();
+			if (!elem.isSignalSet())   outList.add("  " + elem.getIODefString(true, "input   ") + ";");
 		}		   	
 		// generate output def list
 		outList.add("");
 		outList.add("  //------- outputs");
 		it = outputList.iterator();
 		while (it.hasNext()) {
-			SystemVerilogIOSignal elem = it.next();
-			if (elem.isFirstRep()) {
-				// ignore interfaces
-				if (!elem.isIntfSig())   outList.add("  output    " + elem + ";");   // logic				
-			}
+			SystemVerilogIOElement elem = it.next();
+			if (!elem.isSignalSet())   outList.add("  " + elem.getIODefString(true, "output   ") + ";");
 		}		   	
 		return outList;
 	}
@@ -374,14 +354,14 @@ public class SystemVerilogModule {
 	public void addVectorTo(Integer to, String name, int lowIndex, int size) {
 		SystemVerilogIOSignalList sigList = ioHash.get(to);  // get the siglist
 		if (sigList == null) return;
-		sigList.addVector(insideLocs, to, name, lowIndex, size); 
+		sigList.addSimpleVector(insideLocs, to, name, lowIndex, size); 
 	}
 
 	/** add a new vector IO signal from the specified external location */
 	public void addVectorFrom(Integer from, String name, int lowIndex, int size) {
 		SystemVerilogIOSignalList sigList = ioHash.get(from);  // get the siglist
 		if (sigList == null) return;
-		sigList.addVector(from, insideLocs, name, lowIndex, size); 
+		sigList.addSimpleVector(from, insideLocs, name, lowIndex, size); 
 	}
 	
     /** add a freeform statement to this module */
@@ -496,7 +476,7 @@ public class SystemVerilogModule {
 	 */
 	public void writeIOs(int indentLevel) {
 		// if legacy format, add the parm list
-		if (!useInterfaces) builder.writeStmts(0, getLegacyIOStrList());
+		if (!useInterfaces) builder.writeStmts(0, getLegacyIOStrList()); // legacy vlog io format
 		
 		// add base addr param if specified TODO - replace w generic parameter list
 		if (addBaseAddrParameter) {
@@ -509,7 +489,7 @@ public class SystemVerilogModule {
 		}
 		// write IO definitions  // TODO - using legacy vlog format if no interfaces for compatibility
 		if (useInterfaces) builder.writeStmts(indentLevel+1, getIODefStrList());   // sv format
-		else builder.writeStmts(0, getLegacyIODefStrList());  //vlog format
+		else builder.writeStmts(0, getLegacyIODefStrList());  // legacy vlog io format
 		builder.writeStmt(0, "");
 	}
 
@@ -523,22 +503,22 @@ public class SystemVerilogModule {
 
 	/** write an instance of this module */
 	public void writeInstance(int indentLevel, String instName) {
-		List<SystemVerilogIOSignal> childList = this.getInputOutputList();
+		List<SystemVerilogIOElement> childList = this.getInputOutputList();
 		if (childList.isEmpty()) return;
 	    String baseAddrStr = this.addBaseAddrParameter() ? " #(BASE_ADDR) " : " ";
 	    if (SystemVerilogBuilder.isLegacyVerilog()) {
 			builder.writeStmt(indentLevel++, this.getName() + baseAddrStr + instName + " (");   // more elements so use comma
-			Iterator<SystemVerilogIOSignal> it = childList.iterator();
+			Iterator<SystemVerilogIOElement> it = childList.iterator();
 			Boolean anotherElement = it.hasNext();
 			while (anotherElement) {
-				SystemVerilogSignal elem = it.next();
+				SystemVerilogIOElement elem = it.next();
 				if (it.hasNext()) {
-					builder.writeStmt(indentLevel, "." + elem.getName() + "(" + elem.getName() + "),");   // more elements so use comma
+					builder.writeStmt(indentLevel, "." + elem.getFullName() + "(" + elem.getFullName() + "),");   // more elements so use comma
 					anotherElement = true;
 				}
 				else {
 					anotherElement = false;
-					builder.writeStmt(indentLevel, "." + elem.getName() + "(" + elem.getName() + ") );");   // no more elements so close
+					builder.writeStmt(indentLevel, "." + elem.getFullName() + "(" + elem.getFullName() + ") );");   // no more elements so close
 				}
 			}		   		    	
 	    }
