@@ -84,7 +84,7 @@ public class RhsReference {
 
    /** return true if this is a register reference path (no field) */
    private boolean isRegRef() {
-	   return hasDeRef() && (deRef.equals("intr") || deRef.equals("halt") || deRef.equals("anded") || deRef.equals("ored") || deRef.equals("xored"));
+	   return hasDeRef() && (deRef.equals("intr") || deRef.equals("halt"));
    }
 
    /** return number of reg set elements in path */

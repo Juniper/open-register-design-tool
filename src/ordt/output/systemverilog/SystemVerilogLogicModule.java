@@ -29,6 +29,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 
 	/** save user defined signal info */
 	public void addUserDefinedSignal(String rtlName, SignalProperties signalProperties) {
+		//System.out.println("SystemVerilogLogicModule addUserDefinedSignal: ref=" + rtlName + ", key=" + signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL));
 		userDefinedSignals.put(signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), signalProperties);  
 	}
 	
@@ -36,12 +37,12 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	 *  if a signal, it is tagged as a rhsReference. 
 	 * this method should only be called after entire signal list is created at addrmap exit */
 	public String resolveAsSignalOrField(String ref) {
-		//if (ref.startsWith("rg_")) System.out.println("SystemVerilogBuilder resolveAsSignalOrField: ref=" + ref);
+		//if (ref.contains("log_enable_n")) System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: ref=" + ref);
 		String retStr = ref;  // no name change by default
 		if ((ref.startsWith("rg_") && userDefinedSignals.containsKey(ref.replaceFirst("rg_", "sig_")))) {
 			retStr = ref.replace("rg_", "sig_");
 			userDefinedSignals.get(retStr).setRhsReference(true);  // indicate that this signal is used internally as rhs
-			//System.out.println("SystemVerilogBuilder: resolveAsSignalOrField: marked signal " + retStr + " as rhsReference, rhs=" + definedSignals.get(retStr).isRhsReference());
+			//System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: marked signal " + retStr + " as rhsReference, rhs=" + userDefinedSignals.get(retStr).isRhsReference());
 		}	
 		return retStr;
 	}

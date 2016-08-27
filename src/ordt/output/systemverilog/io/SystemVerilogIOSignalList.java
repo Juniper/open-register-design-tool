@@ -208,7 +208,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	 * @return - list of SystemVerilogIOSignal
 	 */
 	public List<SystemVerilogIOElement> getIOElementList(Integer fromLoc, Integer toLoc) {
-		return getIOElementList(fromLoc, toLoc, null, true, false, true, false, false);
+		return getIOElementList(fromLoc, toLoc, null, true, false, true, false, false, false);
 	}
 	
 	/** return a flat list of simple SystemVerilogSignal with full generated names for this signalset. 
