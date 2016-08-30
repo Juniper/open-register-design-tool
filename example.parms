@@ -1,7 +1,7 @@
 // global parameters
 global {
 	min_data_size = 32       // base reg size
-	//base_address = 0x80000000   // block base address
+	base_address = 0x80000000   // block base address
 	//use_js_address_alignment = true   // align per jspec reg array and register_set rules
 	//suppress_alignment_warnings = true   // inhibit register/regfile base address alignment messages
 	//default_base_map_name = "zt"   // default address map name (replaces 'default_name' in cases where no addrmap is specified)

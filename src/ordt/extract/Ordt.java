@@ -17,6 +17,7 @@ import ordt.output.othertypes.RdlBuilder;
 import ordt.output.othertypes.RegListBuilder;
 import ordt.output.othertypes.XmlBuilder;
 import ordt.output.systemverilog.SystemVerilogBuilder;
+import ordt.output.systemverilog.SystemVerilogChildInfoBuilder;
 import ordt.output.systemverilog.SystemVerilogTestBuilder;
 import ordt.output.uvmregs.UVMRegsBuilder;
 import ordt.output.verilog.VerilogBuilder;
@@ -25,7 +26,7 @@ import ordt.parameters.ExtParameters;
 
 public class Ordt {
 
-	private static String version = "160827.01"; 
+	private static String version = "160829.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -33,7 +34,8 @@ public class Ordt {
 	private static List<String> inputParmFiles = new ArrayList<String>();
     private static String inputFile = null;
 
-	public enum OutputType { VERILOG, SYSTEMVERILOG, JSPEC, RALF, RDL, REGLIST, SVBENCH, VBENCH, UVMREGS, UVMREGSPKG, XML, CPPMOD, JSON };
+	public enum OutputType { VERILOG, SYSTEMVERILOG, JSPEC, RALF, RDL, REGLIST, SVBENCH, VBENCH, 
+		                     UVMREGS, UVMREGSPKG, XML, CPPMOD, JSON, SVCHILDINFO };
 	private static HashMap<OutputType, String> outputNames = new HashMap<OutputType, String>();
 	private static HashMap<OutputType, String> commentChars = new HashMap<OutputType, String>();
 	private static HashMap<OutputType, String> outputFileNames = new HashMap<OutputType, String>();
@@ -142,6 +144,7 @@ public class Ordt {
 		outputArgs.put("-xml", OutputType.XML);
 		outputArgs.put("-cppmod", OutputType.CPPMOD);
 		outputArgs.put("-json", OutputType.JSON);
+		outputArgs.put("-svchildinfo", OutputType.SVCHILDINFO);
 	}
 
 	/** assign a name string for each output type */
@@ -159,6 +162,7 @@ public class Ordt {
 		outputNames.put(OutputType.XML, "xml");
 		outputNames.put(OutputType.CPPMOD, "C++ model");
 		outputNames.put(OutputType.JSON, "json");
+		outputNames.put(OutputType.SVCHILDINFO, "systemverilog child map info");
 	}
 
 	/** assign a comment string for each output type */
@@ -176,6 +180,7 @@ public class Ordt {
 		commentChars.put(OutputType.XML, "<!--");
 		commentChars.put(OutputType.CPPMOD, "//");
 		commentChars.put(OutputType.JSON, null);
+		commentChars.put(OutputType.SVCHILDINFO, "//");
 	}
 
     /** return an OutputBuilder of specified type */
@@ -215,6 +220,8 @@ public class Ordt {
 			   //return null;
 		   case JSON: 
 			   return new JsonBuilder(model);
+		   case SVCHILDINFO: 
+			   return new SystemVerilogChildInfoBuilder(model);
            default:
 		}
 		return null;
@@ -275,6 +282,8 @@ public class Ordt {
     	System.out.println("       if <output name> ends with '/', <output_name> will be a directory where multiple ");
     	System.out.println("       systemverilog output files will be written.  Otherwise <output_name> will be a");
     	System.out.println("       file containing systemverilog output for all generated modules.");
+    	//System.out.println("   -svchildinfo <filename>");
+    	//System.out.println("       <filename> will be created containing systemverilog child decoder information");
     	//System.out.println("   -json <filename>");
     	//System.out.println("       <filename> will be created containing json output");
     	System.out.println("   -jspec <filename>");
