@@ -38,13 +38,16 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	// standard typed parameter set
 	private static HashMap<String, ExtParameter<?>> params = new HashMap<String, ExtParameter<?>>();
 	
+	
+	public enum SVBlockSelectModes { INTERNAL, EXTERNAL, ALWAYS } 
+	public enum SVDecodeInterfaceTypes { PARALLEL, LEAF, SERIAL8, RING8, RING16, RING32 } 
+	public enum SVChildInfoModes { PERL, MODULE } 
+	
 	// non-standard typed parameters
 	private static RegNumber leafBaseAddress;
 	private static SVDecodeInterfaceTypes sysVerRootDecoderInterface;
 	private static SVBlockSelectModes systemverilogBlockSelectMode;  
-	
-	public enum SVBlockSelectModes { INTERNAL, EXTERNAL, ALWAYS } 
-	public enum SVDecodeInterfaceTypes { PARALLEL, LEAF, SERIAL8, RING8, RING16, RING32 } 
+	private static SVChildInfoModes sysVerChildInfoMode;  
 
 	private static int maxInternalRegReps = 4096;  // max internal reg reps allowed (not set externally)
 	
@@ -112,6 +115,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initIntegerParameter("ring_inter_node_delay", 0); 	
 		initBooleanParameter("bbv5_timeout_input", false); 
 		initBooleanParameter("include_default_coverage", false);
+		sysVerChildInfoMode = SVChildInfoModes.PERL;  
 
 		// ---- rdl output defaults
 		initBooleanParameter("root_component_is_instanced", true); 
@@ -368,7 +372,12 @@ public class ExtParameters extends ExtParmsBaseListener  {
 			else if (value.equals("external")) systemverilogBlockSelectMode = SVBlockSelectModes.EXTERNAL;
 			else systemverilogBlockSelectMode = SVBlockSelectModes.ALWAYS;
 		}
-				
+
+		else if (name.equals("child_info_mode")) {  
+			if (value.equals("module")) sysVerChildInfoMode = SVChildInfoModes.MODULE;
+			else sysVerChildInfoMode = SVChildInfoModes.PERL;
+		}
+
 		else if (name.equals("external_decode_is_root")) {   // DEPRECATED 
 			Ordt.warnMessage("Use of control parameter 'external_decode_is_root' is deprecated.");
 		}
@@ -545,11 +554,14 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getBooleanParameter("always_generate_iwrap");
 	}
 
-	/** get systemverilogBlockSelectMode
-	 *  @return the systemverilogBlockSelectMode
-	 */
+	/** get systemverilogBlockSelectMode */
 	public static SVBlockSelectModes getSystemverilogBlockSelectMode() {
 		return systemverilogBlockSelectMode;
+	}
+
+	/** get sysVerChildInfoMode */
+	public static SVChildInfoModes getSysVerChildInfoMode() {
+		return sysVerChildInfoMode;
 	}
 	
 	/** get sysVerSuppressNoResetWarnings  
@@ -682,7 +694,6 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	 */
 	public static void main(String[] args) {
 		List<String> inFiles = new ArrayList<String>();
-		inFiles.add("/Users/snellenbach/Documents/workspace/ORDT/parms.new");
 		ExtParameters.loadParameters(inFiles);
 		//System.out.println("leafAddressSize=" + getLeafAddressSize());
 		//System.out.println("leafMinDataSize=" + getMinDataSize());

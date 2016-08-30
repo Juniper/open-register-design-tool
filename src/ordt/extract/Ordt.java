@@ -23,10 +23,11 @@ import ordt.output.uvmregs.UVMRegsBuilder;
 import ordt.output.verilog.VerilogBuilder;
 import ordt.output.verilog.VerilogTestBuilder;
 import ordt.parameters.ExtParameters;
+import ordt.parameters.ExtParameters.SVChildInfoModes;
 
 public class Ordt {
 
-	private static String version = "160829.01"; 
+	private static String version = "160830.03"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -180,7 +181,7 @@ public class Ordt {
 		commentChars.put(OutputType.XML, "<!--");
 		commentChars.put(OutputType.CPPMOD, "//");
 		commentChars.put(OutputType.JSON, null);
-		commentChars.put(OutputType.SVCHILDINFO, "//");
+		commentChars.put(OutputType.SVCHILDINFO, (ExtParameters.getSysVerChildInfoMode() == SVChildInfoModes.MODULE)? "//" : "#");
 	}
 
     /** return an OutputBuilder of specified type */
@@ -282,8 +283,8 @@ public class Ordt {
     	System.out.println("       if <output name> ends with '/', <output_name> will be a directory where multiple ");
     	System.out.println("       systemverilog output files will be written.  Otherwise <output_name> will be a");
     	System.out.println("       file containing systemverilog output for all generated modules.");
-    	//System.out.println("   -svchildinfo <filename>");
-    	//System.out.println("       <filename> will be created containing systemverilog child decoder information");
+    	System.out.println("   -svchildinfo <filename>");
+    	System.out.println("       <filename> will be created containing child decoder address information");
     	//System.out.println("   -json <filename>");
     	//System.out.println("       <filename> will be created containing json output");
     	System.out.println("   -jspec <filename>");

@@ -124,6 +124,7 @@ ext_parm_defs
    | 'bbv5_timeout_input' EQ bool
    | 'include_default_coverage' EQ bool
    | 'generate_external_regs' EQ bool   // also allowed in bench output
+   | 'child_info_mode' EQ ('perl' | 'module') 
    ;
       
 // ------------ uvmregs_out_defs

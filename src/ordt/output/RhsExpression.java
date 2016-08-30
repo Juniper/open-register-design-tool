@@ -23,25 +23,31 @@ public class RhsExpression {
    
    /** extract baseExpression and list of references from rawExpression */
    private void parseRawExpression(String rawExpression, int depth) { 
+	   System.out.println("RhsExpression parseRawExpression: --- rawExpression =" + rawExpression);
 	   baseExpression = "";
 	   boolean matchFail= false;
 	   int refId = 0;
-	   Pattern p = Pattern.compile("^([\\s\\&\\|\\~\\(\\)]*)([\\w\\.]+(\\s*->\\s*\\w+)?)([\\s\\&\\|\\~\\(\\)].*)?$");
+	   Pattern refPattern = Pattern.compile("^([\\s\\&\\|\\^\\~\\<\\>\\(\\)\\{\\}\\,]*)([\\w\\.\\']+(\\s*->\\s*\\w+)?)([\\s\\&\\|\\^\\~\\<\\>\\(\\)\\{\\}\\,].*)?$");
 	   Matcher m;
-	   String expression = rawExpression;  // start with full expression
+	   // start with the full expression and iteratively extract references to be resolved	   
+	   String expression = rawExpression;
 	   while (!matchFail) {
-		   m = p.matcher(expression);
+		   m = refPattern.matcher(expression);
+		   // if another ref found, save it and tag the base string
 		   if (m.matches()) {
-			   /*for (int idx=1; idx<=m.groupCount(); idx++)
-				   System.out.println("exp " + idx + ": " + m.group(idx));*/
-			   baseExpression += m.group(1) + "$" + refId++ + " ";
-			   refs.add(new RhsReference(m.group(2), depth));
+			   String leadString = m.group(1);
+			   String refString = m.group(2);
 			   expression = m.group(4);
-			   if (expression == null) matchFail = true;
+			   //for (int idx=1; idx<=m.groupCount(); idx++)
+			   System.out.println("RhsExpression parseRawExpression: setting exp#" + refId + ": " + refString);
+			   baseExpression += leadString + "$" + refId++ + " ";
+			   refs.add(new RhsReference(refString, depth));
+			   if ((expression == null) || expression.isEmpty()) matchFail = true;  // done if nothing left to parse
 		   }
 		   else {
+			   System.out.println("RhsExpression parseRawExpression: matcher failed w/ refId =" + refId + ", expression=" + expression);
 			   matchFail = true;
-			   if (refId>0) {
+			   if ((refId>0) && expression.matches("^[\\s\\}\\)]+$")) {  // save any trailing rt parens/brackets
 				   baseExpression += expression;
 				   baseExpression = baseExpression.trim();
 			   }

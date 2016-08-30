@@ -11,6 +11,7 @@ import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.output.OutputBuilder;
 import ordt.parameters.ExtParameters;
+import ordt.parameters.ExtParameters.SVChildInfoModes;
 
 public class SystemVerilogChildInfoBuilder extends OutputBuilder {
 	
@@ -77,39 +78,52 @@ public class SystemVerilogChildInfoBuilder extends OutputBuilder {
 	@Override
 	protected void write(BufferedWriter bw) {
 		int indentLvl = 0;
-		String modName = getAddressMapName() + "_child_map_info";
-		writeStmt(indentLvl, "");
-		writeStmt(indentLvl, "//");
-		writeStmt(indentLvl, "//---------- module " + modName);
-		writeStmt(indentLvl, "//");
-		writeStmt(indentLvl, "module " + modName);
-		writeStmt(indentLvl++, "(");
-		//------- output defs
-		Iterator<ChildInfo> it = cInfoList.iterator();
-		while (it.hasNext()) {
-			ChildInfo cInfo = it.next();
-			String suffix = it.hasNext()? "," : ""; 
-			writeStmt(indentLvl, cInfo.getStartName() + ",");
-			writeStmt(indentLvl, cInfo.getEndName() + suffix);
+		// if child info type is module then write it out
+		if (ExtParameters.getSysVerChildInfoMode() == SVChildInfoModes.MODULE) {
+			String modName = getAddressMapName() + "_child_map_info";
+			writeStmt(indentLvl, "//");
+			writeStmt(indentLvl, "//---------- module " + modName);
+			writeStmt(indentLvl, "//");
+			writeStmt(indentLvl, "module " + modName);
+			writeStmt(indentLvl++, "(");
+			//------- output defs
+			Iterator<ChildInfo> it = cInfoList.iterator();
+			while (it.hasNext()) {
+				ChildInfo cInfo = it.next();
+				String suffix = it.hasNext()? "," : ""; 
+				writeStmt(indentLvl, cInfo.getStartName() + ",");
+				writeStmt(indentLvl, cInfo.getEndName() + suffix);
+			}
+			writeStmt(indentLvl, ");");
+			it = cInfoList.iterator();
+			while (it.hasNext()) {
+				ChildInfo cInfo = it.next();
+				String addrArray = SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize());
+				writeStmt(indentLvl, "output " +  addrArray + cInfo.getStartName() + ";");
+				writeStmt(indentLvl, "output " +  addrArray + cInfo.getEndName() + ";");
+			}
+			  //------- output assigns
+			it = cInfoList.iterator();
+			while (it.hasNext()) {
+				ChildInfo cInfo = it.next();
+				writeStmt(indentLvl, "assign " + cInfo.getStartName() + " = " + cInfo.getStartStr() + ";");
+				writeStmt(indentLvl, "assign " + cInfo.getEndName() + " = " + cInfo.getEndStr() +";");
+			}	    
+			writeStmt(--indentLvl, "endmodule");			
 		}
-		writeStmt(indentLvl, ");");
-		it = cInfoList.iterator();
-		while (it.hasNext()) {
-			ChildInfo cInfo = it.next();
-			String addrArray = SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize());
-			writeStmt(indentLvl, "output " +  addrArray + cInfo.getStartName() + ";");
-			writeStmt(indentLvl, "output " +  addrArray + cInfo.getEndName() + ";");
+		// otherwise just write out perl assigns
+		else {
+			//------- output address range defines
+			writeStmt(indentLvl, "#");
+			writeStmt(indentLvl, "#---------- address start/end info for " + getAddressMapName());
+			writeStmt(indentLvl, "#");
+			Iterator<ChildInfo> it = cInfoList.iterator();
+			while (it.hasNext()) {
+				ChildInfo cInfo = it.next();
+				writeStmt(indentLvl, cInfo.getPerlStartName() + " = \"" + cInfo.getStartStr() + "\";");
+				writeStmt(indentLvl, cInfo.getPerlEndName() + " = \"" + cInfo.getEndStr() +"\";");
+			}
 		}
-		  //------- output assigns
-		it = cInfoList.iterator();
-		while (it.hasNext()) {
-			ChildInfo cInfo = it.next();
-			String addrArray = SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize());
-			writeStmt(indentLvl, "assign " + cInfo.getStartName() + " = " + cInfo.getStartStr() + ";");
-			writeStmt(indentLvl, "assign " + cInfo.getEndName() + " = " + cInfo.getEndStr() +";");
-		}	    
-		writeStmt(--indentLvl, "endmodule");
-
 	}
 
 	// ----------------------
@@ -137,6 +151,16 @@ public class SystemVerilogChildInfoBuilder extends OutputBuilder {
 		}
 		public String getEndStr() {
 			return end.toFormat(NumBase.Hex, NumFormat.Verilog);
+		}
+		/** return perl start varable name */
+		public String getPerlStartName() {
+			String prefix = ((getAddressMapName() == null) || getAddressMapName().isEmpty())? "" : getAddressMapName() + "_";
+			return "$" + (prefix + getStartName()).toUpperCase();
+		}
+		/** return perl end varable name */
+		public String getPerlEndName() {
+			String prefix = ((getAddressMapName() == null) || getAddressMapName().isEmpty())? "" : getAddressMapName() + "_";
+			return "$" + (prefix + getEndName()).toUpperCase();
 		}
 
 	}

@@ -178,9 +178,10 @@ simple_instance_ref  // added for differentiating signal assign
   ;
   
 verilog_expression  // added - allow simple vlog expression
-  : verilog_expression op=(OR | AND | CARET) verilog_expression
+  : verilog_expression op=(OR | AND | CARET | LSHIFT | RSHIFT) verilog_expression
   | LPAREN verilog_expression RPAREN 
-  | (TILDE)? instance_ref
+  | LBRACE (verilog_expression COMMA)* verilog_expression RBRACE 
+  | (TILDE)? (instance_ref | NUM)
   ;
 
 instance_ref_elem
@@ -216,7 +217,7 @@ property_assign_rhs
   : property_rvalue_constant
   | 'enum' enum_body
   | instance_ref
-  | concat
+//  | concat
   ;
 
 concat
@@ -542,6 +543,7 @@ DREF   : '->';
 EQ     : '=' ;
 INC    : '+=';
 MOD    : '%=';
+LSHIFT : '<<';
 RSHIFT : '>>';
 CARET  : '^';
 TILDE  : '~';
