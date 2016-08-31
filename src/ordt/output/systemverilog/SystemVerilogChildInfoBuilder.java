@@ -9,7 +9,9 @@ import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
+import ordt.output.InstanceProperties.ExtType;
 import ordt.output.OutputBuilder;
+import ordt.output.RegSetProperties;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.ExtParameters.SVChildInfoModes;
 
@@ -62,7 +64,8 @@ public class SystemVerilogChildInfoBuilder extends OutputBuilder {
 
 	@Override
 	public void finishRegSet() {
-		if (regSetProperties.isAddressMap()) {
+		if (regSetProperties.isAddressMap() || isLeafDecoderRegSet()) {
+			if (isLeafDecoderRegSet()) System.out.println("SystemVerilogChildInfoBuilder finishRegSet: leaf decoder=" + regSetProperties.getInstancePath());
 			cInfoList.add(new ChildInfo(regSetProperties.getBaseName(), regSetProperties.getFullBaseAddress(), regSetProperties.getFullHighAddress()));
 		}
 	}
@@ -124,6 +127,21 @@ public class SystemVerilogChildInfoBuilder extends OutputBuilder {
 				writeStmt(indentLvl, cInfo.getPerlEndName() + " = \"" + cInfo.getEndStr() +"\";");
 			}
 		}
+	}
+	
+	// ----------------------
+	
+	/** return true if current regset if direct child of a root BBV5 parent
+	 */
+	protected boolean isLeafDecoderRegSet() {
+		boolean bbv5Parent = false;
+		Iterator<RegSetProperties> iter = regSetPropertyStack.iterator();
+		while (iter.hasNext()) {
+			RegSetProperties inst = iter.next();
+			if (bbv5Parent && !iter.hasNext()) return true; // if parent is bbv5 and this is current regset return true
+			bbv5Parent = (inst.isRootExternal() && inst.hasExternalType(ExtType.BBV5));
+		}
+		return false;
 	}
 
 	// ----------------------

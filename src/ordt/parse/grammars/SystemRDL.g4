@@ -178,10 +178,10 @@ simple_instance_ref  // added for differentiating signal assign
   ;
   
 verilog_expression  // added - allow simple vlog expression
-  : verilog_expression op=(OR | AND | CARET | LSHIFT | RSHIFT) verilog_expression
+  : verilog_expression (AND | OR | CARET | LSHIFT | RSHIFT) verilog_expression
   | LPAREN verilog_expression RPAREN 
   | LBRACE (verilog_expression COMMA)* verilog_expression RBRACE 
-  | (TILDE)? (instance_ref | NUM)
+  | ( ((TILDE | AND | OR)? instance_ref array?) | NUM)
   ;
 
 instance_ref_elem

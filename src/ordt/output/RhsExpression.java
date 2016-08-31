@@ -10,6 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import ordt.extract.Ordt;
+import ordt.extract.RegNumber;
 
 /** class describing a rhs expression which includes operators and rhs references */
 public class RhsExpression {
@@ -23,11 +24,12 @@ public class RhsExpression {
    
    /** extract baseExpression and list of references from rawExpression */
    private void parseRawExpression(String rawExpression, int depth) { 
-	   System.out.println("RhsExpression parseRawExpression: --- rawExpression =" + rawExpression);
+	   //System.out.println("RhsExpression parseRawExpression: --- rawExpression =" + rawExpression);
 	   baseExpression = "";
 	   boolean matchFail= false;
 	   int refId = 0;
-	   Pattern refPattern = Pattern.compile("^([\\s\\&\\|\\^\\~\\<\\>\\(\\)\\{\\}\\,]*)([\\w\\.\\']+(\\s*->\\s*\\w+)?)([\\s\\&\\|\\^\\~\\<\\>\\(\\)\\{\\}\\,].*)?$");
+	   // search for 3 part pattern of form: allowed lead characters + reference + allowed trailing characters
+	   Pattern refPattern = Pattern.compile("^([\\s\\&\\|\\^\\~\\<\\>\\(\\)\\{\\}\\,\\[\\]]*)([\\w\\.\\']+(\\s*->\\s*\\w+)?)([\\s\\&\\|\\^\\~\\<\\>\\(\\)\\{\\}\\,\\[\\]].*)?$");
 	   Matcher m;
 	   // start with the full expression and iteratively extract references to be resolved	   
 	   String expression = rawExpression;
@@ -39,15 +41,23 @@ public class RhsExpression {
 			   String refString = m.group(2);
 			   expression = m.group(4);
 			   //for (int idx=1; idx<=m.groupCount(); idx++)
-			   System.out.println("RhsExpression parseRawExpression: setting exp#" + refId + ": " + refString);
-			   baseExpression += leadString + "$" + refId++ + " ";
-			   refs.add(new RhsReference(refString, depth));
+			   RegNumber elemNum = new RegNumber(refString);
+			   // if a number is detected then keep it as-is
+			   if (elemNum.isDefined()) {
+				   baseExpression += leadString + refString;
+			   }
+			   //otherwise save the ref and add a tag in the overall expression
+			   else {
+				   //System.out.println("RhsExpression parseRawExpression: setting exp#" + refId + ": " + refString);
+				   baseExpression += leadString + "$" + refId++ + " ";
+				   refs.add(new RhsReference(refString, depth));
+			   }
 			   if ((expression == null) || expression.isEmpty()) matchFail = true;  // done if nothing left to parse
 		   }
 		   else {
-			   System.out.println("RhsExpression parseRawExpression: matcher failed w/ refId =" + refId + ", expression=" + expression);
+			   //System.out.println("RhsExpression parseRawExpression: matcher failed w/ refId =" + refId + ", expression=" + expression);
 			   matchFail = true;
-			   if ((refId>0) && expression.matches("^[\\s\\}\\)]+$")) {  // save any trailing rt parens/brackets
+			   if ((refId>0) && expression.matches("^[\\s\\}\\)\\[\\]\\d]+$")) {  // save any trailing rt parens/brackets/arrray indicators
 				   baseExpression += expression;
 				   baseExpression = baseExpression.trim();
 			   }
