@@ -65,7 +65,7 @@ public class SystemVerilogChildInfoBuilder extends OutputBuilder {
 	@Override
 	public void finishRegSet() {
 		if (regSetProperties.isAddressMap() || isLeafDecoderRegSet()) {
-			if (isLeafDecoderRegSet()) System.out.println("SystemVerilogChildInfoBuilder finishRegSet: leaf decoder=" + regSetProperties.getInstancePath());
+			//if (isLeafDecoderRegSet()) System.out.println("SystemVerilogChildInfoBuilder finishRegSet: leaf decoder=" + regSetProperties.getInstancePath());
 			cInfoList.add(new ChildInfo(regSetProperties.getBaseName(), regSetProperties.getFullBaseAddress(), regSetProperties.getFullHighAddress()));
 		}
 	}
@@ -134,12 +134,17 @@ public class SystemVerilogChildInfoBuilder extends OutputBuilder {
 	/** return true if current regset if direct child of a root BBV5 parent
 	 */
 	protected boolean isLeafDecoderRegSet() {
-		boolean bbv5Parent = false;
+		boolean bbv5Ancestor = false;
+		int descLevel = 0;  // descendent level
 		Iterator<RegSetProperties> iter = regSetPropertyStack.iterator();
 		while (iter.hasNext()) {
 			RegSetProperties inst = iter.next();
-			if (bbv5Parent && !iter.hasNext()) return true; // if parent is bbv5 and this is current regset return true
-			bbv5Parent = (inst.isRootExternal() && inst.hasExternalType(ExtType.BBV5));
+			if (bbv5Ancestor) {
+				descLevel++; // calculate descendent level
+				if ((descLevel<3) && !iter.hasNext() && !inst.isReplicated()) return true; // if ancestor is bbv5 and this is current regset return true
+				if (inst.isAddressMap()) descLevel=99;  // inhibit children if an addrmap or reps detected
+			}
+			if (inst.isRootExternal() && inst.hasExternalType(ExtType.BBV5)) bbv5Ancestor = true; // detect bbvr root
 		}
 		return false;
 	}
