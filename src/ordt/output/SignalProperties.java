@@ -68,17 +68,17 @@ public class SignalProperties extends InstanceProperties {
 	 */
 	public void setSignalWidth(ModIndexedInstance regInst) {		
 		ModComponent regComp = regInst.getRegComp();  // get the component of this instance
-		// otherwise look for width set in instance 
-		if (regInst.getWidth() != null)   
-			this.signalWidth = regInst.getWidth(); 
 		// if instance prop is set then use it
-		else if (regInst.hasProperty("signalwidth")) 
+		if (regInst.hasProperty("signalwidth")) 
 			this.signalWidth = regInst.getIntegerProperty("signalwidth"); 
 		// otherwise look for a signalwidth set in component
-		else if ((regComp != null) && (regComp.hasProperty("signalwidth"))) {
+		else if ((regComp != null) && (regComp.hasProperty("signalwidth")))
 			this.signalWidth = regComp.getIntegerProperty("signalwidth");
-		}
+		// otherwise look for width set in instance 
+		else if (regInst.getWidth() != null)   
+			this.signalWidth = regInst.getWidth(); 
 		else this.signalWidth = 1;
+		//System.out.println("SignalProperties setSignalWidth: inst=" + this.getInstancePath() + ", w=" + signalWidth);
 	}
 
 	/** get signal array string with explicit range indices
