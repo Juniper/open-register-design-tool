@@ -45,6 +45,9 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	private static int anonCompId = 0;   // id for anonymous components
 	
 	private InstanceRef rhsInstanceRef = null;  // rhs ref info for assignment checking
+	
+	private String usrPropertyName, usrPropertyType, usrPropertyDefault;  // temp vars for capturing user defined properties
+	private List<String> usrPropertyComponents;
 
 	/** create data model from rdl file 
 	 * @param rdlFile to be parsed
@@ -579,7 +582,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			//System.out.println("RegExtractor: post prop assign active component =" + comp.getId()); 
 			ModInstance regInst = comp.findInstance(lhsInstanceRef.getInstPath());   // search for specified instance recursively  
 			if (regInst == null)
-				Ordt.errorMessage("unable to find lhs instance in dynamic property assignment: " + ctx.getText());
+				Ordt.errorMessage("unable to find lhs instance in property assignment: " + ctx.getText());
 		    // if this instance is found 
 			else {
 				//System.out.println("RdlModelExtractor enterPost_property_assign: found lhs instance "+ instPathStr); 
@@ -611,7 +614,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			//System.out.println("RegExtractor: post prop assign active component =" + comp.getId()); 
 			ModInstance regInst = comp.findInstance(lhsInstanceRef.getInstPath());   // search for specified instance recursively  
 			if (regInst == null)
-				Ordt.errorMessage("unable to find lhs instance in dynamic property assignment: " + ctx.getText());
+				Ordt.errorMessage("unable to find lhs instance or property in assignment: " + ctx.getText());
 		    // if this instance is found in local component then save the prop assignment
 			else {
 				String rhsValue = (postPropertyAssignChildren>1) ? noEscapes(ctx.getChild(2).getText().replace("\"","")) : "true"; // check for right hand assignment
@@ -680,15 +683,65 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	@Override public void enterProperty_definition(@NotNull SystemRDLParser.Property_definitionContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
 		Ordt.warnMessage("property_definition not implemented");
-		
+		//System.out.println("RdlModelExtractor enterProperty_definition: " + ctx.getText());
+		usrPropertyName = ctx.getChild(1).getText();  // save prop name
+		// init type, defauld, components for this property
+		usrPropertyType = null;
+		usrPropertyDefault = null;
+		usrPropertyComponents = new ArrayList<String>();
 	}
 	
 	/**
 	 * exit Property_definition
 	 */
 	@Override public void exitProperty_definition(@NotNull SystemRDLParser.Property_definitionContext ctx) { 
+		activeRules.remove(ctx.getRuleIndex());	
+		//System.out.println("RdlModelExtractor exitProperty_definition: name=" + usrPropertyName + ", type=" + usrPropertyType + ", default=" + usrPropertyDefault+ ", comps=" + usrPropertyComponents);
+        // ad the new property to defined list
+		DefinedProperties.addProperty(usrPropertyName, usrPropertyType, usrPropertyDefault, usrPropertyComponents);
+	}
+
+	/**
+	 * set user defined property type
+	 */
+	@Override public void enterProperty_type(SystemRDLParser.Property_typeContext ctx) { 	
+		activeRules.add(ctx.getRuleIndex());
+		//System.out.println("RdlModelExtractor enterProperty_type: " + ctx.getText());
+		usrPropertyType = ctx.getChild(2).getText();  // save prop type
+	}
+	
+	@Override public void exitProperty_type(SystemRDLParser.Property_typeContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
-		
+	}
+	
+	/**
+	 * set user defined property default value
+	 */
+	@Override public void enterProperty_default(SystemRDLParser.Property_defaultContext ctx) { 
+		activeRules.add(ctx.getRuleIndex());
+		//System.out.println("RdlModelExtractor enterProperty_default: " + ctx.getText());
+		usrPropertyDefault = ctx.getChild(2).getText();  // save prop default
+	}
+	
+	@Override public void exitProperty_default(SystemRDLParser.Property_defaultContext ctx) { 
+		activeRules.remove(ctx.getRuleIndex());
+	}
+	
+	/**
+	 * set user defined property usage
+	 * 'component' EQ property_component (OR property_component)* SEMI
+	 */
+	@Override public void enterProperty_usage(SystemRDLParser.Property_usageContext ctx) { 
+		activeRules.add(ctx.getRuleIndex());
+		//System.out.println("RdlModelExtractor enterProperty_usage: " + ctx.getText());
+		int numComponents = (ctx.getChildCount() - 1) / 2;
+		for (int cnum = 1; cnum<=numComponents; cnum++) {
+			usrPropertyComponents.add(ctx.getChild(cnum*2).getText());  // save each prop component			
+		}
+	}
+	
+	@Override public void exitProperty_usage(SystemRDLParser.Property_usageContext ctx) { 
+		activeRules.remove(ctx.getRuleIndex());
 	}
 
 	/**
