@@ -25,12 +25,28 @@ Changes:
 - added nextposedge, nextnegedge edge properties for use in rhs assigns
 - added satoutput property to explicitly control counter sat output gen (no sat output by default)
 - added verilog_expression to allow signal assigns using simple logic expressions
+- added predicates/lexer methods to correctly identify user-defined property ID tokens
 */
 
 grammar SystemRDL;
 import ExtParms;
 
-tokens  { INST_ID, PROPERTY }
+tokens  { INST_ID }
+
+@lexer::members {
+  private static java.util.Set<String> userDefinedProperties = new java.util.HashSet<String>();
+
+  public static void addUserProperty(String prop) {
+    userDefinedProperties.add(prop);
+    //System.out.println("adding user property " + prop + " to set");
+  }
+
+  public static boolean isUserProperty(String prop) {
+    //System.out.println("user property " + prop + " is found=" + userDefinedProperties.contains(prop));
+    return userDefinedProperties.contains(prop);
+  }
+
+}
 
 root
   : ( parameter_block
@@ -48,7 +64,7 @@ root
     
  property_definition
    : 'property'
-     id         
+     id         { SystemRDLLexer.addUserProperty($id.text); }  // System.out.println("user property=" + $id.text); 
      LBRACE
      property_body
      RBRACE
@@ -358,7 +374,7 @@ property
 
   | unimplemented_property  // added
 
-  | PROPERTY
+  | PROPERTY  // {System.out.println("user defined property found!");}
   ;
 
 unimplemented_property
@@ -493,9 +509,13 @@ RING32
 
 ID
   : ('\\')?
-    (LETTER | '_')(LETTER | '_' | '0'..'9')*
+    (LETTER | '_')(LETTER | '_' | '0'..'9')* { if(isUserProperty(getText())) setType(PROPERTY); }
   ;
 
+PROPERTY
+  : 'XPROPERTYX'  // this rule will never match, but ID can be converted to PROPERTY by predicate
+  ;
+ 
 fragment VNUM
   : '\'' ( 'b' ('0' | '1' | '_')+
          | 'd' ('0'..'9' | '_')+
