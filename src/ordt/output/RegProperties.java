@@ -4,6 +4,7 @@
 package ordt.output;
 
 import ordt.extract.Ordt;
+import ordt.extract.DefinedProperties;
 import ordt.extract.ModComponent;
 import ordt.extract.ModInstance;
 import ordt.extract.ModRegister;
@@ -103,6 +104,12 @@ public class RegProperties extends AddressableInstanceProperties {
 		
 		// extract c++ model info
 		if (pList.hasTrueProperty("cppmod_prune")) setCppModPrune(true);
+	}
+    
+	/** extract a PropertyList of user defined parameters for this instance */
+    @Override
+	protected void extractUserDefinedProperties(PropertyList pList) {
+		setUserDefinedProperties(pList, DefinedProperties.userRegPropertySet);
 	}
 
 	/** set the width of register based on instance/component properties

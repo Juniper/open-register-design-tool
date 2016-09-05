@@ -3,6 +3,7 @@
  */
 package ordt.output;
 
+import ordt.extract.DefinedProperties;
 import ordt.extract.ModInstance;
 import ordt.extract.PropertyList;
 import ordt.extract.RegNumber;
@@ -42,6 +43,12 @@ public class RegSetProperties extends AddressableInstanceProperties {
 		// set external decode only if a regset
 		if (pList.hasTrueProperty("external_decode")) setExternalDecode(true);
 	} 
+    
+	/** extract a PropertyList of user defined parameters for this instance */
+    @Override
+	protected void extractUserDefinedProperties(PropertyList pList) {
+		setUserDefinedProperties(pList, DefinedProperties.userRegSetPropertySet);
+	}
 	
 	/** return the max reg width in this regset in bits
 	 */

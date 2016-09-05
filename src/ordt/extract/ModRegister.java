@@ -24,31 +24,7 @@ public class ModRegister extends ModComponent  {
 	/** default check on valid property assignments - overridden by child types */
 	@Override
 	protected boolean isValidProperty(String propertyName) {
-		HashSet<String> validProperties = new HashSet<String>();
-		validProperties.add("name");
-		validProperties.add("desc");
-		validProperties.add("donttest");
-		validProperties.add("dontcompare");
-		validProperties.add("category");
-		validProperties.add("js_attributes");
-		validProperties.add("js_superset_check");
-		validProperties.add("external");
-		validProperties.add("aliasedId");
-		validProperties.add("regwidth");
-		validProperties.add("repcount");
-		validProperties.add("uvmreg_is_mem");
-		validProperties.add("use_interface");
-		validProperties.add("use_new_interface");
-		validProperties.add("cppmod_prune");
-		// if jspec, allow these 
-		if (Ordt.hasInputType(InputType.JSPEC)) {
-		  validProperties.add("sub_category");
-		  // allow the following properties for jspec (specified in reg component but passed to instance)
-		  validProperties.add("address");
-		  validProperties.add("arrayidx1");
-		  validProperties.add("addrinc");
-		}
-		return validProperties.contains(propertyName);
+		return DefinedProperties.isRegProperty(propertyName);
 	}
 	
 	/** default check for implicit default property assignments - overridden by child types */

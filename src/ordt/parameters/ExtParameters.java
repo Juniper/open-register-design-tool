@@ -93,6 +93,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		// ---- rdl input defaults
 		initStringListParameter("process_component", new ArrayList<String>());
 		initBooleanParameter("resolve_reg_category", false); 
+		initBooleanParameter("restrict_defined_property_names", true); 
 		
 		// ---- jspec input defaults
 		initStringListParameter("process_typedef", new ArrayList<String>());
@@ -473,6 +474,12 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static boolean rdlResolveRegCategory() {
 		return getBooleanParameter("resolve_reg_category");
 	}
+	
+	/** returns true if user defined rdl properties should always start with 'p_' */
+	public static boolean rdlRestrictDefinedPropertyNames() {
+		return getBooleanParameter("restrict_defined_property_names");
+	}
+	
 	// -------- js input getters
 
 	/** returns true if typedef names have been specified for processing */

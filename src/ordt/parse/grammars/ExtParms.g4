@@ -53,6 +53,7 @@ ext_parm_defs
  rdl_in_parm_assign
    : 'process_component' EQ STR
    | 'resolve_reg_category' EQ bool
+   | 'restrict_defined_property_names' EQ bool
    ;
    
 // ------------ jspec_in_defs

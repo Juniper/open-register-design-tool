@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ordt.extract.Ordt;
+import ordt.extract.PropertyList;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
@@ -16,6 +17,7 @@ import ordt.output.OutputBuilder;
 import ordt.output.OutputLine;
 import ordt.output.RhsReference;
 import ordt.output.FieldProperties.RhsRefType;
+import ordt.output.InstanceProperties;
 import ordt.parameters.ExtParameters;
 
 public class XmlBuilder extends OutputBuilder {  
@@ -91,6 +93,8 @@ public class XmlBuilder extends OutputBuilder {
 			//else infoStr += "Rollover counter.  ";
 		}
 		if (!infoStr.isEmpty()) addXmlElement("infotext", infoStr);
+		// if this instance has user defined properties, add them
+		addUserDefinedPropertyElements(fieldProperties);
 		
 		addXmlElementEnd("field");
 		/*
@@ -155,6 +159,8 @@ public class XmlBuilder extends OutputBuilder {
 			if (regProperties.isSwWriteable()) acc += 'W';
 			addXmlElement("access", acc);
 		}
+		// if this instance has user defined properties, add them
+		addUserDefinedPropertyElements(regProperties);
 		addXmlElementEnd("reg");
 	}
 
@@ -198,6 +204,8 @@ public class XmlBuilder extends OutputBuilder {
 		}
 		if (regSetProperties.getFullHighAddress() != null)
 			addXmlElement("highaddr", regSetProperties.getFullHighAddress().toString());
+		// if this instance has user defined properties, add them
+		addUserDefinedPropertyElements(regSetProperties);
 		// close up this regset/addrmap
 		if (regSetProperties.isAddressMap()) addXmlElementEnd("map");
 		else addXmlElementEnd("regset");
@@ -286,6 +294,18 @@ public class XmlBuilder extends OutputBuilder {
 		textDescription = textDescription.replace("<SCRIPT", "-SCRIPT").replace("<script", "-script");
 		String outdesc = "<![CDATA[" + textDescription.replace("]]>", "") + "]]>";  // use cdata to embedded html tags 
 		return outdesc;  
+	}
+
+	/** add elements containing user defined properties */
+	private void addUserDefinedPropertyElements(InstanceProperties instProperties) {
+		if (!instProperties.hasUserDefinedProperties()) return;  // done if no external properties
+		addXmlElementStart("user_properties");
+		PropertyList pList = instProperties.getUserDefinedProperties();
+		for (String name : pList.getProperties().keySet()) {
+			String value = (pList.getProperty(name) == null)? "" : pList.getProperty(name);
+			addXmlElement(name, value);
+		}
+		addXmlElementEnd("user_properties");
 	}
 
 	//---------------------------- methods to output verilog ----------------------------------------

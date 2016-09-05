@@ -30,31 +30,7 @@ public class ModRegSet extends ModComponent {
 	/** default check on valid property assignments - overridden by child types */
 	@Override
 	protected boolean isValidProperty(String propertyName) {
-		HashSet<String> validProperties = new HashSet<String>();
-		validProperties.add("name");
-		validProperties.add("desc");
-		// implicit default properties...
-		validProperties.add("donttest");
-		validProperties.add("dontcompare");
-		validProperties.add("js_superset_check");
-		// 
-		validProperties.add("external");
-		validProperties.add("external_decode");
-		validProperties.add("repcount");
-		validProperties.add("use_interface");
-		validProperties.add("use_new_interface");
-		// if jspec, allow these 
-		if (Ordt.hasInputType(InputType.JSPEC)) {
-		  validProperties.add("sub_category");
-		  validProperties.add("js_attributes");
-		  validProperties.add("category");
-		  validProperties.add("regwidth");
-		  // allow the following properties for jspec (specified in reg component but passed to instance)
-		  validProperties.add("address");
-		  validProperties.add("arrayidx1");
-		  validProperties.add("addrinc");
-		}
-		return validProperties.contains(propertyName);
+		return DefinedProperties.isRegsetProperty(propertyName);
 	}
 	
 	/** default check for implicit default property assignments - overridden by child types */

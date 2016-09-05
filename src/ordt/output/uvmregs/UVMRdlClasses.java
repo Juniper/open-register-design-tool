@@ -109,6 +109,9 @@ public class UVMRdlClasses {
 		outputList.add(new OutputLine(indentLvl, "local bit m_dont_compare = 0;")); 
 		outputList.add(new OutputLine(indentLvl, "local int unsigned m_js_category = 0;")); 
 		
+		// user defined property array
+		outputList.add(new OutputLine(indentLvl, "local string m_def_properties[ string ];")); 
+		
 		// create new function
 		SystemVerilogFunction func = new SystemVerilogFunction(null, "new");
 		func.addIO("input", "string", "name", "\"uvm_reg_rdl\"");
@@ -119,6 +122,9 @@ public class UVMRdlClasses {
 				
 		// add rdl path gen methods
 		buildRegRdlPathMethods(outputList, indentLvl);
+		
+		// add user defined property methods
+		buildUserDefinedPropertyMethods(outputList, indentLvl);
 		
 		// set external
 		func = new SystemVerilogFunction("void", "set_external");
@@ -183,6 +189,9 @@ public class UVMRdlClasses {
 		
 		outputList.add(new OutputLine(indentLvl, "local uvm_reg_data_t m_staged[longint unsigned];"));  // assoc array of values for accumulating/caching vreg data
 
+		// user defined property array
+		outputList.add(new OutputLine(indentLvl, "local string m_def_properties[ string ];")); 
+
 		// create new function
 		SystemVerilogFunction func = new SystemVerilogFunction(null, "new");
 		func.addIO("input", "string", "name", "\"uvm_vreg_rdl\"");
@@ -192,6 +201,9 @@ public class UVMRdlClasses {
 				
 		// add reg test info methods
 		buildRegTestInfoMethods(outputList, indentLvl);
+		
+		// add user defined property methods
+		buildUserDefinedPropertyMethods(outputList, indentLvl);
 
 		// add reset getters/setters
 		func = new SystemVerilogFunction("bit", "has_reset_value");
@@ -353,6 +365,9 @@ public class UVMRdlClasses {
 		outputList.add(new OutputLine(indentLvl, "bit m_rdl_address_map = 0;")); 
 		outputList.add(new OutputLine(indentLvl, "string m_rdl_address_map_hdl_path = \"\";")); 
 		
+		// user defined property array
+		outputList.add(new OutputLine(indentLvl, "local string m_def_properties[ string ];")); 
+		
 		// create new function
 		SystemVerilogFunction func = new SystemVerilogFunction(null, "new");
 		func.addIO("input", "string", "name", "\"uvm_reg_block_rdl\"");
@@ -383,6 +398,9 @@ public class UVMRdlClasses {
 		// add get ancestor method
 		buildRdlAncestorMethod(outputList, indentLvl);
 		
+		// add user defined property methods
+		buildUserDefinedPropertyMethods(outputList, indentLvl);
+		
 		// close out the class definition
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(uvm_reg_block_rdl)"));
@@ -411,11 +429,17 @@ public class UVMRdlClasses {
 		outputList.add(new OutputLine(indentLvl, "local bit m_is_unsupported = 0;")); 
 		outputList.add(new OutputLine(indentLvl, "local int unsigned m_js_subcategory = 0;")); 
 		
+		// user defined property array
+		outputList.add(new OutputLine(indentLvl, "local string m_def_properties[ string ];")); 
+		
 		// create new function
 		SystemVerilogFunction func = new SystemVerilogFunction(null, "new");
 		func.addIO("input", "string", "name", "\"uvm_reg_field_rdl\"");
 		func.addStatement("super.new(name);");
 		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		// add user defined property methods
+		buildUserDefinedPropertyMethods(outputList, indentLvl);
 		
 		// get_rdl_register - get the rdl reg parent for this field
 		func = new SystemVerilogFunction("uvm_reg_rdl", "get_rdl_register");
@@ -1366,6 +1390,33 @@ public class UVMRdlClasses {
 		
 	}
 	
+
+	/** create user defined property add/access methods for derived rdl classes   
+	 * @param outputList - list of output lines to be updated
+	 * @param indentLvl */
+	private static void buildUserDefinedPropertyMethods(List<OutputLine> outputList, int indentLvl) {
+		// add a user defined property value
+		SystemVerilogFunction func = new SystemVerilogFunction("void", "add_def_property");
+		func.addComment("Add a user-defined property to this rdl class instance");
+		func.addIO("string", "name");
+		func.addIO("string", "value");
+		func.addStatement("m_def_properties[name] = value;");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		// return 1 if a user defined property exists
+		func = new SystemVerilogFunction("bit", "has_def_property");
+		func.addComment("Returns 1 if a user-defined property of specified name exists for this rdl class instance");
+		func.addIO("string", "name");
+		func.addStatement("return m_def_properties.exists(name);");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		// get a user defined property of specified name
+		func = new SystemVerilogFunction("string", "get_def_property");
+		func.addComment("Returns a user-defined property of specified name for this rdl class instance");
+		func.addIO("string", "name");
+		func.addStatement("return m_def_properties[name];");
+		outputList.addAll(func.genOutputLines(indentLvl));		
+	}
 	
 	/** create rdl path generation methods for uvm_reg_block derived class   
 	 * @param outputList - list of output lines to be updated

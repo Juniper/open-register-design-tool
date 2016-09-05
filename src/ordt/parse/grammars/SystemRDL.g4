@@ -64,7 +64,7 @@ root
     
  property_definition
    : 'property'
-     id         { SystemRDLLexer.addUserProperty($id.text); }  // System.out.println("user property=" + $id.text); 
+     id  { SystemRDLLexer.addUserProperty($id.text); }  // System.out.println("user property=" + $id.text); 
      LBRACE
      property_body
      RBRACE
@@ -352,7 +352,6 @@ property
 
   | 'next'
 
-  // these are added because user defined properties are not supported
   | 'nextposedge'   // added
   | 'nextnegedge'   // added
   | 'maskintrbits'   // added  

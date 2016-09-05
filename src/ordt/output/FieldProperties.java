@@ -6,6 +6,7 @@ package ordt.output;
 import java.util.HashMap;
 
 import ordt.extract.Ordt;
+import ordt.extract.DefinedProperties;
 import ordt.extract.ModComponent;
 import ordt.extract.ModEnum;
 import ordt.extract.ModIndexedInstance;
@@ -479,7 +480,12 @@ public class FieldProperties extends InstanceProperties {
 		}
 
 		//System.out.println();
-
+	}
+    
+	/** extract a PropertyList of user defined parameters for this instance */
+    @Override
+	protected void extractUserDefinedProperties(PropertyList pList) {
+		setUserDefinedProperties(pList, DefinedProperties.userFieldPropertySet);
 	}
 
 	/** get reset

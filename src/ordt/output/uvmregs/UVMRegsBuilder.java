@@ -13,11 +13,13 @@ import java.util.List;
 import java.util.Stack;
 
 import ordt.extract.Ordt;
+import ordt.extract.PropertyList;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.output.FieldProperties;
+import ordt.output.InstanceProperties;
 import ordt.output.OutputBuilder;
 import ordt.output.OutputLine;
 import ordt.output.RegSetProperties;
@@ -270,6 +272,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 			if (regProperties.isExternal()) 
 				subcompBuildList.addStatement(parentID, "  this." + regId + "[i].set_external(1);");
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i]" + getUvmRegTestModeString());  
+			// add any user defined properties
+			addUserDefinedPropertyElements(parentID, regProperties, regId + "[i]");
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i].build();");
 			subcompBuildList.addStatement(parentID, "  this.default_map.add_reg(this." + regId + "[i], " + addr + "+i*" + getRegAddrIncr() + ", \"" + getRegAccessType() + "\", 0);");						
 			subcompBuildList.addStatement(parentID, "end");
@@ -281,6 +285,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 		   if (regProperties.isExternal()) 
 			   subcompBuildList.addStatement(parentID, "this." + regId + ".set_external(1);");
 		   subcompBuildList.addStatement(parentID, "this." + regId + getUvmRegTestModeString());  
+			// add any user defined properties
+			addUserDefinedPropertyElements(parentID, regProperties, regId);
 		   subcompBuildList.addStatement(parentID, "this." + regId + ".build();");
 		   subcompBuildList.addStatement(parentID, "this.default_map.add_reg(this." + regId + ", " + addr + ", \"" + getRegAccessType() + "\", 0);");			
 		}	
@@ -343,6 +349,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 		
 		//System.out.println("UVMRegsBuilder saveMemInfo: regid=" + regId + ", memid=" + memId + ", reg reps=" + regProperties.getRepCount() + ", inst reps=" + getVRegReps());
 		subcompBuildList.addStatement(parentID, "this." + escapedRegId + getUvmRegTestModeString());  
+		// add any user defined properties
+		addUserDefinedPropertyElements(parentID, regProperties, escapedRegId);
 		subcompBuildList.addStatement(parentID, "this." + escapedRegId + ".build();");		
 	}
 
@@ -407,6 +415,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].set_rdl_address_map(1);");  // tag block as an address map
 				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});");  // TODO
 			}
+			// add any user defined properties
+			addUserDefinedPropertyElements(parentID, regSetProperties, escapedBlockId + "[i]");
 			subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].build();");
 			subcompBuildList.addStatement(parentID, "  this.default_map.add_submap(this." + escapedBlockId + "[i].default_map, " + addrStr + "+i*" + getRegSetAddrIncrString() + ");");						
 			subcompBuildList.addStatement(parentID, "end");
@@ -415,10 +425,12 @@ public class UVMRegsBuilder extends OutputBuilder {
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + " = " + getUVMBlockID(blockNameOverride) + "::type_id::create(\"" + blockId + "\",, get_full_name());");
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".configure(this, \"\");"); 
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_tag(\"" + blockId + "_\");");
-			if (!hasNameOverride && regSetProperties.isAddressMap()) {
+		   if (!hasNameOverride && regSetProperties.isAddressMap()) {
 				subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_address_map(1);");  // tag block as an address map
 				subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});");  
-			}
+		   }
+		   // add any user defined properties
+		   addUserDefinedPropertyElements(parentID, regSetProperties, escapedBlockId);
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".build();");
 		   subcompBuildList.addStatement(parentID, "this.default_map.add_submap(this." + escapedBlockId + ".default_map, " + addrStr + ");");			
 		}		
@@ -893,8 +905,11 @@ public class UVMRegsBuilder extends OutputBuilder {
 
 			// add a subcategory
 			if (field.hasSubCategory())
-				outputList.add(new OutputLine(indentLvl, "this." + fieldId +  ".set_js_subcategory(" + field.getSubCategory().getValue() + ");"));  
-
+				outputList.add(new OutputLine(indentLvl, "this." + fieldId +  ".set_js_subcategory(" + field.getSubCategory().getValue() + ");")); 
+			
+			// add any user defined properties
+			addUserDefinedPropertyElements(indentLvl, field, fieldId);
+			
 		} // while
 		
 		// add backdoor path to generated rtl
@@ -1097,6 +1112,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 			outputList.add(new OutputLine(indentLvl, "this." + fieldId +  " = new(\"" + field.getPrefixedId() + "\");"));  
 			outputList.add(new OutputLine(indentLvl, "this." + fieldId + ".configure(this, " + field.getFieldWidth() + 
 					", " + field.getLowIndex() + ");")); 
+			// add any user defined properties
+			addUserDefinedPropertyElements(indentLvl, field, fieldId);
 		} // while		
 		outputList.add(new OutputLine(--indentLvl, "endfunction: build"));
 	}
@@ -1133,6 +1150,27 @@ public class UVMRegsBuilder extends OutputBuilder {
 			outputList.add(new OutputLine(indentLvl, "this." + fieldId + ".add_halt();"));  
 		}
 	}
+
+	/** add user defined property assigns (for fields) */
+	private void addUserDefinedPropertyElements(int indentLvl, FieldProperties instProperties, String instName) {
+		if (!instProperties.hasUserDefinedProperties()) return;  // done if no external properties
+		PropertyList pList = instProperties.getUserDefinedProperties();
+		for (String name : pList.getProperties().keySet()) {
+			String value = (pList.getProperty(name) == null)? "" : pList.getProperty(name);
+			outputList.add(new OutputLine(indentLvl, "this." + instName +  ".add_def_property(\"" + name + "\", \"" + value + "\");")); 
+		}
+	}
+	
+	/** add user defined property assigns (for regs, vregs, regsets) */
+	private void addUserDefinedPropertyElements(String parentID, InstanceProperties instProperties, String instName) {
+		if (!instProperties.hasUserDefinedProperties()) return;  // done if no external properties
+		PropertyList pList = instProperties.getUserDefinedProperties();
+		for (String name : pList.getProperties().keySet()) {
+			String value = (pList.getProperty(name) == null)? "" : pList.getProperty(name);
+			subcompBuildList.addStatement(parentID, "  this." + instName + ".add_def_property(\"" + name + "\", \"" + value + "\");"); 
+		}
+	}
+//				subcompBuildList.addStatement(parentID, "  this." + regId + "[i].set_external(1);");
 	
 	/** generate add_incr, add_decr calls */
 	private void addCounterInitInfo(FieldProperties field) {

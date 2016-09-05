@@ -6,6 +6,7 @@ package ordt.output;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,6 +40,7 @@ public class InstanceProperties {
 	
 	protected ModInstance extractInstance;   // ptr to instance info in the extract model
 	protected PropertyList instDefaultProperties;   // default properties for this instance
+	protected PropertyList userDefinedProperties;   // user defined properties for this instance
 
 	private int repNum = 0;  // rep number of this instProperty if part of a replicated set
 		
@@ -87,6 +89,7 @@ public class InstanceProperties {
 		setUseInterface(oldInstance.useInterface());  
 		setExtInterfaceName(oldInstance.getExtInterfaceName());  
 		setInstDefaultProperties(oldInstance.getInstDefaultProperties());  
+		setUserDefinedProperties(oldInstance.getUserDefinedProperties());  
 	}
 	
 	/** display info InstanceProperties info */
@@ -107,6 +110,9 @@ public class InstanceProperties {
 		// display default properties
 		System.out.println("    default properties:");
 		System.out.println("        " + instDefaultProperties);
+		// display user defined properties
+		System.out.println("    user defined properties:");
+		System.out.println("        " + userDefinedProperties);
 	}
 	
 	/** extract properties from the calling instance - this or overloaded child class method called from this.updateInstanceInfo */
@@ -121,6 +127,13 @@ public class InstanceProperties {
 			setExtInterfaceName(pList.getProperty("use_interface"));
 		}
 		if (pList.hasProperty("js_superset_check")) setJspecSupersetCheck(pList.getProperty("js_superset_check"));
+		// get any user defined property settings for this instance
+		extractUserDefinedProperties(pList);
+		//if (hasUserDefinedProperties()) System.out.println("InstanceProperties extractProperties: instance " + getInstancePath() + " has user defined properties");
+	}
+
+	/** extract a PropertyList of user defined parameters for this instance (overloaded by child classes) */
+	protected void extractUserDefinedProperties(PropertyList pList) {
 	}
 
 	/** return true if this InstanceProperty is instanced by root
@@ -567,6 +580,26 @@ public class InstanceProperties {
 		return instDefaultProperties.getProperty(propName);
 	}
     
+	/** return a property list of user defined property settings */
+	public PropertyList getUserDefinedProperties() {
+		return userDefinedProperties;
+	}
+    
+	/** return true if instance has user defined properties */
+	public boolean hasUserDefinedProperties() {
+		return ((userDefinedProperties != null) && !userDefinedProperties.isEmpty());
+	}
+
+	/** set the user defined property list */
+	private void setUserDefinedProperties(PropertyList userDefinedProperties) {
+		this.userDefinedProperties = userDefinedProperties;
+	}
+
+	/** set user defined property list by pulling properties having specified names from a larger list */
+	protected void setUserDefinedProperties(PropertyList parentList, Set<String> names) {
+		this.userDefinedProperties = parentList.getSubsetList(names);
+	}
+
 	public static void main(String[] args) throws Exception {
     	ModInstance modInst = new ModInstance();
     	modInst.setId("padoody_10");

@@ -4,6 +4,7 @@
 package ordt.extract;
 
 import java.util.HashMap;
+import java.util.Set;
 
 /**
  *  class for storage of assigned properties
@@ -219,6 +220,18 @@ public class PropertyList {
 
 	public boolean isEmpty() {
 		return values.isEmpty();
+	}
+		
+	/** return a subset PropertyList given a set of names
+	 *  @param name of the property value to get
+	 *  @return the a new list containing properties with specified name
+	 */
+	public PropertyList getSubsetList(Set<String> names) {
+		PropertyList newList = new PropertyList();
+		for (String name: names) {
+			if (values.containsKey(name)) newList.setProperty(name, getProperty(name));
+		}
+		return newList;
 	}
 	
 	// ----------------- inner classes --------------------

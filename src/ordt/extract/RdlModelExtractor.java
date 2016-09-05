@@ -682,7 +682,6 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	 */
 	@Override public void enterProperty_definition(@NotNull SystemRDLParser.Property_definitionContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
-		Ordt.warnMessage("property_definition not implemented");
 		//System.out.println("RdlModelExtractor enterProperty_definition: " + ctx.getText());
 		usrPropertyName = ctx.getChild(1).getText();  // save prop name
 		// init type, defauld, components for this property
