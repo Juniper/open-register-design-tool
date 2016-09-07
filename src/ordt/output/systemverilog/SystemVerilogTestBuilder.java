@@ -15,8 +15,8 @@ import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
-import ordt.output.systemverilog.SystemVerilogModule;
-import ordt.output.systemverilog.SystemVerilogSignal;
+import ordt.output.systemverilog.common.SystemVerilogModule;
+import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.io.SystemVerilogIOElement;
 //import ordt.output.systemverilog.oldio.SystemVerilogIOSignal;
 //import ordt.output.systemverilog.oldio.SystemVerilogIOSignalList;
@@ -29,8 +29,8 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
     // define a new list to handle bench specific IO 
 	protected SystemVerilogIOSignalList benchSigList = new SystemVerilogIOSignalList("bench");   // signals specific to the bench
 	// module defines  
-	protected SystemVerilogModule leafbfm = new SystemVerilogModule(this, PIO, defaultClk);  // leaf bfm
-	protected SystemVerilogModule benchtop = new SystemVerilogModule(this, PIO|HW|DECODE|LOGIC, defaultClk);  // bench top module
+	protected SystemVerilogModule leafbfm = new SystemVerilogModule(this, PIO, defaultClk, getDefaultReset());  // leaf bfm
+	protected SystemVerilogModule benchtop = new SystemVerilogModule(this, PIO|HW|DECODE|LOGIC, defaultClk, getDefaultReset());  // bench top module
 
 	public SystemVerilogTestBuilder(RegModelIntf model) {
 		super(model);

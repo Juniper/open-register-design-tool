@@ -3,7 +3,7 @@ package ordt.output.systemverilog.io;
 import java.util.ArrayList;
 import java.util.List;
 
-import ordt.output.systemverilog.SystemVerilogSignal;
+import ordt.output.systemverilog.common.SystemVerilogSignal;
 
 /** io signal/signalset elements */
 public abstract class SystemVerilogIOElement {

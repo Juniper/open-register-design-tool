@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Stack;
 
 import ordt.output.systemverilog.SystemVerilogDefinedSignals;
-import ordt.output.systemverilog.SystemVerilogSignal;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.common.SystemVerilogSignal;
 
 
 /** this is the main class used to hold IO lists for building sv modules.

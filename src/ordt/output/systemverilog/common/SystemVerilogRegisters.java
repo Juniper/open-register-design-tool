@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.output.systemverilog;
+package ordt.output.systemverilog.common;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,28 +9,24 @@ import java.util.Iterator;
 import java.util.List;
 
 import ordt.extract.Ordt;
+import ordt.output.OutputWriterIntf;
 
 /** class to hold/generate systemverilog info associated with a set of registers
  *  @author snellenbach      
  *  Jul 16, 2014
  *
- * uses the following builder methods:
- *   writeStmt(..)
- *   resolveAsSignalOrField(sigName) - TODO, move these to module vs builder?
- *   checkSignalName(sigName, newName)
- *   static isLegacyVerilog()
  */
 public class SystemVerilogRegisters {
 
 	private HashMap<String, VerilogRegInfo> registers = new HashMap<String, VerilogRegInfo>();  // info for a set of registers
 	private HashMap<String, Boolean> resetActiveLow = new HashMap<String, Boolean>();  // reset polarity for each reset signal		
-	private SystemVerilogBuilder builder;
+	private OutputWriterIntf writer;
 	private String clkName;  // clock for this group of registers
 	
 	/** create VerilogRegisters 
 	 * @param clkName */
-	public SystemVerilogRegisters(SystemVerilogBuilder builder, String clkName) {
-		this.builder = builder;  // save reference to calling builder
+	public SystemVerilogRegisters(OutputWriterIntf writer, String clkName) {
+		this.writer = writer;  // save reference to calling writer
 		this.clkName = clkName;  // clock to be used for this register group
 	}
 
@@ -113,7 +109,7 @@ public class SystemVerilogRegisters {
 		public void addResetAssign(String reset, String stmt) {
 			// if reset isn't defined then issue error message
 			if (resetActiveLow.isEmpty())  {
-				Ordt.errorExit("No registers defined in addrmap " + builder.getAddressMapName());
+				Ordt.errorExit("No registers defined in addrmap " + writer.getWriterName());
 			}
 			else if (!resetActiveLow.containsKey(reset))  {
 				Ordt.errorExit("reset signal " + reset + " is not defined before use"); // + ", name=" + name + ", stmt=" + stmt);
@@ -168,7 +164,7 @@ public class SystemVerilogRegisters {
 			if (!hiPrecCombinAssignList.isEmpty()) {
 				Iterator<String> it = hiPrecCombinAssignList.iterator();
 				while (it.hasNext()) {
-					builder.writeStmt(indentLevel, it.next());
+					writer.writeStmt(indentLevel, it.next());
 				}		   			
 			}	
 		}
@@ -179,7 +175,7 @@ public class SystemVerilogRegisters {
 			if (!lowPrecCombinAssignList.isEmpty()) {
 				Iterator<String> it = lowPrecCombinAssignList.iterator();
 				while (it.hasNext()) {
-					builder.writeStmt(indentLevel, it.next());
+					writer.writeStmt(indentLevel, it.next());
 				}		   			
 			}	
 		}
@@ -190,30 +186,30 @@ public class SystemVerilogRegisters {
 			
 			// write combinatorial assignment block   
 			if (!combinAssignList.isEmpty()) {
-				builder.writeStmt(indentLevel, "//------- combinatorial assigns for " + name); 
-				if (SystemVerilogBuilder.isLegacyVerilog()) builder.writeStmt(indentLevel++, "always @ (*) begin");  
-				else builder.writeStmt(indentLevel++, "always_comb begin");  
+				writer.writeStmt(indentLevel, "//------- combinatorial assigns for " + name); 
+				if (SystemVerilogModule.isLegacyVerilog()) writer.writeStmt(indentLevel++, "always @ (*) begin");  
+				else writer.writeStmt(indentLevel++, "always_comb begin");  
 				Iterator<String> it = combinAssignList.iterator();
 				while (it.hasNext()) {
 					String stmt = it.next();
-					builder.writeStmt(indentLevel, stmt); 
+					writer.writeStmt(indentLevel, stmt); 
 				}		  
 				// write any saved precedence statements
 				writeLowPrecedenceStatements(indentLevel);
 				writeHiPrecedenceStatements(indentLevel);
-				builder.writeStmt(--indentLevel, "end");  
-				builder.writeStmt(indentLevel, "");  			
+				writer.writeStmt(--indentLevel, "end");  
+				writer.writeStmt(indentLevel, "");  			
 			}
 			
 			// write synchronous assignment block
 			if (!regAssignList.isEmpty()) {
-				builder.writeStmt(indentLevel, "//------- reg assigns for " + name);
-				if (SystemVerilogBuilder.isLegacyVerilog()) builder.writeStmt(indentLevel++, "always @ (posedge " + clkName + ") begin");  
-				else builder.writeStmt(indentLevel++, "always_ff @ (posedge " + clkName + ") begin");  
+				writer.writeStmt(indentLevel, "//------- reg assigns for " + name);
+				if (SystemVerilogModule.isLegacyVerilog()) writer.writeStmt(indentLevel++, "always @ (posedge " + clkName + ") begin");  
+				else writer.writeStmt(indentLevel++, "always_ff @ (posedge " + clkName + ") begin");  
 				boolean hasResets = writeRegResets(indentLevel, resetAssignList);
 				writeRegAssigns(indentLevel, hasResets, regAssignList);
-				builder.writeStmt(--indentLevel, "end");  
-				builder.writeStmt(indentLevel, "");  		
+				writer.writeStmt(--indentLevel, "end");  
+				writer.writeStmt(indentLevel, "");  		
 			}
 		}
 		
@@ -227,14 +223,14 @@ public class SystemVerilogRegisters {
 				if (!regResetList.get(reset).isEmpty()) {
 				   String notStr = (resetActiveLow.get(reset)) ? "! " : "";
 				   hasResets = true;
-				   builder.writeStmt(indentLevel++, firstRst + "if (" + notStr + reset + ") begin");  
+				   writer.writeStmt(indentLevel++, firstRst + "if (" + notStr + reset + ") begin");  
 				   firstRst = "else ";
 				   Iterator<String> it = regResetList.get(reset).iterator();
 				   while (it.hasNext()) {
 					   String elem = it.next();
-					   builder.writeStmt(indentLevel, elem);  
+					   writer.writeStmt(indentLevel, elem);  
 				   }		   					
-				   builder.writeStmt(--indentLevel, "end");  
+				   writer.writeStmt(--indentLevel, "end");  
 				}
 			}
 			return hasResets;
@@ -244,13 +240,13 @@ public class SystemVerilogRegisters {
 		 * @param resolveNames */
 		private  void writeRegAssigns(int indentLevel, boolean hasResets, List<String> regAssignList) {
 			if (regAssignList.isEmpty()) return;
-			if (hasResets) builder.writeStmt(indentLevel++, "else begin");  
+			if (hasResets) writer.writeStmt(indentLevel++, "else begin");  
 			Iterator<String> it = regAssignList.iterator();
 			while (it.hasNext()) {
 				String elem = it.next();
-				builder.writeStmt(indentLevel, elem);  
+				writer.writeStmt(indentLevel, elem);  
 			}		   			
-			if (hasResets) builder.writeStmt(--indentLevel, "end");  		
+			if (hasResets) writer.writeStmt(--indentLevel, "end");  		
 		}
 		
 	}

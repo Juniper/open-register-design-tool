@@ -13,6 +13,8 @@ import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.output.RegProperties;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.common.SystemVerilogModule;
+import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.AddressableInstanceProperties;
 import ordt.output.InstanceProperties.ExtType;
 import ordt.parameters.ExtParameters;
@@ -38,9 +40,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	
 	protected List<AddressableInstanceProperties> decoderList = new ArrayList<AddressableInstanceProperties>();    // list of address regs 
 	protected SVDecodeInterfaceTypes interfaceType = SVDecodeInterfaceTypes.PARALLEL;  // default to parallel interface
+	protected SystemVerilogBuilder builder;  // builder creating this module
 
 	public SystemVerilogDecodeModule(SystemVerilogBuilder builder, int insideLocs, String clkName) {
-		super(builder, insideLocs, clkName);
+		super(builder, insideLocs, clkName, builder.getDefaultReset());
+		this.builder = builder;  // save reference to calling builder
 	}
 
 	/** add a register or external interface to the decoder */ 

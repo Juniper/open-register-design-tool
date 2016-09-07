@@ -19,6 +19,8 @@ import ordt.output.OutputBuilder;
 import ordt.output.RegProperties;
 import ordt.output.RhsReference;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.common.SystemVerilogModule;
+import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalSet;
 import ordt.output.InstanceProperties.ExtType;
@@ -33,7 +35,7 @@ import ordt.parameters.ExtParameters.SVDecodeInterfaceTypes;
 public class SystemVerilogBuilder extends OutputBuilder {
 	
 	private String modulePrefix = null;  // module name prefix for nested addressmaps
-	protected static boolean legacyVerilog = false;  // by default generate output with system verilog constructs (only valid in write stage)
+	private static boolean legacyVerilog = false;  // by default generate output with system verilog constructs (only valid in write stage)
 	
 	// clk names	
 	protected static final String defaultClk = "clk";	
@@ -67,7 +69,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	// module defines  
 	protected SystemVerilogDecodeModule decoder = new SystemVerilogDecodeModule(this, DECODE, decodeClk);
 	protected SystemVerilogLogicModule logic = new SystemVerilogLogicModule(this, LOGIC, logicClk);
-	protected SystemVerilogModule top = new SystemVerilogModule(this, DECODE|LOGIC, defaultClk);
+	protected SystemVerilogModule top = new SystemVerilogModule(this, DECODE|LOGIC, defaultClk, getDefaultReset());
 	
 	private  List<String> tempAssignList = new ArrayList<String>();    // temp list of assign statements for current register (used in finishReg)
 
@@ -175,6 +177,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	 */
 	public static void setLegacyVerilog(boolean legacy) {
 		legacyVerilog = legacy;
+		SystemVerilogModule.setLegacyVerilog(legacy);  // also set in modules
 	}
 	
 	/** return true if ouput will be legacy verilog */
@@ -919,7 +922,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	/** write out the interface wrapper */
 	protected  void writeInterfaceWrapper() {		
 		// create wrapper module
-		SystemVerilogModule intfWrapper = new SystemVerilogModule(this, LOGIC|DECODE, defaultClk);
+		SystemVerilogModule intfWrapper = new SystemVerilogModule(this, LOGIC|DECODE, defaultClk, getDefaultReset());
 		intfWrapper.setName(getModuleName() + "_pio_iwrap");
 		intfWrapper.setAddBaseAddrParameter(addBaseAddressParameter());
 		intfWrapper.setUseInterfaces(true);  // wrapper will have interfaces in io

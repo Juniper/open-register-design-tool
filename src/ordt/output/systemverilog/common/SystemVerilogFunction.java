@@ -1,4 +1,4 @@
-package ordt.output.systemverilog;
+package ordt.output.systemverilog.common;
 
 import java.util.ArrayList;
 import java.util.Iterator;

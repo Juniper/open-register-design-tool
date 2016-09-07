@@ -10,8 +10,8 @@ import java.util.List;
 import ordt.output.JspecCategory;
 import ordt.output.JspecSubCategory;
 import ordt.output.OutputLine;
-import ordt.output.systemverilog.SystemVerilogFunction;
-import ordt.output.systemverilog.SystemVerilogTask;
+import ordt.output.systemverilog.common.SystemVerilogFunction;
+import ordt.output.systemverilog.common.SystemVerilogTask;
 
 public class UVMRdlClasses {
 

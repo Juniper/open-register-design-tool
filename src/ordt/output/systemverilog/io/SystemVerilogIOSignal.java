@@ -1,6 +1,6 @@
 package ordt.output.systemverilog.io;
 
-import ordt.output.systemverilog.SystemVerilogSignal;
+import ordt.output.systemverilog.common.SystemVerilogSignal;
 
 public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 	protected int lowIndex;

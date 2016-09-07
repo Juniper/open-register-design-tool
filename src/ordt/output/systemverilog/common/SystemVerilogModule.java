@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.output.systemverilog;
+package ordt.output.systemverilog.common;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,20 +11,17 @@ import java.util.List;
 
 import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
+import ordt.output.OutputWriterIntf;
 import ordt.output.systemverilog.io.SystemVerilogIOElement;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.parameters.ExtParameters;
 
 /** system verilog module generation class
  *  
- * uses the following builder methods:
- *   writeStmt(s)
- *   static isLegacyVerilog()
- *   + SystemVerilogRegisters
  * */
 public class SystemVerilogModule {
 	
-	protected SystemVerilogBuilder builder;  // builder creating this module
+	protected OutputWriterIntf writer;
 	protected String name;  // module name
 	protected Integer insideLocs; // ORed value of (binary) locations inside this module
 	protected boolean useInterfaces = false;  // will interfaces be used in module io
@@ -43,18 +40,19 @@ public class SystemVerilogModule {
     protected boolean showDuplicateSignalErrors = true;
     
 	protected SystemVerilogCoverGroups coverGroups;   // set of cover group info for module
+	static boolean isLegacyVerilog = false;
     
 	/** create a module
 	 * @param insideLocs - ORed Integer of locations in this module 
 	 * @param defaultClkName - default clock name used for generated registers
 	 */
-	public SystemVerilogModule(SystemVerilogBuilder builder, int insideLocs, String defaultClkName) {
-		this.builder = builder;  // save reference to calling builder
+	public SystemVerilogModule(OutputWriterIntf writer, int insideLocs, String defaultClkName, String coverageResetName) {
+		this.writer = writer;  // save reference to calling writer
 		this.insideLocs = insideLocs;  // locations inside this module
-		registers = new SystemVerilogRegisters(builder, defaultClkName);
+		registers = new SystemVerilogRegisters(writer, defaultClkName);
 		wireDefList = new SystemVerilogSignalList();
 		regDefList = new SystemVerilogSignalList();
-		coverGroups = new SystemVerilogCoverGroups(builder, defaultClkName, builder.getDefaultReset());  // TODO - need to change cover reset if separate logic reset is being used
+		coverGroups = new SystemVerilogCoverGroups(writer, defaultClkName, coverageResetName);  // TODO - need to change cover reset if separate logic reset is being used
 	}
 
 	// ------------------- get/set -----------------------
@@ -65,6 +63,14 @@ public class SystemVerilogModule {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public static boolean isLegacyVerilog() {
+		return isLegacyVerilog;
+	}
+
+	public static void setLegacyVerilog(boolean isLegacyVerilog) {
+		SystemVerilogModule.isLegacyVerilog = isLegacyVerilog;
 	}
 
 	public void setShowDuplicateSignalErrors(boolean showDuplicateSignalErrors) {
@@ -398,63 +404,63 @@ public class SystemVerilogModule {
 
 	/** write module stmt */
 	public  void writeModuleBegin(int indentLevel) {
-		builder.writeStmt(indentLevel, "//");
-		builder.writeStmt(indentLevel, "//---------- module " + getName());
-		builder.writeStmt(indentLevel, "//");
-		builder.writeStmt(indentLevel, "module " + getName());		
+		writer.writeStmt(indentLevel, "//");
+		writer.writeStmt(indentLevel, "//---------- module " + getName());
+		writer.writeStmt(indentLevel, "//");
+		writer.writeStmt(indentLevel, "module " + getName());		
 	}
 
 	/** write module stmt w no io */
 	public  void writeNullModuleBegin(int indentLevel) {
-		builder.writeStmt(indentLevel, "//");
-		builder.writeStmt(indentLevel, "//---------- module " + getName());
-		builder.writeStmt(indentLevel, "//");
-		builder.writeStmt(indentLevel, "module " + getName() + " ( );");		
+		writer.writeStmt(indentLevel, "//");
+		writer.writeStmt(indentLevel, "//---------- module " + getName());
+		writer.writeStmt(indentLevel, "//");
+		writer.writeStmt(indentLevel, "module " + getName() + " ( );");		
 	}
 	
 	/** write module end */
 	public  void writeModuleEnd(int indentLevel) {
-		builder.writeStmt(indentLevel, "endmodule\n");	
+		writer.writeStmt(indentLevel, "endmodule\n");	
 	}
 
 	/** write wire define stmts */
 	public  void writeWireDefs(int indentLevel) {
 		List<String> defList = wireDefList.getDefNameList();
 		if (defList.isEmpty()) return;
-		builder.writeStmt(indentLevel, "//------- wire defines");
+		writer.writeStmt(indentLevel, "//------- wire defines");
 		Iterator<String> it = defList.iterator();
 		while (it.hasNext()) {
 			String elem = it.next();
-			    if (SystemVerilogBuilder.isLegacyVerilog()) builder.writeStmt(indentLevel, "wire  " + elem + ";");  
-			    else builder.writeStmt(indentLevel, "logic  " + elem + ";");  
+			    if (isLegacyVerilog) writer.writeStmt(indentLevel, "wire  " + elem + ";");  
+			    else writer.writeStmt(indentLevel, "logic  " + elem + ";");  
 		}		   	
-		builder.writeStmt(indentLevel, "");  		
+		writer.writeStmt(indentLevel, "");  		
 	}
 
 	/** write reg define stmts */
 	public  void writeRegDefs(int indentLevel) {
 		List<String> defList = regDefList.getDefNameList();
 		if (defList.isEmpty()) return;
-		builder.writeStmt(indentLevel, "//------- reg defines");
+		writer.writeStmt(indentLevel, "//------- reg defines");
 		Iterator<String> it = defList.iterator();
 		while (it.hasNext()) {
 			String elem = it.next();
-			if (SystemVerilogBuilder.isLegacyVerilog()) builder.writeStmt(indentLevel, "reg  " + elem + ";");
-			else builder.writeStmt(indentLevel, "logic  " + elem + ";");  
+			if (isLegacyVerilog) writer.writeStmt(indentLevel, "reg  " + elem + ";");
+			else writer.writeStmt(indentLevel, "logic  " + elem + ";");  
 		}		   	
-		builder.writeStmt(indentLevel, "");  		
+		writer.writeStmt(indentLevel, "");  		
 	}
 
 	/** write assign stmts  */
 	public  void writeWireAssigns(int indentLevel) {
 		if (wireAssignList.isEmpty()) return;
-		builder.writeStmt(indentLevel, "//------- assigns");
+		writer.writeStmt(indentLevel, "//------- assigns");
 		Iterator<String> it = wireAssignList.iterator();
 		while (it.hasNext()) {
 			String elem = it.next();
-			builder.writeStmt(indentLevel, "assign  " + elem);  
+			writer.writeStmt(indentLevel, "assign  " + elem);  
 		}		   	
-		builder.writeStmt(indentLevel, "");  		
+		writer.writeStmt(indentLevel, "");  		
 	}
 	
 	/** write always block assign stmts  */
@@ -464,7 +470,7 @@ public class SystemVerilogModule {
 	
 	/** write cover group stmts  */
 	public  void writeCoverGroups(int indentLevel) {
-		if (!SystemVerilogBuilder.isLegacyVerilog()) {
+		if (!isLegacyVerilog) {
 			coverGroups.write(indentLevel);  // write for each covergroup
 		}
 	}
@@ -476,21 +482,21 @@ public class SystemVerilogModule {
 	 */
 	public void writeIOs(int indentLevel) {
 		// if legacy format, add the parm list
-		if (!useInterfaces) builder.writeStmts(0, getLegacyIOStrList()); // legacy vlog io format
+		if (!useInterfaces) writer.writeStmts(0, getLegacyIOStrList()); // legacy vlog io format
 		
-		// add base addr param if specified TODO - replace w generic parameter list
+		// add base addr param if specified TODO - replace this w/ a generic parameter list
 		if (addBaseAddrParameter) {
 			RegNumber baseAddr = new RegNumber(ExtParameters.getLeafBaseAddress());
 			baseAddr.setNumBase(RegNumber.NumBase.Hex);
 			baseAddr.setNumFormat(RegNumber.NumFormat.Verilog);
 			baseAddr.setVectorLen(ExtParameters.getLeafAddressSize());
-		    builder.writeStmt(indentLevel, "");
-		    builder.writeStmt(indentLevel, "parameter BASE_ADDR = " + baseAddr + ";");
+		    writer.writeStmt(indentLevel, "");
+		    writer.writeStmt(indentLevel, "parameter BASE_ADDR = " + baseAddr + ";");
 		}
-		// write IO definitions  // TODO - using legacy vlog format if no interfaces for compatibility
-		if (useInterfaces) builder.writeStmts(indentLevel+1, getIODefStrList());   // sv format
-		else builder.writeStmts(0, getLegacyIODefStrList());  // legacy vlog io format
-		builder.writeStmt(0, "");
+		// write IO definitions
+		if (useInterfaces) writer.writeStmts(indentLevel+1, getIODefStrList());   // sv format
+		else writer.writeStmts(0, getLegacyIODefStrList());  // legacy vlog io format
+		writer.writeStmt(0, "");
 	}
 
 	/** write each child instance in this module */
@@ -506,32 +512,32 @@ public class SystemVerilogModule {
 		List<SystemVerilogIOElement> childList = this.getInputOutputList();
 		if (childList.isEmpty()) return;
 	    String baseAddrStr = this.addBaseAddrParameter() ? " #(BASE_ADDR) " : " ";
-	    if (SystemVerilogBuilder.isLegacyVerilog()) {
-			builder.writeStmt(indentLevel++, this.getName() + baseAddrStr + instName + " (");   // more elements so use comma
+	    if (isLegacyVerilog) {
+			writer.writeStmt(indentLevel++, this.getName() + baseAddrStr + instName + " (");   // more elements so use comma
 			Iterator<SystemVerilogIOElement> it = childList.iterator();
 			Boolean anotherElement = it.hasNext();
 			while (anotherElement) {
 				SystemVerilogIOElement elem = it.next();
 				if (it.hasNext()) {
-					builder.writeStmt(indentLevel, "." + elem.getFullName() + "(" + elem.getFullName() + "),");   // more elements so use comma
+					writer.writeStmt(indentLevel, "." + elem.getFullName() + "(" + elem.getFullName() + "),");   // more elements so use comma
 					anotherElement = true;
 				}
 				else {
 					anotherElement = false;
-					builder.writeStmt(indentLevel, "." + elem.getFullName() + "(" + elem.getFullName() + ") );");   // no more elements so close
+					writer.writeStmt(indentLevel, "." + elem.getFullName() + "(" + elem.getFullName() + ") );");   // no more elements so close
 				}
 			}		   		    	
 	    }
 	    else {
-			builder.writeStmt(indentLevel++, this.getName() + baseAddrStr + instName + " ( .* );");   // more elements so use comma	    	
+			writer.writeStmt(indentLevel++, this.getName() + baseAddrStr + instName + " ( .* );");   // more elements so use comma	    	
 	    }
-		builder.writeStmt(indentLevel--, "");   
+		writer.writeStmt(indentLevel--, "");   
 	}
 
 	/** write any free form statements */
 	public void writeStatements(int indentLevel) {
-		for (String stmt : statements) builder.writeStmt(indentLevel, stmt);
-		builder.writeStmt(indentLevel, "");	
+		for (String stmt : statements) writer.writeStmt(indentLevel, stmt);
+		writer.writeStmt(indentLevel, "");	
 	}
 
 	/** write this module */

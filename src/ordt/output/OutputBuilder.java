@@ -29,7 +29,7 @@ import ordt.parameters.Utils;
  *  Jan 27, 2014
  *
  */
-public abstract class OutputBuilder {
+public abstract class OutputBuilder implements OutputWriterIntf{
 
 	protected RegModelIntf model;  // model containing rdl extract info
 
@@ -1185,6 +1185,10 @@ public abstract class OutputBuilder {
 	}
 
 	//---------------------------- message/output stmt generation  ----------------------------------------
+
+	public String getWriterName() {
+		return getAddressMapName();  // use address map as name of this writer
+	}
 
 	/** write a stmt to the specified BufferedWriter */
 	public  void writeStmt(BufferedWriter bw, int indentLevel, String stmt) {

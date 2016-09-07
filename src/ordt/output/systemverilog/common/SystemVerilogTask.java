@@ -1,4 +1,4 @@
-package ordt.output.systemverilog;
+package ordt.output.systemverilog.common;
 
 public class SystemVerilogTask extends SystemVerilogFunction {
 

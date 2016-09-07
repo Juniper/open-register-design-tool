@@ -14,6 +14,8 @@ import ordt.output.FieldProperties;
 import ordt.output.RhsReference;
 import ordt.output.SignalProperties;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.common.SystemVerilogModule;
+import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.output.FieldProperties.RhsRefType;
 import ordt.output.RegProperties;
@@ -29,9 +31,11 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 
 	private FieldProperties fieldProperties;
 	private RegProperties regProperties;
+	protected SystemVerilogBuilder builder;  // builder creating this module
 	
 	public SystemVerilogLogicModule(SystemVerilogBuilder builder, int insideLocs, String defaultClkName) {
-		super(builder, insideLocs, defaultClkName);
+		super(builder, insideLocs, defaultClkName, builder.getDefaultReset());
+		this.builder = builder;  // save reference to calling builder
 	}
 	
 	// -------------- 

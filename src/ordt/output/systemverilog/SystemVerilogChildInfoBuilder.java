@@ -10,6 +10,7 @@ import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.output.InstanceProperties.ExtType;
+import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.OutputBuilder;
 import ordt.output.RegSetProperties;
 import ordt.parameters.ExtParameters;

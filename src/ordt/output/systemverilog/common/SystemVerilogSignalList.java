@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.output.systemverilog;
+package ordt.output.systemverilog.common;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.output.systemverilog;
+package ordt.output.systemverilog.common;
 
 /** class to hold basic info (name, idx, size) for verilog signals */
 public class SystemVerilogSignal {

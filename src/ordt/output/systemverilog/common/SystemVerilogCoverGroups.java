@@ -1,12 +1,14 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.output.systemverilog;
+package ordt.output.systemverilog.common;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+
+import ordt.output.OutputWriterIntf;
 
 /** class to hold/generate systemverilog info associated with a set of coverage groups
  *  @author snellenbach      
@@ -18,14 +20,14 @@ import java.util.List;
 public class SystemVerilogCoverGroups {
 
 	private HashMap<String, CoverGroupInfo> coverGroups = new HashMap<String, CoverGroupInfo>();  // info for a set of registers
-	private SystemVerilogBuilder builder;
+	private OutputWriterIntf writer;
 	private String clkName;  // clock name for this group of covergroups
 	private String resetName;  // reset name for this group of covergroups
 	
 	/** create VerilogRegisters 
 	 * @param clkName */
-	public SystemVerilogCoverGroups(SystemVerilogBuilder builder, String clkName, String resetName) {
-		this.builder = builder;  // save reference to calling builder
+	public SystemVerilogCoverGroups(OutputWriterIntf writer, String clkName, String resetName) {
+		this.writer = writer;  // save reference to calling writer
 		this.clkName = clkName;  // clock to be used for this group of covergroups
 		this.resetName = resetName;  // reset to be used for this group of covergroups
 	}
@@ -60,11 +62,11 @@ public class SystemVerilogCoverGroups {
 	/** write out systemverilog for this set of covergroups  */
 	public void write(int indentLevel) {
 		if (coverGroups.isEmpty()) return;
-		builder.writeStmt(indentLevel, "`ifndef SYNTHESIS");  
+		writer.writeStmt(indentLevel, "`ifndef SYNTHESIS");  
 		for (String regName: coverGroups.keySet()) {
 			coverGroups.get(regName).write(indentLevel);
 		}
-		builder.writeStmt(indentLevel, "`endif");  
+		writer.writeStmt(indentLevel, "`endif");  
 	}
 
 	// ----------------- inner classes --------------------
@@ -95,18 +97,18 @@ public class SystemVerilogCoverGroups {
 		public void write(int indentLevel) {
 			// write this covergroup   
 			if (!coverPointList.isEmpty()) {
-				builder.writeStmt(indentLevel, "//------- covergroup " + name); 
+				writer.writeStmt(indentLevel, "//------- covergroup " + name); 
 				String syncString = synchronous? " @(posedge " + clkName + ")" : "";
-				builder.writeStmt(indentLevel++, "covergroup " + name + syncString + ";");  
+				writer.writeStmt(indentLevel++, "covergroup " + name + syncString + ";");  
 				Iterator<CoverPointInfo> it = coverPointList.iterator();
 				while (it.hasNext()) {
 					CoverPointInfo cPoint = it.next();
 					cPoint.write(indentLevel); 
 				}		  
-				builder.writeStmt(--indentLevel, "endgroup");  
-				builder.writeStmt(indentLevel, "");  			
-				builder.writeStmt(indentLevel, name + " " + name + "_inst = new();");  
-				builder.writeStmt(indentLevel, "");  			
+				writer.writeStmt(--indentLevel, "endgroup");  
+				writer.writeStmt(indentLevel, "");  			
+				writer.writeStmt(indentLevel, name + " " + name + "_inst = new();");  
+				writer.writeStmt(indentLevel, "");  			
 			}
 		}
 	}
@@ -126,7 +128,7 @@ public class SystemVerilogCoverGroups {
 
 		public void write(int indentLevel) {
 			String condString = condition.isEmpty()? "" : " iff(" + condition + ")";
-			builder.writeStmt(indentLevel, name + ": coverpoint " + signal + condString + ";");  
+			writer.writeStmt(indentLevel, name + ": coverpoint " + signal + condString + ";");  
 			
 		}
 	}
