@@ -762,7 +762,7 @@ public abstract class OutputBuilder {
 	
 	/** generate current instance path string
 	 */
-	protected  String getInstancePath() {
+	public  String getInstancePath() {
 		String retStr = "";
 		for (InstanceProperties inst: instancePropertyStack) {
 			if (inst != null) retStr += "." + inst.getId(); 

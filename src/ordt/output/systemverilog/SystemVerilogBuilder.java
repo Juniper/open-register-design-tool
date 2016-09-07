@@ -14,7 +14,6 @@ import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
-import ordt.output.FieldProperties;
 import ordt.output.InstanceProperties;
 import ordt.output.OutputBuilder;
 import ordt.output.RegProperties;
@@ -22,7 +21,6 @@ import ordt.output.RhsReference;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalSet;
-import ordt.output.FieldProperties.RhsRefType;
 import ordt.output.InstanceProperties.ExtType;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
@@ -60,7 +58,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	protected static final Integer PIO = SystemVerilogDefinedSignals.PIO;
 	protected boolean usesInterfaces = false;  // detect if sv interfaces are needed  
 
-    // define IO lists
+    // define common IO lists
 	protected SystemVerilogIOSignalList cntlSigList = new SystemVerilogIOSignalList("cntl");   // clocks/resets
 	protected SystemVerilogIOSignalList hwSigList = new SystemVerilogIOSignalList("hw");     // logic/decode to/from hw
 	protected SystemVerilogIOSignalList pioSigList = new SystemVerilogIOSignalList("pio");    // pio to/from decoder
@@ -117,7 +115,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	    // if this child is for test, then tag it
 	    this.setTestBuilder(isTestModule);
 	    if (isTestModule) setAddressMapName(regSetProperties.getId());
-	    // FIXME - need to handle external replicated reg, single reg , replicated regsets cases for full test gen
+	    // FIXME - testBuilder flow is broken - need to handle external replicated regs, single reg , replicated regsets cases for full test gen
 	    // also, wont work because startMap() and finishMap() are not called - would need to modify model itself or allow regset as sv root instance
 
 	    // save the regProperties state and set external names
@@ -260,11 +258,14 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   // if new interface then add it to logic-hw list
 		   startIOHierarchy(fieldProperties);
 		   
+		   // pass current instances to logic module
+		   logic.setActiveInstances(regProperties, fieldProperties);
+		   
 		   // generate field write assignment stmts
-		   genFieldWriteStmts();
+		   logic.genFieldWriteStmts();
 		   
 		   // generate field read assignment stmts
-		   genFieldReadStmts();
+		   logic.genFieldReadStmts();
 		   
 		   // add coverage info
 		   if (!regProperties.isExternal()) logic.addFieldCoverPoints(fieldProperties);
@@ -280,13 +281,16 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   // if new interface then add it to logic-hw list
 		   startIOHierarchy(fieldProperties);
 		   
+		   // pass current instances to logic module
+		   logic.setActiveInstances(regProperties, fieldProperties);
+		   
 		   // generate alias field write assignment stmts
 		   if (fieldProperties.swChangesValue()) {  // if sw can write or rclr/rset
-			   genSwFieldNextWriteStmts(null, false);    // create statements to set value of next based on sw field settings 
-		   }		   
+			   logic.genSwFieldNextWriteStmts(null, false);    // create statements to set value of next based on sw field settings 
+		   }	
 		   
 		   // generate alias field read assignment stmts
-		   genSwFieldReadStmts();
+		   logic.genSwFieldReadStmts();
 		   
 		   // if new interface was added, indicate finished using it
 		   endIOHierarchy(fieldProperties);
@@ -373,7 +377,6 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   }
 		   // otherwise if building external regs for test create a builder (if not already a testbuilder)
 		   else if (ExtParameters.sysVerGenerateExternalRegs() && !isTestBuilder()) {
-			   //regProperties.getExtractInstance().getRegComp().setCompType(CompType.ADDRMAP);  // TODO - this doesnt work?
 			   SystemVerilogBuilder childVerilog = new SystemVerilogBuilder(this, true); // inherit some parent properties and mark child as testBuilder
 			   //System.out.println("SystemVerilogBuilder addRootExternalRegisters: reg=" + regProperties.getInstancePath() + ", regset=" + regSetProperties.getInstancePath() + ", mod prefix=" + modulePrefix + ", bId=" + getBuilderID() + ", mlevel=" + currentMapLevel() );  
 			   childAddrMaps.add(childVerilog);
@@ -391,7 +394,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	/** add a non-root addressmap - overridden by child builders (sv builder) */
 	@Override
 	protected void addNonRootExternalAddressMap() {
-		   SystemVerilogBuilder childVerilog = new SystemVerilogBuilder(this, false); // inherit some parent properties  TODO - send in base address separately?
+		   SystemVerilogBuilder childVerilog = new SystemVerilogBuilder(this, false); // inherit some parent properties 
 		   //System.out.println("SystemVerilogBuilder addNonRootExternalAddressMap: regset=" + regSetProperties.getInstancePath() + ", mod prefix=" + modulePrefix + ", bId=" + getBuilderID() + ", mlevel=" + currentMapLevel() + ", testModule=" + isTestBuilder());  
 		   if (currentMapLevel() < 3) childAddrMaps.add(childVerilog);  // only add to child list if no other map is in parent hierarchy
 	}
@@ -445,9 +448,24 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		else logic.addReset(defaultReset, defaultResetActiveLow);
 	}
 
-	/** return the default reset value */
+	/** return the default reset name */
 	public String getDefaultReset() {
 		return defaultReset;
+	}
+
+	/** return true if the default reset is active low */
+	public boolean getDefaultResetActiveLow() {
+		return defaultResetActiveLow;
+	}
+
+	/** return the logic reset name */
+	public String getLogicReset() {
+		return logicReset;
+	}
+
+	/** return true if the logic reset is active low */
+	public boolean getLogicResetActiveLow() {
+		return logicResetActiveLow;
 	}
 
 	/** return the addressRanges list */
@@ -527,641 +545,6 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	private void endIOHierarchy(InstanceProperties properties) {
 			//System.out.println("*** Popping interface:" + properties.getBaseName());
 			hwSigList.popIOSignalSet();
-	}
-
-	/** generate verilog statements to write field flops */  // TODO - move these methods to SystemVerilogLogicBuilder
-	private  void genFieldWriteStmts() {
-		   // get field-specific verilog signal names
-		   String hwToLogicDataName = fieldProperties.getFullSignalName(DefSignalType.H2L_DATA);  // hwBaseName + "_w" 
-		   String fieldRegisterName = fieldProperties.getFullSignalName(DefSignalType.FIELD);  //"reg_" + hwBaseName;
-		   
-		   // if sw can write, qualify by sw we
-		   if (fieldProperties.swChangesValue()) {  // if sw can write or rclr/rset
-			   genFieldRegWriteStmts();    // create statements to define field registers and resets
-			   genFieldNextWriteStmts();   // create statements to set value of next based on field settings
-		   }
-		   
-		   // sw cant write so ignore sw we
-		   else {
-			   // hw only can write, so add write interface  
-			   if (fieldProperties.hwChangesValue()) {
-				   // if hw uses we or is interrupt/counter we'll need to build next
-				   if (fieldProperties.hasHwWriteControl() || fieldProperties.isInterrupt() || fieldProperties.isCounter()) { 
-					   genFieldRegWriteStmts();    // create statements to define field registers and resets
-					   genFieldNextWriteStmts();   // create statements to set value of next based on field settings
-				   }
-				   // else no hw we/control sigs, so hw data value is just passed in (no register)
-				   else {
-					   logic.addVectorReg(fieldRegisterName, 0, fieldProperties.getFieldWidth());  // add field register to define list
-					   hwSigList.addVector(DefSignalType.H2L_DATA, 0, fieldProperties.getFieldWidth());  // add write data input
-					   logic.addCombinAssign(regProperties.getBaseName(), fieldRegisterName + " =  " + hwToLogicDataName + ";");
-				   }
-			   }
-			   // nothing writable so assign to a constant 
-			   else {
-				   //System.out.println("SystemVerilogBuilder genFieldWriteStmts constant field, id=" + fieldProperties.getId() + 
-				   //	   ", writeable=" + fieldProperties.isHwWriteable() + ", intr=" + fieldProperties.isInterrupt() + ", changes val=" + fieldProperties.hwChangesValue());
-				   if (fieldProperties.getReset() != null ) {
-					   logic.addVectorWire(fieldRegisterName, 0, fieldProperties.getFieldWidth());  // add field to wire define list
-					   RegNumber resetValue = new RegNumber(fieldProperties.getReset());  // output reset in verilog format
-					   resetValue.setNumFormat(RegNumber.NumFormat.Verilog);
-					   logic.addWireAssign(fieldRegisterName + " = " + resetValue + ";");
-				   }
-				   else Ordt.errorMessage("invalid field constant - no reset value for non-writable field " + fieldProperties.getInstancePath());
-			   }
-		   }
-	}
-	
-	/** create statements to define field registers and resets */
-	private void genFieldRegWriteStmts() {
-		   String fieldRegisterName = fieldProperties.getFullSignalName(DefSignalType.FIELD);  //"reg_" + hwBaseName;
-		   String fieldRegisterNextName = fieldProperties.getFullSignalName(DefSignalType.FIELD_NEXT);  //"reg_" + hwBaseName + "_next";
-		   logic.addVectorReg(fieldRegisterName, 0, fieldProperties.getFieldWidth());  // add field registers to define list
-		   logic.addVectorReg(fieldRegisterNextName, 0, fieldProperties.getFieldWidth());  // we'll be using next value since complex assign
-		   // generate flop reset stmts
-		   if (fieldProperties.getReset() != null ) {
-			   String resetSignalName = defaultReset;
-			   boolean resetSignalActiveLow = defaultResetActiveLow;
-			   if (logicReset != null) {
-				   resetSignalName = logicReset;
-				   resetSignalActiveLow = logicResetActiveLow;
-			   }
-			   else if (fieldProperties.hasRef(RhsRefType.RESET_SIGNAL)) {
-				   resetSignalActiveLow = false;  // user defined resets are active high 
-				   resetSignalName = resolveRhsExpression(RhsRefType.RESET_SIGNAL);
-			   }
-			   logic.addReset(resetSignalName, resetSignalActiveLow);
-			   RegNumber resetValue = new RegNumber(fieldProperties.getReset());  // output reset in verilog format
-			   resetValue.setNumFormat(RegNumber.NumFormat.Verilog);
-			   logic.addResetAssign(regProperties.getBaseName(), resetSignalName, fieldRegisterName + " <= #1 " + resetValue + ";");  // ff reset assigns			   
-		   }
-		   else if (!ExtParameters.sysVerSuppressNoResetWarnings()) Ordt.warnMessage("field " + fieldProperties.getInstancePath() + " has no reset defined");
-		   
-		   logic.addRegAssign(regProperties.getBaseName(),  fieldRegisterName + " <= #1  " + fieldRegisterNextName + ";");  // assign next to flop
-	}
-
-	/** create statements to set value of next based on field settings */ 
-	private  void genFieldNextWriteStmts() {
-		   // get field-specific verilog signal names
-		   String hwToLogicDataName = fieldProperties.getFullSignalName(DefSignalType.H2L_DATA);  // hwBaseName + "_w" 
-		   
-		   String fieldRegisterName = fieldProperties.getFullSignalName(DefSignalType.FIELD);  //"reg_" + hwBaseName;  
-		   String fieldRegisterNextName = fieldProperties.getFullSignalName(DefSignalType.FIELD_NEXT);  //"reg_" + hwBaseName + "_next";
-		   
-		   // if hw is writable add the write data input
-		   if (fieldProperties.isHwWriteable()) hwSigList.addVector(DefSignalType.H2L_DATA, 0, fieldProperties.getFieldWidth());
-
-		   // first set default next value, if hw write w/o enable use hw data
-		   if (fieldProperties.isHwWriteable()  && !fieldProperties.hasHwWriteControl() && !fieldProperties.isCounter()) 
-			   logic.addCombinAssign(regProperties.getBaseName(), fieldRegisterNextName + " = " + hwToLogicDataName + ";");
-		   // otherwise if a singlepulse field then default to zero value
-		   else if (fieldProperties.isSinglePulse())
-			   logic.addCombinAssign(regProperties.getBaseName(), fieldRegisterNextName + " = 0;");
-		   // otherwise hold current registered data
-		   else 
-			   logic.addCombinAssign(regProperties.getBaseName(), fieldRegisterNextName + " = " + fieldRegisterName + ";");
-		   	   
-		   // set field precedence
-		   boolean hwPrecedence = fieldProperties.hasHwPrecedence();
-		   boolean swPrecedence = !(fieldProperties.hasHwPrecedence());
-		   
-		   // if a counter (special case, hw has precedence by default)  
-		   if (fieldProperties.isCounter()) {
-			   genCounterWriteStmts(hwPrecedence);
-		   }
-		   // if hw uses interrupt  (special case, hw has precedence by default)
-		   else if (fieldProperties.isInterrupt()) {  
-			   genInterruptWriteStmts(hwPrecedence);
-		   }
-		   
-		   // if an explicit next assignment 
-		   if (fieldProperties.hasRef(RhsRefType.NEXT)) {
-			   String refName = resolveRhsExpression(RhsRefType.NEXT);
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, fieldRegisterNextName + " = " + refName + ";");	
-		   }
-		   
-		   // if hw uses we
-		   if (fieldProperties.hasWriteEnableH()) { 
-			   String hwToLogicWeName = generateInputOrAssign(DefSignalType.H2L_WE, RhsRefType.WE, 1, false, hwPrecedence); 
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + hwToLogicWeName + ") " + fieldRegisterNextName + " = " + hwToLogicDataName + ";");				   
-		   }
-		   // if hw uses wel
-		   else if (fieldProperties.hasWriteEnableL()) {  
-			   String hwToLogicWelName = generateInputOrAssign(DefSignalType.H2L_WEL, RhsRefType.WE, 1, false, hwPrecedence); 
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (~" + hwToLogicWelName + ") " + fieldRegisterNextName + " = " + hwToLogicDataName + ";");				   
-		   }
-		   
-		   // if hw has hw set
-		   if (fieldProperties.hasHwSet()) { 
-			   String hwToLogicHwSetName = generateInputOrAssign(DefSignalType.H2L_HWSET, RhsRefType.HW_SET, 1, false, hwPrecedence);
-			   RegNumber constVal = new RegNumber(1);
-			   constVal.setVectorLen(fieldProperties.getFieldWidth());
-			   constVal.lshift(fieldProperties.getFieldWidth());
-			   constVal.subtract(1);
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + hwToLogicHwSetName + ") " + 
-			      fieldRegisterNextName + " = " + constVal.toFormat(NumBase.Hex, NumFormat.Verilog) + ";");				   
-		   }
-		   
-		   // if hw has hw clr
-		   if (fieldProperties.hasHwClr()) { 
-			   String hwToLogicHwClrName = generateInputOrAssign(DefSignalType.H2L_HWCLR, RhsRefType.HW_CLR, 1, false, hwPrecedence);
-			   RegNumber constVal = new RegNumber(0);
-			   constVal.setVectorLen(fieldProperties.getFieldWidth());
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + hwToLogicHwClrName + ") " + 
-			      fieldRegisterNextName + " = " + constVal.toFormat(NumBase.Hex, NumFormat.Verilog) + ";");				   
-		   }
-
-		   // add sw statements
-		   String nameOverride = fieldProperties.isCounter() ? fieldProperties.getFullSignalName(DefSignalType.CNTR_NEXT) : null;
-		   genSwFieldNextWriteStmts(nameOverride, swPrecedence);    // create statements to set value of next based on sw field settings
-	}
-
-	/** if a fieldProperty signal of specified type has a rhs assignment, generate appropriate defines/assign stmts for 
-	 *   an internal signal, else create an input signal.  return the resolved assign/input name or the resolved
-	 *   rhs expression if createDefaultSignal is false
-	 * 
-	 * @param sigType - type of signal being assigned or made an input
-	 * @param rType - rhs reference type
-	 * @param sigWidth - width of the input/internal signal created
-	 * @param createDefaultSignal - if false, do not create internal signal/assigns, just output the resolved rhs expression
-	 * @param hiPrecedence - if true, combi assign of default signal will be given high priority (ignored if createDefaultSignal is false)
-	 */
-	private String generateInputOrAssign(DefSignalType sigType, RhsRefType rType, int sigWidth, boolean createDefaultSignal, boolean hiPrecedence) {
-		String defaultName = fieldProperties.getFullSignalName(sigType);
-		   // if an assigned reference signal use it rather than default 
-		   if (fieldProperties.hasRef(rType)) { 
-			   String refName = resolveRhsExpression(rType);
-			   if (createDefaultSignal) {
-				   logic.addVectorReg(defaultName, 0, sigWidth); 
-				   logic.addPrecCombinAssign(regProperties.getBaseName(), hiPrecedence, defaultName + " = " + refName + ";");
-			   }
-			   else return refName;  // otherwise use new name in subsequent logic
-		   }
-		   // otherwise create an input
-		   else 
-			   hwSigList.addVector(sigType, 0, sigWidth); 
-		return defaultName;
-	}
-
-	/** resolve rhs rtl expression, save in rhs signal list, and mark for post-gen name resolution.
-	 *  (this method is for resolving refs defined in fieldProperties, not signalProperties) */
-	private String resolveRhsExpression(RhsRefType rType) {
-		String retExpression = fieldProperties.getRefRtlExpression(rType, false);   // create signal name from rhs
-		retExpression = logic.resolveAsSignalOrField(retExpression);
-		logic.addRhsSignal(retExpression, getInstancePath(), fieldProperties.getRef(rType).getRawReference() );
-		return retExpression;
-	}
-
-	/** create statements to set value of next based on field settings for sw interface.
-	 *  save sw write statements in alternate list so they can be moved depending on hw/sw precedence of field
-	 * @param nextNameOverride - if non null, this will be the signal modified by sw write stmts
-	 *  */ 
-	private  void genSwFieldNextWriteStmts(String nextNameOverride, boolean swPrecedence) {  
-		   // get base register and field names
-		   String regBaseName = regProperties.getBaseName();
-		   String fieldRegisterName = fieldProperties.getFullSignalName(DefSignalType.FIELD);  //"reg_" + hwBaseName; 
-		   String fieldRegisterNextName = fieldProperties.getFullSignalName(DefSignalType.FIELD_NEXT);  //"reg_" + hwBaseName + "_next";
-		   String fieldArrayString = fieldProperties.getFieldArrayString();  
-		   
-		   // override names if an aliased register
-		   if (regProperties.isAlias()) {
-			   regBaseName = regProperties.getAliasBaseName();
-			   fieldRegisterName = FieldProperties.getFieldRegisterName(regBaseName + "_" + fieldProperties.getPrefixedId(), true);  
-			   fieldRegisterNextName = FieldProperties.getFieldRegisterNextName(regBaseName + "_" + fieldProperties.getPrefixedId(), true);  
-		   }
-
-		   // override the assigned name if specified
-		   if (nextNameOverride != null) fieldRegisterNextName = nextNameOverride;
-		   
-		   String decodeToLogicDataName = regProperties.getFullSignalName(DefSignalType.D2L_DATA);  // write data from decoder
-		   String decodeToLogicWeName = regProperties.getFullSignalName(DefSignalType.D2L_WE);  // write enable from decoder
-		   String decodeToLogicReName = regProperties.getFullSignalName(DefSignalType.D2L_RE);  // read enable from decoder
-		   
-		   // build an enable expression if swwe/swwel are used
-		   String swWeStr = "";
-		   if (fieldProperties.hasSwWriteEnableH()) { 
-			   String hwToLogicSwWeName = generateInputOrAssign(DefSignalType.H2L_SWWE, RhsRefType.SW_WE, 1, false, swPrecedence); 
-			   swWeStr = " & " + hwToLogicSwWeName;				   
-		   }
-		   else if (fieldProperties.hasSwWriteEnableL()) {  
-			   String hwToLogicSwWelName = generateInputOrAssign(DefSignalType.H2L_SWWEL, RhsRefType.SW_WE, 1, false, swPrecedence); 
-			   swWeStr = " & ~" + hwToLogicSwWelName;				   
-		   }
-		   
-		   // if a sw write one to clr/set
-		   if (fieldProperties.isWoset()) {
-			   logic.addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicWeName + swWeStr + ") " + fieldRegisterNextName + " = (" + 
-					   fieldRegisterName + " | " + decodeToLogicDataName + fieldArrayString + ");");				   
-		   }
-		   else if (fieldProperties.isWoclr()) {
-			   logic.addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicWeName + swWeStr + ") " + fieldRegisterNextName + " = (" + 
-					   fieldRegisterName + " & ~" + decodeToLogicDataName + fieldArrayString + ");");				   
-		   }
-		   // if a sw write is alowed 
-		   else if (fieldProperties.isSwWriteable()) {
-			   logic.addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicWeName + swWeStr + ") " + fieldRegisterNextName + " = " + regProperties.getFullSignalName(DefSignalType.D2L_DATA) + fieldArrayString + ";");				   
-		   }
-			   			   
-		   // if a sw read set
-		   if (fieldProperties.isRset()) {
-			   logic.addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicReName + swWeStr + ") " + fieldRegisterNextName + " = " + 
-		           fieldProperties.getFieldWidth() + "'b" + Utils.repeat('1', fieldProperties.getFieldWidth()) + ";");
-		   }
-		   // if sw rclr 
-		   else if (fieldProperties.isRclr()) {
-			   logic.addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicReName + swWeStr + ") " + fieldRegisterNextName + " = " + 
-		           fieldProperties.getFieldWidth() + "'b0;");
-		   }
-		   
-		   // if has sw access output
-		   if (fieldProperties.hasSwAcc()) {
-			   String logicToHwSwAccName = fieldProperties.getFullSignalName(DefSignalType.L2H_SWACC);
-			   hwSigList.addScalar(DefSignalType.L2H_SWACC);   // add sw access output
-			   logic.addScalarReg(logicToHwSwAccName);  
-			   logic.addPrecCombinAssign(regBaseName, swPrecedence, logicToHwSwAccName + 
-					   " = " + decodeToLogicReName + " | " + decodeToLogicWeName + ";");
-		   }
-		   // if has sw modify output
-		   if (fieldProperties.hasSwMod()) {
-			   String logicToHwSwModName = fieldProperties.getFullSignalName(DefSignalType.L2H_SWMOD);
-			   hwSigList.addScalar(DefSignalType.L2H_SWMOD);   // add sw access output
-			   logic.addScalarReg(logicToHwSwModName); 
-			   String readMod = (fieldProperties.isRclr() || fieldProperties.isRset())? "(" + decodeToLogicReName + " | " + decodeToLogicWeName + ")" : decodeToLogicWeName;
-			   logic.addPrecCombinAssign(regBaseName, swPrecedence, logicToHwSwModName + " = " + readMod + swWeStr + ";");
-		   }
-	}
-
-	/** write interrupt field verilog 
-	 * @param hwPrecedence */   
-	private void genInterruptWriteStmts(boolean hwPrecedence) {
-		   String fieldRegisterName = fieldProperties.getFullSignalName(DefSignalType.FIELD);  //"reg_" + hwBaseName;  
-		   String fieldRegisterNextName = fieldProperties.getFullSignalName(DefSignalType.FIELD_NEXT);  //"reg_" + hwBaseName + "_next";
-		   int fieldWidth = fieldProperties.getFieldWidth();
-		   
-		   // if register is not already interrupt, then create signal assigns and mark for output creation in finishRegister
-		   String intrOutput = regProperties.getFullSignalName(DefSignalType.L2H_INTR);
-		   if (!regProperties.hasInterruptOutputDefined()) {
-			   regProperties.setHasInterruptOutputDefined(true);
-			   logic.addScalarReg(intrOutput);
-		       logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, intrOutput + " = 1'b0;");  // default to intr off
-		   }
-		   
-		   // if a halt field and register is not already halt, then create signal assigns and mark for output creation in finishRegister
-		   String haltOutput = regProperties.getFullSignalName(DefSignalType.L2H_HALT);
-		   if (fieldProperties.isHalt() && !regProperties.hasHaltOutputDefined()) {
-			   regProperties.setHasHaltOutputDefined(true);
-			   logic.addScalarReg(haltOutput);
-		       logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, haltOutput + " = 1'b0;");  // default to halt off
-		   }
-
-		   // if a input intr reference then assign else create an input with width of field  
-		   String hwToLogicIntrName = fieldProperties.getFullSignalName(DefSignalType.H2L_INTR);  // hwBaseName + "_intr" 	   
-		   if (fieldProperties.hasRef(RhsRefType.INTR)) {  //  intr assign not allowed by rdl1.0 spec, but allow for addl options vs next
-			   //System.out.println("SystemVerilogBuilder genInterruptWriteStmts: " + fieldProperties.getInstancePath() + " has an intr reference, raw=" + fieldProperties.getIntrRef().getRawReference());
-			   logic.addVectorReg(hwToLogicIntrName, 0, fieldProperties.getFieldWidth());
-			   String refName = resolveRhsExpression(RhsRefType.INTR);
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, hwToLogicIntrName  +  " = " + refName + ";");
-		   }
-		   // otherwise, if next property isn't set then add an intr input
-		   else if (!fieldProperties.hasRef(RhsRefType.NEXT)) {
-			   hwSigList.addVector(DefSignalType.H2L_INTR, 0, fieldProperties.getFieldWidth());   // add hw interrupt input
-			   logic.addVectorWire(hwToLogicIntrName, 0, fieldProperties.getFieldWidth());			   
-		   }
-
-		   // if next is assigned then skip all the intr-specific next generation
-		   String intrOutputModifier = "";
-		   if (!fieldProperties.hasRef(RhsRefType.NEXT)) {
-				   
-			   // create mask/enable output and bit modifier if specified
-			   String intrBitModifier = "";
-			   if (fieldProperties.hasRef(RhsRefType.INTR_ENABLE)) {
-				   String refName = resolveRhsExpression(RhsRefType.INTR_ENABLE);
-				   if (fieldProperties.isMaskIntrBits()) intrBitModifier = " & " + refName;
-				   else intrOutputModifier = " & " + refName;
-			   }
-			   else if (fieldProperties.hasRef(RhsRefType.INTR_MASK)) {
-				   String refName = resolveRhsExpression(RhsRefType.INTR_MASK);
-				   if (fieldProperties.isMaskIntrBits()) intrBitModifier = " & ~" + refName;
-				   else intrOutputModifier = " & ~" + refName;
-			   }
-			   
-			   // create intr detect based on intrType (level, posedge, negedge, bothedge)
-			   String detectStr = hwToLogicIntrName;  // default to LEVEL
-			   String prevIntrName = fieldProperties.getFullSignalName(DefSignalType.PREVINTR);  // hwBaseName + "_previntr" 	   
-			   // if not LEVEL, need to store previous intr value
-			   if (fieldProperties.getIntrType() != FieldProperties.IntrType.LEVEL) {
-				   logic.addVectorReg(prevIntrName, 0, fieldProperties.getFieldWidth());
-				   logic.addRegAssign(regProperties.getBaseName(), prevIntrName  +  " <= #1 " + hwToLogicIntrName + ";");
-				   // if posedge detect
-				   if (fieldProperties.getIntrType() == FieldProperties.IntrType.POSEDGE) 
-					   detectStr = "(" + hwToLogicIntrName + " & ~" + prevIntrName + ")";
-				   else if (fieldProperties.getIntrType() == FieldProperties.IntrType.NEGEDGE) 
-					   detectStr = "(" + prevIntrName + " & ~" + hwToLogicIntrName + ")";
-				   else // BOTHEDGE detect  
-					   detectStr = "(" + hwToLogicIntrName + " ^ " + prevIntrName + ")";
-		   }
-		   
-		   // assign field based on detect and intrStickyype (nonsticky, sticky, stickybit)  
-		   if (fieldProperties.getIntrStickyType() == FieldProperties.IntrStickyType.NONSTICKY) 
-		      logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, fieldRegisterNextName + " = " + detectStr + intrBitModifier + ";");
-		   else if (fieldProperties.getIntrStickyType() == FieldProperties.IntrStickyType.STICKY) 
-			  logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + detectStr + " != " + fieldWidth + "'b0) " +
-		                         fieldRegisterNextName +  " = " + detectStr + intrBitModifier + ";");	
-		   else // STICKYBIT default 
-			  logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, fieldRegisterNextName + " = (" + detectStr + " | " +
-		                         fieldRegisterName + ")" + intrBitModifier + ";");
-		   }
-
-		   // if an enable/mask then gate interrupt output with this signal
-		   String orStr = " | (";  String endStr = ");";
-		   if (fieldWidth > 1) {
-			   orStr = " | ( | (";  endStr = "));";  // use or reduction
-		   }
-	       logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, intrOutput + " = " + intrOutput  + orStr + fieldRegisterName + intrOutputModifier + endStr);
-
-		   // if an enable/mask then gate halt output with this signal
-		   if (fieldProperties.hasRef(RhsRefType.HALT_ENABLE)) {
-			   String refName = resolveRhsExpression(RhsRefType.HALT_ENABLE);
-		       logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, haltOutput + " = " + haltOutput  + orStr + fieldRegisterName + " & " + refName + endStr);
-		   }
-		   else if (fieldProperties.hasRef(RhsRefType.HALT_MASK)) {
-			   String refName = resolveRhsExpression(RhsRefType.HALT_MASK);
-		       logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, haltOutput + " = " + haltOutput  + orStr + fieldRegisterName + " & ~" + refName + endStr);
-		   }
-		   else if (fieldProperties.isHalt())
-		       logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, haltOutput + " = " + haltOutput + orStr + fieldRegisterName + endStr);
-	}
-	
-	/** write counter field verilog 
-	 * @param hwPrecedence */   
-	private void genCounterWriteStmts(boolean hwPrecedence) {
-		   // get field-specific verilog signal names
-		   String hwToLogicIncrName = fieldProperties.getFullSignalName(DefSignalType.H2L_INCR);  // hwBaseName + "_incr" 
-		   String logicToHwOverflowName = fieldProperties.getFullSignalName(DefSignalType.L2H_OVERFLOW);  // hwBaseName + "_overflow" 
-		   
-		   String hwToLogicDecrName = fieldProperties.getFullSignalName(DefSignalType.H2L_DECR);  // hwBaseName + "_decr" 
-		   String logicToHwUnderflowName = fieldProperties.getFullSignalName(DefSignalType.L2H_UNDERFLOW);  // hwBaseName + "_underflow" 
-		   String nextCountName = fieldProperties.getFullSignalName(DefSignalType.CNTR_NEXT);   
-		   
-		   String logicToHwIncrSatName = fieldProperties.getFullSignalName(DefSignalType.L2H_INCRSAT);  // hwBaseName + "_incrsat_o" 
-		   String logicToHwIncrTholdName = fieldProperties.getFullSignalName(DefSignalType.L2H_INCRTHOLD);  // hwBaseName + "_incrthold_o" 
-		   String logicToHwDecrSatName = fieldProperties.getFullSignalName(DefSignalType.L2H_DECRSAT);  // hwBaseName + "_decrsat_o" 
-		   String logicToHwDecrTholdName = fieldProperties.getFullSignalName(DefSignalType.L2H_DECRTHOLD);  // hwBaseName + "_decrthold_o" 
-
-		   String fieldRegisterName = fieldProperties.getFullSignalName(DefSignalType.FIELD);  //"reg_" + hwBaseName;  
-		   String fieldRegisterNextName = fieldProperties.getFullSignalName(DefSignalType.FIELD_NEXT);  //"reg_" + hwBaseName + "_next";
-		   
-		   int fieldWidth = fieldProperties.getFieldWidth();
-		   int countWidth = fieldWidth + 1;  // add a bit for over/underflow
-		   
-		   // create the next count value
-		   logic.addVectorReg(nextCountName, 0, countWidth);  
-		   logic.addCombinAssign(regProperties.getBaseName(), nextCountName + " = { 1'b0, " + fieldRegisterName + "};");  // no precedence - this stmt goes first  
-		   
-		   // if an incr is specified
-		   if (fieldProperties.isIncrCounter()) {
-			   
-			   // add overflow output
-			   if (fieldProperties.hasOverflow()) {
-				   hwSigList.addScalar(DefSignalType.L2H_OVERFLOW);   // add hw overflow output
-				   logic.addScalarReg(logicToHwOverflowName);  
-				   logic.addRegAssign(regProperties.getBaseName(), logicToHwOverflowName +
-						   " <= #1 " + nextCountName + "[" + fieldWidth + "] & ~" +  logicToHwOverflowName + ";");  // only active for one cycle  
-			   }
-
-			   // if a ref is being used for increment assign it, else add an input
-			   //System.out.println("SystemVerilogBuilder genCounterWriteStmts: " + fieldProperties.getInstancePath() + " is an incr counter, hasIncrRef=" + fieldProperties.hasIncrRef());
-			   generateInputOrAssign(DefSignalType.H2L_INCR, RhsRefType.INCR, 1, true, hwPrecedence); 
-
-			   // create incr value from reference, constant, or input
-			   String incrValueString =getCountIncrValueString(countWidth);
-			   
-			   // increment the count
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + hwToLogicIncrName + ")");
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "   " + nextCountName + " = "  + nextCountName + " + " + incrValueString + ";");
-		   }
-		   
-		   // if a decr is specified
-		   if (fieldProperties.isDecrCounter()) {
-			   
-			   // add underflow output
-			   if (fieldProperties.hasUnderflow()) {
-				   hwSigList.addScalar(DefSignalType.L2H_UNDERFLOW);   // add hw underflow output
-				   logic.addScalarReg(logicToHwUnderflowName);  
-				   logic.addRegAssign(regProperties.getBaseName(), logicToHwUnderflowName +
-						   " <= #1 " + nextCountName + "[" + fieldWidth + "] & ~" +  logicToHwUnderflowName + ";");  // only active for one cycle  
-			   }
-
-			   // if a ref is being used for decrement assign it, else add an input
-			   generateInputOrAssign(DefSignalType.H2L_DECR, RhsRefType.DECR, 1, true, hwPrecedence); 
-
-			   // create decr value from reference, constant, or input
-			   String decrValueString =getCountDecrValueString(countWidth);
-			   
-			   // decrement the count
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + hwToLogicDecrName + ")");
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "   " + nextCountName + " = "  + nextCountName + " - " + decrValueString + ";");
-		   }
-		   
-		   // if a incr saturating counter add checks
-		   if (fieldProperties.isIncrSatCounter()) {
-			   String incrSatValueString = "0";
-			   
-			   // set saturate value from constant or ref
-			   if (fieldProperties.hasRef(RhsRefType.INCR_SAT_VALUE)) {  // if a reference is specified
-				   incrSatValueString = resolveRhsExpression(RhsRefType.INCR_SAT_VALUE);
-			   }
-			   else {  // otherwise a constant
-				   RegNumber regNum = fieldProperties.getIncrSatValue();
-				   regNum.setVectorLen(countWidth);
-				   incrSatValueString = regNum.toString();
-			   }
-			   // limit next count to value of saturate
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + nextCountName + " > " + incrSatValueString + ")");
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "   " + nextCountName + " = "  + incrSatValueString + ";");
-			   // add incrsat output
-			   if (fieldProperties.hasSaturateOutputs()) hwSigList.addScalar(DefSignalType.L2H_INCRSAT);   // add hw incrsaturate output
-			   logic.addScalarReg(logicToHwIncrSatName);  
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, logicToHwIncrSatName + " = ( {1'b0, " + fieldRegisterName + "} == " + incrSatValueString + ");");
-		   }
-		   
-		   // check for incrthreshold
-		   if (fieldProperties.isIncrTholdCounter()) {
-			   String incrTholdValueString = "0";
-			   
-			   // set saturate value from constant or ref
-			   if (fieldProperties.hasRef(RhsRefType.INCR_THOLD_VALUE)) {  // if a reference is specified
-				   incrTholdValueString = resolveRhsExpression(RhsRefType.INCR_THOLD_VALUE);
-			   }
-			   else {  // otherwise a constant
-				   RegNumber regNum = fieldProperties.getIncrTholdValue();
-				   regNum.setVectorLen(countWidth);
-				   if (countWidth > 7) regNum.setNumBase(RegNumber.NumBase.Hex);
-				   incrTholdValueString = regNum.toString();
-			   }
-			   // add incrthold output
-			   hwSigList.addScalar(DefSignalType.L2H_INCRTHOLD);   // add hw incrthreshold output
-			   logic.addScalarReg(logicToHwIncrTholdName);  
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, logicToHwIncrTholdName + " = ( {1'b0, " + fieldRegisterName + "} == " + incrTholdValueString + ");");
-		   }
-		   
-		   // if a decr saturating counter add checks
-		   if (fieldProperties.isDecrSatCounter()) {
-			   String decrSatValueString = "0";
-			   
-			   // set saturate value from constant or ref
-			   if (fieldProperties.hasRef(RhsRefType.DECR_SAT_VALUE) ) {  // if a reference is specified
-				   decrSatValueString = resolveRhsExpression(RhsRefType.DECR_SAT_VALUE);
-			   }
-			   else {  // otherwise a constant
-				   RegNumber regNum = fieldProperties.getDecrSatValue();
-				   regNum.setVectorLen(countWidth);
-				   if (countWidth > 7) regNum.setNumBase(RegNumber.NumBase.Hex);
-				   decrSatValueString = regNum.toString();
-			   }
-			   // limit next count to value of saturate
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + nextCountName + " < " + decrSatValueString + ")");
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "   " + nextCountName + " = "  + decrSatValueString + ";");
-			   // add decrsat output
-			   if (fieldProperties.hasSaturateOutputs()) hwSigList.addScalar(DefSignalType.L2H_DECRSAT);   // add hw decrsaturate output
-			   logic.addScalarReg(logicToHwDecrSatName);  
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, logicToHwDecrSatName + " = ( {1'b0, " + fieldRegisterName + "} == " + decrSatValueString + ");");
-		   }
-		   
-		   // check for decrthreshold
-		   if (fieldProperties.isDecrTholdCounter()) {
-			   String decrTholdValueString = "0";
-			   
-			   // set saturate value from constant or ref
-			   if (fieldProperties.hasRef(RhsRefType.DECR_THOLD_VALUE)) {  // if a reference is specified
-				   decrTholdValueString = resolveRhsExpression(RhsRefType.DECR_THOLD_VALUE);
-			   }
-			   else {  // otherwise a constant
-				   RegNumber regNum = fieldProperties.getDecrTholdValue();
-				   regNum.setVectorLen(countWidth);
-				   if (countWidth > 7) regNum.setNumBase(RegNumber.NumBase.Hex);
-				   decrTholdValueString = regNum.toString();
-			   }
-			   // add decrthold output
-			   hwSigList.addScalar(DefSignalType.L2H_DECRTHOLD);   // add hw decrthreshold output
-			   logic.addScalarReg(logicToHwDecrTholdName);  
-			   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, logicToHwDecrTholdName + " = ( {1'b0, " + fieldRegisterName + "} == " + decrTholdValueString + ");");
-		   }
-		   
-		   // now assign the next count value to the reg
-		   logic.addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, fieldRegisterNextName + " = " + nextCountName + SystemVerilogSignal.genDefArrayString(0, fieldWidth) + ";");			
-		
-	}
-
-	/** create count increment string */
-	private String getCountIncrValueString(int countWidth) {
-		String incrValueString = "0";
-		String hwToLogicIncrValueName = fieldProperties.getFullSignalName(DefSignalType.H2L_INCRVALUE);  // hwBaseName + "_incrvalue" 
-		Integer incrWidth = fieldProperties.getIncrWidth();
-		if (incrWidth != null) {  // if an external input is specified
-			hwSigList.addVector(DefSignalType.H2L_INCRVALUE, 0, incrWidth);   // add hw incr value input
-			incrValueString = "{" + (countWidth - incrWidth) + "'b0, " + hwToLogicIncrValueName + "}";
-		}
-		else if (fieldProperties.hasRef(RhsRefType.INCR_VALUE)) {  // if a reference is specified
-			incrValueString = resolveRhsExpression(RhsRefType.INCR_VALUE);
-		}
-		else {  // otherwise a constant
-			RegNumber regNum = fieldProperties.getIncrValue();
-			regNum.setVectorLen(countWidth);
-			if (countWidth > 7) regNum.setNumBase(RegNumber.NumBase.Hex);
-			incrValueString = regNum.toString();
-		}
-		return incrValueString;
-	}
-	
-	/** create count decrement string */
-	private String getCountDecrValueString(int countWidth) {
-		String decrValueString = "0";
-		String hwToLogicDecrValueName = fieldProperties.getFullSignalName(DefSignalType.H2L_DECRVALUE);  // hwBaseName + "_decrvalue" 
-		Integer decrWidth = fieldProperties.getDecrWidth();
-		if (decrWidth != null) {  // if an external input is specified
-			hwSigList.addVector(DefSignalType.H2L_DECRVALUE, 0, decrWidth);   // add hw decr value input
-			decrValueString = "{" + (countWidth - decrWidth) + "'b0, " + hwToLogicDecrValueName + "}";
-		}
-		else if (fieldProperties.hasRef(RhsRefType.DECR_VALUE)) {  // if a reference is specified
-			decrValueString = resolveRhsExpression(RhsRefType.DECR_VALUE);
-		}
-		else {  // otherwise a constant
-			RegNumber regNum = fieldProperties.getDecrValue();
-			regNum.setVectorLen(countWidth);
-			if (countWidth > 7) regNum.setNumBase(RegNumber.NumBase.Hex);
-			decrValueString = regNum.toString();
-		}
-		return decrValueString;
-	}
-
-	/** generate field read statements */  
-	private  void genFieldReadStmts() {
-		   // create field-specific verilog signal names
-		   String logicToHwDataName = fieldProperties.getFullSignalName(DefSignalType.L2H_DATA);  // hwBaseName + "_r" ;
-		   String fieldRegisterName = fieldProperties.getFullSignalName(DefSignalType.FIELD);  //"ff_" + hwBaseName;
-
-		   // if sw readable, set output (else return 0s)
-		   genSwFieldReadStmts();
-		   
-		   // if hw readable, add the interface and set output
-		   if (fieldProperties.isHwReadable()) {
-			   // add read signals from logic to hw
-			   hwSigList.addVector(DefSignalType.L2H_DATA, 0, fieldProperties.getFieldWidth());    // logic to hw list 
-			   
-			   // assign hw read data outputs
-			   logic.addVectorReg(logicToHwDataName, 0, fieldProperties.getFieldWidth());  // add outputs to define list since we'll use block assign
-			   logic.addCombinAssign(regProperties.getBaseName(), logicToHwDataName + " = " + fieldRegisterName + ";");  
-		   }
-		   
-		   // if anded/ored/xored outputs specified
-		   genBitwiseOutputStmts();
-	}
-	
-	/** create bitwise outputs for this field */
-	private void genBitwiseOutputStmts() {
-		   // create field-specific verilog signal names
-		   String logicToHwAndedName = fieldProperties.getFullSignalName(DefSignalType.L2H_ANDED);  
-		   String logicToHwOredName = fieldProperties.getFullSignalName(DefSignalType.L2H_ORED);  
-		   String logicToHwXoredName = fieldProperties.getFullSignalName(DefSignalType.L2H_XORED);  
-		   String fieldRegisterName = fieldProperties.getFullSignalName(DefSignalType.FIELD);  
-		   
-		   // anded output
-		   if (fieldProperties.isAnded()) {
-			   hwSigList.addScalar(DefSignalType.L2H_ANDED);    // logic to hw list 
-			   logic.addScalarReg(logicToHwAndedName);  // add outputs to define list since we'll use block assign
-			   logic.addCombinAssign(regProperties.getBaseName(), logicToHwAndedName + " = & " + fieldRegisterName + ";");  			   
-		   }
-		   // ored output
-		   if (fieldProperties.isOred()) {
-			   hwSigList.addScalar(DefSignalType.L2H_ORED);    // logic to hw list 
-			   logic.addScalarReg(logicToHwOredName);  // add outputs to define list since we'll use block assign
-			   logic.addCombinAssign(regProperties.getBaseName(), logicToHwOredName + " = | " + fieldRegisterName + ";");  			   
-		   }
-		   // xored output
-		   if (fieldProperties.isXored()) {
-			   hwSigList.addScalar(DefSignalType.L2H_XORED);    // logic to hw list 
-			   logic.addScalarReg(logicToHwXoredName);  // add outputs to define list since we'll use block assign
-			   logic.addCombinAssign(regProperties.getBaseName(), logicToHwXoredName + " = ^ " + fieldRegisterName + ";");  			   
-		   }
-		
-	}
-
-	/** generate alias register field read statements */  
-	private  void genSwFieldReadStmts() {
-		   // create field-specific verilog signal names
-		   String fieldRegisterName = fieldProperties.getFullSignalName(DefSignalType.FIELD);  //"rg_" + hwBaseName;
-		   String fieldArrayString = fieldProperties.getFieldArrayString(); 
-		   // if an aliased register override the field name
-		   if (regProperties.isAlias()) {
-			   String aliasBaseName = regProperties.getAliasBaseName();
-			   fieldRegisterName = FieldProperties.getFieldRegisterName(aliasBaseName + "_" + fieldProperties.getPrefixedId(), true);  //"rg_" + AliasBaseName;
-		   }
-		   // if sw readable, set output (else return 0s)
-		   if (fieldProperties.isSwReadable()) {
-			   tempAssignList.add(regProperties.getFullSignalName(DefSignalType.L2D_DATA) + fieldArrayString + " = " + fieldRegisterName + ";"); // need to set unused bits to 0 after all fields added		
-		   }
-		   
 	}
 		
 	//---------------------------- inner classes ----------------------------------------
@@ -1664,6 +1047,11 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	/** return the number of bits to select max sized wide reg */   
 	protected int getMaxWordBitSize() {
 		return Utils.getBits(getMaxRegWordWidth());
+	}
+
+	/** add to the assign list for a register - called by logic module when building fields */
+	public void addToTempAssignList(String assignStr) {
+		   tempAssignList.add(assignStr);		
 	}
 	
 }
