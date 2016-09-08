@@ -221,8 +221,8 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		}
 		
 		// add user signal to hashmap of defined signals
-		logic.addUserDefinedSignal(signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), signalProperties);
-		//Jrdl.infoMessage("SystemVerilogBuilder: signal=" + signalProperties.getBaseName() + ", low=" + signalProperties.getLowIndex() + ", size=" + signalProperties.getSignalWidth());
+		if (!signalProperties.isExternal()) logic.addUserDefinedSignal(signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), signalProperties);
+		//System.out.println("SystemVerilogBuilder addSignal: signal=" + signalProperties.getBaseName() + ", low=" + signalProperties.getLowIndex() + ", size=" + signalProperties.getSignalWidth() + ", builder=" + getBuilderID() + ", ext=" + signalProperties.isExternal());
 		
 		// if signal is lhs of assignment then add to logic assign/logic lists/output, else add it as an input.
 		// io assign is done here so interface wrapper contains user sigs - all user sigs are either inputs or outputs

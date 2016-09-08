@@ -694,8 +694,6 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		   }
 		   
 	}
-	
-	// ----------------------------------------------------- TODO - move these methods to SystemVerilogLogicBuilder
 
 	// -------------- user defined signal methods
 
@@ -724,14 +722,16 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		// first loop through signals, detect any signals on rhs, and verify each sig in rhs exists
 		for (String key: userDefinedSignals.keySet()) {
 			SignalProperties sig = userDefinedSignals.get(key);
-			//System.out.println("SystemVerilogBuilder createSignalAssigns: sig key=" + key + ", sig id=" + sig.getId());
+			//System.out.println("SystemVerilogLogicModule createSignalAssigns: sig key=" + key + ", sig id=" + sig.getId());
 			// if signal is assigned internally and has simple rhs, check for valid vlog define and resolve sig vs reg
 			if (sig.hasAssignExpr() ) {  
 				// loop thru refs here... check each for well formed
 				List<RhsReference> rhsRefList = sig.getAssignExpr().getRefList(); 
 				for (RhsReference ref: rhsRefList) {
+					//System.out.println("SystemVerilogLogicModule createSignalAssigns: sig key=" + key + ": ref=" + ref.getRawReference() + ", depth=" + ref.getDepth() + ", inst=" + ref.getInstancePath());
 					if (ref.isWellFormedSignalName()) {
 						String refName = ref.getReferenceName(sig, false); 
+						//System.out.println("SystemVerilogLogicModule createSignalAssigns: sig prop inst=" + sig.getInstancePath() + ", refName=" + refName);
 						refName = resolveAsSignalOrField(refName);  // resolve and tag any signals as rhsReference
 						// check for a valid signal
 						if (!this.hasDefinedSignal(refName) && (rhsSignals.containsKey(refName))) {  

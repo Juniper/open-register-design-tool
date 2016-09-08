@@ -381,7 +381,7 @@ public class SystemVerilogModule {
 		instanceList.add(new Instance(mod, name));
 	}
 	
-	private class Instance { 
+	private class Instance { // TODO - add mapping rules
 		private SystemVerilogModule mod;
 		private String name;
 		
