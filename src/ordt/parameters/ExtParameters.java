@@ -40,7 +40,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	
 	
 	public enum SVBlockSelectModes { INTERNAL, EXTERNAL, ALWAYS } 
-	public enum SVDecodeInterfaceTypes { PARALLEL, LEAF, SERIAL8, RING8, RING16, RING32 } 
+	public enum SVDecodeInterfaceTypes { NONE, LEAF, SERIAL8, RING8, RING16, RING32, PARALLEL} 
 	public enum SVChildInfoModes { PERL, MODULE } 
 	
 	// non-standard typed parameters

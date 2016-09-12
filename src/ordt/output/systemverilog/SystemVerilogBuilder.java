@@ -92,7 +92,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	    setAllowLocalMapInternals(false);  // cascaded addrmaps will not result in local non-ext regions   
 		setLegacyVerilog(false);  // rtl uses systemverilog constructs
 		initIOLists(null);  // setup IO lists for logic, decode, and top modules
-		decoder.setInterfaceType(ExtParameters.getSysVerRootDecoderInterface()); // set root pio interface type from specified params
+		decoder.setPrimaryInterfaceType(ExtParameters.getSysVerRootDecoderInterface()); // set root pio interface type from specified params
 		model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
 	}
 	
@@ -128,16 +128,16 @@ public class SystemVerilogBuilder extends OutputBuilder {
 
 		// if child is in a bb root region, change its interface to leaf
 		if (topRegProperties.hasExternalType(ExtType.BBV5))
-			decoder.setInterfaceType(SVDecodeInterfaceTypes.LEAF); 
+			decoder.setPrimaryInterfaceType(SVDecodeInterfaceTypes.LEAF); 
 		// else if a serial8 region use this decoder interface
 		else if (topRegProperties.hasExternalType(ExtType.SERIAL8))
-			decoder.setInterfaceType(SVDecodeInterfaceTypes.SERIAL8); 
+			decoder.setPrimaryInterfaceType(SVDecodeInterfaceTypes.SERIAL8); 
 		// else if a ring16 region use this decoder interface
 		else if (topRegProperties.hasExternalType(ExtType.RING)) {
 			int width = topRegProperties.getExternalType().getParm("width");
-			if (width == 8) decoder.setInterfaceType(SVDecodeInterfaceTypes.RING8); 
-			else if (width == 16) decoder.setInterfaceType(SVDecodeInterfaceTypes.RING16); 
-			else if (width == 32) decoder.setInterfaceType(SVDecodeInterfaceTypes.RING32); 			
+			if (width == 8) decoder.setPrimaryInterfaceType(SVDecodeInterfaceTypes.RING8); 
+			else if (width == 16) decoder.setPrimaryInterfaceType(SVDecodeInterfaceTypes.RING16); 
+			else if (width == 32) decoder.setPrimaryInterfaceType(SVDecodeInterfaceTypes.RING32); 			
 		}
 
 	    // now generate output starting at this regmap
@@ -1013,7 +1013,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 
 	/** return true if base address parameter is to be added to base module and decoder */ 
 	public boolean addBaseAddressParameter() {
-		return (decoder.hasInterface(SVDecodeInterfaceTypes.LEAF) || decoder.hasInterface(SVDecodeInterfaceTypes.RING16)) && ExtParameters.systemverilogBaseAddrIsParameter();
+		return decoder.usesBaseAddress() && ExtParameters.systemverilogBaseAddrIsParameter();
 	}
 
 	/** return address bit width from current addrmap size (high bit of mapSize-1) */
