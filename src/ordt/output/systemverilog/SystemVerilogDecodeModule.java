@@ -91,19 +91,51 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		        hasInterfaceType(SVDecodeInterfaceTypes.RING16) || hasInterfaceType(SVDecodeInterfaceTypes.RING32));
 	}
 
-	/** add pio-decoder signals and capture signals to decoder lists */  // TODO - for now, default to primary
-	public void genPioInterface(RegProperties topRegProperties) {
-        //System.out.println("SystemVerilogDecode genPioInterface: type=" + getInterfaceType() + ", isS8=" + hasInterface(SVDecodeInterfaceTypes.SERIAL8));
-		// create interface logic differently for base addrmap vs children
+	/** create processor interface logic */  
+	public void genPioInterfaces(RegProperties topRegProperties) {
+		// generate the primary processor interface
+		genPrimaryPioInterface(topRegProperties);
+		
+		// generate the secondary processor interface
+		if (hasSecondaryInterface()) {
+			genSecondaryPioInterface(topRegProperties);
+			genInterfaceArbiter();			
+		}
+		
+		// generate common internal pio interface code
+		this.generateCommonPio();	
+	}
+
+	/** create primary processor interface */
+	private void genPrimaryPioInterface(RegProperties topRegProperties) {
+        //System.out.println("SystemVerilogDecode genPrimaryPioInterface: isS8=" + hasPrimaryInterfaceType(SVDecodeInterfaceTypes.SERIAL8));
+		// create interface logic
 		if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.LEAF)) this.genLeafPioInterface(topRegProperties, true);
 		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.SERIAL8)) this.genSerial8PioInterface(topRegProperties, true);
 		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.RING8)) this.genRingPioInterface(8, topRegProperties, true);
 		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.RING16)) this.genRingPioInterface(16, topRegProperties, true);
 		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.RING32)) this.genRingPioInterface(32, topRegProperties, true);
-		else this.genParallelPioInterface(topRegProperties, true);
-		
-		// generate common internal pio interface code
-		this.generateCommonPio();	
+		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.PARALLEL)) this.genParallelPioInterface(topRegProperties, true);
+		else {
+			String instStr = (topRegProperties == null)? "root" : topRegProperties.getInstancePath();
+			Ordt.errorExit("invalid decoder primary interface type specified for addrmap instance " + instStr);
+		}
+	}
+
+	/** create secondary processor interface */
+	private void genSecondaryPioInterface(RegProperties topRegProperties) {
+		// create interface logic
+		if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.NONE)) return;
+		if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.LEAF)) this.genLeafPioInterface(topRegProperties, false);
+		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.SERIAL8)) this.genSerial8PioInterface(topRegProperties, false);
+		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING8)) this.genRingPioInterface(8, topRegProperties, false);
+		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING16)) this.genRingPioInterface(16, topRegProperties, false);
+		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING32)) this.genRingPioInterface(32, topRegProperties, false);
+		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.PARALLEL)) this.genParallelPioInterface(topRegProperties, false);
+		else {
+			String instStr = (topRegProperties == null)? "root" : topRegProperties.getInstancePath();
+			Ordt.errorExit("invalid decoder secondary interface type specified for addrmap instance " + instStr);
+		}
 	}
 
 	/** return a signal name with prefix extended according to primary/secondary decoder state */
@@ -112,8 +144,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		return prefix + baseName;
 	}
 
-	/** return a group name with prefix extended according to primary/secondary decoder state */
-	private String getGroupName(boolean isPrimary) {
+	/** return a group name prefix according to primary/secondary decoder state */
+	private String getGroupPrefix(boolean isPrimary) {
 		String prefix = !hasSecondaryInterface()? "" : isPrimary? "primary " : "secondary ";
 		return prefix;
 	}
@@ -200,6 +232,137 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarReg("external_transaction_active");    		   
 	}
 
+	/** generate request arb logic between to proc interfaces */
+	private void genInterfaceArbiter() {
+		// set p1 internal interface names
+		String p1AddressName = getSigName(true, this.pioInterfaceAddressName);
+		String p1WriteDataName = getSigName(true, this.pioInterfaceWriteDataName);
+		String p1TransactionSizeName = getSigName(true, this.pioInterfaceTransactionSizeName);
+		String p1RetTransactionSizeName = getSigName(true, this.pioInterfaceRetTransactionSizeName);
+		String p1WeName = getSigName(true, this.pioInterfaceWeName);
+		String p1ReName = getSigName(true, this.pioInterfaceReName);
+		String p1ReadDataName = getSigName(true, this.pioInterfaceReadDataName);
+		String p1AckName = getSigName(true, this.pioInterfaceAckName);
+		String p1NackName = getSigName(true, this.pioInterfaceNackName);
+		// set p2 internal interface names
+		String p2AddressName = getSigName(false, this.pioInterfaceAddressName);
+		String p2WriteDataName = getSigName(false, this.pioInterfaceWriteDataName);
+		String p2TransactionSizeName = getSigName(false, this.pioInterfaceTransactionSizeName);
+		String p2RetTransactionSizeName = getSigName(false, this.pioInterfaceRetTransactionSizeName);
+		String p2WeName = getSigName(false, this.pioInterfaceWeName);
+		String p2ReName = getSigName(false, this.pioInterfaceReName);
+		String p2ReadDataName = getSigName(false, this.pioInterfaceReadDataName);
+		String p2AckName = getSigName(false, this.pioInterfaceAckName);
+		String p2NackName = getSigName(false, this.pioInterfaceNackName);
+		
+		// create p1, p2 interface outputs
+		this.addVectorWire(p1ReadDataName, 0, builder.getMaxRegWidth());  //  read data output  
+		this.addScalarReg(p1AckName);  // return ack
+		this.addScalarReg(p1NackName);  // return nack
+		if (builder.getMaxRegWordWidth() > 1) this.addVectorWire(p1RetTransactionSizeName, 0, builder.getMaxWordBitSize());  //  register the size
+		this.addVectorWire(p2ReadDataName, 0, builder.getMaxRegWidth());  //  read data output  
+		this.addScalarReg(p2AckName);  // return ack
+		this.addScalarReg(p2NackName);  // return nack
+		if (builder.getMaxRegWordWidth() > 1) this.addVectorWire(p2RetTransactionSizeName, 0, builder.getMaxWordBitSize());  //  register the size
+		// create common internal i/f inputs
+		if (mapHasMultipleAddresses()) this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  //  address to be used internally 
+		this.addVectorWire(pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
+		if (builder.getMaxRegWordWidth() > 1) this.addVectorWire(pioInterfaceTransactionSizeName, 0, builder.getMaxWordBitSize());  //  internal transaction size
+		this.addScalarWire(pioInterfaceReName);  //  read enable to be used internally 
+		this.addScalarWire(pioInterfaceWeName);  //  write enable be used internally 
+		
+		// set sm signal names that will be set in sm 
+		String arbiterReName = "arb_" + pioInterfaceReName;
+		String arbiterWeName = "arb_" + pioInterfaceWeName;
+		this.addScalarReg(arbiterReName);
+		this.addScalarReg(arbiterWeName);
+		
+		String arbStateName = "arbiter_state";                      
+		String arbStateNextName = arbStateName + "_next";                      
+		
+        // create sm vars
+		String groupName = "interface arbiter";  
+		int stateBits = 2;
+		this.addVectorReg(arbStateName, 0, stateBits);  
+		this.addVectorReg(arbStateNextName, 0, stateBits);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), arbStateName + " <= #1  " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  arbStateName + " <= #1  " + arbStateNextName + ";");  
+
+		// state machine init values
+		this.addCombinAssign(groupName,  arbStateNextName + " = " + arbStateName + ";");  
+		this.addCombinAssign(groupName,  arbiterReName + " =  1'b0;");  // write active
+		this.addCombinAssign(groupName,  arbiterWeName + " =  1'b0;");  // read active
+		this.addCombinAssign(groupName,  p1AckName + " =  1'b0;");  // p1 ack
+		this.addCombinAssign(groupName,  p1NackName + " =  1'b0;");   // p1 nack
+		this.addCombinAssign(groupName,  p2AckName + " =  1'b0;");  // p2 ack
+		this.addCombinAssign(groupName,  p2NackName + " =  1'b0;");   // p2 nack
+			
+		// state machine  /
+		String IDLE = stateBits + "'h0"; 
+		String P1_ACTIVE = stateBits + "'h1"; 
+		String P2_ACTIVE = stateBits + "'h2"; 
+				
+		this.addCombinAssign(groupName, "case (" + arbStateName + ")"); 
+
+		// IDLE
+		this.addCombinAssign(groupName, "  " + IDLE + ": begin // IDLE");
+		// go on request - p1 has priority in idle
+		this.addCombinAssign(groupName, "      if (" + p1ReName + " || " + p1WeName + ") " + arbStateNextName + " = " + P1_ACTIVE + ";");  
+		this.addCombinAssign(groupName, "      else if (" + p2ReName + " || " + p2WeName + ") " + arbStateNextName + " = " + P2_ACTIVE + ";");  
+		this.addCombinAssign(groupName, "    end"); 
+		
+		// P1_ACTIVE - interface 1 active
+		this.addCombinAssign(groupName, "  " + P1_ACTIVE + ": begin // P1_ACTIVE");
+		this.addCombinAssign(groupName,  "      " + arbiterReName + " = " + p1ReName + ";");
+		this.addCombinAssign(groupName,  "      " + arbiterWeName + " = " + p1WeName + ";");
+		// if ack/ack, pass thru to intf and jump to next state
+		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + " | " + pioInterfaceNackName + ") begin");  
+		this.addCombinAssign(groupName,  "        " + p1AckName + " = " + pioInterfaceAckName + ";");
+		this.addCombinAssign(groupName,  "        " + p1NackName + " = " + pioInterfaceNackName + ";");
+		this.addCombinAssign(groupName, "         if (" + p2ReName + " || " + p2WeName + ") " + arbStateNextName + " = " + P2_ACTIVE + ";");  // allow secondary to cut in
+		this.addCombinAssign(groupName, "         else " + arbStateNextName + " = " + IDLE + ";");  // else back to idle
+		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "    end"); 
+		
+		// P2_ACTIVE - interface 2 active
+		this.addCombinAssign(groupName, "  " + P2_ACTIVE + ": begin // P2_ACTIVE");
+		this.addCombinAssign(groupName,  "      " + arbiterReName + " = " + p2ReName + ";");
+		this.addCombinAssign(groupName,  "      " + arbiterWeName + " = " + p2WeName + ";");
+		// if ack/ack, pass thru to intf and jump to next state
+		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + " | " + pioInterfaceNackName + ") begin");  
+		this.addCombinAssign(groupName,  "        " + p2AckName + " = " + pioInterfaceAckName + ";");
+		this.addCombinAssign(groupName,  "        " + p2NackName + " = " + pioInterfaceNackName + ";");
+		this.addCombinAssign(groupName, "         if (" + p1ReName + " || " + p1WeName + ") " + arbStateNextName + " = " + P1_ACTIVE + ";");  // allow primary to cut in
+		this.addCombinAssign(groupName, "         else " + arbStateNextName + " = " + IDLE + ";");  // else back to idle
+		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "    end"); 
+		
+		// default
+		this.addCombinAssign(groupName, "  default:");
+		this.addCombinAssign(groupName, "    " + arbStateNextName + " = " + IDLE + ";");  
+
+		this.addCombinAssign(groupName, "endcase"); 				
+		
+		// assign input signals according to arb state
+		if (mapHasMultipleAddresses()) 
+			this.addWireAssign(pioInterfaceAddressName + " = (" + arbStateName + " == " + P2_ACTIVE + ")? " + p2AddressName + " : " + p1AddressName + ";");
+		this.addWireAssign(pioInterfaceWriteDataName + " = (" + arbStateName + " == " + P2_ACTIVE + ")? " + p2WriteDataName + " : " + p1WriteDataName + ";");
+		if (builder.getMaxRegWordWidth() > 1) 
+			this.addWireAssign(pioInterfaceTransactionSizeName + " = (" + arbStateName + " == " + P2_ACTIVE + ")? " + p2TransactionSizeName + " : " + p1TransactionSizeName + ";");
+		
+		// assign responses back to interfaces
+		this.addWireAssign(p1ReadDataName + " = " + pioInterfaceReadDataName + ";");
+		this.addWireAssign(p2ReadDataName + " = " + pioInterfaceReadDataName + ";");
+		if (builder.getMaxRegWordWidth() > 1) {
+			this.addWireAssign(p1RetTransactionSizeName + " = " + pioInterfaceRetTransactionSizeName + ";");
+			this.addWireAssign(p2RetTransactionSizeName + " = " + pioInterfaceRetTransactionSizeName + ";");
+		}
+
+		// generate re/we assigns - use delayed versions if gating is active
+		assignReadWriteRequests(arbiterReName, arbiterWeName, pioInterfaceReName, pioInterfaceWeName, true);	
+
+	}
+
 	/** add parallel interface signals (internal intf signals passed thru to interface) */
 	private void genParallelPioInterface(RegProperties topRegProperties, boolean isPrimary) {
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with parallel interface, id=" + topRegProperties.getInstancePath());
@@ -250,8 +413,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (mapHasMultipleAddresses()) this.addWireAssign(pioInterfaceAddressName + " = " + ioAddressName + ";");   
 		this.addWireAssign(pioInterfaceWriteDataName + " = " + ioWriteDataName + ";");		
 		if (builder.getMaxRegWordWidth() > 1) this.addWireAssign(pioInterfaceTransactionSizeName + " = " + ioTransactionSizeName + ";");
-		// generate re/we assigns directly or from delayed versions if clock gating is enabled
-		assignReadWriteRequests(ioReName, ioWeName); // TODO - only call in no secondary case? 
+		// generate re/we assigns - use delayed versions if this is a single primary
+		assignReadWriteRequests(ioReName, ioWeName, pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());
 		
 		// assign output IOs to internal interface
 		if (builder.getMaxRegWordWidth() > 1) this.addWireAssign(ioRetTransactionSizeName + " = " + pioInterfaceRetTransactionSizeName + ";");	
@@ -389,26 +552,26 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			}
 		}
 
-		//this.addResetAssign("leaf i/f", builder.getDefaultReset(), "block_select_d1 <= #1  1'b0;");  // reset for delayed block select 
-		//this.addRegAssign("leaf i/f",  "block_select_d1 <= #1 block_sel;");  
+		//this.addResetAssign(getGroupPrefix(isPrimary) + "leaf i/f", builder.getDefaultReset(), "block_select_d1 <= #1  1'b0;");  // reset for delayed block select 
+		//this.addRegAssign(getGroupPrefix(isPrimary) + "leaf i/f",  "block_select_d1 <= #1 block_sel;");  
 		
 		// generate valid and wr_dvld active signals 
 		this.addScalarReg(ioValid + "_hld1");  //  delayed valid active
-		this.addResetAssign("leaf i/f", builder.getDefaultReset(), ioValid + "_hld1 <= #1  1'b0;");  
-		this.addRegAssign("leaf i/f",  ioValid + "_hld1 <= #1 " + ioValid + "_hld1_next;");
+		this.addResetAssign(getGroupPrefix(isPrimary) + "leaf i/f", builder.getDefaultReset(), ioValid + "_hld1 <= #1  1'b0;");  
+		this.addRegAssign(getGroupPrefix(isPrimary) + "leaf i/f",  ioValid + "_hld1 <= #1 " + ioValid + "_hld1_next;");
 		
 		this.addScalarReg(ioValid + "_hld1_next");  //  valid activated at valid input, deactivated at ack/nack
-		this.addCombinAssign("leaf i/f",  ioValid + "_hld1_next = " + ioValid + " | " + ioValid + "_hld1;");  
-		this.addCombinAssign("leaf i/f",  "if (dec_pio_ack_next | dec_pio_nack_next) " + ioValid + "_hld1_next = 1'b0;");  
+		this.addCombinAssign(getGroupPrefix(isPrimary) + "leaf i/f",  ioValid + "_hld1_next = " + ioValid + " | " + ioValid + "_hld1;");  
+		this.addCombinAssign(getGroupPrefix(isPrimary) + "leaf i/f",  "if (dec_pio_ack_next | dec_pio_nack_next) " + ioValid + "_hld1_next = 1'b0;");  
 		this.addScalarWire(ioValid + "_active");  //  active if valid or valid_dly
 
 		this.addScalarReg(ioWrValid + "_hld1");  //  delayed wr_dvld active
-		this.addResetAssign("leaf i/f", builder.getDefaultReset(), ioWrValid + "_hld1 <= #1  1'b0;");  
-		this.addRegAssign("leaf i/f",  ioWrValid + "_hld1 <= #1 " + ioWrValid + "_hld1_next;");
+		this.addResetAssign(getGroupPrefix(isPrimary) + "leaf i/f", builder.getDefaultReset(), ioWrValid + "_hld1 <= #1  1'b0;");  
+		this.addRegAssign(getGroupPrefix(isPrimary) + "leaf i/f",  ioWrValid + "_hld1 <= #1 " + ioWrValid + "_hld1_next;");
 		
 		this.addScalarReg(ioWrValid + "_hld1_next");  //  wr_dvld activated at wr_dvld input, deactivated at ack/nack/valid
-		this.addCombinAssign("leaf i/f",  ioWrValid + "_hld1_next = " + ioWrValid + " | " + ioWrValid + "_hld1;");  
-		this.addCombinAssign("leaf i/f",  "if (dec_pio_ack_next | dec_pio_nack_next | " + ioValid + ") " + ioWrValid + "_hld1_next = 1'b0;");  
+		this.addCombinAssign(getGroupPrefix(isPrimary) + "leaf i/f",  ioWrValid + "_hld1_next = " + ioWrValid + " | " + ioWrValid + "_hld1;");  
+		this.addCombinAssign(getGroupPrefix(isPrimary) + "leaf i/f",  "if (dec_pio_ack_next | dec_pio_nack_next | " + ioValid + ") " + ioWrValid + "_hld1_next = 1'b0;");  
 		this.addScalarWire(ioWrValid + "_active");  //  active if wr_dvld or wr_dvld_dly
 
 		this.addWireAssign(ioWrValid + "_active = " + ioWrValid + " | " + ioWrValid + "_hld1;");	
@@ -426,9 +589,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarFrom(SystemVerilogBuilder.PIO, ioWrValid);  // write transaction valid indicator
 		this.addVectorFrom(SystemVerilogBuilder.PIO, ioCycle, 0, 2);  // transaction type indicator
 
-		// generate re/we assigns directly or from delayed versions if clock gating is enabled
+		// generate re/we assigns - use delayed versions if this is a single primary
 		assignReadWriteRequests(sigBlockSel + " & " + ioValid + "_active & (" + ioCycle + " == 2'b10)",
-				                sigBlockSel + " & " + ioWrValid + "_active & (" + ioCycle + "[1] == 1'b0)");  // TODO - only call in no secondary case?
+				                sigBlockSel + " & " + ioWrValid + "_active & (" + ioCycle + "[1] == 1'b0)", 
+				                pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());
 
 		// generate atomic retry output if a write smaller than reg_width being accessed  
 		this.addScalarTo(SystemVerilogBuilder.PIO, ioRetryAtomic);
@@ -452,8 +616,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			// if a write larger than interface then retry (only valid during ack)
 			this.addScalarReg(ioRetryAtomic);  //  register the output
 			this.addScalarWire(ioRetryAtomic + "_next");  
-			this.addResetAssign("leaf i/f", builder.getDefaultReset(), ioRetryAtomic + " <= #1  1'b0;");  // reset for retry atomic 
-			this.addRegAssign("leaf i/f", ioRetryAtomic + " <= #1 " + ioRetryAtomic + "_next;");  
+			this.addResetAssign(getGroupPrefix(isPrimary) + "leaf i/f", builder.getDefaultReset(), ioRetryAtomic + " <= #1  1'b0;");  // reset for retry atomic 
+			this.addRegAssign(getGroupPrefix(isPrimary) + "leaf i/f", ioRetryAtomic + " <= #1 " + ioRetryAtomic + "_next;");  
 			this.addWireAssign(ioRetryAtomic + "_next = " + sigBlockSel + " & " + ioWrValid + "_active & (" + ioCycle + " == 2'b00)" + 
 			                       " & (" + ioWrWidth + SystemVerilogSignal.genRefArrayString(0, builder.getMaxWordBitSize()) + " < reg_width);");  // TODO reg_width not on internal arb intf?
 		}
@@ -524,7 +688,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		boolean useTransactionSize = (regWords > 1);  // if transaction sizes need to be sent/received
 		
 		// now create state machine vars
-		String groupName = "serial8 i/f";  
+		String groupName = getGroupPrefix(isPrimary) + "serial8 i/f";  
 		int stateBits = 3;
 		this.addVectorReg(s8StateName, 0, stateBits);  
 		this.addVectorReg(s8StateNextName, 0, stateBits);  
@@ -763,8 +927,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		this.addScalarWire(pioInterfaceReName);  //  read enable internal interface
 		this.addScalarWire(pioInterfaceWeName);  //  write enable internal interface
-		// generate re/we assigns directly or from delayed versions if clock gating is enabled
-		assignReadWriteRequests(s8pioInterfaceReName, s8pioInterfaceWeName); // TODO - only call in no secondary case?	
+		// generate re/we assigns - use delayed versions if this is a single primary
+		assignReadWriteRequests(s8pioInterfaceReName, s8pioInterfaceWeName, pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());	
 	}
 
 	/** add ring pio interface */ 
@@ -890,7 +1054,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			Ordt.errorExit("Unable to access " + regWidth + "b registers within " + ringWidth + "b ring decoder for region " + topRegProperties.getInstancePath());
 
 		// now create state machine vars		
-		String groupName = "ring" + ringWidth + " i/f";  
+		String groupName = getGroupPrefix(isPrimary) + "ring" + ringWidth + " i/f";  
 		int stateBits = 4;
 		this.addVectorReg(ringStateName, 0, stateBits);  
 		this.addVectorReg(ringStateNextName, 0, stateBits);  
@@ -1275,8 +1439,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		this.addScalarWire(pioInterfaceReName);  //  read enable internal interface
 		this.addScalarWire(pioInterfaceWeName);  //  write enable internal interface
-		// generate re/we assigns directly or from delayed versions if clock gating is enabled
-		assignReadWriteRequests(ringpioInterfaceReName, ringpioInterfaceWeName); // TODO - only call in no secondary case?
+		// generate re/we assigns - use delayed versions if this is a single primary
+		assignReadWriteRequests(ringpioInterfaceReName, ringpioInterfaceWeName, pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());
 	}
 	
 	/** create ring data count string using ring width and transaction size
@@ -1325,10 +1489,16 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 	}
 
-	/** generate re/we assigns directly or from delayed versions if clock gating is enabled */
-	private void assignReadWriteRequests(String readReqStr, String writeReqStr) {
+	/** generate re/we assigns directly or from delayed versions if clock gating is enabled 
+	 * @param readReqIn - incoming read request signal/verilog expression
+	 * @param writeReqIn - incoming write request signal/verilog expression
+	 * @param readReqOut - outgoing read request signal to be assigned
+	 * @param writeReqOut - outgoing write request signal to be assigned
+	 * @param allowClkGateDelay - if true and clock gating is specified, add req delay logic
+	 * */
+	private void assignReadWriteRequests(String readReqIn, String writeReqIn, String readReqOut, String writeReqOut, boolean allowClkGateDelay) {
 		// if gated logic clock, create an enable output and delay read/write activation 
-		if (ExtParameters.systemverilogUseGatedLogicClk()) {
+		if (ExtParameters.systemverilogUseGatedLogicClk() && allowClkGateDelay) {
 			
 			// delayed request signals
 			String cgateDelayedReName = pioInterfaceReName + "_cgate_dly";
@@ -1343,8 +1513,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				this.addResetAssign("clock gate delay", builder.getDefaultReset(), cgateDelayedReName + dly + " <= #1  1'b0;");  
 				this.addResetAssign("clock gate delay", builder.getDefaultReset(), cgateDelayedWeName + dly + " <= #1  1'b0;");  
 				if (dly == 1) {
-					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= #1 " + readReqStr + ";");
-					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= #1 " + writeReqStr + ";");
+					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= #1 " + readReqIn + ";");
+					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= #1 " + writeReqIn + ";");
 				}
 				else {
 					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= #1 " + cgateDelayedReName + (dly - 1) + ";");
@@ -1358,14 +1528,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addWireAssign("gclk_enable" + suffix + " = " + cgateDelayedReName + "1 | " + cgateDelayedWeName + "1;");
 			
 			// assign the delayed read/write requests		
-			this.addWireAssign(pioInterfaceReName + " = " + readReqStr + "&" + cgateDelayedReName + maxDelay + ";"); 
-			this.addWireAssign(pioInterfaceWeName + " = " + writeReqStr + "&" + cgateDelayedWeName + maxDelay + ";");
+			this.addWireAssign(readReqOut + " = " + readReqIn + "&" + cgateDelayedReName + maxDelay + ";"); 
+			this.addWireAssign(writeReqOut + " = " + writeReqIn + "&" + cgateDelayedWeName + maxDelay + ";");
 			
 		}
 		// otherwise just generate request signals with no delay
 		else {
-			this.addWireAssign(pioInterfaceReName + " = " + readReqStr + ";");   
-			this.addWireAssign(pioInterfaceWeName + " = " + writeReqStr + ";");
+			this.addWireAssign(readReqOut + " = " + readReqIn + ";");   
+			this.addWireAssign(writeReqOut + " = " + writeReqIn + ";");
 		}
 	}
 

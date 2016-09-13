@@ -432,7 +432,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		logic.createSignalAssigns();  
 		//System.out.println("SystemVerilogBuilder: finishRegMap: rqto_err_log_padoody2 #3 isRhs=" + definedSignals.get("rqto_err_log_padoody2").isRhsReference());
 		// done with this builder addrmap, so generate pio interface info
-		decoder.genPioInterface(topRegProperties);
+		decoder.genPioInterfaces(topRegProperties);
 		// load list of clock, reset IOs   
 		loadCntlSigList();
 		// set names, etc of generated modules before write (so child classes can use in write override)
