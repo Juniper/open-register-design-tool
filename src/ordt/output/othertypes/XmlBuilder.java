@@ -183,7 +183,7 @@ public class XmlBuilder extends OutputBuilder {
 		addXmlElement("shorttext", cleanXmlText(textName));
 		// address
 		if (regSetProperties.isRootInstance())
-			addXmlElement("baseaddr", ExtParameters.getLeafBaseAddress().toString());
+			addXmlElement("baseaddr", ExtParameters.getPrimaryBaseAddress().toString());
 		else
 			addXmlElement("baseaddr", regSetProperties.getFullBaseAddress().toString());
 		// replication count
@@ -218,7 +218,7 @@ public class XmlBuilder extends OutputBuilder {
 			Ordt.warnMessage("use of non-jspec alignment mode may cause incorrect addresses in xml model.");
 		addXmlElementStart("map", "version", Ordt.getVersion());
 		addXmlElement("id", getAddressMapName());
-		addXmlElement("baseaddr", ExtParameters.getLeafBaseAddress().toString());
+		addXmlElement("baseaddr", ExtParameters.getPrimaryBaseAddress().toString());
 		String textName = regSetProperties.getTextName();
 		if (textName == null) textName = getAddressMapName() + " registers";
 		addXmlElement("shorttext", cleanXmlText(textName));

@@ -65,7 +65,7 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 	/** get full base address including base offset
 	 */
 	public RegNumber getFullBaseAddress() {
-		RegNumber fullBase = new RegNumber(ExtParameters.getLeafBaseAddress());  
+		RegNumber fullBase = new RegNumber(ExtParameters.getPrimaryBaseAddress());  
 		fullBase.setVectorLen(ExtParameters.getLeafAddressSize());
 		fullBase.setNumBase(NumBase.Hex);
 		fullBase.setNumFormat(NumFormat.Address);

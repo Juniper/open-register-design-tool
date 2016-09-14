@@ -40,12 +40,12 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	
 	
 	public enum SVBlockSelectModes { INTERNAL, EXTERNAL, ALWAYS } 
-	public enum SVDecodeInterfaceTypes { NONE, LEAF, SERIAL8, RING8, RING16, RING32, PARALLEL} 
+	public enum SVDecodeInterfaceTypes { NONE, LEAF, SERIAL8, RING8, RING16, RING32, PARALLEL, ENGINE1} 
 	public enum SVChildInfoModes { PERL, MODULE } 
 	
 	// non-standard typed parameters
-	private static RegNumber leafBaseAddress;
 	private static SVDecodeInterfaceTypes sysVerRootDecoderInterface;
+	private static SVDecodeInterfaceTypes sysVerSecondaryDecoderInterface;
 	private static SVBlockSelectModes systemverilogBlockSelectMode;  
 	private static SVChildInfoModes sysVerChildInfoMode;  
 
@@ -73,7 +73,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 				else Ordt.errorMessage("invalid minimum data size specified (" + value + ").");
 			}
 		});
-		leafBaseAddress = new RegNumber(0);
+		initRegNumberParameter("base_address", new RegNumber(0)); 
+		initRegNumberParameter("secondary_base_address", null); 
+		initRegNumberParameter("secondary_low_address", null); 
+		initRegNumberParameter("secondary_high_address", null); 
 		initBooleanParameter("use_js_address_alignment", true); 
 		initBooleanParameter("suppress_alignment_warnings", false); 
 		initStringParameter("default_base_map_name", "");  
@@ -104,6 +107,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		// ---- systemverilog output defaults
 		initIntegerParameter("leaf_address_size", 40); 	
 		sysVerRootDecoderInterface = SVDecodeInterfaceTypes.LEAF;
+		sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.NONE;
 		initBooleanParameter("base_addr_is_parameter", false); 
 		initStringParameter("module_tag", "");
 		initBooleanParameter("use_gated_logic_clock", false);
@@ -160,6 +164,14 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	
 	static Integer getIntegerParameter(String name) {
 		return (Integer) params.get(name).get();
+	}
+	
+	static void initRegNumberParameter(String name, RegNumber value) {
+		params.put(name, new ExtRegNumberParameter(name, value));
+	}
+	
+	static RegNumber getRegNumberParameter(String name) {
+		return (RegNumber) params.get(name).get();
 	}
 	
 	static void initStringParameter(String name, String value) {
@@ -346,12 +358,6 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		//else System.out.println("----- cant find param " + name);
 		
 		// ---- not a match for std types, so check others		
-		else if (name.equals("base_address")) {
-			RegNumber regNum = new RegNumber(value);
-			if ((regNum.isDefined())) leafBaseAddress = regNum;
-			else Ordt.errorMessage("invalid leaf base address specified (" + value + ").");
-		}
-		
 		else if (name.equals("root_has_leaf_interface")) {  // DEPRECATED 
 			sysVerRootDecoderInterface = value.equals("true") ? SVDecodeInterfaceTypes.LEAF : SVDecodeInterfaceTypes.PARALLEL;
 			Ordt.warnMessage("Use of control parameter 'root_has_leaf_interface' is deprecated. Use 'root_decoder_interface = leaf' instead.");
@@ -363,6 +369,16 @@ public class ExtParameters extends ExtParmsBaseListener  {
 			else if (value.equals("ring16")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.RING16;
 			else if (value.equals("ring32")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.RING32;
 			else sysVerRootDecoderInterface = SVDecodeInterfaceTypes.PARALLEL;  // parallel interface is default
+		}
+		else if (name.equals("secondary_decoder_interface")) {  
+			if (value.equals("leaf")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.LEAF;
+			else if (value.equals("serial8")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.SERIAL8;
+			else if (value.equals("ring8")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.RING8;
+			else if (value.equals("ring16")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.RING16;
+			else if (value.equals("ring32")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.RING32;
+			else if (value.equals("paallel")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.PARALLEL;
+			else if (value.equals("engine1")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.ENGINE1;
+			else sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.NONE;  // no interface is default
 		}
 		else if (name.equals("use_external_select")) {  // DEPRECATED 
 			systemverilogBlockSelectMode = value.equals("true") ? SVBlockSelectModes.EXTERNAL : SVBlockSelectModes.INTERNAL;
@@ -419,11 +435,24 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getIntegerParameter("min_data_size");
 	}
 	
-	/** get leafBaseAddress
-	 *  @return the leafBaseAddress
-	 */
-	public static RegNumber getLeafBaseAddress() {
-		return leafBaseAddress;
+	/** get root decoder baseAddress */
+	public static RegNumber getPrimaryBaseAddress() {
+		return getRegNumberParameter("base_address");
+	}
+	
+	/** get secondary decoder intf baseAddress */
+	public static RegNumber getSecondaryBaseAddress() {
+		return getRegNumberParameter("secondary_base_address");
+	}
+	
+	/** get secondary decoder intf min allowed address */
+	public static RegNumber getSecondaryLowAddress() {
+		return getRegNumberParameter("secondary_low_address");
+	}
+	
+	/** get secondary decoder intf max allowed address */
+	public static RegNumber getSecondaryHighAddress() {
+		return getRegNumberParameter("secondary_high_address");
 	}
 	
 	/** get useJsAddressAlignment
@@ -520,30 +549,30 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static SVDecodeInterfaceTypes getSysVerRootDecoderInterface() {
 		return sysVerRootDecoderInterface;
 	}
+	
+	public static SVDecodeInterfaceTypes getSysVerSecondaryDecoderInterface() {
+		return sysVerSecondaryDecoderInterface;
+	}
 
 	/** get baseAddrIsParameter
-	 *  @return the baseAddrIsParameter
 	 */
 	public static Boolean systemverilogBaseAddrIsParameter() {
 		return getBooleanParameter("base_addr_is_parameter");
 	}
 
 	/** get getSystemverilogModuleTag
-	 *  @return the systemverilogModuleTag
 	 */
 	public static String getSystemverilogModuleTag() {
 		return getStringParameter("module_tag");
 	}
 
 	/** get systemverilogUseGatedLogicClk
-	 *  @return the systemverilogUseGatedLogicClk
 	 */
 	public static Boolean systemverilogUseGatedLogicClk() {
 		return getBooleanParameter("use_gated_logic_clock");
 	}
 
 	/** get systemverilogGatedLogicAccessDelay
-	 *  @return the systemverilogGatedLogicAccessDelay
 	 */
 	public static Integer systemverilogGatedLogicAccessDelay() {
 		return getIntegerParameter("gated_logic_access_delay");

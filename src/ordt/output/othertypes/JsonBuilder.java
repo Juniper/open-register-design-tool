@@ -130,7 +130,7 @@ public class JsonBuilder extends OutputBuilder {
 		addJsonElementStart(regSetProperties.getId(), "register_set", textName, textDescription);
 		// address
 		if (regSetProperties.isRootInstance())
-			addJsonNumElement("address", ExtParameters.getLeafBaseAddress().toFormat(NumBase.Dec, NumFormat.Int));
+			addJsonNumElement("address", ExtParameters.getPrimaryBaseAddress().toFormat(NumBase.Dec, NumFormat.Int));
 		else
 			addJsonNumElement("address", regSetProperties.getRelativeBaseAddress().toFormat(NumBase.Dec, NumFormat.Int));
 		// replication count
@@ -165,7 +165,7 @@ public class JsonBuilder extends OutputBuilder {
 		if (textDescription != null) textDescription = cleanJsonText(textDescription);
 		addJsonElementStart(getAddressMapName(), "register_set", textName, textDescription);
 		// address
-		addJsonNumElement("address", ExtParameters.getLeafBaseAddress().toFormat(NumBase.Dec, NumFormat.Int));
+		addJsonNumElement("address", ExtParameters.getPrimaryBaseAddress().toFormat(NumBase.Dec, NumFormat.Int));
 		// add contents elem start
 		addJsonElementStart("contents", null, null, null);
 	}

@@ -1267,7 +1267,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		Boolean isBaseBlock = block.equals("");
 		String endianness = "UVM_LITTLE_ENDIAN";
 		if (isBaseBlock) {
-			String addr = "`UVM_REG_ADDR_WIDTH" + ExtParameters.getLeafBaseAddress().toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
+			String addr = "`UVM_REG_ADDR_WIDTH" + ExtParameters.getPrimaryBaseAddress().toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
 			OutputLine oLine = new OutputLine(indentLvl, "this.default_map = create_map(\"\", " + addr + ", " + byteWidthString + ", " + endianness + ", 1);");
 			oLine.setHasTextReplacements(true);
 			outputList.add(oLine);

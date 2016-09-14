@@ -486,7 +486,7 @@ public class SystemVerilogModule {
 		
 		// add base addr param if specified TODO - replace this w/ a generic parameter list
 		if (addBaseAddrParameter) {
-			RegNumber baseAddr = new RegNumber(ExtParameters.getLeafBaseAddress());
+			RegNumber baseAddr = new RegNumber(ExtParameters.getPrimaryBaseAddress());
 			baseAddr.setNumBase(RegNumber.NumBase.Hex);
 			baseAddr.setNumFormat(RegNumber.NumFormat.Verilog);
 			baseAddr.setVectorLen(ExtParameters.getLeafAddressSize());

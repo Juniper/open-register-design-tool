@@ -630,10 +630,10 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			System.out.println("----------- decoder gaps found:");
 			for (NamedAddressRange ar : gaps) {
 				System.out.println("  // gap " + (++idx) + ": " + ar.getLabel());
-				RegNumber start = new RegNumber(ExtParameters.getLeafBaseAddress());
+				RegNumber start = new RegNumber(ExtParameters.getPrimaryBaseAddress());
 				start.setVectorLen(ExtParameters.getLeafAddressSize());
 				start.add(ar.getStart());
-				RegNumber end = new RegNumber(ExtParameters.getLeafBaseAddress());
+				RegNumber end = new RegNumber(ExtParameters.getPrimaryBaseAddress());
 				end.setVectorLen(ExtParameters.getLeafAddressSize());
 				end.add(ar.getEnd());
 				//System.out.println("  .addr_start(" + ar.getStart() + "), .addr_end(" + ar.getEnd() + ")," );

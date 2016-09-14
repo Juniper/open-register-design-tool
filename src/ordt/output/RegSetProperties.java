@@ -89,7 +89,7 @@ public class RegSetProperties extends AddressableInstanceProperties {
 	/** get full high address including base offset (only valid in finishRegSet call)
 	 */
 	public RegNumber getFullHighAddress() {
-		RegNumber fullHigh = new RegNumber(ExtParameters.getLeafBaseAddress());  
+		RegNumber fullHigh = new RegNumber(ExtParameters.getPrimaryBaseAddress());  
 		fullHigh.setVectorLen(ExtParameters.getLeafAddressSize());
 		fullHigh.setNumBase(NumBase.Hex);
 		fullHigh.setNumFormat(NumFormat.Address);

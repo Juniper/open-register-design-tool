@@ -111,6 +111,10 @@ ext_parm_defs
    : 'leaf_address_size' EQ NUM
    | 'root_has_leaf_interface' EQ bool 
    | 'root_decoder_interface' EQ ('leaf' | 'parallel' | 'serial8' | 'ring8' | 'ring16' | 'ring32') 
+   | 'secondary_decoder_interface' EQ ('none' | 'leaf' | 'parallel' | 'serial8' | 'ring8' | 'ring16' | 'ring32' | 'engine1') 
+   | 'secondary_base_address' EQ NUM 
+   | 'secondary_low_address' EQ NUM 
+   | 'secondary_high_address' EQ NUM 
    | 'base_addr_is_parameter' EQ bool 
    | 'module_tag' EQ STR 
    | 'use_gated_logic_clock' EQ bool 

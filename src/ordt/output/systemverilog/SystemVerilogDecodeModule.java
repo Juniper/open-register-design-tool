@@ -485,7 +485,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (!alwaysSelected || ExtParameters.systemverilogExportStartEnd())
 			this.addVectorWire(sigBlockSelAddr, 0, ExtParameters.getLeafAddressSize());  //  define base address signal 
 		
-		RegNumber baseAddr = new RegNumber(ExtParameters.getLeafBaseAddress());  // topRegProperties.getFullBaseAddress()
+		RegNumber baseAddr = new RegNumber(ExtParameters.getPrimaryBaseAddress());  // topRegProperties.getFullBaseAddress()
 		baseAddr.setVectorLen(ExtParameters.getLeafAddressSize());
 		if (topRegProperties != null) baseAddr = topRegProperties.getFullBaseAddress();  // override with local address is a child
 		// if base address is a parameter use it
@@ -990,7 +990,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// create the block base address
 		this.addVectorWire(sigBlockBaseAddr, 0, ExtParameters.getLeafAddressSize());  //  base address of block 
 		
-		RegNumber baseAddr = new RegNumber(ExtParameters.getLeafBaseAddress());  // topRegProperties.getFullBaseAddress()
+		RegNumber baseAddr = new RegNumber(ExtParameters.getPrimaryBaseAddress());  // topRegProperties.getFullBaseAddress()
 		baseAddr.setVectorLen(ExtParameters.getLeafAddressSize());
 		if (topRegProperties != null) baseAddr = topRegProperties.getFullBaseAddress();  // override with local address is a child
 		// if base address is a parameter use it
