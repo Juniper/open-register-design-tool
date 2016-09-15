@@ -41,7 +41,6 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	
 	protected List<AddressableInstanceProperties> decoderList = new ArrayList<AddressableInstanceProperties>();    // list of address regs 
 	protected SVDecodeInterfaceTypes primaryInterfaceType = SVDecodeInterfaceTypes.PARALLEL;  // default to parallel on primary interface
-	protected SVDecodeInterfaceTypes secondaryInterfaceType = SVDecodeInterfaceTypes.NONE;  // no secondary interface by default
 	protected SystemVerilogBuilder builder;  // builder creating this module
 
 	public SystemVerilogDecodeModule(SystemVerilogBuilder builder, int insideLocs, String clkName) {
@@ -71,12 +70,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	private boolean hasSecondaryInterfaceType(SVDecodeInterfaceTypes type) {
-		return (this.secondaryInterfaceType == type);
+		return (ExtParameters.getSysVerSecondaryDecoderInterface() == type);
 	}
 
 	/** returns true if this decoder has a secondary processor interface */
 	private boolean hasSecondaryInterface() {
-		return (!hasSecondaryInterfaceType(SVDecodeInterfaceTypes.NONE));
+		return (builder.isBaseBuilder() && !hasSecondaryInterfaceType(SVDecodeInterfaceTypes.NONE));
 	}
 
 	private boolean hasInterfaceType(SVDecodeInterfaceTypes type) {
@@ -132,6 +131,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING16)) this.genRingPioInterface(16, topRegProperties, false);
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING32)) this.genRingPioInterface(32, topRegProperties, false);
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.PARALLEL)) this.genParallelPioInterface(topRegProperties, false);
+		//else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.ENGINE1)) this.genEngine1Interface(topRegProperties, false);
 		else {
 			String instStr = (topRegProperties == null)? "root" : topRegProperties.getInstancePath();
 			Ordt.errorExit("invalid decoder secondary interface type specified for addrmap instance " + instStr);
@@ -280,6 +280,32 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String arbStateName = "arbiter_state";                      
 		String arbStateNextName = arbStateName + "_next";                      
 		
+		// assign secondary address check signal
+		String arbiterValidSecAddressName = "arb_valid_sec_address";
+		this.addScalarWire(arbiterValidSecAddressName); 
+		// create address compare string
+		String lowSecAddrStr = "";
+		String highSecAddrStr = "";
+		String valCompareStr = "1'b1";
+		if (this.mapHasMultipleAddresses() && ExtParameters.hasSecondaryLowAddress()) {
+			int lowAddrBit = builder.getAddressLowBit();   
+			int addrSize = builder.getMapAddressWidth(); 
+			if (ExtParameters.hasSecondaryLowAddress()) {
+				RegNumber compareBits = ExtParameters.getSecondaryLowAddress().getSubVector(lowAddrBit, addrSize);
+				lowSecAddrStr = "(" + p2AddressName + " >= " + compareBits.toFormat(NumBase.Hex, NumFormat.Verilog) + ")"; 
+			}
+			if (ExtParameters.hasSecondaryHighAddress()) {
+				RegNumber compareBits = ExtParameters.getSecondaryHighAddress().getSubVector(lowAddrBit, addrSize);
+				highSecAddrStr = "(" + p2AddressName + " <= " + compareBits.toFormat(NumBase.Hex, NumFormat.Verilog) + ")"; 
+			}
+			if (lowSecAddrStr.isEmpty()) 
+				valCompareStr = (highSecAddrStr.isEmpty())? "1'b1" : highSecAddrStr;
+			else
+				valCompareStr = (highSecAddrStr.isEmpty())? lowSecAddrStr : "(" + lowSecAddrStr + " && " + highSecAddrStr + ")";
+		}
+		
+		this.addWireAssign(arbiterValidSecAddressName + " = " + valCompareStr + ";");
+		
         // create sm vars
 		String groupName = "interface arbiter";  
 		int stateBits = 2;
@@ -301,6 +327,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String IDLE = stateBits + "'h0"; 
 		String P1_ACTIVE = stateBits + "'h1"; 
 		String P2_ACTIVE = stateBits + "'h2"; 
+		String P2_NACK = stateBits + "'h3"; 
 				
 		this.addCombinAssign(groupName, "case (" + arbStateName + ")"); 
 
@@ -308,7 +335,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "  " + IDLE + ": begin // IDLE");
 		// go on request - p1 has priority in idle
 		this.addCombinAssign(groupName, "      if (" + p1ReName + " || " + p1WeName + ") " + arbStateNextName + " = " + P1_ACTIVE + ";");  
-		this.addCombinAssign(groupName, "      else if (" + p2ReName + " || " + p2WeName + ") " + arbStateNextName + " = " + P2_ACTIVE + ";");  
+		this.addCombinAssign(groupName, "      else if (" + p2ReName + " || " + p2WeName + ") " + arbStateNextName + " = " + arbiterValidSecAddressName + "? " + P2_ACTIVE + " : " + P2_NACK + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// P1_ACTIVE - interface 1 active
@@ -319,7 +346,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + " | " + pioInterfaceNackName + ") begin");  
 		this.addCombinAssign(groupName,  "        " + p1AckName + " = " + pioInterfaceAckName + ";");
 		this.addCombinAssign(groupName,  "        " + p1NackName + " = " + pioInterfaceNackName + ";");
-		this.addCombinAssign(groupName, "         if (" + p2ReName + " || " + p2WeName + ") " + arbStateNextName + " = " + P2_ACTIVE + ";");  // allow secondary to cut in
+		this.addCombinAssign(groupName, "         if (" + p2ReName + " || " + p2WeName + ") " + arbStateNextName + " = " + arbiterValidSecAddressName + "? " + P2_ACTIVE + " : " + P2_NACK + ";");  // allow secondary to cut in
 		this.addCombinAssign(groupName, "         else " + arbStateNextName + " = " + IDLE + ";");  // else back to idle
 		this.addCombinAssign(groupName, "      end"); 
 		this.addCombinAssign(groupName, "    end"); 
@@ -335,6 +362,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "         if (" + p1ReName + " || " + p1WeName + ") " + arbStateNextName + " = " + P1_ACTIVE + ";");  // allow primary to cut in
 		this.addCombinAssign(groupName, "         else " + arbStateNextName + " = " + IDLE + ";");  // else back to idle
 		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "    end"); 
+		
+		// P2_NACK - invalid address so nack intr 2 transaction
+		this.addCombinAssign(groupName, "  " + P2_NACK + ": begin // P2_NACK");
+		this.addCombinAssign(groupName, "      " + p2NackName + " = 1'b1;");
+		this.addCombinAssign(groupName, "      " + arbStateNextName + " = " + IDLE + ";");  // back to idle
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// default
@@ -484,12 +517,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		boolean alwaysSelected = (ExtParameters.getSystemverilogBlockSelectMode() == SVBlockSelectModes.ALWAYS);
 		if (!alwaysSelected || ExtParameters.systemverilogExportStartEnd())
 			this.addVectorWire(sigBlockSelAddr, 0, ExtParameters.getLeafAddressSize());  //  define base address signal 
-		
-		RegNumber baseAddr = new RegNumber(ExtParameters.getPrimaryBaseAddress());  // topRegProperties.getFullBaseAddress()
+		// set base address for his decoder - if a secondary interface, use specified alternate base address if specified
+		RegNumber baseAddr = (!isPrimary && ExtParameters.hasSecondaryBaseAddress())? new RegNumber(ExtParameters.getSecondaryBaseAddress()) :
+			                                                                          new RegNumber(ExtParameters.getPrimaryBaseAddress());  
 		baseAddr.setVectorLen(ExtParameters.getLeafAddressSize());
-		if (topRegProperties != null) baseAddr = topRegProperties.getFullBaseAddress();  // override with local address is a child
+		if (isPrimary && (topRegProperties != null)) baseAddr = topRegProperties.getFullBaseAddress();  // override with local address if a child
 		// if base address is a parameter use it
-		if (builder.addBaseAddressParameter() && !alwaysSelected) 
+		if (isPrimary && builder.addBaseAddressParameter() && !alwaysSelected) 
 		   this.addWireAssign(sigBlockSelAddr + " = BASE_ADDR;");  // parameter define
 		else if (!alwaysSelected || ExtParameters.systemverilogExportStartEnd()) 
 		   this.addWireAssign(sigBlockSelAddr + " = " + baseAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ";");  // constant define
@@ -989,14 +1023,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// create the block base address
 		this.addVectorWire(sigBlockBaseAddr, 0, ExtParameters.getLeafAddressSize());  //  base address of block 
-		
-		RegNumber baseAddr = new RegNumber(ExtParameters.getPrimaryBaseAddress());  // topRegProperties.getFullBaseAddress()
+		// set base address for his decoder - if a secondary interface, use specified alternate base address if specified
+		RegNumber baseAddr = (!isPrimary && ExtParameters.hasSecondaryBaseAddress())? new RegNumber(ExtParameters.getSecondaryBaseAddress()) :
+			                                                                          new RegNumber(ExtParameters.getPrimaryBaseAddress());  
 		baseAddr.setVectorLen(ExtParameters.getLeafAddressSize());
-		if (topRegProperties != null) baseAddr = topRegProperties.getFullBaseAddress();  // override with local address is a child
+		if (isPrimary && topRegProperties != null) baseAddr = topRegProperties.getFullBaseAddress();  // override with local address if a child
 		// if base address is a parameter use it
-		if (builder.addBaseAddressParameter()) 
+		if (isPrimary && builder.addBaseAddressParameter()) 
 		   this.addWireAssign(sigBlockBaseAddr + " = BASE_ADDR;");  // parameter define
-		else  
+		else 
 		   this.addWireAssign(sigBlockBaseAddr + " = " + baseAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ";");  // constant define
 		
         // set field info according to ringWidth

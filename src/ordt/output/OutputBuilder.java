@@ -96,7 +96,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 	/** return true if this is the root VerilogBuilder
 	 */
-	protected boolean isBaseBuilder() {
+	public boolean isBaseBuilder() {
 		return (this.builderID == 0);
 	}
 	

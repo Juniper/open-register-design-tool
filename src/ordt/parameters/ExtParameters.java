@@ -440,6 +440,21 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getRegNumberParameter("base_address");
 	}
 	
+	/** true if decoder has non-null secondary decoder intf baseAddress */
+	public static boolean hasSecondaryBaseAddress() {
+		return getSecondaryBaseAddress() != null;
+	}
+	
+	/** true if decoder has non-null secondary decoder intf min allowed address */
+	public static boolean hasSecondaryLowAddress() {
+		return getSecondaryLowAddress() != null;
+	}
+	
+	/** true if decoder has non-null secondary decoder intf max allowed address */
+	public static boolean hasSecondaryHighAddress() {
+		return getSecondaryHighAddress() != null;
+	}
+	
 	/** get secondary decoder intf baseAddress */
 	public static RegNumber getSecondaryBaseAddress() {
 		return getRegNumberParameter("secondary_base_address");
