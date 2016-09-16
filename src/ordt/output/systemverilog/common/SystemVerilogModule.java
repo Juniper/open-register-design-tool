@@ -41,7 +41,7 @@ public class SystemVerilogModule {
     
 	protected SystemVerilogCoverGroups coverGroups;   // set of cover group info for module
 	static boolean isLegacyVerilog = false;
-    
+	    
 	/** create a module
 	 * @param insideLocs - ORed Integer of locations in this module 
 	 * @param defaultClkName - default clock name used for generated registers
@@ -381,13 +381,25 @@ public class SystemVerilogModule {
 		instanceList.add(new Instance(mod, name));
 	}
 	
-	private class Instance { // TODO - add mapping rules
+	public void addInstance(SystemVerilogModule mod, String name, RemapRuleList rules) {
+		instanceList.add(new Instance(mod, name, rules));
+	}
+	
+	/** sv module instance class */
+	private class Instance {
 		private SystemVerilogModule mod;
 		private String name;
+		private RemapRuleList rules = null;
 		
 		public Instance(SystemVerilogModule mod, String name) {
 			this.mod=mod;
 			this.name=name;
+		}
+
+		public Instance(SystemVerilogModule mod, String name, RemapRuleList rules) {
+			this.mod=mod;
+			this.name=name;
+			this.rules=rules;
 			//System.out.println("SystemVerilogModule addInstance: mod=" + mod.getName() + ", name=" + name);
 		}
 
@@ -396,6 +408,16 @@ public class SystemVerilogModule {
 		}
 		public String getName() {
 			return name;
+		}
+		
+		/** add a rule to the list - first in list is highest match priority */
+		public boolean hasRemapRules() {
+			return rules != null;
+		}
+		
+		/** return the first resulting name of a match */
+		public String getRemappedSignal(String oldName) {
+			return hasRemapRules()? rules.getNewName(oldName) : oldName;
 		}
 		
 	}
@@ -503,33 +525,33 @@ public class SystemVerilogModule {
 	public void writeChildInstances(int indentLevel) {
 		for (Instance inst : instanceList) {
 			//System.out.println("SystemVerilogModule writeChildInstances: inst=" + inst.getName());
-			inst.getMod().writeInstance(indentLevel, inst.getName());
+			inst.getMod().writeInstance(indentLevel, inst);
 		}		
 	}
 
 	/** write an instance of this module */
-	public void writeInstance(int indentLevel, String instName) {
+	public void writeInstance(int indentLevel, Instance inst) {
 		List<SystemVerilogIOElement> childList = this.getInputOutputList();
 		if (childList.isEmpty()) return;
 	    String baseAddrStr = this.addBaseAddrParameter() ? " #(BASE_ADDR) " : " ";
-	    if (isLegacyVerilog) {
-			writer.writeStmt(indentLevel++, this.getName() + baseAddrStr + instName + " (");   // more elements so use comma
+	    if (isLegacyVerilog || inst.hasRemapRules()) {
+			writer.writeStmt(indentLevel++, this.getName() + baseAddrStr + inst.getName() + " (");   // more elements so use comma
 			Iterator<SystemVerilogIOElement> it = childList.iterator();
 			Boolean anotherElement = it.hasNext();
 			while (anotherElement) {
 				SystemVerilogIOElement elem = it.next();
 				if (it.hasNext()) {
-					writer.writeStmt(indentLevel, "." + elem.getFullName() + "(" + elem.getFullName() + "),");   // more elements so use comma
+					writer.writeStmt(indentLevel, "." + elem.getFullName() + "(" + inst.getRemappedSignal(elem.getFullName()) + "),");   // more elements so use comma
 					anotherElement = true;
 				}
 				else {
 					anotherElement = false;
-					writer.writeStmt(indentLevel, "." + elem.getFullName() + "(" + elem.getFullName() + ") );");   // no more elements so close
+					writer.writeStmt(indentLevel, "." + elem.getFullName() + "(" + inst.getRemappedSignal(elem.getFullName()) + ") );");   // no more elements so close
 				}
 			}		   		    	
 	    }
 	    else {
-			writer.writeStmt(indentLevel++, this.getName() + baseAddrStr + instName + " ( .* );");   // more elements so use comma	    	
+			writer.writeStmt(indentLevel++, this.getName() + baseAddrStr + inst.getName() + " ( .* );");   // more elements so use comma	    	
 	    }
 		writer.writeStmt(indentLevel--, "");   
 	}

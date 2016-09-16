@@ -38,6 +38,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	protected final String pioInterfaceReadDataName = "dec_pio_read_data";
 	protected final String pioInterfaceAckName = "dec_pio_ack";
 	protected final String pioInterfaceNackName = "dec_pio_nack";
+	protected final String arbiterAtomicName = "arb_atomic_request";
 	
 	protected List<AddressableInstanceProperties> decoderList = new ArrayList<AddressableInstanceProperties>();    // list of address regs 
 	protected SVDecodeInterfaceTypes primaryInterfaceType = SVDecodeInterfaceTypes.PARALLEL;  // default to parallel on primary interface
@@ -74,7 +75,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** returns true if this decoder has a secondary processor interface */
-	private boolean hasSecondaryInterface() {
+	boolean hasSecondaryInterface() {
 		return (builder.isBaseBuilder() && !hasSecondaryInterfaceType(SVDecodeInterfaceTypes.NONE));
 	}
 
@@ -244,6 +245,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String p1ReadDataName = getSigName(true, this.pioInterfaceReadDataName);
 		String p1AckName = getSigName(true, this.pioInterfaceAckName);
 		String p1NackName = getSigName(true, this.pioInterfaceNackName);
+		String p1AtomicName = getSigName(true, this.arbiterAtomicName);
 		// set p2 internal interface names
 		String p2AddressName = getSigName(false, this.pioInterfaceAddressName);
 		String p2WriteDataName = getSigName(false, this.pioInterfaceWriteDataName);
@@ -254,6 +256,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String p2ReadDataName = getSigName(false, this.pioInterfaceReadDataName);
 		String p2AckName = getSigName(false, this.pioInterfaceAckName);
 		String p2NackName = getSigName(false, this.pioInterfaceNackName);
+		String p2AtomicName = getSigName(false, this.arbiterAtomicName);
 		
 		// create p1, p2 interface outputs
 		this.addVectorWire(p1ReadDataName, 0, builder.getMaxRegWidth());  //  read data output  
@@ -308,7 +311,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
         // create sm vars
 		String groupName = "interface arbiter";  
-		int stateBits = 2;
+		int stateBits = 3;
 		this.addVectorReg(arbStateName, 0, stateBits);  
 		this.addVectorReg(arbStateNextName, 0, stateBits);  
 		this.addResetAssign(groupName, builder.getDefaultReset(), arbStateName + " <= #1  " + stateBits + "'b0;");  
@@ -328,6 +331,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String P1_ACTIVE = stateBits + "'h1"; 
 		String P2_ACTIVE = stateBits + "'h2"; 
 		String P2_NACK = stateBits + "'h3"; 
+		String P1_ATOMIC = stateBits + "'h4"; 
+		String P2_ATOMIC = stateBits + "'h5"; 
 				
 		this.addCombinAssign(groupName, "case (" + arbStateName + ")"); 
 
@@ -346,9 +351,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + " | " + pioInterfaceNackName + ") begin");  
 		this.addCombinAssign(groupName,  "        " + p1AckName + " = " + pioInterfaceAckName + ";");
 		this.addCombinAssign(groupName,  "        " + p1NackName + " = " + pioInterfaceNackName + ";");
-		this.addCombinAssign(groupName, "         if (" + p2ReName + " || " + p2WeName + ") " + arbStateNextName + " = " + arbiterValidSecAddressName + "? " + P2_ACTIVE + " : " + P2_NACK + ";");  // allow secondary to cut in
+		this.addCombinAssign(groupName, "         if (" + p1AtomicName + ") " + arbStateNextName + " = " + P1_ATOMIC + ";");  // p1 atomic request
+		this.addCombinAssign(groupName, "         else if (" + p2ReName + " || " + p2WeName + ") " + arbStateNextName + " = " + arbiterValidSecAddressName + "? " + P2_ACTIVE + " : " + P2_NACK + ";");  // allow secondary to cut in
 		this.addCombinAssign(groupName, "         else " + arbStateNextName + " = " + IDLE + ";");  // else back to idle
 		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "      else if (!" + p1ReName + " && !" + p1WeName + ") " + arbStateNextName + " = " + IDLE + ";");  // back to idle if request disappears
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// P2_ACTIVE - interface 2 active
@@ -359,15 +366,27 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + " | " + pioInterfaceNackName + ") begin");  
 		this.addCombinAssign(groupName,  "        " + p2AckName + " = " + pioInterfaceAckName + ";");
 		this.addCombinAssign(groupName,  "        " + p2NackName + " = " + pioInterfaceNackName + ";");
-		this.addCombinAssign(groupName, "         if (" + p1ReName + " || " + p1WeName + ") " + arbStateNextName + " = " + P1_ACTIVE + ";");  // allow primary to cut in
+		this.addCombinAssign(groupName, "         if (" + p2AtomicName + ") " + arbStateNextName + " = " + P2_ATOMIC + ";");  // p2 atomic request
+		this.addCombinAssign(groupName, "         else if (" + p1ReName + " || " + p1WeName + ") " + arbStateNextName + " = " + P1_ACTIVE + ";");  // allow primary to cut in
 		this.addCombinAssign(groupName, "         else " + arbStateNextName + " = " + IDLE + ";");  // else back to idle
 		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "      else if (!" + p2ReName + " && !" + p2WeName + ") " + arbStateNextName + " = " + IDLE + ";");  // back to idle if request disappears
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// P2_NACK - invalid address so nack intr 2 transaction
 		this.addCombinAssign(groupName, "  " + P2_NACK + ": begin // P2_NACK");
 		this.addCombinAssign(groupName, "      " + p2NackName + " = 1'b1;");
 		this.addCombinAssign(groupName, "      " + arbStateNextName + " = " + IDLE + ";");  // back to idle
+		this.addCombinAssign(groupName, "    end"); 
+
+		// P1_ATOMIC - wait for next p1 request and lock out p2
+		this.addCombinAssign(groupName, "  " + P1_ATOMIC + ": begin // P1_ATOMIC");
+		this.addCombinAssign(groupName, "      if (" + p1ReName + " || " + p1WeName + ") " + arbStateNextName + " = " + P1_ACTIVE + ";");  
+		this.addCombinAssign(groupName, "    end"); 
+
+		// P2_ATOMIC - wait for next p2 request and lock out p1
+		this.addCombinAssign(groupName, "  " + P2_ATOMIC + ": begin // P2_ATOMIC");
+		this.addCombinAssign(groupName, "      if (" + p2ReName + " || " + p2WeName + ") " + arbStateNextName + " = " + P2_ACTIVE + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// default
@@ -409,6 +428,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String pioInterfaceReadDataName = getSigName(isPrimary, this.pioInterfaceReadDataName);
 		String pioInterfaceAckName = getSigName(isPrimary, this.pioInterfaceAckName);
 		String pioInterfaceNackName = getSigName(isPrimary, this.pioInterfaceNackName);
+		String arbiterAtomicName = getSigName(isPrimary, this.arbiterAtomicName);
 		// set IO names
 		String ioAddressName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_ADDR));  // address
 		String ioWriteDataName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_DATA));  // write data
@@ -442,6 +462,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarWire(pioInterfaceReName);  //  read enable to be used internally 
 		this.addScalarWire(pioInterfaceWeName);  //  write enable be used internally 
 		
+		// disable atomic request to arbiter
+		if (hasSecondaryInterface()) {
+			this.addScalarWire(arbiterAtomicName);   
+			this.addWireAssign(arbiterAtomicName + " = 1'b0;");
+		}
+		
 		// assign input IOs to internal interface
 		if (mapHasMultipleAddresses()) this.addWireAssign(pioInterfaceAddressName + " = " + ioAddressName + ";");   
 		this.addWireAssign(pioInterfaceWriteDataName + " = " + ioWriteDataName + ";");		
@@ -469,6 +495,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String pioInterfaceReadDataName = getSigName(isPrimary, this.pioInterfaceReadDataName);
 		String pioInterfaceAckName = getSigName(isPrimary, this.pioInterfaceAckName);
 		String pioInterfaceNackName = getSigName(isPrimary, this.pioInterfaceNackName);
+		String arbiterAtomicName = getSigName(isPrimary, this.arbiterAtomicName);
 		// set IO names
 		String ioWrDataName = getSigName(isPrimary, "leaf_dec_wr_data");
 		String ioRdData = getSigName(isPrimary, "dec_leaf_rd_data");
@@ -495,6 +522,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (mapHasMultipleAddresses()) this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  //  address to be used internally 
 		this.addScalarWire(pioInterfaceReName);  //  read enable to be used internally 
 		this.addScalarWire(pioInterfaceWeName);  //  write enable be used internally 
+		
+		// disable atomic request to arbiter
+		if (hasSecondaryInterface()) {
+			this.addScalarWire(arbiterAtomicName);   
+			this.addWireAssign(arbiterAtomicName + " = 1'b0;");
+		}
 
 		// data vectors and ack/nack are passed through
 		this.addVectorFrom(SystemVerilogBuilder.PIO, ioWrDataName, 0, builder.getMaxRegWidth());  // write data
@@ -675,6 +708,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String pioInterfaceReadDataName = getSigName(isPrimary, this.pioInterfaceReadDataName);
 		String pioInterfaceAckName = getSigName(isPrimary, this.pioInterfaceAckName);
 		String pioInterfaceNackName = getSigName(isPrimary, this.pioInterfaceNackName);
+		String arbiterAtomicName = getSigName(isPrimary, this.arbiterAtomicName);
 		// set IO names
 		String prefix = (topRegProperties == null)? "s8" : "d2s_" + topRegProperties.getBaseName();
 		String serial8CmdValidName = getSigName(isPrimary, prefix + "_cmd_valid");                      
@@ -961,6 +995,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		this.addScalarWire(pioInterfaceReName);  //  read enable internal interface
 		this.addScalarWire(pioInterfaceWeName);  //  write enable internal interface
+				
+		// disable atomic request to arbiter
+		if (hasSecondaryInterface()) {
+			this.addScalarWire(arbiterAtomicName);   
+			this.addWireAssign(arbiterAtomicName + " = 1'b0;");
+		}
+
 		// generate re/we assigns - use delayed versions if this is a single primary
 		assignReadWriteRequests(s8pioInterfaceReName, s8pioInterfaceWeName, pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());	
 	}
@@ -978,6 +1019,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String pioInterfaceReadDataName = getSigName(isPrimary, this.pioInterfaceReadDataName);
 		String pioInterfaceAckName = getSigName(isPrimary, this.pioInterfaceAckName);
 		String pioInterfaceNackName = getSigName(isPrimary, this.pioInterfaceNackName);
+		String arbiterAtomicName = getSigName(isPrimary, this.arbiterAtomicName);
 		// set IO names
 		String prefix = (topRegProperties == null)? "r" + ringWidth : "d2r_" + topRegProperties.getBaseName();  
 		String ringCmdValidName = getSigName(isPrimary, prefix + "_cmd_valid");                      
@@ -1474,6 +1516,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		this.addScalarWire(pioInterfaceReName);  //  read enable internal interface
 		this.addScalarWire(pioInterfaceWeName);  //  write enable internal interface
+				
+		// disable atomic request to arbiter
+		if (hasSecondaryInterface()) {
+			this.addScalarWire(arbiterAtomicName);   
+			this.addWireAssign(arbiterAtomicName + " = 1'b0;");
+		}
+
 		// generate re/we assigns - use delayed versions if this is a single primary
 		assignReadWriteRequests(ringpioInterfaceReName, ringpioInterfaceWeName, pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());
 	}

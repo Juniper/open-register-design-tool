@@ -15,6 +15,8 @@ import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
+import ordt.output.systemverilog.common.RemapRuleList;
+import ordt.output.systemverilog.common.RemapRuleList.RemapRuleType;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.io.SystemVerilogIOElement;
@@ -28,6 +30,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	
     // define a new list to handle bench specific IO 
 	protected SystemVerilogIOSignalList benchSigList = new SystemVerilogIOSignalList("bench");   // signals specific to the bench
+	protected SystemVerilogIOSignalList bfmToDecoderSigList = new SystemVerilogIOSignalList("bfm - decode");   // signals specific to the bench
 	// module defines  
 	protected SystemVerilogModule leafbfm = new SystemVerilogModule(this, PIO, defaultClk, getDefaultReset());  // leaf bfm
 	protected SystemVerilogModule benchtop = new SystemVerilogModule(this, PIO|HW|DECODE|LOGIC, defaultClk, getDefaultReset());  // bench top module
@@ -71,9 +74,17 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		// write leaf bfm module and add bfm control signals to bench list
 		createLeafBfm();   
 	
-		// add child modules 
+		// add dut child modules 
 		addDutInstances(benchtop);
-		benchtop.addInstance(leafbfm, "leaf_bfm");
+		
+		// add leaf bfm instance with names remapped
+		if (decoder.hasSecondaryInterface()) {
+			RemapRuleList rules = new RemapRuleList();
+			rules.addRule("^dec_leaf_.*$", RemapRuleType.ADD_PREFIX, "p1_");
+			rules.addRule("^leaf_dec_.*$", RemapRuleType.ADD_PREFIX, "p1_");
+			benchtop.addInstance(leafbfm, "leaf_bfm", rules);
+		}
+		else benchtop.addInstance(leafbfm, "leaf_bfm");
 		
 		// add all dut extern signals to the bench list
 		addDutIOs(benchtop);  
@@ -441,7 +452,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		// start the leaf bfm module
 		leafbfm.setName(getModuleName() + "_test_leaf_bfm");
 		
-		// add bfm sigs to bench specific IO list
+		// add bfm control sigs to bench specific IO list
 		benchSigList.addSimpleVector(HW, PIO, "address", 0, ExtParameters.getLeafAddressSize());
 		benchSigList.addSimpleVector(HW, PIO, "wr_data", 0, getMaxRegWidth());
 		benchSigList.addSimpleVector(HW, PIO, "rd_data", 0, getMaxRegWidth());
@@ -453,9 +464,24 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		benchSigList.addSimpleScalar(PIO, HW, "active");
 		benchSigList.addSimpleScalar(PIO, HW,  "done");
 		
+		// add bfm to decoder interface
+		bfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_addr", 0, ExtParameters.getLeafAddressSize());
+		bfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_wr_data", 0, getMaxRegWidth());
+		bfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_valid", 0, 1);
+		bfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_wr_dvld", 0, 1);
+		bfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_cycle", 0, 2);
+		bfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_wr_width", 0, dataSizeBits);
+		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_rd_data", 0, getMaxRegWidth());
+		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_ack", 0, 1);
+		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_nack", 0, 1);
+		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_accept", 0, 1);
+		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_reject", 0, 1);
+		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_retry_atomic", 0, 1);
+		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_data_width", 0, dataSizeBits);
+		
 		// associate IO lists with the bfm
 		leafbfm.useIOList(benchSigList, HW);  // added sigs here will talk to bench 
-		leafbfm.useIOList(pioSigList, null);  // null location since will use list as-is 
+		leafbfm.useIOList(bfmToDecoderSigList, DECODE);  // using a local interface list here since instance name remapping might occur in bench
 		
 		// define all outputs as reg
 		List<SystemVerilogIOElement> outputs = leafbfm.getOutputList();
