@@ -204,6 +204,7 @@ public class InstanceProperties {
 	public void setExternal(String externalStr) {
 		if (externalStr == null) this.externalType = new ExternalType(ExtType.INTERNAL);  // internal
 		else if ("DEFAULT".equals(externalStr)) this.externalType = new ExternalType(ExtType.PARALLEL);
+		else if ("PARALLEL".equals(externalStr)) this.externalType = new ExternalType(ExtType.PARALLEL);  // TODO deprecate
 		else if ("EXTERNAL_DECODE".equals(externalStr)) this.externalType = new ExternalType(ExtType.EXTERNAL_DECODE);
 		else if ("BBV5_8".equals(externalStr)) {
 			this.externalType = new ExternalType(ExtType.BBV5);

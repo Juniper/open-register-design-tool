@@ -115,6 +115,7 @@ ext_parm_defs
    | 'secondary_base_address' EQ NUM 
    | 'secondary_low_address' EQ NUM 
    | 'secondary_high_address' EQ NUM 
+   | 'secondary_on_child_addrmaps' EQ bool
    | 'base_addr_is_parameter' EQ bool 
    | 'module_tag' EQ STR 
    | 'use_gated_logic_clock' EQ bool 

@@ -76,7 +76,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 	/** returns true if this decoder has a secondary processor interface */
 	boolean hasSecondaryInterface() {
-		return (builder.isBaseBuilder() && !hasSecondaryInterfaceType(SVDecodeInterfaceTypes.NONE));
+		return ((builder.isBaseBuilder() || ExtParameters.secondaryOnChildAddrmaps()) && !hasSecondaryInterfaceType(SVDecodeInterfaceTypes.NONE));
 	}
 
 	private boolean hasInterfaceType(SVDecodeInterfaceTypes type) {
@@ -132,7 +132,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING16)) this.genRingPioInterface(16, topRegProperties, false);
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING32)) this.genRingPioInterface(32, topRegProperties, false);
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.PARALLEL)) this.genParallelPioInterface(topRegProperties, false);
-		//else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.ENGINE1)) this.genEngine1Interface(topRegProperties, false);
+		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.ENGINE1)) this.genEngine1Interface(topRegProperties);
 		else {
 			String instStr = (topRegProperties == null)? "root" : topRegProperties.getInstancePath();
 			Ordt.errorExit("invalid decoder secondary interface type specified for addrmap instance " + instStr);
@@ -480,6 +480,204 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addWireAssign(ioReadDataName + " = " + pioInterfaceReadDataName + ";");
 		this.addWireAssign(ioAckName + " = " + pioInterfaceAckName + ";");
 		this.addWireAssign(ioNackName + " = " + pioInterfaceNackName + ";");
+	}
+
+	/** generate an assist engine (not valid for primary interface) */
+	private void genEngine1Interface(RegProperties topRegProperties) {
+		boolean isPrimary = false;  // engine1 is always secondary
+		// set internal interface names
+		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
+		String pioInterfaceWriteDataName = getSigName(isPrimary, this.pioInterfaceWriteDataName);
+		String pioInterfaceTransactionSizeName = getSigName(isPrimary, this.pioInterfaceTransactionSizeName);
+		String pioInterfaceRetTransactionSizeName = getSigName(isPrimary, this.pioInterfaceRetTransactionSizeName);
+		String pioInterfaceWeName = getSigName(isPrimary, this.pioInterfaceWeName);
+		String pioInterfaceReName = getSigName(isPrimary, this.pioInterfaceReName);
+		String pioInterfaceReadDataName = getSigName(isPrimary, this.pioInterfaceReadDataName);
+		String pioInterfaceAckName = getSigName(isPrimary, this.pioInterfaceAckName);
+		String pioInterfaceNackName = getSigName(isPrimary, this.pioInterfaceNackName);
+		String arbiterAtomicName = getSigName(isPrimary, this.arbiterAtomicName);
+		
+		// compute max transaction size  
+		int regWidth = builder.getMaxRegWidth();
+		int regWords = builder.getMaxRegWordWidth();
+		int regWordBits = Utils.getBits(regWords);
+		boolean useTransactionSize = (regWords > 1);  // if transaction sizes need to be sent/received
+		
+		// engine1 control inputs  TODO - fix tieoffs - create inputs / add errors for nack, ret trans size, out of range addr
+		String e1WriteDataName = getSigName(isPrimary, "e1_write_data");                      
+		String e1WriteMaskName = getSigName(isPrimary, "e1_write_mask");                      
+		String e1AddressStartName = getSigName(isPrimary, "e1_address_start");                      
+		String e1AddressStepName = getSigName(isPrimary, "e1_address_step");                      
+		String e1MaxTransCountName = getSigName(isPrimary, "e1_max_trans_count");   // number of transactions (-1)                  
+		String e1WrSizeName = getSigName(isPrimary, "e1_write_trans_size");                      
+		String e1RmwName = getSigName(isPrimary, "e1_rmw"); 
+		String e1StartName = getSigName(isPrimary, "e1_start"); 
+		String e1StopName = getSigName(isPrimary, "e1_stop"); 
+		
+		this.addVectorWire(e1WriteDataName, 0, regWidth); 
+		this.addWireAssign(e1WriteDataName + " = " + regWidth + "'ha5a5a5a5;");
+		this.addVectorWire(e1WriteMaskName, 0, regWidth); 
+		this.addWireAssign(e1WriteMaskName + " = " + regWidth + "'h0;");  // default to no bits masked off (use write data)
+		
+		int addrWidth = builder.getMapAddressWidth();
+		int addrLowBit = builder.getAddressLowBit();
+		if (mapHasMultipleAddresses()) {
+			this.addVectorWire(e1AddressStartName, addrLowBit, addrWidth); 
+			this.addVectorWire(e1MaxTransCountName, addrLowBit, addrWidth); 
+			this.addVectorWire(e1AddressStepName, addrLowBit, addrWidth); 
+			this.addWireAssign(e1AddressStartName + " = " + addrWidth + "'h0;");
+			this.addWireAssign(e1MaxTransCountName + " = " + addrWidth + "'h10;");
+			this.addWireAssign(e1AddressStepName + " = " + addrWidth + "'h2;");
+		}
+		if (useTransactionSize) {
+			this.addVectorReg(e1WrSizeName, 0, regWordBits);
+			this.addWireAssign(e1WrSizeName + " = " + regWordBits + "'h0;");
+		}
+		this.addScalarWire(e1RmwName); 
+		this.addScalarWire(e1StartName); 
+		this.addScalarWire(e1StopName); 
+		this.addWireAssign(e1RmwName + " = 1'b0;");
+		this.addWireAssign(e1StartName + " = 1'b1;");
+		this.addWireAssign(e1StopName + " = 1'b0;");
+		
+		// engine1 internal signals  // TODO - add transaction counter and next value
+		String e1StateName = getSigName(isPrimary, "e1_state");                      
+		String e1StateNextName = getSigName(isPrimary, "e1_state_next");                      
+		String e1AddressNextName = getSigName(isPrimary, pioInterfaceAddressName + "_next");                      
+		String e1WrDataNextName = getSigName(isPrimary, pioInterfaceWriteDataName + "_next"); 
+		String e1TransSizeNextName = getSigName(isPrimary, pioInterfaceTransactionSizeName + "_next"); 
+		String e1WeNextName = getSigName(isPrimary, pioInterfaceWeName + "_next"); 
+		String e1ReNextName = getSigName(isPrimary, pioInterfaceReName + "_next"); 
+		String e1AtomicNextName = getSigName(isPrimary, arbiterAtomicName + "_next"); 
+		
+		// define the internal interface signals
+		this.addVectorReg(pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
+		if (mapHasMultipleAddresses()) this.addVectorReg(pioInterfaceAddressName, addrLowBit, addrWidth);  //  address to be used internally 
+		this.addScalarReg(pioInterfaceReName);  //  read enable to be used internally 
+		this.addScalarReg(pioInterfaceWeName);  //  write enable be used internally 
+		this.addScalarReg(arbiterAtomicName);
+		if (useTransactionSize) this.addVectorReg(pioInterfaceTransactionSizeName, 0, regWordBits);
+		
+		// assign sm outputs to internal p2 interface
+		String groupName = getGroupPrefix(isPrimary) + "engine1 i/f";  
+		this.addVectorReg(e1WrDataNextName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
+		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceWriteDataName + " <= #1  " + builder.getMaxRegWidth() + "'b0;");  
+		this.addRegAssign(groupName,  pioInterfaceWriteDataName + " <= #1  " + e1WrDataNextName + ";");  
+		if (mapHasMultipleAddresses()) {
+			this.addVectorReg(e1AddressNextName, addrLowBit, addrWidth + 1); // extra bit for rollover
+			this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceAddressName + " <= #1  " + addrWidth + "'b0;");  
+			this.addRegAssign(groupName,  pioInterfaceAddressName + " <= #1  " + e1AddressNextName + SystemVerilogSignal.genRefArrayString(addrLowBit, addrWidth) + ";");  
+		}
+		this.addScalarReg(e1ReNextName);   
+		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceReName + " <= #1  1'b0;");  
+		this.addRegAssign(groupName,  pioInterfaceReName + " <= #1  " + e1ReNextName + ";");  
+		this.addScalarReg(e1WeNextName);   
+		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceWeName + " <= #1  1'b0;");  
+		this.addRegAssign(groupName,  pioInterfaceWeName + " <= #1  " + e1WeNextName + ";");  
+		this.addScalarReg(e1AtomicNextName);
+		this.addResetAssign(groupName, builder.getDefaultReset(), arbiterAtomicName + " <= #1  1'b0;");  
+		this.addRegAssign(groupName,  arbiterAtomicName + " <= #1  " + e1AtomicNextName + ";");  
+		if (useTransactionSize) {
+			this.addVectorReg(e1TransSizeNextName, 0, regWordBits);
+			this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceTransactionSizeName + " <= #1  " + regWordBits + "'b0;");  
+			this.addRegAssign(groupName,  pioInterfaceTransactionSizeName + " <= #1  " + e1TransSizeNextName + ";");  
+		}
+		
+		// now create state machine vars
+		int stateBits = 2;
+		this.addVectorReg(e1StateName, 0, stateBits);  
+		this.addVectorReg(e1StateNextName, 0, stateBits);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), e1StateName + " <= #1  " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  e1StateName + " <= #1  " + e1StateNextName + ";");  
+		
+		// state machine init values
+		this.addCombinAssign(groupName,  e1StateNextName + " = " + e1StateName + ";");  
+		this.addCombinAssign(groupName,  e1ReNextName + " =  1'b0;");  
+		this.addCombinAssign(groupName,  e1WeNextName + " =  1'b0;");  
+		this.addCombinAssign(groupName,  e1AtomicNextName + " =  1'b0;");  
+		this.addCombinAssign(groupName,  e1WrDataNextName + " = " + pioInterfaceWriteDataName + ";");  
+		if (mapHasMultipleAddresses())
+			this.addCombinAssign(groupName,  e1AddressNextName + " = " + pioInterfaceAddressName + ";"); 
+		if (useTransactionSize)
+			this.addCombinAssign(groupName,  e1TransSizeNextName + " = " + pioInterfaceTransactionSizeName + ";"); 
+			
+		// state machine  /
+		String IDLE = stateBits + "'h0"; 
+		String READ = stateBits + "'h1"; 
+		String WRITE = stateBits + "'h2"; 
+				
+		this.addCombinAssign(groupName, "case (" + e1StateName + ")"); 
+
+		// IDLE
+		this.addCombinAssign(groupName, "  " + IDLE + ": begin // IDLE");
+		// go on e1_start
+		this.addCombinAssign(groupName, "      if (" + e1StartName + " && !" + e1StopName + ") begin");  
+		// set address and transaction size
+		if (mapHasMultipleAddresses())
+		    this.addCombinAssign(groupName, "        " + e1AddressNextName + " = " + e1AddressStartName + ";");  // set start address
+		if (useTransactionSize)
+		    this.addCombinAssign(groupName, "        " + e1TransSizeNextName + " = " + e1WrSizeName + ";");  // set transaction size
+		// if rmw then read first
+		this.addCombinAssign(groupName, "        if (" + e1RmwName + ") begin");  
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + READ + ";");
+		this.addCombinAssign(groupName, "          " + e1ReNextName + " =  1'b1;");  
+		this.addCombinAssign(groupName, "          " + e1AtomicNextName + " =  1'b1;");  
+		this.addCombinAssign(groupName, "        end"); 
+		this.addCombinAssign(groupName, "        else begin");
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + WRITE + ";");  
+		this.addCombinAssign(groupName, "          " + e1WeNextName + " =  1'b1;");  
+		this.addCombinAssign(groupName, "          " + e1WrDataNextName + " = " + e1WriteDataName + ";");  // no rmw so use write data as-is
+		this.addCombinAssign(groupName, "        end"); 
+		this.addCombinAssign(groupName, "      end");  // start
+		this.addCombinAssign(groupName, "    end"); 
+
+		// READ
+		this.addCombinAssign(groupName, "  " + READ + ": begin // READ");
+		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + ") begin");  // ack  
+		this.addCombinAssign(groupName, "        if (" + e1RmwName + ") begin");   
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + WRITE + ";");
+		this.addCombinAssign(groupName, "          " + e1WeNextName + " =  1'b1;");  
+		this.addCombinAssign(groupName, "          " + e1WrDataNextName + " = ((" + e1WriteDataName + " & ~" + e1WriteMaskName + ") | (" +
+				                                                           pioInterfaceReadDataName + " & " + e1WriteMaskName + "));");  // save masked read data 
+		this.addCombinAssign(groupName, "        end"); 
+		this.addCombinAssign(groupName, "        else "+ e1StateNextName + " = " + IDLE + ";"); // read-only case not supported
+		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "      else if (" + pioInterfaceNackName + " || " + e1StopName + ") begin");  // nack or stop //TODO - stop moves to front
+		this.addCombinAssign(groupName, "        " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "      else begin");  // else wait
+		this.addCombinAssign(groupName, "        " + e1ReNextName + " =  1'b1;");  
+		this.addCombinAssign(groupName, "        " + e1AtomicNextName + " =  " + e1RmwName + ";");  
+		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "    end"); 
+
+		// WRITE
+		this.addCombinAssign(groupName, "  " + WRITE + ": begin // WRITE"); // TODO check for ack/nack/stop, check for max count if not rmw, out of range address
+		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + ") begin");  // ack  
+        // bump next transactions count and address
+		this.addCombinAssign(groupName, "        if (" + e1RmwName + ") begin");   
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + READ + ";");  // TODO - only bump count in WRITE??
+		this.addCombinAssign(groupName, "          " + e1ReNextName + " =  1'b1;");  
+		this.addCombinAssign(groupName, "          " + e1AtomicNextName + " =  " + e1RmwName + ";");  
+		this.addCombinAssign(groupName, "        end"); 
+		this.addCombinAssign(groupName, "        else begin");
+		this.addCombinAssign(groupName, "          "+ e1StateNextName + " = " + WRITE + ";"); 
+		this.addCombinAssign(groupName, "        " + e1WeNextName + " =  1'b1;");  
+		this.addCombinAssign(groupName, "        end"); 
+		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "      else if (" + pioInterfaceNackName + " || " + e1StopName + ") begin");  // nack or stop  //TODO - stop moves to front
+		this.addCombinAssign(groupName, "        " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "      else begin");  // else wait
+		this.addCombinAssign(groupName, "        " + e1WeNextName + " =  1'b1;");  
+		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "    end"); 
+		
+		// default
+		this.addCombinAssign(groupName, "  default:");
+		this.addCombinAssign(groupName, "    " + e1StateNextName + " = " + IDLE + ";");  
+
+		this.addCombinAssign(groupName, "endcase"); 					
 	}
 
 	/** add interface signals for address maps talking to a leaf */
@@ -885,7 +1083,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "    end"); 
 		
         // if an address needed then add CMD_ADDR state
-		if (addrXferCount > 0) {  
+		if (addrXferCount > 0) {   
 			// CMD_ADDR
 			this.addCombinAssign(groupName, "  " + CMD_ADDR + ": begin // CMD_ADDR");
 			// if more than one address then bump the count

@@ -1,7 +1,7 @@
 // global parameters
 global {
 	min_data_size = 32       // base reg size
-	base_address = 0x80000000   // block base address
+	//base_address = 0x80000000   // block base address
 	//use_js_address_alignment = true   // align per jspec reg array and register_set rules
 	//suppress_alignment_warnings = true   // inhibit register/regfile base address alignment messages
 	//default_base_map_name = "zt"   // default address map name (replaces 'default_name' in cases where no addrmap is specified)
@@ -41,7 +41,7 @@ output systemverilog {
 	leaf_address_size = 40             // leaf address bits
 	//root_has_leaf_interface = true     // does root module talk directly to leaf  DEPRECATED
     //root_decoder_interface = ring16      // parallel | leaf | serial8 | ring8 | ring16 | ring32
-    secondary_decoder_interface = serial8      // parallel | leaf | serial8 | ring8 | ring16 | ring32 | none
+    //secondary_decoder_interface = serial8      // parallel | leaf | serial8 | ring8 | ring16 | ring32 | none
 	base_addr_is_parameter = false     // base address parameter will be added to top module
 	//module_tag = "_version1"         // tag to be added to generated module names
 	//use_gated_logic_clock = false       // use separate gated clock for registers and generate a clk enable output

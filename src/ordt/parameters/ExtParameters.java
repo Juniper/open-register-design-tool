@@ -77,6 +77,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initRegNumberParameter("secondary_base_address", null); 
 		initRegNumberParameter("secondary_low_address", null); 
 		initRegNumberParameter("secondary_high_address", null); 
+		initBooleanParameter("secondary_on_child_addrmaps", false); 
 		initBooleanParameter("use_js_address_alignment", true); 
 		initBooleanParameter("suppress_alignment_warnings", false); 
 		initStringParameter("default_base_map_name", "");  
@@ -470,6 +471,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getRegNumberParameter("secondary_high_address");
 	}
 	
+	/** true if secondary interfaces should be created on child address map decoders */
+	public static Boolean secondaryOnChildAddrmaps() {
+		return getBooleanParameter("secondary_on_child_addrmaps");
+	}
+
 	/** get useJsAddressAlignment
 	 */
 	public static Boolean useJsAddressAlignment() {
