@@ -99,7 +99,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// generate the secondary processor interface
 		if (hasSecondaryInterface()) {
 			genSecondaryPioInterface(topRegProperties);
-			genInterfaceArbiter();			
+			genInterfaceArbiter();		
 		}
 		
 		// generate common internal pio interface code
@@ -267,18 +267,19 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarReg(p2AckName);  // return ack
 		this.addScalarReg(p2NackName);  // return nack
 		if (builder.getMaxRegWordWidth() > 1) this.addVectorWire(p2RetTransactionSizeName, 0, builder.getMaxWordBitSize());  //  register the size
+		
 		// create common internal i/f inputs
-		if (mapHasMultipleAddresses()) this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  //  address to be used internally 
-		this.addVectorWire(pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
-		if (builder.getMaxRegWordWidth() > 1) this.addVectorWire(pioInterfaceTransactionSizeName, 0, builder.getMaxWordBitSize());  //  internal transaction size
+		if (mapHasMultipleAddresses()) this.addVectorReg(pioInterfaceAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  //  address to be used internally 
+		this.addVectorReg(pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
+		if (builder.getMaxRegWordWidth() > 1) this.addVectorReg(pioInterfaceTransactionSizeName, 0, builder.getMaxWordBitSize());  //  internal transaction size
 		this.addScalarWire(pioInterfaceReName);  //  read enable to be used internally 
 		this.addScalarWire(pioInterfaceWeName);  //  write enable be used internally 
 		
 		// set sm signal names that will be set in sm 
 		String arbiterReName = "arb_" + pioInterfaceReName;
 		String arbiterWeName = "arb_" + pioInterfaceWeName;
-		this.addScalarReg(arbiterReName);
-		this.addScalarReg(arbiterWeName);
+		String arbiterReNextName = arbiterReName + "_next";
+		String arbiterWeNextName = arbiterWeName + "_next";
 		
 		String arbStateName = "arbiter_state";                      
 		String arbStateNextName = arbStateName + "_next";                      
@@ -310,21 +311,27 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addWireAssign(arbiterValidSecAddressName + " = " + valCompareStr + ";");
 		
         // create sm vars
-		String groupName = "interface arbiter";  
+		String groupName = "interface arbiter sm";  
 		int stateBits = 3;
 		this.addVectorReg(arbStateName, 0, stateBits);  
 		this.addVectorReg(arbStateNextName, 0, stateBits);  
 		this.addResetAssign(groupName, builder.getDefaultReset(), arbStateName + " <= #1  " + stateBits + "'b0;");  
 		this.addRegAssign(groupName,  arbStateName + " <= #1  " + arbStateNextName + ";");  
+		
+		// registered r/w and ack/nack sm outputs
+		this.addScalarReg(arbiterReName);
+		this.addScalarReg(arbiterWeName);
+		this.addScalarReg(arbiterReNextName);
+		this.addScalarReg(arbiterWeNextName);
+		this.addResetAssign(groupName, builder.getDefaultReset(), arbiterReName + " <= #1  1'b0;");  
+		this.addRegAssign(groupName,  arbiterReName + " <= #1  " + arbiterReNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), arbiterWeName + " <= #1  1'b0;");  
+		this.addRegAssign(groupName,  arbiterWeName + " <= #1  " + arbiterWeNextName + ";");  
 
 		// state machine init values
 		this.addCombinAssign(groupName,  arbStateNextName + " = " + arbStateName + ";");  
-		this.addCombinAssign(groupName,  arbiterReName + " =  1'b0;");  // write active
-		this.addCombinAssign(groupName,  arbiterWeName + " =  1'b0;");  // read active
-		this.addCombinAssign(groupName,  p1AckName + " =  1'b0;");  // p1 ack
-		this.addCombinAssign(groupName,  p1NackName + " =  1'b0;");   // p1 nack
-		this.addCombinAssign(groupName,  p2AckName + " =  1'b0;");  // p2 ack
-		this.addCombinAssign(groupName,  p2NackName + " =  1'b0;");   // p2 nack
+		this.addCombinAssign(groupName,  arbiterReNextName + " =  1'b0;");  // write active
+		this.addCombinAssign(groupName,  arbiterWeNextName + " =  1'b0;");  // read active
 			
 		// state machine  /
 		String IDLE = stateBits + "'h0"; 
@@ -339,68 +346,136 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// IDLE
 		this.addCombinAssign(groupName, "  " + IDLE + ": begin // IDLE");
 		// go on request - p1 has priority in idle
-		this.addCombinAssign(groupName, "      if (" + p1ReName + " || " + p1WeName + ") " + arbStateNextName + " = " + P1_ACTIVE + ";");  
-		this.addCombinAssign(groupName, "      else if (" + p2ReName + " || " + p2WeName + ") " + arbStateNextName + " = " + arbiterValidSecAddressName + "? " + P2_ACTIVE + " : " + P2_NACK + ";");  
+		this.addCombinAssign(groupName, "      if (" + p1ReName + " || " + p1WeName + ") begin");  
+		this.addCombinAssign(groupName, "        " + arbStateNextName + " = " + P1_ACTIVE + ";");  
+		this.addCombinAssign(groupName, "        " + arbiterReNextName + " = " + p1ReName + ";");
+		this.addCombinAssign(groupName, "        " + arbiterWeNextName + " = " + p1WeName + ";");
+		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "      else if (" + p2ReName + " || " + p2WeName + ") begin");  
+		this.addCombinAssign(groupName, "        if (" + arbiterValidSecAddressName + ") begin");  
+		this.addCombinAssign(groupName, "          " + arbStateNextName + " = " + P2_ACTIVE + ";");  
+		this.addCombinAssign(groupName, "          " + arbiterReNextName + " = " + p2ReName + ";");
+		this.addCombinAssign(groupName, "          " + arbiterWeNextName + " = " + p2WeName + ";");
+		this.addCombinAssign(groupName, "        end"); 
+		this.addCombinAssign(groupName, "        else " + arbStateNextName + " = " + P2_NACK + ";");  
+		this.addCombinAssign(groupName, "      end"); 
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// P1_ACTIVE - interface 1 active
 		this.addCombinAssign(groupName, "  " + P1_ACTIVE + ": begin // P1_ACTIVE");
-		this.addCombinAssign(groupName,  "      " + arbiterReName + " = " + p1ReName + ";");
-		this.addCombinAssign(groupName,  "      " + arbiterWeName + " = " + p1WeName + ";");
 		// if ack/ack, pass thru to intf and jump to next state
-		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + " | " + pioInterfaceNackName + ") begin");  
-		this.addCombinAssign(groupName,  "        " + p1AckName + " = " + pioInterfaceAckName + ";");
-		this.addCombinAssign(groupName,  "        " + p1NackName + " = " + pioInterfaceNackName + ";");
-		this.addCombinAssign(groupName, "         if (" + p1AtomicName + ") " + arbStateNextName + " = " + P1_ATOMIC + ";");  // p1 atomic request
-		this.addCombinAssign(groupName, "         else if (" + p2ReName + " || " + p2WeName + ") " + arbStateNextName + " = " + arbiterValidSecAddressName + "? " + P2_ACTIVE + " : " + P2_NACK + ";");  // allow secondary to cut in
-		this.addCombinAssign(groupName, "         else " + arbStateNextName + " = " + IDLE + ";");  // else back to idle
+		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + " || " + pioInterfaceNackName + ") begin");  
+		this.addCombinAssign(groupName, "        if (" + p1AtomicName + ") " + arbStateNextName + " = " + P1_ATOMIC + ";");  // p1 atomic request
+		this.addCombinAssign(groupName, "        else if (" + p2ReName + " || " + p2WeName + ") begin");  
+		this.addCombinAssign(groupName, "          if (" + arbiterValidSecAddressName + ") begin");  
+		this.addCombinAssign(groupName, "            " + arbStateNextName + " = " + P2_ACTIVE + ";");  
+		this.addCombinAssign(groupName, "            " + arbiterReNextName + " = " + p2ReName + ";");
+		this.addCombinAssign(groupName, "            " + arbiterWeNextName + " = " + p2WeName + ";");
+		this.addCombinAssign(groupName, "          end"); 
+		this.addCombinAssign(groupName, "          else " + arbStateNextName + " = " + P2_NACK + ";");  
+		this.addCombinAssign(groupName, "        end"); 
+		this.addCombinAssign(groupName, "        else " + arbStateNextName + " = " + IDLE + ";");  // else back to idle
 		this.addCombinAssign(groupName, "      end"); 
 		this.addCombinAssign(groupName, "      else if (!" + p1ReName + " && !" + p1WeName + ") " + arbStateNextName + " = " + IDLE + ";");  // back to idle if request disappears
+		this.addCombinAssign(groupName, "      else begin"); 
+		this.addCombinAssign(groupName, "        " + arbiterReNextName + " = " + p1ReName + ";");
+		this.addCombinAssign(groupName, "        " + arbiterWeNextName + " = " + p1WeName + ";");
+		this.addCombinAssign(groupName, "      end"); 
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// P2_ACTIVE - interface 2 active
 		this.addCombinAssign(groupName, "  " + P2_ACTIVE + ": begin // P2_ACTIVE");
-		this.addCombinAssign(groupName,  "      " + arbiterReName + " = " + p2ReName + ";");
-		this.addCombinAssign(groupName,  "      " + arbiterWeName + " = " + p2WeName + ";");
 		// if ack/ack, pass thru to intf and jump to next state
-		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + " | " + pioInterfaceNackName + ") begin");  
-		this.addCombinAssign(groupName,  "        " + p2AckName + " = " + pioInterfaceAckName + ";");
-		this.addCombinAssign(groupName,  "        " + p2NackName + " = " + pioInterfaceNackName + ";");
-		this.addCombinAssign(groupName, "         if (" + p2AtomicName + ") " + arbStateNextName + " = " + P2_ATOMIC + ";");  // p2 atomic request
-		this.addCombinAssign(groupName, "         else if (" + p1ReName + " || " + p1WeName + ") " + arbStateNextName + " = " + P1_ACTIVE + ";");  // allow primary to cut in
-		this.addCombinAssign(groupName, "         else " + arbStateNextName + " = " + IDLE + ";");  // else back to idle
+		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + " || " + pioInterfaceNackName + ") begin");  
+		this.addCombinAssign(groupName, "        if (" + p2AtomicName + ") " + arbStateNextName + " = " + P2_ATOMIC + ";");  // p2 atomic request
+		this.addCombinAssign(groupName, "        else if (" + p1ReName + " || " + p1WeName + ") begin");  
+		this.addCombinAssign(groupName, "          " + arbStateNextName + " = " + P1_ACTIVE + ";");  
+		this.addCombinAssign(groupName, "          " + arbiterReNextName + " = " + p1ReName + ";");
+		this.addCombinAssign(groupName, "          " + arbiterWeNextName + " = " + p1WeName + ";");
+		this.addCombinAssign(groupName, "        end"); 
+		this.addCombinAssign(groupName, "        else " + arbStateNextName + " = " + IDLE + ";");  // else back to idle
 		this.addCombinAssign(groupName, "      end"); 
 		this.addCombinAssign(groupName, "      else if (!" + p2ReName + " && !" + p2WeName + ") " + arbStateNextName + " = " + IDLE + ";");  // back to idle if request disappears
+		this.addCombinAssign(groupName, "      else begin"); 
+		this.addCombinAssign(groupName, "        " + arbiterReNextName + " = " + p2ReName + ";");
+		this.addCombinAssign(groupName, "        " + arbiterWeNextName + " = " + p2WeName + ";");
+		this.addCombinAssign(groupName, "      end"); 
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// P2_NACK - invalid address so nack intr 2 transaction
 		this.addCombinAssign(groupName, "  " + P2_NACK + ": begin // P2_NACK");
-		this.addCombinAssign(groupName, "      " + p2NackName + " = 1'b1;");
+		//this.addCombinAssign(groupName, "      " + p2NackName + " = 1'b1;");
 		this.addCombinAssign(groupName, "      " + arbStateNextName + " = " + IDLE + ";");  // back to idle
 		this.addCombinAssign(groupName, "    end"); 
 
 		// P1_ATOMIC - wait for next p1 request and lock out p2
 		this.addCombinAssign(groupName, "  " + P1_ATOMIC + ": begin // P1_ATOMIC");
-		this.addCombinAssign(groupName, "      if (" + p1ReName + " || " + p1WeName + ") " + arbStateNextName + " = " + P1_ACTIVE + ";");  
+		this.addCombinAssign(groupName, "      if (" + p1ReName + " || " + p1WeName + ") begin");  
+		this.addCombinAssign(groupName, "        " + arbStateNextName + " = " + P1_ACTIVE + ";");  
+		this.addCombinAssign(groupName, "        " + arbiterReNextName + " = " + p1ReName + ";");
+		this.addCombinAssign(groupName, "        " + arbiterWeNextName + " = " + p1WeName + ";");
+		this.addCombinAssign(groupName, "      end"); 
 		this.addCombinAssign(groupName, "    end"); 
 
 		// P2_ATOMIC - wait for next p2 request and lock out p1
 		this.addCombinAssign(groupName, "  " + P2_ATOMIC + ": begin // P2_ATOMIC");
-		this.addCombinAssign(groupName, "      if (" + p2ReName + " || " + p2WeName + ") " + arbStateNextName + " = " + P2_ACTIVE + ";");  
+		this.addCombinAssign(groupName, "      if (" + p2ReName + " || " + p2WeName + ") begin");  
+		this.addCombinAssign(groupName, "        if (" + arbiterValidSecAddressName + ") begin");  
+		this.addCombinAssign(groupName, "          " + arbStateNextName + " = " + P2_ACTIVE + ";");  
+		this.addCombinAssign(groupName, "          " + arbiterReNextName + " = " + p2ReName + ";");
+		this.addCombinAssign(groupName, "          " + arbiterWeNextName + " = " + p2WeName + ";");
+		this.addCombinAssign(groupName, "        end"); 
+		this.addCombinAssign(groupName, "        else " + arbStateNextName + " = " + P2_NACK + ";");  
+		this.addCombinAssign(groupName, "      end"); 
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// default
 		this.addCombinAssign(groupName, "  default:");
 		this.addCombinAssign(groupName, "    " + arbStateNextName + " = " + IDLE + ";");  
 
-		this.addCombinAssign(groupName, "endcase"); 				
+		this.addCombinAssign(groupName, "endcase"); 
+		
+		// create a separate always block to assign ack
+		groupName = "interface arbiter acks/nacks";  
+		this.addCombinAssign(groupName,  p1AckName + " =  1'b0;");  // p1 ack
+		this.addCombinAssign(groupName,  p1NackName + " =  1'b0;");   // p1 nack
+		this.addCombinAssign(groupName,  p2AckName + " =  1'b0;");  // p2 ack
+		this.addCombinAssign(groupName,  p2NackName + " =  1'b0;");   // p2 nack
+		this.addCombinAssign(groupName, "if (" + arbStateName + " == " + P1_ACTIVE + ") begin");  
+		this.addCombinAssign(groupName, "  " + p1AckName + " = " + pioInterfaceAckName + ";");
+		this.addCombinAssign(groupName, "  " + p1NackName + " = " + pioInterfaceNackName + ";");
+		this.addCombinAssign(groupName, "end"); 
+		this.addCombinAssign(groupName, "else if (" + arbStateName + " == " + P2_ACTIVE + ") begin");  
+		this.addCombinAssign(groupName, "  " + p2AckName + " = " + pioInterfaceAckName + ";");
+		this.addCombinAssign(groupName, "  " + p2NackName + " = " + pioInterfaceNackName + ";");
+		this.addCombinAssign(groupName, "end"); 
+		this.addCombinAssign(groupName, "else if (" + arbStateName + " == " + P2_NACK + ") begin");  
+		this.addCombinAssign(groupName, "  " + p2NackName + " = 1'b1;");
+		this.addCombinAssign(groupName, "end"); 
+		
+		// create a separate always block to assign ack
+		groupName = "interface arbiter input select";  
+		// default to p1 interface
+		// by default, address, date and transaction size are from primary interface
+		if (mapHasMultipleAddresses()) 
+			this.addCombinAssign(groupName,  pioInterfaceAddressName + " = " + p1AddressName + ";");
+	    this.addCombinAssign(groupName,  pioInterfaceWriteDataName + " = " + p1WriteDataName + ";");
+	    if (builder.getMaxRegWordWidth() > 1) 
+	    	this.addCombinAssign(groupName,  pioInterfaceTransactionSizeName + " = " + p1TransactionSizeName + ";");
+		this.addCombinAssign(groupName, "if (" + arbStateName + " == " + P2_ACTIVE + ") begin");  
+		if (mapHasMultipleAddresses()) 
+			this.addCombinAssign(groupName, "  " + pioInterfaceAddressName + " = " + p2AddressName + ";");
+	    this.addCombinAssign(groupName,  "  " + pioInterfaceWriteDataName + " = " + p2WriteDataName + ";");
+	    if (builder.getMaxRegWordWidth() > 1) 
+	    	this.addCombinAssign(groupName,  "  " + pioInterfaceTransactionSizeName + " = " + p2TransactionSizeName + ";");
+		this.addCombinAssign(groupName, "end"); 
 		
 		// assign input signals according to arb state
-		if (mapHasMultipleAddresses()) 
-			this.addWireAssign(pioInterfaceAddressName + " = (" + arbStateName + " == " + P2_ACTIVE + ")? " + p2AddressName + " : " + p1AddressName + ";");
-		this.addWireAssign(pioInterfaceWriteDataName + " = (" + arbStateName + " == " + P2_ACTIVE + ")? " + p2WriteDataName + " : " + p1WriteDataName + ";");
-		if (builder.getMaxRegWordWidth() > 1) 
-			this.addWireAssign(pioInterfaceTransactionSizeName + " = (" + arbStateName + " == " + P2_ACTIVE + ")? " + p2TransactionSizeName + " : " + p1TransactionSizeName + ";");
+		//if (mapHasMultipleAddresses()) 
+			//this.addWireAssign(pioInterfaceAddressName + " = (" + arbStateName + " == " + P2_ACTIVE + ")? " + p2AddressName + " : " + p1AddressName + ";");
+		//this.addWireAssign(pioInterfaceWriteDataName + " = (" + arbStateName + " == " + P2_ACTIVE + ")? " + p2WriteDataName + " : " + p1WriteDataName + ";");
+		//if (builder.getMaxRegWordWidth() > 1) 
+			//this.addWireAssign(pioInterfaceTransactionSizeName + " = (" + arbStateName + " == " + P2_ACTIVE + ")? " + p2TransactionSizeName + " : " + p1TransactionSizeName + ";");
 		
 		// assign responses back to interfaces
 		this.addWireAssign(p1ReadDataName + " = " + pioInterfaceReadDataName + ";");
@@ -430,15 +505,26 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String pioInterfaceNackName = getSigName(isPrimary, this.pioInterfaceNackName);
 		String arbiterAtomicName = getSigName(isPrimary, this.arbiterAtomicName);
 		// set IO names
-		String ioAddressName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_ADDR));  // address
-		String ioWriteDataName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_DATA));  // write data
-		String ioTransactionSizeName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_SIZE));  // transaction size
-		String ioRetTransactionSizeName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.H2D_RETSIZE));  // return transaction size
-		String ioWeName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_WE));  // write indication
-		String ioReName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_RE));  // read indication
-		String ioReadDataName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.H2D_DATA));  // read data
-		String ioAckName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.H2D_ACK));  // ack indication
-		String ioNackName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.H2D_NACK));  // nack indication
+		String ioAddressName = getSigName(isPrimary, "d2h_" + this.pioInterfaceAddressName);  // address
+		String ioWriteDataName = getSigName(isPrimary, "d2h_" + this.pioInterfaceWriteDataName);  // write data
+		String ioTransactionSizeName = getSigName(isPrimary, "d2h_" + this.pioInterfaceTransactionSizeName);  // transaction size
+		String ioRetTransactionSizeName = getSigName(isPrimary, "h2d_" + this.pioInterfaceRetTransactionSizeName);  // return transaction size
+		String ioWeName = getSigName(isPrimary, "d2h_" + this.pioInterfaceWeName);  // write indication
+		String ioReName = getSigName(isPrimary, "d2h_" + this.pioInterfaceReName);  // read indication
+		String ioReadDataName = getSigName(isPrimary, "h2d_" + this.pioInterfaceReadDataName);  // read data
+		String ioAckName = getSigName(isPrimary, "h2d_" + this.pioInterfaceAckName);  // ack indication
+		String ioNackName = getSigName(isPrimary, "h2d_" + this.pioInterfaceNackName);  // nack indication
+		if (topRegProperties != null) {  // if root, just use simple name
+			ioAddressName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_ADDR));  // address
+			ioWriteDataName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_DATA));  // write data
+			ioTransactionSizeName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_SIZE));  // transaction size
+			ioRetTransactionSizeName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.H2D_RETSIZE));  // return transaction size
+		    ioWeName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_WE));  // write indication
+			ioReName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_RE));  // read indication
+			ioReadDataName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.H2D_DATA));  // read data
+			ioAckName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.H2D_ACK));  // ack indication
+			ioNackName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.H2D_NACK));  // nack indication
+		}
 
 		// generate name-base IO names
 		if (mapHasMultipleAddresses()) this.addVectorFrom(SystemVerilogBuilder.PIO, ioAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  // address
@@ -484,12 +570,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 	/** generate an assist engine (not valid for primary interface) */
 	private void genEngine1Interface(RegProperties topRegProperties) {
+		// exit with error if this addrmap has only a single address
+		if (!mapHasMultipleAddresses()) Ordt.errorExit("Assist engine can only be used in addrmaps with multiple addresses");
+		
 		boolean isPrimary = false;  // engine1 is always secondary
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
 		String pioInterfaceWriteDataName = getSigName(isPrimary, this.pioInterfaceWriteDataName);
 		String pioInterfaceTransactionSizeName = getSigName(isPrimary, this.pioInterfaceTransactionSizeName);
-		String pioInterfaceRetTransactionSizeName = getSigName(isPrimary, this.pioInterfaceRetTransactionSizeName);
+		//String pioInterfaceRetTransactionSizeName = getSigName(isPrimary, this.pioInterfaceRetTransactionSizeName);
 		String pioInterfaceWeName = getSigName(isPrimary, this.pioInterfaceWeName);
 		String pioInterfaceReName = getSigName(isPrimary, this.pioInterfaceReName);
 		String pioInterfaceReadDataName = getSigName(isPrimary, this.pioInterfaceReadDataName);
@@ -503,7 +592,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int regWordBits = Utils.getBits(regWords);
 		boolean useTransactionSize = (regWords > 1);  // if transaction sizes need to be sent/received
 		
-		// engine1 control inputs  TODO - fix tieoffs - create inputs / add errors for nack, ret trans size, out of range addr
+		// engine1 control inputs  TODO - fix debug tieoffs and replace w IO
 		String e1WriteDataName = getSigName(isPrimary, "e1_write_data");                      
 		String e1WriteMaskName = getSigName(isPrimary, "e1_write_mask");                      
 		String e1AddressStartName = getSigName(isPrimary, "e1_address_start");                      
@@ -513,6 +602,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String e1RmwName = getSigName(isPrimary, "e1_rmw"); 
 		String e1StartName = getSigName(isPrimary, "e1_start"); 
 		String e1StopName = getSigName(isPrimary, "e1_stop"); 
+		String e1NackErrorName = getSigName(isPrimary, "e1_nack_error"); 
+		//String e1BadSizeErrorName = getSigName(isPrimary, "e1_bad_size_error"); 
+		String e1BadAddressErrorName = getSigName(isPrimary, "e1_bad_address_error"); 
 		
 		this.addVectorWire(e1WriteDataName, 0, regWidth); 
 		this.addWireAssign(e1WriteDataName + " = " + regWidth + "'ha5a5a5a5;");
@@ -521,14 +613,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		int addrWidth = builder.getMapAddressWidth();
 		int addrLowBit = builder.getAddressLowBit();
-		if (mapHasMultipleAddresses()) {
-			this.addVectorWire(e1AddressStartName, addrLowBit, addrWidth); 
-			this.addVectorWire(e1MaxTransCountName, addrLowBit, addrWidth); 
-			this.addVectorWire(e1AddressStepName, addrLowBit, addrWidth); 
-			this.addWireAssign(e1AddressStartName + " = " + addrWidth + "'h0;");
-			this.addWireAssign(e1MaxTransCountName + " = " + addrWidth + "'h10;");
-			this.addWireAssign(e1AddressStepName + " = " + addrWidth + "'h2;");
-		}
+		this.addVectorWire(e1AddressStartName, addrLowBit, addrWidth); 
+		this.addVectorWire(e1MaxTransCountName, addrLowBit, addrWidth); 
+		this.addVectorWire(e1AddressStepName, addrLowBit, addrWidth); 
+		this.addWireAssign(e1AddressStartName + " = " + addrWidth + "'h0;");
+		this.addWireAssign(e1MaxTransCountName + " = " + addrWidth + "'d2;");  // should do 3 
+		this.addWireAssign(e1AddressStepName + " = " + addrWidth + "'h2;");  // every other 32b reg
 		if (useTransactionSize) {
 			this.addVectorReg(e1WrSizeName, 0, regWordBits);
 			this.addWireAssign(e1WrSizeName + " = " + regWordBits + "'h0;");
@@ -540,9 +630,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addWireAssign(e1StartName + " = 1'b1;");
 		this.addWireAssign(e1StopName + " = 1'b0;");
 		
-		// engine1 internal signals  // TODO - add transaction counter and next value
+		// engine1 state machine signals  
 		String e1StateName = getSigName(isPrimary, "e1_state");                      
 		String e1StateNextName = getSigName(isPrimary, "e1_state_next");                      
+		String e1TransCountName = getSigName(isPrimary, "e1_trans_count");                 
+		String e1TransCountNextName = getSigName(isPrimary, e1TransCountName + "_next");                 
+
 		String e1AddressNextName = getSigName(isPrimary, pioInterfaceAddressName + "_next");                      
 		String e1WrDataNextName = getSigName(isPrimary, pioInterfaceWriteDataName + "_next"); 
 		String e1TransSizeNextName = getSigName(isPrimary, pioInterfaceTransactionSizeName + "_next"); 
@@ -552,22 +645,25 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// define the internal interface signals
 		this.addVectorReg(pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
-		if (mapHasMultipleAddresses()) this.addVectorReg(pioInterfaceAddressName, addrLowBit, addrWidth);  //  address to be used internally 
+		this.addVectorReg(pioInterfaceAddressName, addrLowBit, addrWidth);  //  address to be used internally 
 		this.addScalarReg(pioInterfaceReName);  //  read enable to be used internally 
 		this.addScalarReg(pioInterfaceWeName);  //  write enable be used internally 
 		this.addScalarReg(arbiterAtomicName);
 		if (useTransactionSize) this.addVectorReg(pioInterfaceTransactionSizeName, 0, regWordBits);
 		
+		// define error outputs
+		this.addScalarReg(e1NackErrorName);
+		//this.addScalarReg(e1BadSizeErrorName);
+		this.addScalarReg(e1BadAddressErrorName);
+
 		// assign sm outputs to internal p2 interface
-		String groupName = getGroupPrefix(isPrimary) + "engine1 i/f";  
+		String groupName = getGroupPrefix(isPrimary) + "engine1 i/f signals";  
 		this.addVectorReg(e1WrDataNextName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
 		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceWriteDataName + " <= #1  " + builder.getMaxRegWidth() + "'b0;");  
 		this.addRegAssign(groupName,  pioInterfaceWriteDataName + " <= #1  " + e1WrDataNextName + ";");  
-		if (mapHasMultipleAddresses()) {
-			this.addVectorReg(e1AddressNextName, addrLowBit, addrWidth + 1); // extra bit for rollover
-			this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceAddressName + " <= #1  " + addrWidth + "'b0;");  
-			this.addRegAssign(groupName,  pioInterfaceAddressName + " <= #1  " + e1AddressNextName + SystemVerilogSignal.genRefArrayString(addrLowBit, addrWidth) + ";");  
-		}
+		this.addVectorReg(e1AddressNextName, addrLowBit, addrWidth + 1); // extra bit for rollover
+		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceAddressName + " <= #1  " + addrWidth + "'b0;");  
+		this.addRegAssign(groupName,  pioInterfaceAddressName + " <= #1  " + e1AddressNextName + SystemVerilogSignal.genRefArrayString(addrLowBit, addrWidth) + ";");  
 		this.addScalarReg(e1ReNextName);   
 		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceReName + " <= #1  1'b0;");  
 		this.addRegAssign(groupName,  pioInterfaceReName + " <= #1  " + e1ReNextName + ";");  
@@ -584,11 +680,18 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		}
 		
 		// now create state machine vars
+		groupName = getGroupPrefix(isPrimary) + "engine1 i/f sm";  
 		int stateBits = 2;
 		this.addVectorReg(e1StateName, 0, stateBits);  
 		this.addVectorReg(e1StateNextName, 0, stateBits);  
 		this.addResetAssign(groupName, builder.getDefaultReset(), e1StateName + " <= #1  " + stateBits + "'b0;");  
 		this.addRegAssign(groupName,  e1StateName + " <= #1  " + e1StateNextName + ";");  
+
+		//  define transaction counter and next value
+		this.addVectorReg(e1TransCountName, addrLowBit, addrWidth + 1); 
+		this.addVectorReg(e1TransCountNextName, addrLowBit, addrWidth + 1); 
+		this.addResetAssign(groupName, builder.getDefaultReset(), e1TransCountName + " <= #1  " + addrWidth + 1 + "'b0;");  
+		this.addRegAssign(groupName,  e1TransCountName + " <= #1  " + e1TransCountNextName + ";");  
 		
 		// state machine init values
 		this.addCombinAssign(groupName,  e1StateNextName + " = " + e1StateName + ";");  
@@ -596,10 +699,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName,  e1WeNextName + " =  1'b0;");  
 		this.addCombinAssign(groupName,  e1AtomicNextName + " =  1'b0;");  
 		this.addCombinAssign(groupName,  e1WrDataNextName + " = " + pioInterfaceWriteDataName + ";");  
-		if (mapHasMultipleAddresses())
-			this.addCombinAssign(groupName,  e1AddressNextName + " = " + pioInterfaceAddressName + ";"); 
 		if (useTransactionSize)
 			this.addCombinAssign(groupName,  e1TransSizeNextName + " = " + pioInterfaceTransactionSizeName + ";"); 
+		// init error outputs to off 
+		this.addCombinAssign(groupName,  e1NackErrorName + " =  1'b0;");   
+		//this.addCombinAssign(groupName,  e1BadSizeErrorName + " =  1'b0;"); 
+		this.addCombinAssign(groupName,  e1BadAddressErrorName + " =  1'b0;");  
+		// init transaction count and address
+		this.addCombinAssign(groupName,  e1TransCountNextName + " = " + e1TransCountName + ";"); // transaction count holds by default
+		this.addCombinAssign(groupName,  e1AddressNextName + " = {1'b0, " + pioInterfaceAddressName + "};"); // address holds by default
 			
 		// state machine  /
 		String IDLE = stateBits + "'h0"; 
@@ -610,13 +718,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		// IDLE
 		this.addCombinAssign(groupName, "  " + IDLE + ": begin // IDLE");
+		// init transaction count, address and transaction size
+		this.addCombinAssign(groupName, "      " + e1TransCountNextName + " = " + addrWidth + 1 + "'b0;");
+		this.addCombinAssign(groupName, "      " + e1AddressNextName + " = {1'b0, " + e1AddressStartName + "};");  // set start address
+		if (useTransactionSize)
+		    this.addCombinAssign(groupName, "      " + e1TransSizeNextName + " = " + e1WrSizeName + ";");  // set transaction size
 		// go on e1_start
 		this.addCombinAssign(groupName, "      if (" + e1StartName + " && !" + e1StopName + ") begin");  
-		// set address and transaction size
-		if (mapHasMultipleAddresses())
-		    this.addCombinAssign(groupName, "        " + e1AddressNextName + " = " + e1AddressStartName + ";");  // set start address
-		if (useTransactionSize)
-		    this.addCombinAssign(groupName, "        " + e1TransSizeNextName + " = " + e1WrSizeName + ";");  // set transaction size
 		// if rmw then read first
 		this.addCombinAssign(groupName, "        if (" + e1RmwName + ") begin");  
 		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + READ + ";");
@@ -633,8 +741,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		// READ
 		this.addCombinAssign(groupName, "  " + READ + ": begin // READ");
+        // go on ack received
 		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + ") begin");  // ack  
-		this.addCombinAssign(groupName, "        if (" + e1RmwName + ") begin");   
+        // if stop we're done
+		this.addCombinAssign(groupName, "        if (" + e1StopName + ") begin");
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "        end"); 
+		// else next write
+		this.addCombinAssign(groupName, "        else if (" + e1RmwName + ") begin");   
 		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + WRITE + ";");
 		this.addCombinAssign(groupName, "          " + e1WeNextName + " =  1'b1;");  
 		this.addCombinAssign(groupName, "          " + e1WrDataNextName + " = ((" + e1WriteDataName + " & ~" + e1WriteMaskName + ") | (" +
@@ -642,33 +756,53 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "        end"); 
 		this.addCombinAssign(groupName, "        else "+ e1StateNextName + " = " + IDLE + ";"); // read-only case not supported
 		this.addCombinAssign(groupName, "      end"); 
-		this.addCombinAssign(groupName, "      else if (" + pioInterfaceNackName + " || " + e1StopName + ") begin");  // nack or stop //TODO - stop moves to front
+		// error on nack
+		this.addCombinAssign(groupName, "      else if (" + pioInterfaceNackName + ") begin"); 
 		this.addCombinAssign(groupName, "        " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "        " + e1NackErrorName + " =  1'b1;"); 
 		this.addCombinAssign(groupName, "      end"); 
-		this.addCombinAssign(groupName, "      else begin");  // else wait
+		// else wait here
+		this.addCombinAssign(groupName, "      else begin"); 
 		this.addCombinAssign(groupName, "        " + e1ReNextName + " =  1'b1;");  
 		this.addCombinAssign(groupName, "        " + e1AtomicNextName + " =  " + e1RmwName + ";");  
 		this.addCombinAssign(groupName, "      end"); 
 		this.addCombinAssign(groupName, "    end"); 
 
 		// WRITE
-		this.addCombinAssign(groupName, "  " + WRITE + ": begin // WRITE"); // TODO check for ack/nack/stop, check for max count if not rmw, out of range address
-		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + ") begin");  // ack  
+		this.addCombinAssign(groupName, "  " + WRITE + ": begin // WRITE");
+        // go on ack received
+		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + ") begin");    
         // bump next transactions count and address
-		this.addCombinAssign(groupName, "        if (" + e1RmwName + ") begin");   
-		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + READ + ";");  // TODO - only bump count in WRITE??
+		this.addCombinAssign(groupName, "      " + e1TransCountNextName + " = " + e1TransCountName + " + " + addrWidth + 1 + "'b1;"); // bump the count
+		this.addCombinAssign(groupName, "      " + e1AddressNextName + " = " + pioInterfaceAddressName + " + " + e1AddressStepName + ";");  // bump the address
+        // if max count reached or stop we're done
+		this.addCombinAssign(groupName, "        if ((" + e1TransCountNextName + " == {1'b0," + e1MaxTransCountName + "}) || " + e1StopName + ") begin");
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "        end"); 
+		// other wise detect an out of range address    
+		this.addCombinAssign(groupName, "        else if (" + e1AddressNextName + SystemVerilogSignal.genRefArrayString(addrLowBit + addrWidth + 1, 1) + " == 1'b1) begin");
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "          " + e1BadAddressErrorName + " =  1'b1;"); 
+		this.addCombinAssign(groupName, "        end"); 
+		// else next read
+		this.addCombinAssign(groupName, "        else if (" + e1RmwName + ") begin");   
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + READ + ";");
 		this.addCombinAssign(groupName, "          " + e1ReNextName + " =  1'b1;");  
 		this.addCombinAssign(groupName, "          " + e1AtomicNextName + " =  " + e1RmwName + ";");  
 		this.addCombinAssign(groupName, "        end"); 
+		// else another write
 		this.addCombinAssign(groupName, "        else begin");
 		this.addCombinAssign(groupName, "          "+ e1StateNextName + " = " + WRITE + ";"); 
 		this.addCombinAssign(groupName, "        " + e1WeNextName + " =  1'b1;");  
 		this.addCombinAssign(groupName, "        end"); 
-		this.addCombinAssign(groupName, "      end"); 
-		this.addCombinAssign(groupName, "      else if (" + pioInterfaceNackName + " || " + e1StopName + ") begin");  // nack or stop  //TODO - stop moves to front
+		this.addCombinAssign(groupName, "      end");
+		// error on nack
+		this.addCombinAssign(groupName, "      else if (" + pioInterfaceNackName + ") begin");  // nack or stop
 		this.addCombinAssign(groupName, "        " + e1StateNextName + " = " + IDLE + ";");  
-		this.addCombinAssign(groupName, "      end"); 
-		this.addCombinAssign(groupName, "      else begin");  // else wait
+		this.addCombinAssign(groupName, "        " + e1NackErrorName + " =  1'b1;"); 
+		this.addCombinAssign(groupName, "      end");
+		// else wait here
+		this.addCombinAssign(groupName, "      else begin");
 		this.addCombinAssign(groupName, "        " + e1WeNextName + " =  1'b1;");  
 		this.addCombinAssign(groupName, "      end"); 
 		this.addCombinAssign(groupName, "    end"); 
@@ -884,7 +1018,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addResetAssign(getGroupPrefix(isPrimary) + "leaf i/f", builder.getDefaultReset(), ioRetryAtomic + " <= #1  1'b0;");  // reset for retry atomic 
 			this.addRegAssign(getGroupPrefix(isPrimary) + "leaf i/f", ioRetryAtomic + " <= #1 " + ioRetryAtomic + "_next;");  
 			this.addWireAssign(ioRetryAtomic + "_next = " + sigBlockSel + " & " + ioWrValid + "_active & (" + ioCycle + " == 2'b00)" + 
-			                       " & (" + ioWrWidth + SystemVerilogSignal.genRefArrayString(0, builder.getMaxWordBitSize()) + " < reg_width);");  // TODO reg_width not on internal arb intf?
+			                       " & (" + ioWrWidth + SystemVerilogSignal.genRefArrayString(0, builder.getMaxWordBitSize()) + " < reg_width);");  // Note: reg_width bypasses internal arbiter
 		}
 		else {
 			// min sized reg space so just set size to zero and inhibit retry

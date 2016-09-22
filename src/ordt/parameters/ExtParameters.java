@@ -377,7 +377,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 			else if (value.equals("ring8")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.RING8;
 			else if (value.equals("ring16")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.RING16;
 			else if (value.equals("ring32")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.RING32;
-			else if (value.equals("paallel")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.PARALLEL;
+			else if (value.equals("parallel")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.PARALLEL;
 			else if (value.equals("engine1")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.ENGINE1;
 			else sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.NONE;  // no interface is default
 		}
