@@ -38,6 +38,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	protected final String pioInterfaceReadDataName = "dec_pio_read_data";
 	protected final String pioInterfaceAckName = "dec_pio_ack";
 	protected final String pioInterfaceNackName = "dec_pio_nack";
+	protected final String pioInterfaceAckNextName = pioInterfaceAckName + "_next";  // early ack/nack needed in leaf i/f
+	protected final String pioInterfaceNackNextName = pioInterfaceNackName + "_next";
 	protected final String arbiterAtomicName = "arb_atomic_request";
 	
 	protected List<AddressableInstanceProperties> decoderList = new ArrayList<AddressableInstanceProperties>();    // list of address regs 
@@ -126,8 +128,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	private void genSecondaryPioInterface(RegProperties topRegProperties) {
 		// create interface logic
 		if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.NONE)) return;
-		if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.LEAF)) this.genLeafPioInterface(topRegProperties, false);
-		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.SERIAL8)) this.genSerial8PioInterface(topRegProperties, false);
+		//if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.LEAF)) this.genLeafPioInterface(topRegProperties, false);
+		if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.SERIAL8)) this.genSerial8PioInterface(topRegProperties, false);
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING8)) this.genRingPioInterface(8, topRegProperties, false);
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING16)) this.genRingPioInterface(16, topRegProperties, false);
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING32)) this.genRingPioInterface(32, topRegProperties, false);
@@ -191,20 +193,20 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// ------------- add ack/nack output regs
 		this.addScalarReg(pioInterfaceAckName);  // return ack
 		this.addScalarReg(pioInterfaceNackName);  // return nack
-		this.addScalarReg(pioInterfaceAckName + "_next");  // next return ack
-		this.addScalarReg(pioInterfaceNackName + "_next");  // next return nack
+		this.addScalarReg(pioInterfaceAckNextName);  // next return ack
+		this.addScalarReg(pioInterfaceNackNextName);  // next return nack
 
         // pio output reg assignments
 		this.addResetAssign("pio ack/nack", builder.getDefaultReset(), pioInterfaceAckName + " <= #1 1'b0;");  // reset for ack
 		this.addResetAssign("pio ack/nack", builder.getDefaultReset(), pioInterfaceNackName + " <= #1 1'b0;");  // reset for nack 
-		this.addRegAssign("pio ack/nack",  pioInterfaceAckName + " <= #1 " + pioInterfaceAckName + " ? 1'b0 : " + pioInterfaceAckName + "_next;");  // return ack		   
-		this.addRegAssign("pio ack/nack",  pioInterfaceNackName + " <= #1 " + pioInterfaceNackName + " ? 1'b0 : " + pioInterfaceNackName + "_next;");  // return nack		   
+		this.addRegAssign("pio ack/nack",  pioInterfaceAckName + " <= #1 " + pioInterfaceAckName + " ? 1'b0 : " + pioInterfaceAckNextName + ";");  // return ack		   
+		this.addRegAssign("pio ack/nack",  pioInterfaceNackName + " <= #1 " + pioInterfaceNackName + " ? 1'b0 : " + pioInterfaceNackNextName + ";");  // return nack		   
 		
 		this.addScalarReg("pio_internal_ack");    // set in decoder case	statement	   
 		this.addScalarReg("pio_internal_nack");  
 		this.addCombinAssign("pio ack/nack", "pio_internal_nack = (pio_read_active | pio_write_active) & ~pio_internal_ack & ~external_transaction_active;");  // internal nack  
-		this.addCombinAssign("pio ack/nack",  pioInterfaceAckName + "_next = (pio_internal_ack | (pio_external_ack_next & external_transaction_active));");  // return ack	   
-		this.addCombinAssign("pio ack/nack",  pioInterfaceNackName + "_next = (pio_internal_nack | (pio_external_nack_next & external_transaction_active));");  // return nack		   
+		this.addCombinAssign("pio ack/nack",  pioInterfaceAckNextName + " = (pio_internal_ack | (pio_external_ack_next & external_transaction_active));");  // return ack	   
+		this.addCombinAssign("pio ack/nack",  pioInterfaceNackNextName + " = (pio_internal_nack | (pio_external_nack_next & external_transaction_active));");  // return nack		   
 		
 		this.addScalarReg("pio_external_ack");    // set in decoder case	statement via ios from hw		   
 		this.addScalarReg("pio_external_nack");    		   
@@ -245,6 +247,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String p1ReadDataName = getSigName(true, this.pioInterfaceReadDataName);
 		String p1AckName = getSigName(true, this.pioInterfaceAckName);
 		String p1NackName = getSigName(true, this.pioInterfaceNackName);
+		String p1AckNextName = getSigName(true, this.pioInterfaceAckNextName);
+		String p1NackNextName = getSigName(true, this.pioInterfaceNackNextName);
 		String p1AtomicName = getSigName(true, this.arbiterAtomicName);
 		// set p2 internal interface names
 		String p2AddressName = getSigName(false, this.pioInterfaceAddressName);
@@ -256,16 +260,22 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String p2ReadDataName = getSigName(false, this.pioInterfaceReadDataName);
 		String p2AckName = getSigName(false, this.pioInterfaceAckName);
 		String p2NackName = getSigName(false, this.pioInterfaceNackName);
+		String p2AckNextName = getSigName(false, this.pioInterfaceAckNextName);
+		String p2NackNextName = getSigName(false, this.pioInterfaceNackNextName);
 		String p2AtomicName = getSigName(false, this.arbiterAtomicName);
 		
 		// create p1, p2 interface outputs
 		this.addVectorWire(p1ReadDataName, 0, builder.getMaxRegWidth());  //  read data output  
 		this.addScalarReg(p1AckName);  // return ack
 		this.addScalarReg(p1NackName);  // return nack
+		this.addScalarReg(p1AckNextName);  // return early ack
+		this.addScalarReg(p1NackNextName);  // return early nack
 		if (builder.getMaxRegWordWidth() > 1) this.addVectorWire(p1RetTransactionSizeName, 0, builder.getMaxWordBitSize());  //  register the size
 		this.addVectorWire(p2ReadDataName, 0, builder.getMaxRegWidth());  //  read data output  
 		this.addScalarReg(p2AckName);  // return ack
 		this.addScalarReg(p2NackName);  // return nack
+		this.addScalarReg(p2AckNextName);  // return early ack
+		this.addScalarReg(p2NackNextName);  // return early nack
 		if (builder.getMaxRegWordWidth() > 1) this.addVectorWire(p2RetTransactionSizeName, 0, builder.getMaxWordBitSize());  //  register the size
 		
 		// create common internal i/f inputs
@@ -435,7 +445,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		this.addCombinAssign(groupName, "endcase"); 
 		
-		// create a separate always block to assign ack
+		// create a separate always block to assign ack/nack
 		groupName = "interface arbiter acks/nacks";  
 		this.addCombinAssign(groupName,  p1AckName + " =  1'b0;");  // p1 ack
 		this.addCombinAssign(groupName,  p1NackName + " =  1'b0;");   // p1 nack
@@ -452,6 +462,24 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "else if (" + arbStateName + " == " + P2_NACK + ") begin");  
 		this.addCombinAssign(groupName, "  " + p2NackName + " = 1'b1;");
 		this.addCombinAssign(groupName, "end"); 
+		
+		// create a separate always block to assign early ack/nack
+		groupName = "interface arbiter early acks/nacks";  
+		this.addCombinAssign(groupName,  p1AckNextName + " =  1'b0;");  // p1 next ack
+		this.addCombinAssign(groupName,  p1NackNextName + " =  1'b0;");   // p1 next nack
+		this.addCombinAssign(groupName,  p2AckNextName + " =  1'b0;");  // p2 next ack
+		this.addCombinAssign(groupName,  p2NackNextName + " =  1'b0;");   // p2 next nack
+		this.addCombinAssign(groupName, "if (" + arbStateName + " == " + P1_ACTIVE + ") begin");  
+		this.addCombinAssign(groupName, "  " + p1AckNextName + " = " + pioInterfaceAckNextName + ";");
+		this.addCombinAssign(groupName, "  " + p1NackNextName + " = " + pioInterfaceNackNextName + ";");
+		this.addCombinAssign(groupName, "end"); 
+		this.addCombinAssign(groupName, "else if (" + arbStateName + " == " + P2_ACTIVE + ") begin");  
+		this.addCombinAssign(groupName, "  " + p2AckNextName + " = " + pioInterfaceAckNextName + ";");
+		this.addCombinAssign(groupName, "  " + p2NackNextName + " = " + pioInterfaceNackNextName + ";");
+		this.addCombinAssign(groupName, "end"); 
+		//this.addCombinAssign(groupName, "else if (" + arbStateName + " == " + P2_NACK + ") begin");  
+		//this.addCombinAssign(groupName, "  " + p2NackNextName + " = 1'b1;");   // TODO - this is a cycle late so addr guard wont work on secondary leaf
+		//this.addCombinAssign(groupName, "end"); 
 		
 		// create a separate always block to assign ack
 		groupName = "interface arbiter input select";  
@@ -634,14 +662,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String e1StateName = getSigName(isPrimary, "e1_state");                      
 		String e1StateNextName = getSigName(isPrimary, "e1_state_next");                      
 		String e1TransCountName = getSigName(isPrimary, "e1_trans_count");                 
-		String e1TransCountNextName = getSigName(isPrimary, e1TransCountName + "_next");                 
+		String e1TransCountNextName = e1TransCountName + "_next";                 
 
-		String e1AddressNextName = getSigName(isPrimary, pioInterfaceAddressName + "_next");                      
-		String e1WrDataNextName = getSigName(isPrimary, pioInterfaceWriteDataName + "_next"); 
-		String e1TransSizeNextName = getSigName(isPrimary, pioInterfaceTransactionSizeName + "_next"); 
-		String e1WeNextName = getSigName(isPrimary, pioInterfaceWeName + "_next"); 
-		String e1ReNextName = getSigName(isPrimary, pioInterfaceReName + "_next"); 
-		String e1AtomicNextName = getSigName(isPrimary, arbiterAtomicName + "_next"); 
+		String e1AddressNextName = pioInterfaceAddressName + "_next";                      
+		String e1WrDataNextName = pioInterfaceWriteDataName + "_next"; 
+		String e1TransSizeNextName = pioInterfaceTransactionSizeName + "_next"; 
+		String e1WeNextName = pioInterfaceWeName + "_next"; 
+		String e1ReNextName = pioInterfaceReName + "_next"; 
+		String e1AtomicNextName = arbiterAtomicName + "_next"; 
 		
 		// define the internal interface signals
 		this.addVectorReg(pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
@@ -827,6 +855,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String pioInterfaceReadDataName = getSigName(isPrimary, this.pioInterfaceReadDataName);
 		String pioInterfaceAckName = getSigName(isPrimary, this.pioInterfaceAckName);
 		String pioInterfaceNackName = getSigName(isPrimary, this.pioInterfaceNackName);
+		String pioInterfaceAckNextName = getSigName(isPrimary, this.pioInterfaceAckNextName);
+		String pioInterfaceNackNextName = getSigName(isPrimary, this.pioInterfaceNackNextName);
 		String arbiterAtomicName = getSigName(isPrimary, this.arbiterAtomicName);
 		// set IO names
 		String ioWrDataName = getSigName(isPrimary, "leaf_dec_wr_data");
@@ -961,7 +991,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		this.addScalarReg(ioValid + "_hld1_next");  //  valid activated at valid input, deactivated at ack/nack
 		this.addCombinAssign(getGroupPrefix(isPrimary) + "leaf i/f",  ioValid + "_hld1_next = " + ioValid + " | " + ioValid + "_hld1;");  
-		this.addCombinAssign(getGroupPrefix(isPrimary) + "leaf i/f",  "if (dec_pio_ack_next | dec_pio_nack_next) " + ioValid + "_hld1_next = 1'b0;");  
+		this.addCombinAssign(getGroupPrefix(isPrimary) + "leaf i/f",  "if (" + pioInterfaceAckNextName + " | " + pioInterfaceNackNextName + ") " + ioValid + "_hld1_next = 1'b0;");  
 		this.addScalarWire(ioValid + "_active");  //  active if valid or valid_dly
 
 		this.addScalarReg(ioWrValid + "_hld1");  //  delayed wr_dvld active
@@ -970,7 +1000,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		this.addScalarReg(ioWrValid + "_hld1_next");  //  wr_dvld activated at wr_dvld input, deactivated at ack/nack/valid
 		this.addCombinAssign(getGroupPrefix(isPrimary) + "leaf i/f",  ioWrValid + "_hld1_next = " + ioWrValid + " | " + ioWrValid + "_hld1;");  
-		this.addCombinAssign(getGroupPrefix(isPrimary) + "leaf i/f",  "if (dec_pio_ack_next | dec_pio_nack_next | " + ioValid + ") " + ioWrValid + "_hld1_next = 1'b0;");  
+		this.addCombinAssign(getGroupPrefix(isPrimary) + "leaf i/f",  "if (" + pioInterfaceAckNextName + " | " + pioInterfaceNackNextName + " | " + ioValid + ") " + ioWrValid + "_hld1_next = 1'b0;");  
 		this.addScalarWire(ioWrValid + "_active");  //  active if wr_dvld or wr_dvld_dly
 
 		this.addWireAssign(ioWrValid + "_active = " + ioWrValid + " | " + ioWrValid + "_hld1;");	
