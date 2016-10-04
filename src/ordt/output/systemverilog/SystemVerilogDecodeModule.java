@@ -478,7 +478,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "  " + p2NackNextName + " = " + pioInterfaceNackNextName + ";");
 		this.addCombinAssign(groupName, "end"); 
 		//this.addCombinAssign(groupName, "else if (" + arbStateName + " == " + P2_NACK + ") begin");  
-		//this.addCombinAssign(groupName, "  " + p2NackNextName + " = 1'b1;");   // TODO - this is a cycle late so addr guard wont work on secondary leaf
+		//this.addCombinAssign(groupName, "  " + p2NackNextName + " = 1'b1;");   // Note this is a cycle late so addr guard wont work on secondary leaf
 		//this.addCombinAssign(groupName, "end"); 
 		
 		// create a separate always block to assign ack
@@ -620,35 +620,93 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int regWordBits = Utils.getBits(regWords);
 		boolean useTransactionSize = (regWords > 1);  // if transaction sizes need to be sent/received
 		
-		// engine1 control inputs  TODO - fix debug tieoffs and replace w IO
-		String e1WriteDataName = getSigName(isPrimary, "e1_write_data");                      
-		String e1WriteMaskName = getSigName(isPrimary, "e1_write_mask");                      
-		String e1AddressStartName = getSigName(isPrimary, "e1_address_start");                      
-		String e1AddressStepName = getSigName(isPrimary, "e1_address_step");                      
-		String e1MaxTransCountName = getSigName(isPrimary, "e1_max_trans_count");   // number of transactions (-1)                  
-		String e1WrSizeName = getSigName(isPrimary, "e1_write_trans_size");                      
-		String e1RmwName = getSigName(isPrimary, "e1_rmw"); 
-		String e1StartName = getSigName(isPrimary, "e1_start"); 
-		String e1StopName = getSigName(isPrimary, "e1_stop"); 
-		String e1NackErrorName = getSigName(isPrimary, "e1_nack_error"); 
-		//String e1BadSizeErrorName = getSigName(isPrimary, "e1_bad_size_error"); 
-		String e1BadAddressErrorName = getSigName(isPrimary, "e1_bad_address_error"); 
+		// set addr low bit and map width
+		int addrWidth = builder.getMapAddressWidth();
+		int addrLowBit = builder.getAddressLowBit();
 		
+		// engine1 IO hierarchy 
+		String e1BaseHierName = getSigName(isPrimary, "e1");                      
+		String e1CntlHierName = "cntl";                      
+		String e1CntlName = e1BaseHierName + "_" + e1CntlHierName;                      
+		String e1StatusHierName = "status";                      
+		String e1StatusName = e1BaseHierName + "_" + e1StatusHierName;                      
+		
+		// engine1 control inputs 		
+		String e1ReadOnlyHierName = "read_only"; 
+		String e1RmwHierName = "rmw"; 
+		String e1StartHierName = "start"; 
+		String e1StopHierName = "force_stop";
+		String e1StopOnReadHierName = "stop_on_read"; 
+		String e1StopOnCountHierName = "stop_on_count"; 
+		String e1TransDelayHierName = "trans_delay"; 
+
+		String e1WriteDataHierName = "write_data";                      
+		String e1WriteMaskHierName = "write_mask";                      
+		String e1WrSizeHierName = "write_trans_size";
+		
+		String e1AddressStartHierName = "address_start";                      
+		String e1AddressStepHierName = "address_step";                      
+		String e1MaxTransCountHierName = "max_trans_count";   // number of transactions                  
+
+		String e1ReadMatchHierName = "read_match_data";                      
+		String e1ReadCaptureModeHierName = "read_capture_mode";                      
+		String e1ReadMaskHierName = "read_mask";                      
+
+		//
+		String e1ReadOnlyName = e1CntlName + "_" + e1ReadOnlyHierName; 
+		String e1RmwName = e1CntlName + "_" + e1RmwHierName; 
+		String e1StartName = e1CntlName + "_" + e1StartHierName; 
+		String e1StopName = e1CntlName + "_" + e1StopHierName;
+		String e1StopOnReadName = e1CntlName + "_" + e1StopOnReadHierName; // 0- disabled, 1-lt, 2-equals, 3-gt 
+		String e1StopOnCountName = e1CntlName + "_" + e1StopOnCountHierName; 
+		String e1TransDelayName = e1CntlName + "_" + e1TransDelayHierName; 
+		
+		String e1WriteDataName = e1BaseHierName + "_" + e1WriteDataHierName + "_val";                      
+		String e1WriteMaskName = e1BaseHierName + "_" + e1WriteMaskHierName + "_val";                      
+		String e1WrSizeName = e1BaseHierName + "_" + e1WrSizeHierName + "_val";
+		
+		String e1AddressStartName = e1BaseHierName + "_" + e1AddressStartHierName + "_val";                      
+		String e1AddressStepName = e1BaseHierName + "_" + e1AddressStepHierName + "_val";                      
+		String e1MaxTransCountName = e1BaseHierName + "_" + e1MaxTransCountHierName + "_val";   // number of transactions                  
+
+		String e1ReadMatchName = e1BaseHierName + "_" + e1ReadMatchHierName + "_val"; // used for stop on read                     
+		String e1ReadMaskName = e1BaseHierName + "_" + e1ReadMaskHierName + "_val";  // used for stop on read                      
+		String e1ReadCaptureModeName = e1BaseHierName + "_" + e1ReadCaptureModeHierName + "_val";  // 0 - none, 1 - min, 2 - max, 3 - all                    
+
+		// engine1 outputs
+		String e1StateHierName = "state";                      
+		String e1NackErrorHierName = "nack_error"; 
+		//String e1BadSizeErrorHierName = "bad_size_error"); 
+		String e1BadAddressErrorHierName = "bad_address_error"; 
+
+		String e1LastReadDataHierName = "last_read_data";                      
+
+		//
+		String e1StateName = e1StatusName + "_" + e1StateHierName;                      
+		String e1NackErrorName = e1StatusName + "_" + e1NackErrorHierName; 
+		//String e1BadSizeErrorName = e1StatusName + "_" + e1BadSizeErrorHierName;; 
+		String e1BadAddressErrorName = e1StatusName + "_" + e1BadAddressErrorHierName; 
+		
+		String e1LastReadDataName = e1BaseHierName + "_" + e1LastReadDataHierName + "_val";                      
+
+		// create hierarchical IO so we can encapsulate in an interface
+		// TODO - fix debug tieoffs and replace w IO
+		int stateBits = 3;  // state machine bits
+        int delayCountBits = 10;  // delay counter bits
+        
 		this.addVectorWire(e1WriteDataName, 0, regWidth); 
 		this.addWireAssign(e1WriteDataName + " = " + regWidth + "'ha5a5a5a5;");
 		this.addVectorWire(e1WriteMaskName, 0, regWidth); 
 		this.addWireAssign(e1WriteMaskName + " = " + regWidth + "'h0;");  // default to no bits masked off (use write data)
 		
-		int addrWidth = builder.getMapAddressWidth();
-		int addrLowBit = builder.getAddressLowBit();
 		this.addVectorWire(e1AddressStartName, addrLowBit, addrWidth); 
 		this.addVectorWire(e1MaxTransCountName, addrLowBit, addrWidth); 
 		this.addVectorWire(e1AddressStepName, addrLowBit, addrWidth); 
 		this.addWireAssign(e1AddressStartName + " = " + addrWidth + "'h0;");
-		this.addWireAssign(e1MaxTransCountName + " = " + addrWidth + "'d2;");  // should do 3 
+		this.addWireAssign(e1MaxTransCountName + " = " + addrWidth + "'d2;");  // should do 2 
 		this.addWireAssign(e1AddressStepName + " = " + addrWidth + "'h2;");  // every other 32b reg
 		if (useTransactionSize) {
-			this.addVectorReg(e1WrSizeName, 0, regWordBits);
+			this.addVectorWire(e1WrSizeName, 0, regWordBits);
 			this.addWireAssign(e1WrSizeName + " = " + regWordBits + "'h0;");
 		}
 		this.addScalarWire(e1RmwName); 
@@ -659,10 +717,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addWireAssign(e1StopName + " = 1'b0;");
 		
 		// engine1 state machine signals  
-		String e1StateName = getSigName(isPrimary, "e1_state");                      
 		String e1StateNextName = getSigName(isPrimary, "e1_state_next");                      
 		String e1TransCountName = getSigName(isPrimary, "e1_trans_count");                 
 		String e1TransCountNextName = e1TransCountName + "_next";                 
+		String e1DelayCountName = getSigName(isPrimary, "e1_delay_count");                 
+		String e1DelayCountNextName = e1DelayCountName + "_next";                 
 
 		String e1AddressNextName = pioInterfaceAddressName + "_next";                      
 		String e1WrDataNextName = pioInterfaceWriteDataName + "_next"; 
@@ -670,6 +729,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String e1WeNextName = pioInterfaceWeName + "_next"; 
 		String e1ReNextName = pioInterfaceReName + "_next"; 
 		String e1AtomicNextName = arbiterAtomicName + "_next"; 
+		String e1LastReadDataNextName = e1LastReadDataName + "_next";                       
 		
 		// define the internal interface signals
 		this.addVectorReg(pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
@@ -706,10 +766,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceTransactionSizeName + " <= #1  " + regWordBits + "'b0;");  
 			this.addRegAssign(groupName,  pioInterfaceTransactionSizeName + " <= #1  " + e1TransSizeNextName + ";");  
 		}
+		// assign sm outputs to external interface // TODO - need to add state and assigns to IO
+		this.addVectorReg(e1LastReadDataName, 0, builder.getMaxRegWidth());  //  rd data to be output externally
+		this.addVectorReg(e1LastReadDataNextName, 0, builder.getMaxRegWidth());  
+		this.addResetAssign(groupName, builder.getDefaultReset(), e1LastReadDataName + " <= #1  " + builder.getMaxRegWidth() + "'b0;");  
+		this.addRegAssign(groupName,  e1LastReadDataName + " <= #1  " + e1LastReadDataNextName + ";");  
 		
 		// now create state machine vars
 		groupName = getGroupPrefix(isPrimary) + "engine1 i/f sm";  
-		int stateBits = 2;
 		this.addVectorReg(e1StateName, 0, stateBits);  
 		this.addVectorReg(e1StateNextName, 0, stateBits);  
 		this.addResetAssign(groupName, builder.getDefaultReset(), e1StateName + " <= #1  " + stateBits + "'b0;");  
@@ -720,6 +784,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorReg(e1TransCountNextName, addrLowBit, addrWidth + 1); 
 		this.addResetAssign(groupName, builder.getDefaultReset(), e1TransCountName + " <= #1  " + addrWidth + 1 + "'b0;");  
 		this.addRegAssign(groupName,  e1TransCountName + " <= #1  " + e1TransCountNextName + ";");  
+
+		//  define delay counter and next value
+		this.addVectorReg(e1DelayCountName, 0, delayCountBits); 
+		this.addVectorReg(e1DelayCountNextName, 0, delayCountBits); 
+		this.addResetAssign(groupName, builder.getDefaultReset(), e1DelayCountName + " <= #1  " + delayCountBits + "'b0;");  
+		this.addRegAssign(groupName,  e1DelayCountName + " <= #1  " + e1DelayCountNextName + ";");  
 		
 		// state machine init values
 		this.addCombinAssign(groupName,  e1StateNextName + " = " + e1StateName + ";");  
@@ -727,6 +797,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName,  e1WeNextName + " =  1'b0;");  
 		this.addCombinAssign(groupName,  e1AtomicNextName + " =  1'b0;");  
 		this.addCombinAssign(groupName,  e1WrDataNextName + " = " + pioInterfaceWriteDataName + ";");  
+		this.addCombinAssign(groupName,  e1LastReadDataNextName + " = " + e1LastReadDataName + ";");  
 		if (useTransactionSize)
 			this.addCombinAssign(groupName,  e1TransSizeNextName + " = " + pioInterfaceTransactionSizeName + ";"); 
 		// init error outputs to off 
@@ -736,53 +807,139 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// init transaction count and address
 		this.addCombinAssign(groupName,  e1TransCountNextName + " = " + e1TransCountName + ";"); // transaction count holds by default
 		this.addCombinAssign(groupName,  e1AddressNextName + " = {1'b0, " + pioInterfaceAddressName + "};"); // address holds by default
+		this.addCombinAssign(groupName,  e1DelayCountNextName + " = " + delayCountBits + "'b0;"); // delay count is cleared by default
 			
-		// state machine  /
+		// read data capture modes    0 - none, 1 - min, 2 - max, 3 - all
+		//String RD_CAP_NONE = "2'h0"; 
+		String RD_CAP_MIN = "2'h1"; 
+		String RD_CAP_MAX = "2'h2"; 
+		String RD_CAP_ALL = "2'h3"; 
+		
+	    // stop on read modes     0- disabled, 1-lt, 2-equals, 3-gt
+		//String RD_STOP_OFF = "2'h0"; 
+		String RD_STOP_LT = "2'h1"; 
+		String RD_STOP_EQ = "2'h2"; 
+		String RD_STOP_GT = "2'h3"; 
+		
+		// state machine states
 		String IDLE = stateBits + "'h0"; 
-		String READ = stateBits + "'h1"; 
-		String WRITE = stateBits + "'h2"; 
+		String READ_WAIT = stateBits + "'h1"; 
+		String WRITE_WAIT = stateBits + "'h2"; 
+		String READ = stateBits + "'h3"; 
+		String WRITE = stateBits + "'h4"; 
 				
 		this.addCombinAssign(groupName, "case (" + e1StateName + ")"); 
 
 		// IDLE
-		this.addCombinAssign(groupName, "  " + IDLE + ": begin // IDLE");
+		this.addCombinAssign(groupName, "  " + IDLE + ": begin // IDLE");  
 		// init transaction count, address and transaction size
 		this.addCombinAssign(groupName, "      " + e1TransCountNextName + " = " + addrWidth + 1 + "'b0;");
 		this.addCombinAssign(groupName, "      " + e1AddressNextName + " = {1'b0, " + e1AddressStartName + "};");  // set start address
 		if (useTransactionSize)
 		    this.addCombinAssign(groupName, "      " + e1TransSizeNextName + " = " + e1WrSizeName + ";");  // set transaction size
+        // if looking for min read value, init read data high
+		this.addCombinAssign(groupName, "        if (" + e1ReadCaptureModeName + " == " + RD_CAP_MIN + ")");
+		this.addCombinAssign(groupName, "          " +  e1LastReadDataNextName + " = ~" + builder.getMaxRegWidth() + "'b0;");  
 		// go on e1_start
 		this.addCombinAssign(groupName, "      if (" + e1StartName + " && !" + e1StopName + ") begin");  
-		// if rmw then read first
-		this.addCombinAssign(groupName, "        if (" + e1RmwName + ") begin");  
-		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + READ + ";");
-		this.addCombinAssign(groupName, "          " + e1ReNextName + " =  1'b1;");  
-		this.addCombinAssign(groupName, "          " + e1AtomicNextName + " =  1'b1;");  
+		// if rmw or read-only then read first
+		this.addCombinAssign(groupName, "        if (" + e1ReadOnlyName + " || " + e1RmwName + ") begin");  
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + READ_WAIT + ";");
 		this.addCombinAssign(groupName, "        end"); 
+		// otherwise write-only
 		this.addCombinAssign(groupName, "        else begin");
-		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + WRITE + ";");  
-		this.addCombinAssign(groupName, "          " + e1WeNextName + " =  1'b1;");  
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + WRITE_WAIT + ";");  
 		this.addCombinAssign(groupName, "          " + e1WrDataNextName + " = " + e1WriteDataName + ";");  // no rmw so use write data as-is
 		this.addCombinAssign(groupName, "        end"); 
 		this.addCombinAssign(groupName, "      end");  // start
 		this.addCombinAssign(groupName, "    end"); 
 
+		// READ_WAIT
+		this.addCombinAssign(groupName, "  " + READ_WAIT + ": begin // READ_WAIT"); 
+		// start the delay counter
+		this.addCombinAssign(groupName, "      " + e1DelayCountNextName + " = " + e1DelayCountName + " + " + delayCountBits + "'b1;");
+        // if stop we're done
+		this.addCombinAssign(groupName, "      if (" + e1StopName + ") begin");
+		this.addCombinAssign(groupName, "        " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "      end"); 
+		// if stop on read match we're done
+		this.addCombinAssign(groupName, "      else if (|" + e1TransCountName + ") begin");  // non-zero trans count
+		this.addCombinAssign(groupName, "        if ((" + e1StopOnReadName + " == " + RD_STOP_EQ + ") && ((" + e1LastReadDataName + " & ~" + e1ReadMaskName + ") == " + e1ReadMatchName + "))");
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "        if ((" + e1StopOnReadName + " == " + RD_STOP_LT + ") && ((" + e1LastReadDataName + " & ~" + e1ReadMaskName + ") < " + e1ReadMatchName + "))");
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "        if ((" + e1StopOnReadName + " == " + RD_STOP_GT + ") && ((" + e1LastReadDataName + " & ~" + e1ReadMaskName + ") > " + e1ReadMatchName + "))");
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "      end"); 
+		// go to read on delay count done
+		this.addCombinAssign(groupName, "      else if (" + e1DelayCountName + " == " + e1TransDelayName + ") begin");  
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + READ + ";");
+		this.addCombinAssign(groupName, "          " + e1ReNextName + " =  1'b1;");  
+		this.addCombinAssign(groupName, "          " + e1AtomicNextName + " =  " + e1RmwName + ";");
+		this.addCombinAssign(groupName, "      end");  // count done
+		this.addCombinAssign(groupName, "    end"); 
+
+		// WRITE_WAIT
+		this.addCombinAssign(groupName, "  " + WRITE_WAIT + ": begin // WRITE_WAIT"); 
+		// start the delay counter
+		this.addCombinAssign(groupName, "      " + e1DelayCountNextName + " = " + e1DelayCountName + " + " + delayCountBits + "'b1;");
+        // if stop we're done
+		this.addCombinAssign(groupName, "      if (" + e1StopName + ") begin");
+		this.addCombinAssign(groupName, "        " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "      end"); 
+		// if stop on read match we're done
+		this.addCombinAssign(groupName, "      else if (|" + e1TransCountName + ") begin");  // non-zero trans count
+		this.addCombinAssign(groupName, "        if ((" + e1StopOnReadName + " == " + RD_STOP_EQ + ") && ((" + e1LastReadDataName + " & ~" + e1ReadMaskName + ") == " + e1ReadMatchName + "))");
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "        if ((" + e1StopOnReadName + " == " + RD_STOP_LT + ") && ((" + e1LastReadDataName + " & ~" + e1ReadMaskName + ") < " + e1ReadMatchName + "))");
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "        if ((" + e1StopOnReadName + " == " + RD_STOP_GT + ") && ((" + e1LastReadDataName + " & ~" + e1ReadMaskName + ") > " + e1ReadMatchName + "))");
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "      end"); 
+		// go to read on delay count done
+		this.addCombinAssign(groupName, "      else if (" + e1DelayCountName + " == " + e1TransDelayName + ") begin");  
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + WRITE + ";");  
+		this.addCombinAssign(groupName, "          " + e1WeNextName + " =  1'b1;");  
+		this.addCombinAssign(groupName, "      end");  // count done
+		this.addCombinAssign(groupName, "    end"); 
+
 		// READ
 		this.addCombinAssign(groupName, "  " + READ + ": begin // READ");
         // go on ack received
-		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + ") begin");  // ack  
-        // if stop we're done
+		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + ") begin");  // ack 
+        // bump next transactions count and address
+		this.addCombinAssign(groupName, "        if (" + e1ReadOnlyName + ") begin");
+		this.addCombinAssign(groupName, "          " + e1TransCountNextName + " = " + e1TransCountName + " + " + addrWidth + 1 + "'b1;"); // bump the count
+		this.addCombinAssign(groupName, "          " + e1AddressNextName + " = " + pioInterfaceAddressName + " + " + e1AddressStepName + ";");  // bump the address
+		this.addCombinAssign(groupName, "        end"); 
+        // capture read data 
+		this.addCombinAssign(groupName, "        if (" + e1ReadCaptureModeName + " == " + RD_CAP_ALL + ")");
+		this.addCombinAssign(groupName, "          " + e1LastReadDataNextName + " = " + pioInterfaceReadDataName + ";");
+		this.addCombinAssign(groupName, "        if ((" + e1ReadCaptureModeName + " == " + RD_CAP_MIN + ") && (" + pioInterfaceReadDataName + " < " + e1LastReadDataName + "))");
+		this.addCombinAssign(groupName, "          " + e1LastReadDataNextName + " = " + pioInterfaceReadDataName + ";"); 
+		this.addCombinAssign(groupName, "        if ((" + e1ReadCaptureModeName + " == " + RD_CAP_MAX + ") && (" + pioInterfaceReadDataName + " > " + e1LastReadDataName + "))");
+		this.addCombinAssign(groupName, "          " + e1LastReadDataNextName + " = " + pioInterfaceReadDataName + ";"); 
+		// if stop we're done
 		this.addCombinAssign(groupName, "        if (" + e1StopName + ") begin");
 		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "        end"); 
-		// else next write
+		// else straight to write if rmw
 		this.addCombinAssign(groupName, "        else if (" + e1RmwName + ") begin");   
 		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + WRITE + ";");
 		this.addCombinAssign(groupName, "          " + e1WeNextName + " =  1'b1;");  
 		this.addCombinAssign(groupName, "          " + e1WrDataNextName + " = ((" + e1WriteDataName + " & ~" + e1WriteMaskName + ") | (" +
 				                                                           pioInterfaceReadDataName + " & " + e1WriteMaskName + "));");  // save masked read data 
 		this.addCombinAssign(groupName, "        end"); 
-		this.addCombinAssign(groupName, "        else "+ e1StateNextName + " = " + IDLE + ";"); // read-only case not supported
+		// else next read
+		this.addCombinAssign(groupName, "        else if (" + e1ReadOnlyName + ") begin");   
+		this.addCombinAssign(groupName, "          if (" + e1StopOnCountName + " && (" + e1TransCountNextName + " == {1'b0," + e1MaxTransCountName + "}))");
+		this.addCombinAssign(groupName, "            " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "          else begin"); 
+		this.addCombinAssign(groupName, "            " + e1StateNextName + " = " + READ_WAIT + ";");
+		this.addCombinAssign(groupName, "          end"); 
+		this.addCombinAssign(groupName, "        end"); 
+		// else invalid case (write-only)
+		this.addCombinAssign(groupName, "        else "+ e1StateNextName + " = " + IDLE + ";"); 
 		this.addCombinAssign(groupName, "      end"); 
 		// error on nack
 		this.addCombinAssign(groupName, "      else if (" + pioInterfaceNackName + ") begin"); 
@@ -799,12 +956,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// WRITE
 		this.addCombinAssign(groupName, "  " + WRITE + ": begin // WRITE");
         // go on ack received
-		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + ") begin");    
+		this.addCombinAssign(groupName, "      if (" + pioInterfaceAckName + ") begin");  
         // bump next transactions count and address
-		this.addCombinAssign(groupName, "      " + e1TransCountNextName + " = " + e1TransCountName + " + " + addrWidth + 1 + "'b1;"); // bump the count
-		this.addCombinAssign(groupName, "      " + e1AddressNextName + " = " + pioInterfaceAddressName + " + " + e1AddressStepName + ";");  // bump the address
+		this.addCombinAssign(groupName, "        if (~" + e1ReadOnlyName + ") begin");
+		this.addCombinAssign(groupName, "          " + e1TransCountNextName + " = " + e1TransCountName + " + " + addrWidth + 1 + "'b1;"); // bump the count
+		this.addCombinAssign(groupName, "          " + e1AddressNextName + " = " + pioInterfaceAddressName + " + " + e1AddressStepName + ";");  // bump the address
+		this.addCombinAssign(groupName, "        end"); 
         // if max count reached or stop we're done
-		this.addCombinAssign(groupName, "        if ((" + e1TransCountNextName + " == {1'b0," + e1MaxTransCountName + "}) || " + e1StopName + ") begin");
+		this.addCombinAssign(groupName, "        if ((" + e1StopOnCountName + " && (" + e1TransCountNextName + " == {1'b0," + e1MaxTransCountName + "})) || " + e1StopName + ") begin");
 		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "        end"); 
 		// other wise detect an out of range address    
@@ -814,18 +973,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "        end"); 
 		// else next read
 		this.addCombinAssign(groupName, "        else if (" + e1RmwName + ") begin");   
-		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + READ + ";");
-		this.addCombinAssign(groupName, "          " + e1ReNextName + " =  1'b1;");  
-		this.addCombinAssign(groupName, "          " + e1AtomicNextName + " =  " + e1RmwName + ";");  
+		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + READ_WAIT + ";");
 		this.addCombinAssign(groupName, "        end"); 
 		// else another write
 		this.addCombinAssign(groupName, "        else begin");
-		this.addCombinAssign(groupName, "          "+ e1StateNextName + " = " + WRITE + ";"); 
-		this.addCombinAssign(groupName, "        " + e1WeNextName + " =  1'b1;");  
+		this.addCombinAssign(groupName, "          "+ e1StateNextName + " = " + WRITE_WAIT + ";"); 
 		this.addCombinAssign(groupName, "        end"); 
-		this.addCombinAssign(groupName, "      end");
+		this.addCombinAssign(groupName, "      end");  // ack
 		// error on nack
-		this.addCombinAssign(groupName, "      else if (" + pioInterfaceNackName + ") begin");  // nack or stop
+		this.addCombinAssign(groupName, "      else if (" + pioInterfaceNackName + ") begin");  // nack 
 		this.addCombinAssign(groupName, "        " + e1StateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "        " + e1NackErrorName + " =  1'b1;"); 
 		this.addCombinAssign(groupName, "      end");
