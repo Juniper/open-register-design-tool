@@ -229,7 +229,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		// assign of signal is made after builder processing when all rhs references can be resolved.
 		if (signalProperties.hasAssignExpr()) {
 			logic.addVectorReg(signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), signalProperties.getLowIndex(), signalProperties.getSignalWidth());  
-			logic.addVectorTo(HW, signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), 0, signalProperties.getSignalWidth());   // add output
+			logic.addSimpleVectorTo(HW, signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), 0, signalProperties.getSignalWidth());   // add output
 			//System.out.println("SystemVerilogBuilder addSignal: signal basename=" + signalProperties.getRtlName() + ", sig.assignRefName=" + refName+ ", sigRef.getRawReference=" + signalProperties.getAssignRef().getRawReference());
             // add each signal in expression rhs to the master list of rhs signals
 			List<RhsReference> rhsRefList = signalProperties.getAssignExpr().getRefList(); 
@@ -241,19 +241,9 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		}
 		else {
 			//logic.addVectorWire(signalProperties.getRtlName(), signalProperties.getLowIndex(), signalProperties.getSignalWidth());  
-			logic.addVectorFrom(HW, signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), 0, signalProperties.getSignalWidth());   // add input
+			logic.addSimpleVectorFrom(HW, signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), 0, signalProperties.getSignalWidth());   // add input
 		}
 	}
-	/*
-					// if not used internally, add an output
-				if (!sig.isRhsReference())
-					this.addVectorTo(SystemVerilogBuilder.HW, sig.getRtlName(), 0, sig.getSignalWidth());   // add output
-			}
-			// if not assigned a ref, must be an input
-			else {
-				this.addVectorFrom(SystemVerilogBuilder.HW, sig.getRtlName(), 0, sig.getSignalWidth());   // add input
-
-	 */
 	
 	/** add a field for a particular output */
 	@Override

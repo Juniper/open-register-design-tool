@@ -56,7 +56,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	
 	/** add a new vector signal to the active list */
 	@Override
-	protected void addVector(Integer from, Integer to, String tagPrefix, String name, int lowIndex, int size) {
+	public void addVector(Integer from, Integer to, String tagPrefix, String name, int lowIndex, int size) {
 		if (inhibitAdd()) return;
 		if (activeSetStack.isEmpty()) super.addVector(from, to, tagPrefix, name, lowIndex, size);  // empty stack, so add to this list
 		else activeSetStack.peek().addVector(from, to, tagPrefix, name, lowIndex, size);  // otherwise add to active list
@@ -150,7 +150,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	 * @param extType - externally defined type of this set, if null interface type is defined by path
 	 * @return
 	 */
-	protected SystemVerilogIOSignalSet pushIOSignalSet(Integer from, Integer to, String namePrefix, String name, int reps, boolean isFirstRep, boolean isIntf, String extType) {
+	public SystemVerilogIOSignalSet pushIOSignalSet(Integer from, Integer to, String namePrefix, String name, int reps, boolean isFirstRep, boolean isIntf, String extType) {
 		// first determine if push is inhibited
 		boolean inhibitAdd = inhibitAdd() || !isFirstRep;
 		inhibitInsertStack.push(inhibitAdd);  // always push to the inhibit stack 

@@ -5,6 +5,7 @@ package ordt.output.systemverilog;
 // - header is only written for root builder
 
 import java.io.BufferedWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -91,7 +92,8 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		
 		// add wire defs to bench
 		benchtop.setShowDuplicateSignalErrors(false);
-		benchtop.addWireDefs(benchtop.getSignalList(PIO, DECODE));  // all ports from pio to decoder will be wires
+		//benchtop.addWireDefs(benchtop.getSignalList(PIO, DECODE));  // all ports from pio to decoder will be wires
+		benchtop.addWireDefs(getPIOInputWires());  // all except p2 ports from pio to decode will be wires		
 		benchtop.addWireDefs(benchtop.getSignalList(DECODE, PIO));  // all ports from decoder to pio will be wires
 		benchtop.addWireDefs(benchtop.getSignalList(LOGIC, HW));  // all ports to hw will be wires
 		benchtop.addWireDefs(benchtop.getSignalList(DECODE, HW));  // all ports to hw will be wires
@@ -107,6 +109,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		benchtop.addRegDefs(benchtop.getSignalList(HW, LOGIC));  // all ports from hw will be regs
 		benchtop.addRegDefs(benchtop.getSignalList(HW, DECODE));  // all ports from hw will be regs
 		benchtop.addRegDefs(benchtop.getSignalList(HW, PIO));  // all ports from hw will be regs
+		benchtop.addRegDefs(getPIOInputRegs());  // p2 ports from pio to decode will be regs		
 		
 		// add sim block statements
 		addSimBlocks(clkPeriod);
@@ -139,6 +142,21 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		benchtop.writeModuleEnd(indentLevel);	
 	}	
 
+    /** return a list of bench pio-decode inputs that should be defined as regs (secondary decoder inputs) */
+	private List<SystemVerilogSignal> getPIOInputRegs() {
+		List<SystemVerilogSignal> outList = new ArrayList<SystemVerilogSignal>();
+		for (SystemVerilogSignal sig : benchtop.getSignalList(PIO, DECODE))
+		  if (sig.getName().startsWith("p2_")) outList.add(sig);
+		return outList;
+	}
+
+    /** return a list of bench pio-decode inputs that should be defined as wires (primary decoder inputs)*/
+	private List<SystemVerilogSignal> getPIOInputWires() {
+		List<SystemVerilogSignal> outList = new ArrayList<SystemVerilogSignal>();
+		for (SystemVerilogSignal sig : benchtop.getSignalList(PIO, DECODE))
+		  if (!sig.getName().startsWith("p2_")) outList.add(sig);
+		return outList;
+	}
 
 	/** generate the blocks generating clocks and launching a sim */
 	private void addSimBlocks(int clkPeriod) {

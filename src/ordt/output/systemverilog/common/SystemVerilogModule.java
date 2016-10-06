@@ -14,6 +14,7 @@ import ordt.extract.RegNumber;
 import ordt.output.OutputWriterIntf;
 import ordt.output.systemverilog.io.SystemVerilogIOElement;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
+import ordt.output.systemverilog.io.SystemVerilogIOSignalSet;
 import ordt.parameters.ExtParameters;
 
 /** system verilog module generation class
@@ -346,28 +347,73 @@ public class SystemVerilogModule {
 		return outList;
 	}
 	
-	/** add a new scalar IO signal to the specified external location */
-	public void addScalarTo(Integer to, String name) {
-		this.addVectorTo(to, name, 0, 1);
+	// simple non-hierarchical IO adds
+	
+	/** add a new simple scalar IO signal to the specified external location list */
+	public void addSimpleScalarTo(Integer to, String name) {
+		this.addSimpleVectorTo(to, name, 0, 1);
 	}
 
-	/** add a new scalar IO signal from the specified external location */
-	public void addScalarFrom(Integer from, String name) {
-		this.addVectorFrom(from, name, 0, 1);
+	/** add a new simple scalar IO signal from the specified external location list */
+	public void addSimpleScalarFrom(Integer from, String name) {
+		this.addSimpleVectorFrom(from, name, 0, 1);
 	}
 
-	/** add a new vector IO signal to the specified external location */
-	public void addVectorTo(Integer to, String name, int lowIndex, int size) {
+	/** add a new simple vector IO signal to the specified external location list */
+	public void addSimpleVectorTo(Integer to, String name, int lowIndex, int size) {
 		SystemVerilogIOSignalList sigList = ioHash.get(to);  // get the siglist
 		if (sigList == null) return;
 		sigList.addSimpleVector(insideLocs, to, name, lowIndex, size); 
 	}
 
-	/** add a new vector IO signal from the specified external location */
-	public void addVectorFrom(Integer from, String name, int lowIndex, int size) {
+	/** add a new simple vector IO signal from the specified external location list */
+	public void addSimpleVectorFrom(Integer from, String name, int lowIndex, int size) {
 		SystemVerilogIOSignalList sigList = ioHash.get(from);  // get the siglist
 		if (sigList == null) return;
 		sigList.addSimpleVector(from, insideLocs, name, lowIndex, size); 
+	}
+	
+	// hierarchical IO adds
+	
+	/** add a new scalar IO signal to the specified external location list */
+	public void addScalarTo(Integer to, String prefix, String name) {
+		this.addVectorTo(to, prefix, name, 0, 1);
+	}
+
+	/** add a new scalar IO signal from the specified external location list */
+	public void addScalarFrom(Integer from, String prefix, String name) {
+		this.addVectorFrom(from, prefix, name, 0, 1);
+	}
+	
+	/** add a new vector IO signal to the specified external location list */
+	public void addVectorTo(Integer to, String prefix, String name, int lowIndex, int size) {
+		SystemVerilogIOSignalList sigList = ioHash.get(to);  // get the siglist
+		if (sigList == null) return;
+		sigList.addVector(insideLocs, to, prefix, name, lowIndex, size);
+	}
+	
+	/** add a new vector IO signal from the specified external location list */
+	public void addVectorFrom(Integer from, String prefix, String name, int lowIndex, int size) {
+		SystemVerilogIOSignalList sigList = ioHash.get(from);  // get the siglist
+		if (sigList == null) return;
+		sigList.addVector(from, insideLocs, prefix, name, lowIndex, size);
+	}
+	
+	/** push IO hierarchy to active stack in specified list
+	 *   @param useFrom - if true the from location will be used to look up signal list to be updated, otherwise to location is used
+	 */
+	public SystemVerilogIOSignalSet pushIOSignalSet(boolean useFrom, Integer from, Integer to, String namePrefix, String name, int reps, boolean isFirstRep, boolean isIntf, String extType) {
+		Integer locidx = useFrom? from : to;
+		SystemVerilogIOSignalList sigList = ioHash.get(locidx);  // get the siglist
+		if (sigList == null) return null;
+		return sigList.pushIOSignalSet(from, to, namePrefix, name,  reps,  isFirstRep,  isIntf,  extType); 
+	}
+	
+	/** pop IO hierarchy from active stack in specified list */
+	public void popIOSignalSet(Integer loc) {
+		SystemVerilogIOSignalList sigList = ioHash.get(loc);  // get the siglist
+		if (sigList == null) return;
+		sigList.popIOSignalSet(); 
 	}
 	
     /** add a freeform statement to this module */
