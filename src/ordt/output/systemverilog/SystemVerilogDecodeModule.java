@@ -623,6 +623,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// set addr low bit and map width
 		int addrWidth = builder.getMapAddressWidth();
 		int addrLowBit = builder.getAddressLowBit();
+		int transCountWidth = Math.max(addrWidth, 16);
 		
 		// engine1 IO hierarchy 
 		String pathStr = (topRegProperties == null)? "" : "_" + topRegProperties.getBaseName();
@@ -661,6 +662,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String e1StopOnReadName = e1CntlName + "_" + e1StopOnReadHierName; // 0- disabled, 1-lt, 2-equals, 3-gt 
 		String e1StopOnCountName = e1CntlName + "_" + e1StopOnCountHierName; 
 		String e1TransDelayName = e1CntlName + "_" + e1TransDelayHierName; 
+		String e1ReadCaptureModeName = e1CntlName + "_" + e1ReadCaptureModeHierName;  // 0 - none, 1 - min, 2 - max, 3 - all                    
 		
 		String e1WriteDataName = e1BaseHierName + "_" + e1WriteDataHierName + "_val";                      
 		String e1WriteMaskName = e1BaseHierName + "_" + e1WriteMaskHierName + "_val";                      
@@ -672,7 +674,6 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		String e1ReadMatchName = e1BaseHierName + "_" + e1ReadMatchHierName + "_val"; // used for stop on read                     
 		String e1ReadMaskName = e1BaseHierName + "_" + e1ReadMaskHierName + "_val";  // used for stop on read                      
-		String e1ReadCaptureModeName = e1BaseHierName + "_" + e1ReadCaptureModeHierName + "_val";  // 0 - none, 1 - min, 2 - max, 3 - all                    
 
 		// engine1 outputs
 		String e1StateHierName = "state";                      
@@ -690,7 +691,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		String e1LastReadDataName = e1BaseHierName + "_" + e1LastReadDataHierName + "_val";                      
 
-		// create hierarchical IO so we can encapsulate in an interface (will mimic this in rdl reg structure for simple connect)
+		// create hierarchical IO so we can encapsulate in an interface (will mimic this structure in rdl reg structure for simple connect)
 		int stateBits = 3;  // state machine bits
         int delayCountBits = 10;  // delay counter bits
 		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1BaseHierName,  1,  true,  true,  "interface"); // base e1 intf
@@ -703,6 +704,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1StopOnReadHierName, 0, 2);
 		addScalarFrom(SystemVerilogBuilder.PIO, null, e1StopOnCountHierName);
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1TransDelayHierName, 0, delayCountBits);
+		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ReadCaptureModeHierName, 0, 2);
 		popIOSignalSet(SystemVerilogBuilder.PIO);  // end cntl reg
 		// write inputs
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1WriteDataHierName + "_val", 0, regWidth);
@@ -711,11 +713,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// address inputs
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1AddressStartHierName + "_val", addrLowBit, addrWidth);
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1AddressStepHierName + "_val", addrLowBit, addrWidth);
-		addVectorFrom(SystemVerilogBuilder.PIO, null, e1MaxTransCountHierName + "_val", addrLowBit, addrWidth);
+		addVectorFrom(SystemVerilogBuilder.PIO, null, e1MaxTransCountHierName + "_val", addrLowBit, transCountWidth); // make at least 16b 
 		// read inputs
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ReadMatchHierName + "_val", 0, regWidth);
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ReadMaskHierName + "_val", 0, regWidth);
-		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ReadCaptureModeHierName + "_val", 0, 2);
 		// status reg
 		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1StatusHierName,  1,  true,  false,  null); 
 		addVectorTo(SystemVerilogBuilder.PIO, null, e1StateHierName, 0, stateBits);
@@ -725,32 +726,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// last read output
 		addVectorTo(SystemVerilogBuilder.PIO, null, e1LastReadDataHierName + "_val", 0, regWidth);
 		popIOSignalSet(SystemVerilogBuilder.PIO);  // end base hier
-		
-		// TODO - fix debug tieoffs and replace w IO
-        /*
-		this.addVectorWire(e1WriteDataName, 0, regWidth); 
-		this.addWireAssign(e1WriteDataName + " = " + regWidth + "'ha5a5a5a5;");
-		this.addVectorWire(e1WriteMaskName, 0, regWidth); 
-		this.addWireAssign(e1WriteMaskName + " = " + regWidth + "'h0;");  // default to no bits masked off (use write data)
-		
-		this.addVectorWire(e1AddressStartName, addrLowBit, addrWidth); 
-		this.addVectorWire(e1MaxTransCountName, addrLowBit, addrWidth); 
-		this.addVectorWire(e1AddressStepName, addrLowBit, addrWidth); 
-		this.addWireAssign(e1AddressStartName + " = " + addrWidth + "'h0;");
-		this.addWireAssign(e1MaxTransCountName + " = " + addrWidth + "'d2;");  // should do 2 
-		this.addWireAssign(e1AddressStepName + " = " + addrWidth + "'h2;");  // every other 32b reg
-		if (useTransactionSize) {
-			this.addVectorWire(e1WrSizeName, 0, regWordBits);
-			this.addWireAssign(e1WrSizeName + " = " + regWordBits + "'h0;");
-		}
-		this.addScalarWire(e1RmwName); 
-		this.addScalarWire(e1StartName); 
-		this.addScalarWire(e1StopName); 
-		this.addWireAssign(e1RmwName + " = 1'b0;");
-		this.addWireAssign(e1StartName + " = 1'b1;");
-		this.addWireAssign(e1StopName + " = 1'b0;");
-		*/
-		
+				
 		// engine1 state machine signals  
 		String e1StateNextName = getSigName(isPrimary, "e1_state_next");                      
 		String e1TransCountName = getSigName(isPrimary, "e1_trans_count");                 
@@ -801,7 +777,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceTransactionSizeName + " <= #1  " + regWordBits + "'b0;");  
 			this.addRegAssign(groupName,  pioInterfaceTransactionSizeName + " <= #1  " + e1TransSizeNextName + ";");  
 		}
-		// assign sm outputs to external interface // TODO - need to add state and assigns to IO
+		// assign sm outputs to external interface
 		this.addVectorReg(e1LastReadDataName, 0, builder.getMaxRegWidth());  //  rd data to be output externally
 		this.addVectorReg(e1LastReadDataNextName, 0, builder.getMaxRegWidth());  
 		this.addResetAssign(groupName, builder.getDefaultReset(), e1LastReadDataName + " <= #1  " + builder.getMaxRegWidth() + "'b0;");  
@@ -815,9 +791,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addRegAssign(groupName,  e1StateName + " <= #1  " + e1StateNextName + ";");  
 
 		//  define transaction counter and next value
-		this.addVectorReg(e1TransCountName, addrLowBit, addrWidth + 1); 
-		this.addVectorReg(e1TransCountNextName, addrLowBit, addrWidth + 1); 
-		this.addResetAssign(groupName, builder.getDefaultReset(), e1TransCountName + " <= #1  " + addrWidth + 1 + "'b0;");  
+		this.addVectorReg(e1TransCountName, addrLowBit, transCountWidth + 1); 
+		this.addVectorReg(e1TransCountNextName, addrLowBit, transCountWidth + 1); 
+		this.addResetAssign(groupName, builder.getDefaultReset(), e1TransCountName + " <= #1  " + transCountWidth + 1 + "'b0;");  
 		this.addRegAssign(groupName,  e1TransCountName + " <= #1  " + e1TransCountNextName + ";");  
 
 		//  define delay counter and next value
@@ -872,11 +848,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "      " + e1AddressNextName + " = {1'b0, " + e1AddressStartName + "};");  // set start address
 		if (useTransactionSize)
 		    this.addCombinAssign(groupName, "      " + e1TransSizeNextName + " = " + e1WrSizeName + ";");  // set transaction size
+		// go on e1_start
+		this.addCombinAssign(groupName, "      if (" + e1StartName + " && !" + e1StopName + ") begin");  
         // if looking for min read value, init read data high
 		this.addCombinAssign(groupName, "        if (" + e1ReadCaptureModeName + " == " + RD_CAP_MIN + ")");
 		this.addCombinAssign(groupName, "          " +  e1LastReadDataNextName + " = ~" + builder.getMaxRegWidth() + "'b0;");  
-		// go on e1_start
-		this.addCombinAssign(groupName, "      if (" + e1StartName + " && !" + e1StopName + ") begin");  
+		this.addCombinAssign(groupName, "        else");
+		this.addCombinAssign(groupName, "          " +  e1LastReadDataNextName + " = " + builder.getMaxRegWidth() + "'b0;");  
 		// if rmw or read-only then read first
 		this.addCombinAssign(groupName, "        if (" + e1ReadOnlyName + " || " + e1RmwName + ") begin");  
 		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + READ_WAIT + ";");
@@ -965,10 +943,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "          " + e1WrDataNextName + " = ((" + e1WriteDataName + " & ~" + e1WriteMaskName + ") | (" +
 				                                                           pioInterfaceReadDataName + " & " + e1WriteMaskName + "));");  // save masked read data 
 		this.addCombinAssign(groupName, "        end"); 
-		// else next read
+		// else check for max or invalid trans count or do next read
 		this.addCombinAssign(groupName, "        else if (" + e1ReadOnlyName + ") begin");   
 		this.addCombinAssign(groupName, "          if (" + e1StopOnCountName + " && (" + e1TransCountNextName + " == {1'b0," + e1MaxTransCountName + "}))");
 		this.addCombinAssign(groupName, "            " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "          else if (" + e1AddressNextName + SystemVerilogSignal.genRefArrayString(addrLowBit + addrWidth, 1) + " == 1'b1) begin");
+		this.addCombinAssign(groupName, "            " + e1StateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "            " + e1BadAddressErrorName + " =  1'b1;"); 
+		this.addCombinAssign(groupName, "          end"); 
 		this.addCombinAssign(groupName, "          else begin"); 
 		this.addCombinAssign(groupName, "            " + e1StateNextName + " = " + READ_WAIT + ";");
 		this.addCombinAssign(groupName, "          end"); 
@@ -1001,8 +983,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "        if ((" + e1StopOnCountName + " && (" + e1TransCountNextName + " == {1'b0," + e1MaxTransCountName + "})) || " + e1StopName + ") begin");
 		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "        end"); 
-		// other wise detect an out of range address    
-		this.addCombinAssign(groupName, "        else if (" + e1AddressNextName + SystemVerilogSignal.genRefArrayString(addrLowBit + addrWidth + 1, 1) + " == 1'b1) begin");
+		// other wisedetect an out of range address    
+		this.addCombinAssign(groupName, "        else if (" + e1AddressNextName + SystemVerilogSignal.genRefArrayString(addrLowBit + addrWidth, 1) + " == 1'b1) begin");
 		this.addCombinAssign(groupName, "          " + e1StateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "          " + e1BadAddressErrorName + " =  1'b1;"); 
 		this.addCombinAssign(groupName, "        end"); 
