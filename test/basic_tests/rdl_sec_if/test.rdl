@@ -1,0 +1,95 @@
+// ---- secondary decoder interface example using assist engine on secondary
+//
+
+<PARMS>
+global {
+	base_address = 0x0                // set block base address
+}
+output systemverilog {
+    root_decoder_interface = leaf          // primary interface is leaf
+	block_select_mode = internal           // reject transactions outside valid range
+    secondary_decoder_interface = engine1  // create a secondary interface
+    //secondary_base_address = 0x40          // base address as seen by secondary
+    //secondary_low_address = 0x0           // address guard low
+    secondary_high_address = 0x28          // address guard high
+    secondary_on_child_addrmaps = false    // only root decoder gets secondary
+}
+output bench {  
+    // set assist engine input values
+	add_test_command = "statement p2_e1_cntl_trans_delay = 10'd8;"  
+	add_test_command = "statement p2_e1_cntl_mode = 2'h2;"  //  0-write, 1-read, 2-rmw
+	add_test_command = "statement p2_e1_cntl_start = 1'b1;"  
+	add_test_command = "statement p2_e1_cntl_stop_on_read = 2'h0;"  // 0- disabled, 1-lt, 2-equals, 3-gt 
+	add_test_command = "statement p2_e1_cntl_stop_on_count = 1'b0;"  
+	add_test_command = "statement p2_e1_cntl_force_stop = 1'b0;"  
+	add_test_command = "statement p2_e1_cntl_read_capture_mode = 2'h3;" // 0 - none, 1 - min, 2 - max, 3 - all 
+
+	add_test_command = "statement p2_e1_max_trans_count_val = 16'd16;" 
+	add_test_command = "statement p2_e1_address_start_val = 4'd0;"  
+	add_test_command = "statement p2_e1_address_step_val = 4'd1;"  
+	
+	add_test_command = "statement p2_e1_write_data_val = 32'hdeadbeef;"  
+	add_test_command = "statement p2_e1_write_mask_val = 32'hfff00fff;"  // 0-use write data val, 1-use read data (read capture data)
+	
+	add_test_command = "statement p2_e1_read_match_data_val = 32'h0f000000;" // used for stop on read match
+	add_test_command = "statement p2_e1_read_mask_val = 32'hf0ffffff;"  // used for stop on read match, 0=match data (read capture data)
+	
+    // access first reg in root map via primary
+	add_test_command = "read 32 0x0"  
+	add_test_command = "statement p2_e1_cntl_start = 1'b0;"  // turn off start
+	add_test_command = "write 32 0x0 0x12345678"  
+	add_test_command = "read 32 0x0"  
+    // access first reg in child map via primary
+	add_test_command = "read 32 0x20"  
+	add_test_command = "write 32 0x20 0xf2345678"  
+	add_test_command = "read 32 0x20"  
+    // access last reg in child map 
+	add_test_command = "read 32 0x3c"   
+	add_test_command = "write 32 0x3c 0x12345678"  
+	add_test_command = "read 32 0x3c"   
+    // access second reg in child map 
+	add_test_command = "read 32 0x24"   
+	add_test_command = "write 32 0x24 0x0f000000"  
+	add_test_command = "read 32 0x24"   
+
+	//add_test_command = "statement p2_e1_cntl_force_stop = 1'b1;"  // try force stop
+
+    // access out of range reg via primary
+	add_test_command = "read 32 0x40"  
+	add_test_command = "write 32 0x40 0x12345678"  
+	add_test_command = "read 32 0x40" 
+	 
+}
+</PARMS>
+
+// define a config reg
+reg config_reg {
+   name = "Config reg set  %instance";
+   field {
+      name = "Bunch o lsb bits";
+      sw=rw; hw=r;
+   } lsb_field[16] = 16'hffff;
+   field {
+      name = "Bunch o msb bits";
+      sw=rw; hw=r;
+   } msb_field[16] = 16'h0;
+};
+
+// define a regfile containing an array of config regs
+regfile base_regs {   
+    config_reg config_regs[8];
+};
+
+// define level 2 addrmap that will be accessible by both primary and secondary interfaces
+addrmap l2_child {
+    name = "L2 regs";
+    base_regs base_regs;
+};
+
+// define level 1 addrmap with l2 child accessed by 2 separate interfaces
+addrmap {
+    name = "L1 regs";
+    base_regs base_regs; // first reg group - accessible by primary  // SERIAL8_D1, RING16_D1 - fails both, PARALLEL - works
+    external(RING16_D1) l2_child primary @0x20;  // child addrmap primary interface
+    //external(RING16_D1) base_regs secondary @0x40;  // child addrmap secondary interface (connected manually)
+} base_map;
