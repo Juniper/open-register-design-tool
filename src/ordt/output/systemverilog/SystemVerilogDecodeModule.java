@@ -623,54 +623,59 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String e1BaseHierName = getSigName(isPrimary, "e1" + pathStr);                      
 		String e1CntlHierName = "cntl";                      
 		String e1CntlName = e1BaseHierName + "_" + e1CntlHierName;                      
+		String e1CfgHierName = "cfg";                      
+		String e1CfgName = e1BaseHierName + "_" + e1CfgHierName;                      
 		String e1StatusHierName = "status";                      
 		String e1StatusName = e1BaseHierName + "_" + e1StatusHierName;                      
 		
-		// engine1 control inputs 		
-		String e1ModeHierName = "mode"; 
-		String e1StartHierName = "start"; 
-		String e1StopHierName = "force_stop";
-		String e1StopOnReadHierName = "stop_on_read"; 
-		String e1StopOnCountHierName = "stop_on_count"; 
-		String e1TransDelayHierName = "trans_delay"; 
+		// engine1 control inputs 
+		String e1StartHierName = "start_r"; 
+		String e1StopHierName = "force_stop_r";
+		
+		// engine1 config inputs 		
+		String e1ModeHierName = "mode_r"; 
+		String e1StopOnReadHierName = "stop_on_read_r"; 
+		String e1StopOnCountHierName = "stop_on_count_r"; 
+		String e1TransDelayHierName = "trans_delay_r"; 
+		String e1WrSizeHierName = "write_trans_size_r";
+		String e1ReadCaptureModeHierName = "read_capture_mode_r";                      
 
 		String e1WriteDataHierName = "write_data";                      
 		String e1WriteMaskHierName = "write_mask";                      
-		String e1WrSizeHierName = "write_trans_size";
 		
 		String e1AddressStartHierName = "address_start";                      
 		String e1AddressStepHierName = "address_step";                      
 		String e1MaxTransCountHierName = "max_trans_count";   // number of transactions                  
 
 		String e1ReadMatchHierName = "read_match_data";                      
-		String e1ReadCaptureModeHierName = "read_capture_mode";                      
 		String e1ReadMaskHierName = "read_mask";                      
 
 		//
-		String e1ModeName = e1CntlName + "_" + e1ModeHierName; // 0-write, 1-read, 2-rmw
 		String e1StartName = e1CntlName + "_" + e1StartHierName; 
 		String e1StopName = e1CntlName + "_" + e1StopHierName;
-		String e1StopOnReadName = e1CntlName + "_" + e1StopOnReadHierName; // 0- disabled, 1-lt, 2-equals, 3-gt 
-		String e1StopOnCountName = e1CntlName + "_" + e1StopOnCountHierName; 
-		String e1TransDelayName = e1CntlName + "_" + e1TransDelayHierName; 
-		String e1ReadCaptureModeName = e1CntlName + "_" + e1ReadCaptureModeHierName;  // 0 - none, 1 - min, 2 - max, 3 - all                    
-		
-		String e1WriteDataName = e1BaseHierName + "_" + e1WriteDataHierName + "_val";                      
-		String e1WriteMaskName = e1BaseHierName + "_" + e1WriteMaskHierName + "_val";                      
-		String e1WrSizeName = e1BaseHierName + "_" + e1WrSizeHierName + "_val";
-		
-		String e1AddressStartName = e1BaseHierName + "_" + e1AddressStartHierName + "_val";                      
-		String e1AddressStepName = e1BaseHierName + "_" + e1AddressStepHierName + "_val";                      
-		String e1MaxTransCountName = e1BaseHierName + "_" + e1MaxTransCountHierName + "_val";   // number of transactions                  
 
-		String e1ReadMatchName = e1BaseHierName + "_" + e1ReadMatchHierName + "_val"; // used for stop on read                     
-		String e1ReadMaskName = e1BaseHierName + "_" + e1ReadMaskHierName + "_val";  // used for stop on read                      
+		String e1ModeName = e1CfgName + "_" + e1ModeHierName; // 0-write, 1-read, 2-rmw
+		String e1StopOnReadName = e1CfgName + "_" + e1StopOnReadHierName; // 0- disabled, 1-lt, 2-equals, 3-gt 
+		String e1StopOnCountName = e1CfgName + "_" + e1StopOnCountHierName; 
+		String e1TransDelayName = e1CfgName + "_" + e1TransDelayHierName; 
+		String e1ReadCaptureModeName = e1CfgName + "_" + e1ReadCaptureModeHierName;  // 0 - none, 1 - min, 2 - max, 3 - all                    
+		String e1WrSizeName = e1CfgName + "_" + e1WrSizeHierName;
+		
+		String e1WriteDataName = e1BaseHierName + "_" + e1WriteDataHierName + "_val_r";                      
+		String e1WriteMaskName = e1BaseHierName + "_" + e1WriteMaskHierName + "_val_r";                      
+		
+		String e1AddressStartName = e1BaseHierName + "_" + e1AddressStartHierName + "_val_r";                      
+		String e1AddressStepName = e1BaseHierName + "_" + e1AddressStepHierName + "_val_r";                      
+		String e1MaxTransCountName = e1BaseHierName + "_" + e1MaxTransCountHierName + "_val_r";   // number of transactions                  
+
+		String e1ReadMatchName = e1BaseHierName + "_" + e1ReadMatchHierName + "_val_r"; // used for stop on read                     
+		String e1ReadMaskName = e1BaseHierName + "_" + e1ReadMaskHierName + "_val_r";  // used for stop on read                      
 
 		// engine1 outputs
-		String e1StateHierName = "state";                      
-		String e1NackErrorHierName = "nack_error"; 
-		//String e1BadSizeErrorHierName = "bad_size_error"); 
-		String e1BadAddressErrorHierName = "bad_address_error"; 
+		String e1StateHierName = "state_w";                      
+		String e1NackErrorHierName = "nack_error_w"; 
+		//String e1BadSizeErrorHierName = "bad_size_error_w"); 
+		String e1BadAddressErrorHierName = "bad_address_error_w"; 
 
 		String e1LastReadDataHierName = "last_read_data";                      
 
@@ -680,7 +685,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		//String e1BadSizeErrorName = e1StatusName + "_" + e1BadSizeErrorHierName; 
 		String e1BadAddressErrorName = e1StatusName + "_" + e1BadAddressErrorHierName; 
 		
-		String e1LastReadDataName = e1BaseHierName + "_" + e1LastReadDataHierName + "_val";                      
+		String e1LastReadDataName = e1BaseHierName + "_" + e1LastReadDataHierName + "_val_w";                      
 
 		// create hierarchical IO so we can encapsulate in an interface (will mimic this structure in rdl reg structure for simple connect)
 		int stateBits = 3;  // state machine bits
@@ -688,25 +693,28 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1BaseHierName,  1,  true,  true,  "interface"); // base e1 intf
 		// cntl reg
 		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1CntlHierName,  1,  true,  false,  null); 
-		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ModeHierName, 0, 2);
 		addScalarFrom(SystemVerilogBuilder.PIO, null, e1StartHierName);
 		addScalarFrom(SystemVerilogBuilder.PIO, null, e1StopHierName);
+		popIOSignalSet(SystemVerilogBuilder.PIO);  // end cntl reg
+		// cfg reg
+		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1CfgHierName,  1,  true,  false,  null); 
+		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ModeHierName, 0, 2);
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1StopOnReadHierName, 0, 2);
 		addScalarFrom(SystemVerilogBuilder.PIO, null, e1StopOnCountHierName);
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1TransDelayHierName, 0, delayCountBits);
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ReadCaptureModeHierName, 0, 2);
-		popIOSignalSet(SystemVerilogBuilder.PIO);  // end cntl reg
+		if (useTransactionSize) addVectorFrom(SystemVerilogBuilder.PIO, null, e1WrSizeHierName, 0, regWordBits);
+		popIOSignalSet(SystemVerilogBuilder.PIO);  // end cfg reg
 		// write inputs
-		addVectorFrom(SystemVerilogBuilder.PIO, null, e1WriteDataHierName + "_val", 0, regWidth);
-		addVectorFrom(SystemVerilogBuilder.PIO, null, e1WriteMaskHierName + "_val", 0, regWidth);
-		if (useTransactionSize) addVectorFrom(SystemVerilogBuilder.PIO, null, e1WrSizeHierName + "_val", 0, regWordBits);
+		addVectorFrom(SystemVerilogBuilder.PIO, null, e1WriteDataHierName + "_val_r", 0, regWidth);
+		addVectorFrom(SystemVerilogBuilder.PIO, null, e1WriteMaskHierName + "_val_r", 0, regWidth);
 		// address inputs
-		addVectorFrom(SystemVerilogBuilder.PIO, null, e1AddressStartHierName + "_val", addrLowBit, addrWidth);
-		addVectorFrom(SystemVerilogBuilder.PIO, null, e1AddressStepHierName + "_val", addrLowBit, addrWidth);
-		addVectorFrom(SystemVerilogBuilder.PIO, null, e1MaxTransCountHierName + "_val", addrLowBit, transCountWidth); // make at least 16b 
+		addVectorFrom(SystemVerilogBuilder.PIO, null, e1AddressStartHierName + "_val_r", addrLowBit, addrWidth);
+		addVectorFrom(SystemVerilogBuilder.PIO, null, e1AddressStepHierName + "_val_r", addrLowBit, addrWidth);
+		addVectorFrom(SystemVerilogBuilder.PIO, null, e1MaxTransCountHierName + "_val_r", addrLowBit, transCountWidth); // make at least 16b 
 		// read inputs
-		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ReadMatchHierName + "_val", 0, regWidth);
-		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ReadMaskHierName + "_val", 0, regWidth);
+		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ReadMatchHierName + "_val_r", 0, regWidth);
+		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ReadMaskHierName + "_val_r", 0, regWidth);
 		// status reg
 		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1StatusHierName,  1,  true,  false,  null); 
 		addVectorTo(SystemVerilogBuilder.PIO, null, e1StateHierName, 0, stateBits);
@@ -714,7 +722,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		addScalarTo(SystemVerilogBuilder.PIO, null, e1BadAddressErrorHierName);
 		popIOSignalSet(SystemVerilogBuilder.PIO);  
 		// last read output
-		addVectorTo(SystemVerilogBuilder.PIO, null, e1LastReadDataHierName + "_val", 0, regWidth);
+		addVectorTo(SystemVerilogBuilder.PIO, null, e1LastReadDataHierName + "_val_w", 0, regWidth);
 		popIOSignalSet(SystemVerilogBuilder.PIO);  // end base hier
 				
 		// engine1 state machine signals  
@@ -1007,7 +1015,149 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "  default:");
 		this.addCombinAssign(groupName, "    " + e1StateNextName + " = " + IDLE + ";");  
 
-		this.addCombinAssign(groupName, "endcase"); 					
+		this.addCombinAssign(groupName, "endcase"); 
+		
+		genEngine1Rdl(pathStr, 0, stateBits, delayCountBits, regWidth, regWords, regWordBits, useTransactionSize, addrWidth, addrLowBit, transCountWidth);
+	}
+
+	/** create rdl register definitions  */
+	private void genEngine1Rdl(String nameSuffix, int rev, int stateBits, int delayCountBits, int regWidth, int regWords, int regWordBits, boolean useTransactionSize,
+			int addrWidth, int addrLowBit, int transCountWidth) {
+		List<String> outList = new ArrayList<String>();
+		String fullName = "assist_engine_1" + nameSuffix;
+		outList.add("");
+		outList.add("// assist engine rdl: " + nameSuffix);
+		outList.add("regfile " + fullName + " {");
+		outList.add("  name = \"Assist engine v1 registers\";");
+        // version register
+		outList.add("  reg {");
+		outList.add("    name = \"Version register\";");
+		outList.add("    field { sw=r; hw=na;");
+		outList.add("      name = \"Engine rev\";");
+		outList.add("    } rev[4] = 4'd" + rev + ";");
+		outList.add("    field { sw=r; hw=na;");
+		outList.add("      name = \"Engine version\";");
+		outList.add("    } ver[11:8] = 4'd1;");
+		outList.add("    field { sw=r; hw=na;");
+		outList.add("      name = \"Max word size\";");
+		outList.add("    } max_word_size[20:16] = 5'd" + regWords + ";");
+		outList.add("  } version;");
+		// set of registers in engine interface
+		outList.add("  regfile {");
+		outList.add("    use_new_interface;");
+		// cntl register
+		outList.add("    reg {");
+		outList.add("      name = \"Control register\";");
+		outList.add("      field { sw=rw; hw=r;");
+		outList.add("        name = \"stop engine\";");
+		outList.add("      } force_stop[0:0] = 1'b0;");
+		outList.add("      field { sw=rw; hw=r; singlepulse; dontcompare;");
+		outList.add("        name = \"start engine\";");
+		outList.add("      } start[1:1] = 1'b0;");
+		outList.add("    } cntl;");
+		// cfg register
+		outList.add("    reg {");
+		outList.add("      name = \"Config register\";");
+		outList.add("      field { sw=rw; hw=r;");
+		outList.add("        name = \"engine transaction mode\";");
+		outList.add("        desc = \"modes: 0-write only, 1-read only, 2-read modify write\";");
+		outList.add("      } mode[1:0] = 2'b0;");
+		outList.add("      field { sw=rw; hw=r;");
+		outList.add("        name = \"stop on read mode\";");
+		outList.add("        desc = \"modes: 0-disabled, 1-lt mask/match, 2-equals match/mask, 3-gt mask/match\";");
+		outList.add("      } stop_on_read[5:4] = 2'b0;");
+		outList.add("      field { sw=rw; hw=r;");
+		outList.add("        name = \"stop on transaction count\";");
+		outList.add("      } stop_on_count[6:6] = 1'b0;");
+		outList.add("      field { sw=rw; hw=r;");
+		outList.add("        name = \"read capture mode\";");
+		outList.add("        desc = \"modes: 0-disabled, 1-capture min value, 2-capture max value, 3-capture all\";");
+		outList.add("      } read_capture_mode[9:8] = 2'b0;");
+		if (useTransactionSize) {
+			outList.add("      field { sw=rw; hw=r;");
+			outList.add("        name = \"Write transaction size\";");
+			outList.add("        desc = \"Size of write transaction in words (0=32bit, 1=64bit, etc)\";");
+			outList.add("      } write_trans_size[" + (regWordBits + 11) + ":12] = " + regWordBits + "'b0;");
+		}
+		outList.add("      field { sw=rw; hw=r;");
+		outList.add("        name = \"delay between transactions\";");
+		outList.add("      } trans_delay[" + (delayCountBits + 15) + ":16] = " + delayCountBits + "'b0;");
+		outList.add("    } cfg @0x4;");
+		// status register
+		outList.add("    reg {");
+		outList.add("      name = \"Status register\";");
+		outList.add("      field { sw=r; hw=w;");
+		outList.add("        name = \"nack error\";");
+		outList.add("      } nack_error[0:0] = 1'b0;");
+		outList.add("      field { sw=r; hw=w;");
+		outList.add("        name = \"bad address error\";");
+		outList.add("      } bad_address_error[1:1] = 1'b0;");
+		outList.add("      field { sw=r; hw=w;");
+		outList.add("        name = \"engine state\";");
+		outList.add("      } state[" + (stateBits + 3) + ":4] = " + stateBits + "'b0;");
+		outList.add("    } status @0x8;");
+		// address control registers
+		outList.add("    reg {");
+		outList.add("      name = \"Address start register\";");
+		if (addrWidth + addrLowBit > 32) outList.add("      regwidth = 64;");
+		outList.add("      field { sw=rw; hw=r;");
+		outList.add("      } val[" + (addrLowBit + addrWidth - 1) + ":" + addrLowBit + "] = " + addrWidth + "'b0;");
+		outList.add("    } address_start @0x20;");
+		outList.add("    reg {");
+		outList.add("      name = \"Address step register\";");
+		if (addrWidth + addrLowBit > 32) outList.add("      regwidth = 64;");
+		outList.add("      field { sw=rw; hw=r;");
+		outList.add("      } val[" + (addrLowBit + addrWidth - 1) + ":" + addrLowBit + "] = " + addrWidth + "'b0;");
+		outList.add("    } address_step @0x28;");
+		// transaction count register
+		outList.add("    reg {");
+		outList.add("      name = \"Max transaction count register\";");
+		if (transCountWidth + addrLowBit > 32) outList.add("      regwidth = 64;");
+		outList.add("      field { sw=rw; hw=r;");
+		outList.add("      } val[" + (addrLowBit + transCountWidth - 1) + ":" + addrLowBit + "] = " + transCountWidth + "'b0;");
+		outList.add("    } max_trans_count @0x30;");
+		// write inputs
+		outList.add("    reg {");
+		outList.add("      name = \"Write data register\";");
+		outList.add("      regwidth = " + regWidth + ";");
+		outList.add("      field { sw=rw; hw=r;");
+		outList.add("      } val[" + (regWidth - 1) + ":0] = " + regWidth + "'b0;");
+		outList.add("    } write_data @0x80;");
+		outList.add("    reg {");
+		outList.add("      name = \"Write mask register\";");
+		outList.add("      desc = \"Mask of write data when in read-modify-write mode:  0-use write data, 1-use current read capture data\";");
+		outList.add("      regwidth = " + regWidth + ";");
+		outList.add("      field { sw=rw; hw=r;");
+		outList.add("      } val[" + (regWidth - 1) + ":0] = " + regWidth + "'b0;");
+		outList.add("    } write_mask;");
+		// read inputs
+		outList.add("    reg {");
+		outList.add("      name = \"Stop on read match register\";");
+		outList.add("      regwidth = " + regWidth + ";");
+		outList.add("      field { sw=rw; hw=r;");
+		outList.add("      } val[" + (regWidth - 1) + ":0] = " + regWidth + "'b0;");
+		outList.add("    } read_match_data;");
+		outList.add("    reg {");
+		outList.add("      name = \"Stop on read mask register\";");
+		outList.add("      desc = \"Mask of read data used when stop on read is active:  0-match read data, 1-match zero\";");
+		outList.add("      regwidth = " + regWidth + ";");
+		outList.add("      field { sw=rw; hw=r;");
+		outList.add("      } val[" + (regWidth - 1) + ":0] = " + regWidth + "'b0;");
+		outList.add("    } read_mask;");
+		// last read outputs
+		outList.add("    reg {");
+		outList.add("      name = \"Read data capture register\";");
+		outList.add("      regwidth = " + regWidth + ";");
+		outList.add("      field { sw=r; hw=w;");
+		outList.add("      } val[" + (regWidth - 1) + ":0] = " + regWidth + "'b0;");
+		outList.add("    } last_read_data;");
+		// close out e1 regfile/interface
+		outList.add("  } e1 @0x400;");
+		outList.add("};");
+		outList.add("");
+		
+		for (String stmt: outList) System.out.println(stmt);
+		//builder.simple_write(fullName + ".rdl", "assist engine rdl", "//", outList);
 	}
 
 	/** add interface signals for address maps talking to a leaf */
