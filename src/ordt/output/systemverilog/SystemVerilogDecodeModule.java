@@ -673,9 +673,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		// engine1 outputs
 		String e1StateHierName = "state_w";                      
-		String e1NackErrorHierName = "nack_error_w"; 
+		String e1NackErrorHierName = "nack_error_intr"; 
 		//String e1BadSizeErrorHierName = "bad_size_error_w"); 
-		String e1BadAddressErrorHierName = "bad_address_error_w"; 
+		String e1BadAddressErrorHierName = "bad_address_error_intr"; 
 
 		String e1LastReadDataHierName = "last_read_data";                      
 
@@ -1089,10 +1089,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		outList.add("      field { sw=r; hw=w;");
 		outList.add("        name = \"nack error\";");
 		outList.add("      } nack_error[0:0] = 1'b0;");
-		outList.add("      field { sw=r; hw=w;");
+		outList.add("      field { sw=r; hw=na; intr;");
 		outList.add("        name = \"bad address error\";");
 		outList.add("      } bad_address_error[1:1] = 1'b0;");
-		outList.add("      field { sw=r; hw=w;");
+		outList.add("      field { sw=r; hw=na; intr;");
 		outList.add("        name = \"engine state\";");
 		outList.add("      } state[" + (stateBits + 3) + ":4] = " + stateBits + "'b0;");
 		outList.add("    } status @0x8;");
