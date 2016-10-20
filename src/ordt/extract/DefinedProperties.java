@@ -41,6 +41,7 @@ public class DefinedProperties {
 		addProperty(newList, "regwidth", DefinedPropertyType.NUMBER, "32", DefinedProperty.REG, false, false);
 		addProperty(newList, "uvmreg_is_mem", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.REG, false, false);
 		addProperty(newList, "cppmod_prune", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.REG, false, false);
+		addProperty(newList, "uvmreg_prune", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.REG, false, false);
 		// signal properties
 		addProperty(newList, "cpuif_reset", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.SIGNAL, false, false);
 		addProperty(newList, "field_reset", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.SIGNAL, false, false);

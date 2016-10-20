@@ -38,6 +38,7 @@ public class RegProperties extends AddressableInstanceProperties {
 	
 	// uvmregs test info
 	private boolean isMem = false;
+	private boolean uvmRegPrune = false;
 	
 	// cppmod info
 	private boolean cppModPrune = false;
@@ -101,6 +102,7 @@ public class RegProperties extends AddressableInstanceProperties {
 		
 		// extract uvmregs test info
 		if (pList.hasTrueProperty("uvmreg_is_mem")) setMem(true);
+		if (pList.hasTrueProperty("uvmreg_prune")) setUvmRegPrune(true);
 		
 		// extract c++ model info
 		if (pList.hasTrueProperty("cppmod_prune")) setCppModPrune(true);
@@ -321,11 +323,23 @@ public class RegProperties extends AddressableInstanceProperties {
 		this.isSwWriteable = isSwWriteable;
 	}
 
-	/** get isMem
-	 *  @return the isMem
-	 */
+	/** get uvmreg isMem */
 	public boolean isMem() {
 		return isMem;
+	}
+	
+	/** set uvmreg isMem */
+	public void setMem(boolean isMem) {
+		this.isMem = isMem;
+	}
+	
+	/** return true if this register is to be pruned from uvmreg model output */
+	public boolean uvmRegPrune() {
+		return uvmRegPrune;
+	}
+	
+	public void setUvmRegPrune(boolean uvmRegPrune) {
+		this.uvmRegPrune = uvmRegPrune;
 	}
 
 	/** return true if this register is to be pruned from c++ model output */
@@ -335,13 +349,6 @@ public class RegProperties extends AddressableInstanceProperties {
 
 	public void setCppModPrune(boolean cppModPrune) {
 		this.cppModPrune = cppModPrune;
-	}
-
-	/** set isMem
-	 *  @param isMem the isMem to set
-	 */
-	public void setMem(boolean isMem) {
-		this.isMem = isMem;
 	}
 
 

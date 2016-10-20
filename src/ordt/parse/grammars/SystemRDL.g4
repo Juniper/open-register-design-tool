@@ -26,6 +26,7 @@ Changes:
 - added satoutput property to explicitly control counter sat output gen (no sat output by default)
 - added verilog_expression to allow signal assigns using simple logic expressions
 - added predicates/lexer methods to correctly identify user-defined property ID tokens
+- added uvmreg_prune register property
 */
 
 grammar SystemRDL;
@@ -365,6 +366,7 @@ property
   | 'rtl_coverage'   // added
 
   | 'uvmreg_is_mem'   // added
+  | 'uvmreg_prune'   // added
   
   | 'use_new_interface'   // added
   | 'use_interface'   // added

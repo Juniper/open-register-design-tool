@@ -45,6 +45,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	private AliasGroups aliasGroups = new AliasGroups();
 	
 	private Stack<Boolean> regSetHasCallback = new Stack<Boolean>();  // stack of flags indicating block needs add_callback overridden
+	private Stack<Integer> activeRegisterCount = new Stack<Integer>(); // stack of non-pruned register counts in active regset
 	
 	// search state for use in field callbacks
 	private static int lastCBDepth = -1;
@@ -122,8 +123,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 		//if ("sopcf1_ctl".equals(regProperties.getId())) 
 		//	System.out.println("UVMRegsBuilder finishRegister: " + regProperties.getInstancePath() + ", base=" + regProperties.getBaseAddress());
 		
-		// only add the register if it is sw accessible
-		if (regProperties.isSwWriteable() || regProperties.isSwReadable()) {
+		// only add the register if it is sw accessible and not explicitly pruned from model
+		if ((regProperties.isSwWriteable() || regProperties.isSwReadable()) && !regProperties.uvmRegPrune()) {
 			//if (regProperties.isReplicated()) System.out.println("UVMRegsBuilder finishRegister: replicated reg id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", thold=" + ExtParameters.uvmregsIsMemThreshold());
 			// if a memory, then add info to parent uvm_reg_block
 			if (regProperties.isMem() || (regProperties.getRepCount() >= ExtParameters.uvmregsIsMemThreshold())) {   // check is_mem threshold vs reps
@@ -156,6 +157,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 				// build the register class definition
 				buildRegClass();  				
 			}
+			// bump defined reg count on the stack
+			activeRegisterCount.push(activeRegisterCount.pop() + 1);
 		}
 	}
 
@@ -167,27 +170,36 @@ public class UVMRegsBuilder extends OutputBuilder {
 	@Override
 	public void addRegSet() {
 		regSetHasCallback.push(false);
+		activeRegisterCount.push(0);  // init to no defined regs
 	}
 
 	@Override
 	public void finishRegSet() {    
-		// save info for this register set to be used in parent uvm_reg_block (do in finishRegSet so size is computed) - no overrides
-		saveRegSetInfo(null, null);
-		// build the block class definition
 		Boolean hasCallback = regSetHasCallback.pop();
-		buildBlockClass(hasCallback);  
+		// if regset has defined registers, add it to the model
+		if (activeRegisterCount.peek()>0) {
+			// save info for this register set to be used in parent uvm_reg_block (do in finishRegSet so size is computed) - no overrides
+			saveRegSetInfo(null, null);
+			// build the block class definition
+			buildBlockClass(hasCallback);  
+		}
 		// parent also needs override if has callack
 		//if (regSetProperties.isRootInstance()) System.out.println("UVMRegsBuilder finishRegSet: root instance detected, id=" + regSetProperties.getId() + ", addrmap=" + getAddressMapName());
 		if (hasCallback && !regSetHasCallback.isEmpty()) {
 			regSetHasCallback.pop();
 			regSetHasCallback.push(true);
 		}
+		System.out.println("UVMRegsBuilder finishRegSet: " + regSetProperties.getInstancePath() + ", activeRegisterCount=" + activeRegisterCount.peek());
+		Integer regCount = activeRegisterCount.pop();  // pop the count
+		// bump defined reg count on the stack
+		if (!activeRegisterCount.isEmpty()) activeRegisterCount.push(activeRegisterCount.pop() + regCount);
 	}
 
 	/** process root address map */
 	@Override
 	public void addRegMap() { 
 		regSetHasCallback.push(false);
+		activeRegisterCount.push(0);  // init to no defined regs
 		outputList.add(new OutputLine(indentLvl, "import uvm_pkg::*;"));
 		outputList.add(new OutputLine(indentLvl, "import ordt_uvm_reg_pkg::*;"));
 	}
@@ -197,7 +209,9 @@ public class UVMRegsBuilder extends OutputBuilder {
 	public  void finishRegMap() {	
 		// build the register class definition
 		Boolean hasCallback = regSetHasCallback.pop();
-		buildBaseBlockClass(hasCallback);  
+		buildBaseBlockClass(hasCallback); 
+		System.out.println("UVMRegsBuilder finishRegMap: " + regSetProperties.getInstancePath() + ", activeRegisterCount=" + activeRegisterCount.peek());
+		activeRegisterCount.pop();  // pop the count
 	}
 
     //---------------------------- helper methods saving child info for parent build --------------------------------------
