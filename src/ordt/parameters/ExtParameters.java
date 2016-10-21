@@ -335,13 +335,16 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		// extract command info
 		String cmdName = ctx.getChild(0).getText();
 		// if a set command, then extract info and save command
-		if ("set_reg_property".equals(cmdName) || "set_field_property".equals(cmdName)) {
-			String propertyName = ctx.getChild(1).getText().replaceAll("\"", "");
-			String propertyValue = ctx.getChild(3).getText().replaceAll("\"", "");
-			boolean pathUsesComps = "components".equals(ctx.getChild(4).getText());
-			String pathStr = ctx.getChild(5).getText().replaceAll("\"", "");
-			CompType target = "set_field_property".equals(cmdName)? CompType.FIELD : CompType.REG;
-			AnnotateSetCommand cmd = new AnnotateSetCommand(target, pathUsesComps, pathStr, propertyName, propertyValue);
+		if ("set_reg_property".equals(cmdName) || "set_field_property".equals(cmdName) || "set_regset_property".equals(cmdName)) {
+			String nextTag = ctx.getChild(1).getText().replaceAll("\"", "");
+			boolean isDefault = "default".equals(nextTag);
+			int offset = isDefault? 1 : 0;
+			String propertyName = ctx.getChild(1 + offset).getText().replaceAll("\"", "");
+			String propertyValue = ctx.getChild(3 + offset).getText().replaceAll("\"", "");
+			boolean pathUsesComps = "components".equals(ctx.getChild(4 + offset).getText());
+			String pathStr = ctx.getChild(5 + offset).getText().replaceAll("\"", "");
+			CompType target = "set_field_property".equals(cmdName)? CompType.FIELD : "set_reg_property".equals(cmdName)? CompType.REG : CompType.REGSET;
+			AnnotateSetCommand cmd = new AnnotateSetCommand(target, pathUsesComps, pathStr, isDefault, propertyName, propertyValue);
 			if (cmd != null) annotations.add(cmd);
 		}
 	}
