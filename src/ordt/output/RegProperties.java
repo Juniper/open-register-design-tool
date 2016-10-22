@@ -62,7 +62,8 @@ public class RegProperties extends AddressableInstanceProperties {
     @Override
 	public void extractProperties(PropertyList pList) {
 		super.extractProperties(pList);  // extract common parameters
-		
+		//Ordt.infoMessage("RegProperties: id=" + getId() + ", pList=" + pList);
+
 	    // go directly to extractInstance to get reg width, external, and alias parms
 		
 		// set reg width and initialize fields for field addition
@@ -340,6 +341,7 @@ public class RegProperties extends AddressableInstanceProperties {
 	
 	public void setUvmRegPrune(boolean uvmRegPrune) {
 		this.uvmRegPrune = uvmRegPrune;
+        //System.out.println("RegProperties setUvmRegPrune=" + uvmRegPrune);
 	}
 
 	/** return true if this register is to be pruned from c++ model output */

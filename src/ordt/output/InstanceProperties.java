@@ -598,6 +598,7 @@ public class InstanceProperties {
 
 	/** set user defined property list by pulling properties having specified names from a larger list */
 	protected void setUserDefinedProperties(PropertyList parentList, Set<String> names) {
+		//if (parentList.hasProperty("uvmreg_prune")) System.err.println("InstanceProperties setUserDefinedProperties: id=" + getId() + ", pList=" + parentList);
 		this.userDefinedProperties = parentList.getSubsetList(names);
 	}
 

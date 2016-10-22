@@ -40,7 +40,6 @@ public class ModField extends ModComponent {
 		
 		// generate each direct instance in this component
 		for (ModInstance regInst : childInstances) {
-			//System.out.println("RegField : child=" + regInst);  // TODO - this should never happen for a field - warning here?
 			Ordt.errorExit("Rdl fields are not allowed to have child components, field=" + callingInst.getId());
 			regInst.generateOutput(outputBuilder);
 		}

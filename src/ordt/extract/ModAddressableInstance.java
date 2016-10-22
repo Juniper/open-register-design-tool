@@ -124,5 +124,46 @@ public class ModAddressableInstance extends ModInstance {
 		else if ("addrmod".equals(key)) setAddressModulus(val); // TODO - ever happen??
 		else if ("addrshift".equals(key)) setAddressShift(val);
 	}
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((address == null) ? 0 : address.hashCode());
+		result = prime * result + ((addressIncrement == null) ? 0 : addressIncrement.hashCode());
+		result = prime * result + ((addressModulus == null) ? 0 : addressModulus.hashCode());
+		result = prime * result + ((addressShift == null) ? 0 : addressShift.hashCode());
+		return result;
+	}
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ModAddressableInstance other = (ModAddressableInstance) obj;
+		if (address == null) {
+			if (other.address != null)
+				return false;
+		} else if (!address.equals(other.address))
+			return false;
+		if (addressIncrement == null) {
+			if (other.addressIncrement != null)
+				return false;
+		} else if (!addressIncrement.equals(other.addressIncrement))
+			return false;
+		if (addressModulus == null) {
+			if (other.addressModulus != null)
+				return false;
+		} else if (!addressModulus.equals(other.addressModulus))
+			return false;
+		if (addressShift == null) {
+			if (other.addressShift != null)
+				return false;
+		} else if (!addressShift.equals(other.addressShift))
+			return false;
+		return true;
+	}
 
 }

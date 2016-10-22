@@ -98,7 +98,7 @@ public abstract class ModComponent extends ModBaseComponent {
 		boolean isDone = cmd.processComponent(this, pathLevel);
 		// recursively process component children
 		if (!isDone) {
-			for (ModComponent comp: childComponents) comp.processComponentAnnotation(cmd, ++pathLevel);			
+			for (ModComponent comp: childComponents) comp.processComponentAnnotation(cmd, pathLevel + 1);			
 		}
 	}
 
@@ -511,6 +511,38 @@ public abstract class ModComponent extends ModBaseComponent {
 		public void addParmList(String inst, PropertyList pList) {
 			parmLists.put(inst, pList);
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + ((parmLists == null) ? 0 : parmLists.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			CompParameterLists other = (CompParameterLists) obj;
+			if (!getOuterType().equals(other.getOuterType()))
+				return false;
+			if (parmLists == null) {
+				if (other.parmLists != null)
+					return false;
+			} else if (!parmLists.equals(other.parmLists))
+				return false;
+			return true;
+		}
+
+		private ModComponent getOuterType() {
+			return ModComponent.this;
+		}
 	}
 	
 	/** add a new parameter assignment
@@ -566,6 +598,61 @@ public abstract class ModComponent extends ModBaseComponent {
 			regInst.generateOutput(outputBuilder);
 			outputBuilder.popInstance();
 		}
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((alignedSize == null) ? 0 : alignedSize.hashCode());
+		result = prime * result + ((childComponents == null) ? 0 : childComponents.hashCode());
+		result = prime * result + ((childInstances == null) ? 0 : childInstances.hashCode());
+		result = prime * result + ((compType == null) ? 0 : compType.hashCode());
+		result = prime * result + ((enums == null) ? 0 : enums.hashCode());
+		result = prime * result + (isRoot ? 1231 : 1237);
+		result = prime * result + ((postPropertyAssignLists == null) ? 0 : postPropertyAssignLists.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ModComponent other = (ModComponent) obj;
+		if (alignedSize == null) {
+			if (other.alignedSize != null)
+				return false;
+		} else if (!alignedSize.equals(other.alignedSize))
+			return false;
+		if (childComponents == null) {
+			if (other.childComponents != null)
+				return false;
+		} else if (!childComponents.equals(other.childComponents))
+			return false;
+		if (childInstances == null) {
+			if (other.childInstances != null)
+				return false;
+		} else if (!childInstances.equals(other.childInstances))
+			return false;
+		if (compType != other.compType)
+			return false;
+		if (enums == null) {
+			if (other.enums != null)
+				return false;
+		} else if (!enums.equals(other.enums))
+			return false;
+		if (isRoot != other.isRoot)
+			return false;
+		if (postPropertyAssignLists == null) {
+			if (other.postPropertyAssignLists != null)
+				return false;
+		} else if (!postPropertyAssignLists.equals(other.postPropertyAssignLists))
+			return false;
+		return true;
 	}
 
 }

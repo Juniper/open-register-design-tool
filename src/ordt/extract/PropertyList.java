@@ -263,6 +263,38 @@ public class PropertyList {
 		public String toString() {
 			return getValue() + "(" + getDepth() + ")";
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + ((value == null) ? 0 : value.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			PropertyValue other = (PropertyValue) obj;
+			if (!getOuterType().equals(other.getOuterType()))
+				return false;
+			if (value == null) {
+				if (other.value != null)
+					return false;
+			} else if (!value.equals(other.value))
+				return false;
+			return true;
+		}
+
+		private PropertyList getOuterType() {
+			return PropertyList.this;
+		}
 	}
 	
 	/**
@@ -288,6 +320,60 @@ public class PropertyList {
 		public String toString() {
 			return getValue() + "(" + getDepth() + ")";
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = super.hashCode();
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + depth;
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (!super.equals(obj))
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			DynamicPropertyValue other = (DynamicPropertyValue) obj;
+			if (!getOuterType().equals(other.getOuterType()))
+				return false;
+			if (depth != other.depth)
+				return false;
+			return true;
+		}
+
+		private PropertyList getOuterType() {
+			return PropertyList.this;
+		}
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((values == null) ? 0 : values.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		PropertyList other = (PropertyList) obj;
+		if (values == null) {
+			if (other.values != null)
+				return false;
+		} else if (!values.equals(other.values))
+			return false;
+		return true;
 	}
 
 }

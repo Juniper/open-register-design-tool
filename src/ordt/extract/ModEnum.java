@@ -85,4 +85,37 @@ public class ModEnum extends ModComponent {
 		return width;
 	}
 
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((enumElements == null) ? 0 : enumElements.hashCode());
+		result = prime * result + ((width == null) ? 0 : width.hashCode());
+		return result;
+	}
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ModEnum other = (ModEnum) obj;
+		if (enumElements == null) {
+			if (other.enumElements != null)
+				return false;
+		} else if (!enumElements.equals(other.enumElements))
+			return false;
+		if (width == null) {
+			if (other.width != null)
+				return false;
+		} else if (!width.equals(other.width))
+			return false;
+		return true;
+	}
+
 }

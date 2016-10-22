@@ -157,4 +157,47 @@ public class ModIndexedInstance extends ModInstance {
 			//System.err.println("ModInstance " + this.getFullId() + ": updating key=" + key + " with value=" + val);
 		}
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((highIndex == null) ? 0 : highIndex.hashCode());
+		result = prime * result + ((lowIndex == null) ? 0 : lowIndex.hashCode());
+		result = prime * result + ((offset == null) ? 0 : offset.hashCode());
+		result = prime * result + ((width == null) ? 0 : width.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ModIndexedInstance other = (ModIndexedInstance) obj;
+		if (highIndex == null) {
+			if (other.highIndex != null)
+				return false;
+		} else if (!highIndex.equals(other.highIndex))
+			return false;
+		if (lowIndex == null) {
+			if (other.lowIndex != null)
+				return false;
+		} else if (!lowIndex.equals(other.lowIndex))
+			return false;
+		if (offset == null) {
+			if (other.offset != null)
+				return false;
+		} else if (!offset.equals(other.offset))
+			return false;
+		if (width == null) {
+			if (other.width != null)
+				return false;
+		} else if (!width.equals(other.width))
+			return false;
+		return true;
+	}
 }

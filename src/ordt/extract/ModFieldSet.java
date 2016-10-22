@@ -97,4 +97,26 @@ public class ModFieldSet extends ModComponent {
 		}			
 
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + (union ? 1231 : 1237);
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ModFieldSet other = (ModFieldSet) obj;
+		if (union != other.union)
+			return false;
+		return true;
+	}
 }

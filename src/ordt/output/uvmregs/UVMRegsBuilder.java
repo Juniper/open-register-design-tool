@@ -189,7 +189,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 			regSetHasCallback.pop();
 			regSetHasCallback.push(true);
 		}
-		System.out.println("UVMRegsBuilder finishRegSet: " + regSetProperties.getInstancePath() + ", activeRegisterCount=" + activeRegisterCount.peek());
+		//System.out.println("UVMRegsBuilder finishRegSet: " + regSetProperties.getInstancePath() + ", activeRegisterCount=" + activeRegisterCount.peek());
 		Integer regCount = activeRegisterCount.pop();  // pop the count
 		// bump defined reg count on the stack
 		if (!activeRegisterCount.isEmpty()) activeRegisterCount.push(activeRegisterCount.pop() + regCount);
@@ -210,7 +210,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		// build the register class definition
 		Boolean hasCallback = regSetHasCallback.pop();
 		buildBaseBlockClass(hasCallback); 
-		System.out.println("UVMRegsBuilder finishRegMap: " + regSetProperties.getInstancePath() + ", activeRegisterCount=" + activeRegisterCount.peek());
+		//System.out.println("UVMRegsBuilder finishRegMap: " + regSetProperties.getInstancePath() + ", activeRegisterCount=" + activeRegisterCount.peek());
 		activeRegisterCount.pop();  // pop the count
 	}
 

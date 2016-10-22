@@ -41,7 +41,7 @@ public class ModInstance extends ModBaseComponent {
 		// process this component if its a name/target match
 		boolean isDone = cmd.processInstance(this, pathLevel);
 		// recursively process component children
-		if (!isDone) this.getRegComp().processInstanceAnnotation(cmd, ++pathLevel);
+		if (!isDone) this.getRegComp().processInstanceAnnotation(cmd, pathLevel + 1);
 	}
 
 	/** write info to stdout */
@@ -175,5 +175,42 @@ public class ModInstance extends ModBaseComponent {
 		//		" (" + getRegComp().getClass() + ") starting at address=" + baseAddr);
 		//display();
 		getRegComp().generateOutput(this, outputBuilder);
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + (isAddressable ? 1231 : 1237);
+		result = prime * result + (isIndexed ? 1231 : 1237);
+		result = prime * result + ((regComp == null) ? 0 : regComp.hashCode());
+		result = prime * result + ((repCount == null) ? 0 : repCount.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ModInstance other = (ModInstance) obj;
+		if (isAddressable != other.isAddressable)
+			return false;
+		if (isIndexed != other.isIndexed)
+			return false;
+		if (regComp == null) {
+			if (other.regComp != null)
+				return false;
+		} else if (!regComp.equals(other.regComp))
+			return false;
+		if (repCount == null) {
+			if (other.repCount != null)
+				return false;
+		} else if (!repCount.equals(other.repCount))
+			return false;
+		return true;
 	}
 }

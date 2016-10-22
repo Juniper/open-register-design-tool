@@ -626,4 +626,41 @@ public class RegNumber implements Comparable<RegNumber> {
 
     }
 
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((numBase == null) ? 0 : numBase.hashCode());
+		result = prime * result + ((numFormat == null) ? 0 : numFormat.hashCode());
+		result = prime * result + ((value == null) ? 0 : value.hashCode());
+		result = prime * result + ((vectorLen == null) ? 0 : vectorLen.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		RegNumber other = (RegNumber) obj;
+		if (numBase != other.numBase)
+			return false;
+		if (numFormat != other.numFormat)
+			return false;
+		if (value == null) {
+			if (other.value != null)
+				return false;
+		} else if (!value.equals(other.value))
+			return false;
+		if (vectorLen == null) {
+			if (other.vectorLen != null)
+				return false;
+		} else if (!vectorLen.equals(other.vectorLen))
+			return false;
+		return true;
+	}
+
 }

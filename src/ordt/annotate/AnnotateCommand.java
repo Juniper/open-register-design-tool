@@ -52,6 +52,7 @@ public class AnnotateCommand {
 	   boolean pathElementMatched = false;  // detect matching path element name
 	   // only process if name matches
 	   String currentElem = getCurrentPathElement(pathLevel);
+	   //System.out.println("AnnotateCommand processComponent: " + modComponent.getFullId() + ", pathlevel=" + pathLevel + ", currentElem=" + currentElem);
 	   if ("*".equals(currentElem) || modComponent.getId().equals(currentElem)) {
 		   pathElementMatched = true;
 		   // only process if target matches and last path or singleton

@@ -53,6 +53,7 @@ public class AnnotateSetCommand extends AnnotateCommand {
 		changeCount++; // bump the change count
 		if (isDefault()) modComponent.setDefaultProperty(property, value);  // set the specified property
 		else modComponent.setProperty(property, value, 0);  // set the specified property
+		//System.out.println("AnnotateSetCommand processComponent: count=" + changeCount + ", " + getSignature());
 	}
 	   
 	/** process a set_property command on instance */

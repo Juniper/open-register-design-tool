@@ -31,7 +31,7 @@ public class FieldSetProperties extends InstanceProperties {
     @Override
 	public void extractProperties(PropertyList pList) {
 		super.extractProperties(pList);  // extract common parameters
-		//Jrdl.infoMessage("SignalProperties: id=" + getId() + ", pList=" + pList);
+		//Jrdl.infoMessage("FieldSetProperties: id=" + getId() + ", pList=" + pList);
     }*/	
 
 	/** get extractInstance
