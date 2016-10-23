@@ -102,12 +102,12 @@ fi
 
 # check the log file for errors
 if [ -e $ordt_stderr ]; then
-   if grep -q "ERROR" $ordt_stderr; then
+   if grep -q -e "ERROR" -e "Exception in thread" $ordt_stderr; then
       echo "ERROR: ordt error detected:"
       if [ -n "$verbose" ]; then
          cat $ordt_stdout $ordt_stderr
       else
-         grep "ERROR" $ordt_stderr
+         grep -e "ERROR" -e "Exception in thread" $ordt_stderr
       fi
       exit 8 
    fi

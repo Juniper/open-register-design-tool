@@ -146,6 +146,7 @@ ext_parm_defs
    | 'suppress_no_category_warnings' EQ bool
    | 'include_address_coverage' EQ bool
    | 'max_reg_coverage_bins' EQ NUM
+   | 'reuse_uvm_classes' EQ bool
    ;   
    
 // ------------ reglist_out_defs

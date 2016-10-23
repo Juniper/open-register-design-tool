@@ -1269,5 +1269,222 @@ public class FieldProperties extends InstanceProperties {
 		
 	}
 
+	/** hashcode/equals overrides 
+	 * - ignores rhsReferences in compare
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((decrSatValue == null) ? 0 : decrSatValue.hashCode());
+		result = prime * result + ((decrTholdValue == null) ? 0 : decrTholdValue.hashCode());
+		result = prime * result + ((decrValue == null) ? 0 : decrValue.hashCode());
+		result = prime * result + ((decrWidth == null) ? 0 : decrWidth.hashCode());
+		result = prime * result + ((dontCompareMask == null) ? 0 : dontCompareMask.hashCode());
+		result = prime * result + ((dontTestMask == null) ? 0 : dontTestMask.hashCode());
+		result = prime * result + ((encoding == null) ? 0 : encoding.hashCode());
+		result = prime * result + ((fieldArrayString == null) ? 0 : fieldArrayString.hashCode());
+		result = prime * result + ((fieldSetPrefixString == null) ? 0 : fieldSetPrefixString.hashCode());
+		result = prime * result + ((fieldWidth == null) ? 0 : fieldWidth.hashCode());
+		result = prime * result + (hasHwClr ? 1231 : 1237);
+		result = prime * result + (hasHwSet ? 1231 : 1237);
+		result = prime * result + (hasOverflow ? 1231 : 1237);
+		result = prime * result + (hasSaturateOutputs ? 1231 : 1237);
+		result = prime * result + (hasSwAcc ? 1231 : 1237);
+		result = prime * result + (hasSwMod ? 1231 : 1237);
+		result = prime * result + (hasSwWriteEnableH ? 1231 : 1237);
+		result = prime * result + (hasSwWriteEnableL ? 1231 : 1237);
+		result = prime * result + (hasUnderflow ? 1231 : 1237);
+		result = prime * result + (hasWriteEnableH ? 1231 : 1237);
+		result = prime * result + (hasWriteEnableL ? 1231 : 1237);
+		result = prime * result + (hwPrecedence ? 1231 : 1237);
+		result = prime * result + ((incrSatValue == null) ? 0 : incrSatValue.hashCode());
+		result = prime * result + ((incrTholdValue == null) ? 0 : incrTholdValue.hashCode());
+		result = prime * result + ((incrValue == null) ? 0 : incrValue.hashCode());
+		result = prime * result + ((incrWidth == null) ? 0 : incrWidth.hashCode());
+		result = prime * result + ((intrStickyType == null) ? 0 : intrStickyType.hashCode());
+		result = prime * result + ((intrType == null) ? 0 : intrType.hashCode());
+		result = prime * result + (isAnded ? 1231 : 1237);
+		result = prime * result + (isCounter ? 1231 : 1237);
+		result = prime * result + (isHalt ? 1231 : 1237);
+		result = prime * result + (isHwReadable ? 1231 : 1237);
+		result = prime * result + (isHwWriteable ? 1231 : 1237);
+		result = prime * result + (isInterrupt ? 1231 : 1237);
+		result = prime * result + (isOred ? 1231 : 1237);
+		result = prime * result + (isRclr ? 1231 : 1237);
+		result = prime * result + (isRset ? 1231 : 1237);
+		result = prime * result + (isSinglePulse ? 1231 : 1237);
+		result = prime * result + (isSwReadable ? 1231 : 1237);
+		result = prime * result + (isSwWriteable ? 1231 : 1237);
+		result = prime * result + (isWoclr ? 1231 : 1237);
+		result = prime * result + (isWoset ? 1231 : 1237);
+		result = prime * result + (isXored ? 1231 : 1237);
+		result = prime * result + ((lowIndex == null) ? 0 : lowIndex.hashCode());
+		result = prime * result + (maskIntrBits ? 1231 : 1237);
+		result = prime * result + ((reset == null) ? 0 : reset.hashCode());
+		result = prime * result + (rtlCoverage ? 1231 : 1237);
+		result = prime * result + ((subcategory == null) ? 0 : subcategory.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		FieldProperties other = (FieldProperties) obj;
+		if (decrSatValue == null) {
+			if (other.decrSatValue != null)
+				return false;
+		} else if (!decrSatValue.equals(other.decrSatValue))
+			return false;
+		if (decrTholdValue == null) {
+			if (other.decrTholdValue != null)
+				return false;
+		} else if (!decrTholdValue.equals(other.decrTholdValue))
+			return false;
+		if (decrValue == null) {
+			if (other.decrValue != null)
+				return false;
+		} else if (!decrValue.equals(other.decrValue))
+			return false;
+		if (decrWidth == null) {
+			if (other.decrWidth != null)
+				return false;
+		} else if (!decrWidth.equals(other.decrWidth))
+			return false;
+		if (dontCompareMask == null) {
+			if (other.dontCompareMask != null)
+				return false;
+		} else if (!dontCompareMask.equals(other.dontCompareMask))
+			return false;
+		if (dontTestMask == null) {
+			if (other.dontTestMask != null)
+				return false;
+		} else if (!dontTestMask.equals(other.dontTestMask))
+			return false;
+		if (encoding == null) {
+			if (other.encoding != null)
+				return false;
+		} else if (!encoding.equals(other.encoding))
+			return false;
+		if (fieldArrayString == null) {
+			if (other.fieldArrayString != null)
+				return false;
+		} else if (!fieldArrayString.equals(other.fieldArrayString))
+			return false;
+		if (fieldSetPrefixString == null) {
+			if (other.fieldSetPrefixString != null)
+				return false;
+		} else if (!fieldSetPrefixString.equals(other.fieldSetPrefixString))
+			return false;
+		if (fieldWidth == null) {
+			if (other.fieldWidth != null)
+				return false;
+		} else if (!fieldWidth.equals(other.fieldWidth))
+			return false;
+		if (hasHwClr != other.hasHwClr)
+			return false;
+		if (hasHwSet != other.hasHwSet)
+			return false;
+		if (hasOverflow != other.hasOverflow)
+			return false;
+		if (hasSaturateOutputs != other.hasSaturateOutputs)
+			return false;
+		if (hasSwAcc != other.hasSwAcc)
+			return false;
+		if (hasSwMod != other.hasSwMod)
+			return false;
+		if (hasSwWriteEnableH != other.hasSwWriteEnableH)
+			return false;
+		if (hasSwWriteEnableL != other.hasSwWriteEnableL)
+			return false;
+		if (hasUnderflow != other.hasUnderflow)
+			return false;
+		if (hasWriteEnableH != other.hasWriteEnableH)
+			return false;
+		if (hasWriteEnableL != other.hasWriteEnableL)
+			return false;
+		if (hwPrecedence != other.hwPrecedence)
+			return false;
+		if (incrSatValue == null) {
+			if (other.incrSatValue != null)
+				return false;
+		} else if (!incrSatValue.equals(other.incrSatValue))
+			return false;
+		if (incrTholdValue == null) {
+			if (other.incrTholdValue != null)
+				return false;
+		} else if (!incrTholdValue.equals(other.incrTholdValue))
+			return false;
+		if (incrValue == null) {
+			if (other.incrValue != null)
+				return false;
+		} else if (!incrValue.equals(other.incrValue))
+			return false;
+		if (incrWidth == null) {
+			if (other.incrWidth != null)
+				return false;
+		} else if (!incrWidth.equals(other.incrWidth))
+			return false;
+		if (intrStickyType != other.intrStickyType)
+			return false;
+		if (intrType != other.intrType)
+			return false;
+		if (isAnded != other.isAnded)
+			return false;
+		if (isCounter != other.isCounter)
+			return false;
+		if (isHalt != other.isHalt)
+			return false;
+		if (isHwReadable != other.isHwReadable)
+			return false;
+		if (isHwWriteable != other.isHwWriteable)
+			return false;
+		if (isInterrupt != other.isInterrupt)
+			return false;
+		if (isOred != other.isOred)
+			return false;
+		if (isRclr != other.isRclr)
+			return false;
+		if (isRset != other.isRset)
+			return false;
+		if (isSinglePulse != other.isSinglePulse)
+			return false;
+		if (isSwReadable != other.isSwReadable)
+			return false;
+		if (isSwWriteable != other.isSwWriteable)
+			return false;
+		if (isWoclr != other.isWoclr)
+			return false;
+		if (isWoset != other.isWoset)
+			return false;
+		if (isXored != other.isXored)
+			return false;
+		if (lowIndex == null) {
+			if (other.lowIndex != null)
+				return false;
+		} else if (!lowIndex.equals(other.lowIndex))
+			return false;
+		if (maskIntrBits != other.maskIntrBits)
+			return false;
+		if (reset == null) {
+			if (other.reset != null)
+				return false;
+		} else if (!reset.equals(other.reset))
+			return false;
+		if (rtlCoverage != other.rtlCoverage)
+			return false;
+		if (subcategory == null) {
+			if (other.subcategory != null)
+				return false;
+		} else if (!subcategory.equals(other.subcategory))
+			return false;
+		return true;
+	}
+
 	
 }

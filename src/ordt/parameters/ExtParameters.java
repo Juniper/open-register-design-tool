@@ -143,6 +143,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initIntegerParameter("is_mem_threshold", 1000);
 		initBooleanParameter("include_address_coverage", false); 
 		initIntegerParameter("max_reg_coverage_bins", 128);
+		initBooleanParameter("reuse_uvm_classes", false); 
 		
 		// ---- bench output defaults
 		initStringListParameter("add_test_command", new ArrayList<String>());
@@ -724,6 +725,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 
 	public static Boolean uvmregsIncludeAddressCoverage() {
 		return getBooleanParameter("include_address_coverage");
+	}
+
+	public static Boolean uvmregsReuseUvmClasses() {
+		return getBooleanParameter("reuse_uvm_classes");
 	}
 
 	public static int uvmregsMaxRegCoverageBins() {

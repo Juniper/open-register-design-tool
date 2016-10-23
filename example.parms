@@ -76,6 +76,7 @@ output uvmregs {
 	suppress_no_category_warnings = true   // inhibit reg no category messages
 	//include_address_coverage = true   // include address coverage in model
 	max_reg_coverage_bins = 64   // limit address coverage bins for replicated regs
+	reuse_uvm_classes = true   // allow reuse of classes in model
 }
 
 // model annotation commands

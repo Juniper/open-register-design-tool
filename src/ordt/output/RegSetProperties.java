@@ -16,6 +16,7 @@ public class RegSetProperties extends AddressableInstanceProperties {
 	
 	private int maxRegWidth = ExtParameters.getMinDataSize();  // maximum sized register found in this regset - default to min pio data width  
 	private RegNumber highAddress;  // highest valid address
+	private int childHash = 0; // hash of this regset's children
 
 	public RegSetProperties(ModInstance regSetInst) {
 		super(regSetInst);  // init instance, id, name, description text
@@ -100,6 +101,37 @@ public class RegSetProperties extends AddressableInstanceProperties {
 	@Override
 	public boolean isRegister() {
 		return false;
+	}
+
+	/** set the hash for this regsets children */
+	public void updateChildHash(int newChildHash) {
+		final int prime = 31;
+		this.childHash = prime * this.childHash + newChildHash;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + childHash;
+		result = prime * result + maxRegWidth;
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		RegSetProperties other = (RegSetProperties) obj;
+		if (childHash != other.childHash)
+			return false;
+		if (maxRegWidth != other.maxRegWidth)
+			return false;
+		return true;
 	}
 
 }

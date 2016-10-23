@@ -4,6 +4,7 @@
 package ordt.output;
 
 import ordt.extract.Ordt;
+
 import ordt.extract.DefinedProperties;
 import ordt.extract.ModComponent;
 import ordt.extract.ModInstance;
@@ -23,6 +24,7 @@ public class RegProperties extends AddressableInstanceProperties {
 	private int [] availableBits;  // track available bit locations in reg as fields added
 	private int fieldSetOffset = 0;  // current accumulated field offset used to compute new index
 	private boolean fieldOffsetsFromZero;  // field offset direction for this reg
+	private int fieldHash = 0; // hash of this regs fields
 	
 	private String aliasedId = "";   // if this reg instance is an alias, store base instance
 	
@@ -467,6 +469,94 @@ public class RegProperties extends AddressableInstanceProperties {
 	 */
 	public boolean hasNopBits() {
 		return getRegWidth() != filledBits;
+	}
+
+    /** set the field hash value for this reg */
+	public void setFieldHash(int fieldHash) {
+		this.fieldHash = fieldHash;
+	}
+
+	/** hashcode/equals overrides 
+	 * - ignores cppModPrune, uvmRegPrune, filledBits, availableBits, fieldSetOffset in compare
+	 * - adds extractInstance.getAddressIncrement(), fieldHash to compare  // TODO - add field hash
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((aliasedId == null) ? 0 : aliasedId.hashCode());
+		result = prime * result + ((category == null) ? 0 : category.hashCode());
+		result = prime * result + ((fieldCount == null) ? 0 : fieldCount.hashCode());
+		result = prime * result + (fieldOffsetsFromZero ? 1231 : 1237);
+		result = prime * result + (hasHaltOutputDefined ? 1231 : 1237);
+		result = prime * result + (hasInterruptFields ? 1231 : 1237);
+		result = prime * result + (hasInterruptOutputDefined ? 1231 : 1237);
+		result = prime * result + (isMem ? 1231 : 1237);
+		result = prime * result + (isSwReadable ? 1231 : 1237);
+		result = prime * result + (isSwWriteable ? 1231 : 1237);
+		result = prime * result + ((jspecAttributes == null) ? 0 : jspecAttributes.hashCode());
+		result = prime * result + ((regWidth == null) ? 0 : regWidth.hashCode());
+		result = prime * result + fieldHash;
+		result = prime * result + ((getExtractInstance().getAddressIncrement() == null) ? 0 : getExtractInstance().getAddressIncrement().hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		RegProperties other = (RegProperties) obj;
+		if (aliasedId == null) {
+			if (other.aliasedId != null)
+				return false;
+		} else if (!aliasedId.equals(other.aliasedId))
+			return false;
+		if (category == null) {
+			if (other.category != null)
+				return false;
+		} else if (!category.equals(other.category))
+			return false;
+		if (fieldCount == null) {
+			if (other.fieldCount != null)
+				return false;
+		} else if (!fieldCount.equals(other.fieldCount))
+			return false;
+		if (fieldOffsetsFromZero != other.fieldOffsetsFromZero)
+			return false;
+		if (hasHaltOutputDefined != other.hasHaltOutputDefined)
+			return false;
+		if (hasInterruptFields != other.hasInterruptFields)
+			return false;
+		if (hasInterruptOutputDefined != other.hasInterruptOutputDefined)
+			return false;
+		if (isMem != other.isMem)
+			return false;
+		if (isSwReadable != other.isSwReadable)
+			return false;
+		if (isSwWriteable != other.isSwWriteable)
+			return false;
+		if (jspecAttributes == null) {
+			if (other.jspecAttributes != null)
+				return false;
+		} else if (!jspecAttributes.equals(other.jspecAttributes))
+			return false;
+		if (regWidth == null) {
+			if (other.regWidth != null)
+				return false;
+		} else if (!regWidth.equals(other.regWidth))
+			return false;
+	    if (fieldHash != other.fieldHash)
+		    return false;
+		if (getExtractInstance().getAddressIncrement() == null) {
+			if (other.getExtractInstance().getAddressIncrement() != null)
+				return false;
+		} else if (!getExtractInstance().getAddressIncrement().equals(other.getExtractInstance().getAddressIncrement()))
+			return false;
+		return true;
 	}
 
 }

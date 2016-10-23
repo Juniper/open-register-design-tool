@@ -68,6 +68,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
                 return -1;
             }
         });
+			
 	protected  FieldProperties fieldProperties;  // output-relevant active field properties  
 	protected  FieldSetProperties fieldSetProperties;  // output-relevant active field properties  
 	protected Stack<FieldSetProperties> fieldSetPropertyStack = new Stack<FieldSetProperties>();  // field sets are nested so store stack
@@ -246,6 +247,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			//System.out.println("OutputBuilder finishRegister: " + regProperties.getInstancePath() + ", visit each reg=" + visitEachReg() + ", isFirstRep=" + regProperties.isFirstRep() + ", firstRegSetRep=" + firstRegSetRep());
 			if (visitEachReg() || (regProperties.isFirstRep() && firstRegSetRep())) {
 			    updateFinishRegProperties(regProperties);  // update regprops post field processing
+			    regSetProperties.updateChildHash(regProperties.hashCode()); // add this reg's hashcode to parent
 				finishRegister();   
 			}
 		}
@@ -297,6 +299,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			// only visit once if specified by this output type
 			if (visitExternalRegisters() && firstRegSetRep()) {
 			    updateFinishRegProperties(regProperties);  // update regprops post field processing
+			    regSetProperties.updateChildHash(regProperties.hashCode()); // add this reg's hashcode to parent
 				finishRegister();   // only first rset rep here (only one call for all reg reps)
 			}
 		}
@@ -515,8 +518,12 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 		// done with this regset, so pop stack to restore parent regset properties
 		regSetPropertyStack.pop();
+
 		if (regSetPropertyStack.isEmpty()) { regSetProperties = rootMapProperties;} 
-		else regSetProperties = regSetPropertyStack.peek();
+		else {
+			regSetPropertyStack.peek().updateChildHash(regSetProperties.hashCode()); // add popped regset's hashcode to parent
+			regSetProperties = regSetPropertyStack.peek();
+		}
 	}
 	
 	/** finish a register set for a particular output */
@@ -585,6 +592,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		// set reg sw access
 		rProperties.setSwReadable(regIsSwReadable);  
 		rProperties.setSwWriteable(regIsSwWriteable);
+		rProperties.setFieldHash(fieldList.hashCode()); // set field hash for this reg 
 		// set reg category if input is rdl
 		if (ExtParameters.rdlResolveRegCategory() && Ordt.hasInputType(InputType.RDL) && !rProperties.hasCategory()) {
 			boolean isStatus = allFieldsSwReadable && !regIsHwReadable && regIsHwWriteable && !regHasInterrupt;

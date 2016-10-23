@@ -610,4 +610,81 @@ public class InstanceProperties {
     	System.out.println("orig=" + inst.getId() + ", norep=" + inst.getNoRepId() + ", indexed=" + inst.getIndexedId());
     }
 
+	/** hashcode/equals overrides 
+	 * - ignores instancePath, extractInstance, externalType, repNum, textDescription in compare
+	 * - adds extractInstance.getRepCount() to compare
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (addressMap ? 1231 : 1237);
+		result = prime * result + (dontCompare ? 1231 : 1237);
+		result = prime * result + (dontTest ? 1231 : 1237);
+		result = prime * result + ((extInterfaceName == null) ? 0 : extInterfaceName.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((instDefaultProperties == null) ? 0 : instDefaultProperties.hashCode());
+		result = prime * result + ((jspecSupersetCheck == null) ? 0 : jspecSupersetCheck.hashCode());
+		result = prime * result + extractInstance.getRepCount();
+		result = prime * result + (rootExternal ? 1231 : 1237);
+		result = prime * result + ((textName == null) ? 0 : textName.hashCode());
+		result = prime * result + (useInterface ? 1231 : 1237);
+		result = prime * result + ((userDefinedProperties == null) ? 0 : userDefinedProperties.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		InstanceProperties other = (InstanceProperties) obj;
+		if (addressMap != other.addressMap)
+			return false;
+		if (dontCompare != other.dontCompare)
+			return false;
+		if (dontTest != other.dontTest)
+			return false;
+		if (extInterfaceName == null) {
+			if (other.extInterfaceName != null)
+				return false;
+		} else if (!extInterfaceName.equals(other.extInterfaceName))
+			return false;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
+		if (instDefaultProperties == null) {
+			if (other.instDefaultProperties != null)
+				return false;
+		} else if (!instDefaultProperties.equals(other.instDefaultProperties))
+			return false;
+		if (jspecSupersetCheck == null) {
+			if (other.jspecSupersetCheck != null)
+				return false;
+		} else if (!jspecSupersetCheck.equals(other.jspecSupersetCheck))
+			return false;
+		if (extractInstance.getRepCount() != other.extractInstance.getRepCount())
+			return false;
+		if (rootExternal != other.rootExternal)
+			return false;
+		if (textName == null) {
+			if (other.textName != null)
+				return false;
+		} else if (!textName.equals(other.textName))
+			return false;
+		if (useInterface != other.useInterface)
+			return false;
+		if (userDefinedProperties == null) {
+			if (other.userDefinedProperties != null)
+				return false;
+		} else if (!userDefinedProperties.equals(other.userDefinedProperties))
+			return false;
+		return true;
+	}
+
 }

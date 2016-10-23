@@ -268,7 +268,7 @@ public class PropertyList {
 		public int hashCode() {
 			final int prime = 31;
 			int result = 1;
-			result = prime * result + getOuterType().hashCode();
+			//result = prime * result + getOuterType().hashCode();
 			result = prime * result + ((value == null) ? 0 : value.hashCode());
 			return result;
 		}
@@ -282,18 +282,14 @@ public class PropertyList {
 			if (getClass() != obj.getClass())
 				return false;
 			PropertyValue other = (PropertyValue) obj;
-			if (!getOuterType().equals(other.getOuterType()))
-				return false;
+			//if (!getOuterType().equals(other.getOuterType()))
+			//	return false;
 			if (value == null) {
 				if (other.value != null)
 					return false;
 			} else if (!value.equals(other.value))
 				return false;
 			return true;
-		}
-
-		private PropertyList getOuterType() {
-			return PropertyList.this;
 		}
 	}
 	
