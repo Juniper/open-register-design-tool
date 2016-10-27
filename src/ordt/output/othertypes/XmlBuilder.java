@@ -52,7 +52,12 @@ public class XmlBuilder extends OutputBuilder {
 		addXmlElement("id", fieldProperties.getId());
 		String textName = fieldProperties.getTextName();
 		if (textName == null) textName = fieldProperties.getId() + " field";
-		addXmlElement("shorttext", cleanXmlText(textName));
+		textName = cleanXmlText(textName);
+		if (textName.length() > 255) {
+			Ordt.warnMessage("Field " + fieldProperties.getInstancePath() + " short text description exceeds 255 characters and will be truncated in xml.");
+			textName = textName.substring(0, 255);
+		}
+		addXmlElement("shorttext", textName);
 		addXmlElement("access", getFieldAccessType(fieldProperties));
 		if (fieldProperties.getReset() != null) {
 			addXmlElement("reset", fieldProperties.getReset().toFormat(NumBase.Hex, NumFormat.Int)); // output reset as hex string
@@ -123,7 +128,12 @@ public class XmlBuilder extends OutputBuilder {
 		if ((parentPath != null) && !parentPath.isEmpty()) addXmlElement("parentpath", parentPath);
 		String textName = regProperties.getTextName();
 		if (textName == null) textName = regProperties.getId() + " register";
-		addXmlElement("shorttext", cleanXmlText(textName));
+		textName = cleanXmlText(textName);
+		if (textName.length() > 255) {
+			Ordt.warnMessage("Register " + regProperties.getInstancePath() + " short text description exceeds 255 characters and will be truncated in xml.");
+			textName = textName.substring(0, 255);
+		}
+		addXmlElement("shorttext", textName);
 		addXmlElement("baseaddr", regProperties.getFullBaseAddress().toString());
 		addXmlElement("width", regProperties.getRegWidth().toString());
 		if (regProperties.isReplicated()) {
@@ -180,7 +190,12 @@ public class XmlBuilder extends OutputBuilder {
 		if ((parentPath != null) && !parentPath.isEmpty()) addXmlElement("parentpath", parentPath);
 		String textName = regSetProperties.getTextName();
 		if (textName == null) textName = regSetProperties.getId() + " registers";
-		addXmlElement("shorttext", cleanXmlText(textName));
+		textName = cleanXmlText(textName);
+		if (textName.length() > 255) {
+			Ordt.warnMessage("Register set " + regSetProperties.getInstancePath() + " short text description exceeds 255 characters and will be truncated in xml.");
+			textName = textName.substring(0, 255);
+		}
+		addXmlElement("shorttext", textName);
 		// address
 		if (regSetProperties.isRootInstance())
 			addXmlElement("baseaddr", ExtParameters.getPrimaryBaseAddress().toString());
@@ -221,7 +236,12 @@ public class XmlBuilder extends OutputBuilder {
 		addXmlElement("baseaddr", ExtParameters.getPrimaryBaseAddress().toString());
 		String textName = regSetProperties.getTextName();
 		if (textName == null) textName = getAddressMapName() + " registers";
-		addXmlElement("shorttext", cleanXmlText(textName));
+		textName = cleanXmlText(textName);
+		if (textName.length() > 255) {
+			Ordt.warnMessage("Address map " + getAddressMapName() + " short text description exceeds 255 characters and will be truncated in xml.");
+			textName = textName.substring(0, 255);
+		}
+		addXmlElement("shorttext", textName);
 		if (regSetProperties.getTextDescription() != null) 
 			addXmlElement("longtext", wrapXmlText(regSetProperties.getTextDescription()));
 	}
