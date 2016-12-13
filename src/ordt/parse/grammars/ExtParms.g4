@@ -39,7 +39,7 @@ ext_parm_defs
    | 'suppress_alignment_warnings' EQ bool
    | 'default_base_map_name' EQ STR
    | 'allow_unordered_addresses' EQ bool
-   | 'debug_mode' EQ NUM
+   | 'debug_mode' EQ STR
    ;
 
 // ------------ rdl_in_defs

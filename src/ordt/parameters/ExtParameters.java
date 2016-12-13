@@ -82,15 +82,16 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("suppress_alignment_warnings", false); 
 		initStringParameter("default_base_map_name", "");  
 		initBooleanParameter("allow_unordered_addresses", false); 
-		params.put("debug_mode", new ExtIntegerParameter("debug_mode", 0) {  // special handling for debug_mode
+		// special handling for debug_mode. currently defined:
+		//     uvmregs_no_mem_wrap
+		//     uvmregs_maps_use_max_width
+		params.put("debug_mode", new ExtStringParameter("debug_mode", "") {  
 			@Override
 			public void set(String valStr) {
-				Integer intval = Utils.strToInteger(valStr);
-				if (intval != null) {
-					value = intval;
-					if (intval != 0) Ordt.warnMessage("debug_mode parameter is set.  Non-standard ordt behavior can occur.");
+				if ((valStr != null) && !valStr.isEmpty()) {
+					value = valStr;
+					Ordt.warnMessage("debug_mode parameter is set (value = " + value + ").  Non-standard ordt behavior can occur.");
 				} 
-				else Ordt.errorMessage("invalid debug_mode specified (" + value + ").");
 			}
 		});
 		
@@ -505,11 +506,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getStringParameter("default_base_map_name");
 	}
 
-	/** get debugMode
-	 *  @return the debugMode (non-zero indicates debug)
-	 */
-	public static Integer getDebugMode() {
-		return getIntegerParameter("debug_mode");
+	/** return true if specified debug mode is set */
+	public static boolean hasDebugMode(String targetMode) {
+		String debugMode = getStringParameter("debug_mode");
+		return (debugMode != null) && debugMode.contains(targetMode);
 	}
 
 	/** returns true if comp names have been specified for processing */

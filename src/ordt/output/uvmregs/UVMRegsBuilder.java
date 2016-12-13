@@ -138,7 +138,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 			if (regProperties.isMem() || (regProperties.getRepCount() >= ExtParameters.uvmregsIsMemThreshold())) {   // check is_mem threshold vs reps
 				//System.out.println("UVMRegsBuilder finishRegister: replicated MEM reg id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", thold=" + ExtParameters.uvmregsIsMemThreshold());
                 // if debug mode 3 then no wrapper created (old behavior - bad address stride generated in uvm1.1d)
-				if (ExtParameters.getDebugMode() == 3) {
+				if (ExtParameters.hasDebugMode("uvmregs_no_mem_wrap")) {
 					// save info for this memory and virtual regs to be used in parent uvm_reg_block
 					saveMemInfo(false);  // no wrapper used
 					// build the virtual register class definition
@@ -647,7 +647,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		if (hasCallback) buildBlockAddCallbacksMethod();
 		
 		// create build function  
-		Integer mapWidthOverride = (ExtParameters.getDebugMode() == 1)?  regSetProperties.getMaxRegByteWidth()  : null; // if debug mode 1 use regset property width
+		Integer mapWidthOverride = (ExtParameters.hasDebugMode("uvmregs_maps_use_max_width"))?  regSetProperties.getMaxRegByteWidth()  : null; // if debug mode 1 use regset property width
 		buildBlockBuildFunction(uvmBlockClassName, refId, mapWidthOverride, false);
 		
 		// close out the class definition
