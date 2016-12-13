@@ -1415,7 +1415,14 @@ public class UVMRdlClasses {
 		func.addComment("Returns a user-defined property of specified name for this rdl class instance");
 		func.addIO("string", "name");
 		func.addStatement("return m_def_properties[name];");
-		outputList.addAll(func.genOutputLines(indentLvl));		
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		// remove a user defined property of specified name
+		func = new SystemVerilogFunction("void", "remove_def_property");
+		func.addComment("Removes the user-defined property of specified name for this rdl class instance");
+		func.addIO("string", "name");
+		func.addStatement("m_def_properties.delete(name);");
+		outputList.addAll(func.genOutputLines(indentLvl));	
 	}
 	
 	/** create rdl path generation methods for uvm_reg_block derived class   
