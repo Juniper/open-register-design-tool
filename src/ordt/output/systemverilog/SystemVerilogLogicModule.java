@@ -24,6 +24,21 @@ import ordt.parameters.Utils;
 
 /** derived class for logic module 
  *  note: this class is tightly coupled with builder - uses several builder methods
+ *  
+ * signal resolution flow:
+ *    - RdlModel extractor flags all lhs instance ref assignments w/o a property deref as new signalAssign property
+ *    - in generate, when signal encountered, addSignal is called in SVBuilder
+ *          at this point signalProperties is updated and signal assignment has been extracted via setAssignExpression in extractProperties
+ *          signalProperties is added to userDefinedSignals using sig_* prefix string name as key 
+ *          if an assignment is found, output port strings are created
+ *             for each rhs reference, resolveAsSignalOrField is called, addRhsSignal is called
+ *                resolveAsSignalOrField - if in userDefinedSignals, converts to name to sig_* form and marks the sig as a rhs reference << FIXME problem if sig assign order is wrong
+ *                addRhsSignal - adds signal to list of rhs signals
+ *          if no assignment an input port is generated
+ *    - after generate, createSignalAssigns is called, which resolves all rhs signals in assign rhs
+ *        isRhsReference is called to determine if a signal is unused
+ *    - resolveRhsExpression is called by WriteStatements routines << FIXME problem if lhs property reference is prior to signal def
+
  */
 public class SystemVerilogLogicModule extends SystemVerilogModule {
 	private HashMap<String, SignalProperties> userDefinedSignals = new HashMap<String, SignalProperties>();  // all user defined signals in module
@@ -704,17 +719,17 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	}
 	
 	/** determine if a rhs reference is a signal or a field and return modified name if a signal.
-	 *  if a signal, it is tagged as a rhsReference. 
+	 *  if a signal, it is tagged as a rhsReference in userDefinedSignals list. 
 	 * this method should only be called after entire signal list is created at addrmap exit */
 	public String resolveAsSignalOrField(String ref) {
 		//if (ref.contains("log_enable_n")) System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: ref=" + ref);
-		String retStr = ref;  // no name change by default
-		if ((ref.startsWith("rg_") && userDefinedSignals.containsKey(ref.replaceFirst("rg_", "sig_")))) {
-			retStr = ref.replace("rg_", "sig_");
-			userDefinedSignals.get(retStr).setRhsReference(true);  // indicate that this signal is used internally as rhs
+		String sigNameStr = ref.replaceFirst("rg_", "sig_");  // speculatively convert to signal prefix for lookup
+		if ((ref.startsWith("rg_") && userDefinedSignals.containsKey(sigNameStr))) {
+			userDefinedSignals.get(sigNameStr).setRhsReference(true);  // indicate that this signal is used internally as rhs
 			//System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: marked signal " + retStr + " as rhsReference, rhs=" + userDefinedSignals.get(retStr).isRhsReference());
+			return sigNameStr;  // return signal form if found
 		}	
-		return retStr;
+		return ref;  // no name change by default
 	}
 	
 	/** loop through user defined signals and add assign statements to set these signals - call after build */  

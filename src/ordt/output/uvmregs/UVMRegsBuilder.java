@@ -662,7 +662,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	private void buildMemWrapperBlockClass(String uvmBlockClassName, String nameSuffix, Integer mapWidthOverride) {
 		// create block name + id with suffix
 		String refId = ((regSetProperties == null) || regSetProperties.getBaseName().isEmpty()) ? nameSuffix : regSetProperties.getBaseName() + "_" + nameSuffix;  // id used for structure lookup
-		System.out.println("UVMRegsBuilder buildMemWrapperBlockClass: fullId=" + uvmBlockClassName + ", refId=" + refId);
+		//System.out.println("UVMRegsBuilder buildMemWrapperBlockClass: fullId=" + uvmBlockClassName + ", refId=" + refId);
 		
 		// generate register header 
 		outputList.add(new OutputLine(indentLvl, ""));	

@@ -25,7 +25,6 @@ public abstract class ModComponent extends ModBaseComponent {
 	protected boolean isRoot = false;   // root component
 	public enum CompType { DEFAULT, ADDRMAP, REG, REGSET, FIELD, FIELDSET }  // subset of comp types used for annotation check and addrmap indication
 	protected CompType compType = CompType.DEFAULT;
-	//protected boolean addressMap = false;   // regset is an address map
 	protected RegNumber alignedSize;   // size of this component in bytes assuming js alignment rules (used for addr alignment)
 	
 	protected ModComponent() {
@@ -584,6 +583,13 @@ public abstract class ModComponent extends ModBaseComponent {
 		if (repCount>1) return "_" + rep;
 		else return "";
 	}
+	
+	/** recursively build user defined signal name list */
+	public void getDefinedSignalNames(String newSuffix, List<String> nameList) {
+		// pass along to all instances of this component
+		for (ModInstance inst: instancesOf) inst.getDefinedSignalNames(newSuffix, nameList);
+		
+	}
 
 	// ------------------------------------ code gen methods ----------------------------------------
 	
@@ -654,5 +660,6 @@ public abstract class ModComponent extends ModBaseComponent {
 			return false;
 		return true;
 	}
+
 
 }

@@ -49,6 +49,8 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	private String usrPropertyName, usrPropertyType, usrPropertyDefault;  // temp vars for capturing user defined properties
 	private List<String> usrPropertyComponents;
 
+	private List<ModSignal> usrSignals = new ArrayList<ModSignal>();
+	
 	/** create data model from rdl file 
 	 * @param rdlFile to be parsed
 	 * @param moduleName to be used as default name for addrmap instances
@@ -237,6 +239,11 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 				rElem.updateDefaultProperties(activeParent.getDefaultProperties());  // pick up defaults from parent
 			}
 						
+			// save list of defined signals - will need this to resolve rdl signals vs fields in assignments
+			if ("signal".equals(cd_type)) {
+				usrSignals.add((ModSignal) rElem);
+				//System.out.println("RdlModelExtract enterComponent_def: added signal comp id=" + rElem.getId());
+			}
 			//System.out.println(repeat(' ',ctx.depth()) + "  added new " + cd_type);
 		}
 		else {
@@ -756,6 +763,13 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	 *  exiting file 
 	 */
 	@Override public void exitRoot(@NotNull SystemRDLParser.RootContext ctx) { 
+		// create list of defined signals recursively from each leaf instance
+		List<String> usrSignalNames = new ArrayList<String>();
+		for (ModSignal sig: usrSignals)
+			sig.getDefinedSignalNames(usrSignalNames);  // 
+		System.out.println("RdlModelExtract exitRoot: found " + usrSignals.size() + " defined signals");
+		for (String sigName: usrSignalNames)
+			System.out.println("RdlModelExtract exitRoot: found signal " + sigName);
 	}
 
 	/**
@@ -899,7 +913,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			// else parse instance ref of form: instance_ref_elem(or *)+ - treat as a signal assign
 			else if (instanceRefChildren>=1) { 
 				isValid = isLhs || (instanceRefChildren>1);  // for now rhs singletons are marked is invalid to inhibit checks
-				property = isLhs? "signalAssign" :  null;  // property is signal assignment if lhs				
+				property = isLhs? "signalAssign" :  null;  // property is signal assignment if lhs and no deRef				
 				// build an instance path list 
 				for (int idx=0; idx<instanceRefChildren; idx += 2) {
 					String instRef = instRefTree.getChild(idx).getText();

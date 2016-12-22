@@ -39,7 +39,7 @@ public class SignalProperties extends InstanceProperties {
 		// set signal assignment ref 
 		if (pList.hasProperty("signalAssign")) {
 			setAssignExpr(pList.getProperty("signalAssign"), pList.getDepth("signalAssign"));
-			//Jrdl.infoMessage("SignalProperties: id=" + getId() + ", found signal assign");
+			//System.out.println("SignalProperties: id=" + getId() + ", found signal assign");
 		}
 
 		// cpuif_reset, hwif_reset

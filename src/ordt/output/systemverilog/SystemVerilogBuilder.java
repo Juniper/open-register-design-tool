@@ -220,9 +220,9 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			}			
 		}
 		
-		// add user signal to hashmap of defined signals
+		// add user signal to hashmap of defined signals for the active logic module
 		if (!signalProperties.isExternal()) logic.addUserDefinedSignal(signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), signalProperties);
-		//System.out.println("SystemVerilogBuilder addSignal: signal=" + signalProperties.getBaseName() + ", low=" + signalProperties.getLowIndex() + ", size=" + signalProperties.getSignalWidth() + ", builder=" + getBuilderID() + ", ext=" + signalProperties.isExternal());
+		//System.out.println("SystemVerilogBuilder addSignal: signal=" + signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL) + ", low=" + signalProperties.getLowIndex() + ", size=" + signalProperties.getSignalWidth() + ", builder=" + getBuilderID() + ", ext=" + signalProperties.isExternal());
 		
 		// if signal is lhs of assignment then add to logic assign/logic lists/output, else add it as an input.
 		// io assign is done here so interface wrapper contains user sigs - all user sigs are either inputs or outputs
@@ -230,13 +230,13 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		if (signalProperties.hasAssignExpr()) {
 			logic.addVectorReg(signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), signalProperties.getLowIndex(), signalProperties.getSignalWidth());  
 			logic.addSimpleVectorTo(HW, signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), 0, signalProperties.getSignalWidth());   // add output
-			//System.out.println("SystemVerilogBuilder addSignal: signal basename=" + signalProperties.getRtlName() + ", sig.assignRefName=" + refName+ ", sigRef.getRawReference=" + signalProperties.getAssignRef().getRawReference());
             // add each signal in expression rhs to the master list of rhs signals
 			List<RhsReference> rhsRefList = signalProperties.getAssignExpr().getRefList(); 
 			for (RhsReference ref: rhsRefList) {
-				String refName = ref.getReferenceName(signalProperties, false); 
-				refName = logic.resolveAsSignalOrField(refName);
+				String refName = ref.getReferenceName(signalProperties, false);   
+				refName = logic.resolveAsSignalOrField(refName);  // FIXME - this is incorrect
 				logic.addRhsSignal(refName, getInstancePath() , ref.getRawReference());				
+				//System.out.println("SystemVerilogBuilder addSignal, rhs ref=" + refName + ", lhs sig=" + getInstancePath() + ", raw rhs ref=" + ref.getRawReference());
 			}
 		}
 		else {
