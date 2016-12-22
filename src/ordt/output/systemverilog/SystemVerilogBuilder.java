@@ -234,7 +234,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			List<RhsReference> rhsRefList = signalProperties.getAssignExpr().getRefList(); 
 			for (RhsReference ref: rhsRefList) {
 				String refName = ref.getReferenceName(signalProperties, false);   
-				refName = logic.resolveAsSignalOrField(refName);  // FIXME - this is incorrect
+				refName = logic.resolveAsSignalOrField(refName);
 				logic.addRhsSignal(refName, getInstancePath() , ref.getRawReference());				
 				//System.out.println("SystemVerilogBuilder addSignal, rhs ref=" + refName + ", lhs sig=" + getInstancePath() + ", raw rhs ref=" + ref.getRawReference());
 			}
@@ -1047,4 +1047,9 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   tempAssignList.add(assignStr);		
 	}
 	
+	/** return true if specified name is a user-defined signal name */
+	public boolean isUserDefinedSignal(String name) {
+		return model.isUserDefinedSignal(name);  
+	}
+
 }

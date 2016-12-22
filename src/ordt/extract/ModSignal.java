@@ -3,7 +3,7 @@
  */
 package ordt.extract;
 
-import java.util.List;
+import java.util.HashSet;
 
 import ordt.output.OutputBuilder;
 import ordt.output.SignalProperties;
@@ -20,7 +20,7 @@ public class ModSignal extends ModComponent {
 	}
 
     /** recursively build list of hierarchical signal names that will be created by this ModSignal */
-	public void getDefinedSignalNames(List<String> nameList) {
+	public void getDefinedSignalNames(HashSet<String> nameList) {
 		// loop through instances of this ModSignal
 		for (ModInstance inst: instancesOf)
 			inst.getDefinedSignalNames("", nameList);  // start with null suffix

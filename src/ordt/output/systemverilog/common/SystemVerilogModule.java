@@ -370,7 +370,7 @@ public class SystemVerilogModule {
 	public void addSimpleVectorFrom(Integer from, String name, int lowIndex, int size) {
 		SystemVerilogIOSignalList sigList = ioHash.get(from);  // get the siglist
 		if (sigList == null) return;
-		sigList.addSimpleVector(from, insideLocs, name, lowIndex, size); 
+		if (addDefinedSignal(name)) sigList.addSimpleVector(from, insideLocs, name, lowIndex, size); 
 	}
 	
 	// hierarchical IO adds

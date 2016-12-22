@@ -27,4 +27,7 @@ public interface RegModelIntf {
 	/** return true if field offsets are relative to zero or max reg/fieldset width (rdl=true, jspac=false) **/
 	public boolean fieldOffsetsFromZero();		
 	
+    /** return true if specified name is a defined signal */
+	public boolean isUserDefinedSignal(String name);
+	
 }

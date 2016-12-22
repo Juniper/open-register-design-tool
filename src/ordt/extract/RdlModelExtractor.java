@@ -49,7 +49,9 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	private String usrPropertyName, usrPropertyType, usrPropertyDefault;  // temp vars for capturing user defined properties
 	private List<String> usrPropertyComponents;
 
-	private List<ModSignal> usrSignals = new ArrayList<ModSignal>();
+	// structures to pre-build a list of user-defined signals
+	private List<ModSignal> usrSignals = new ArrayList<ModSignal>();  // list of all signals in the model
+	private HashSet<String> usrSignalNames = new HashSet<String>();  // full list of extracted signal names
 	
 	/** create data model from rdl file 
 	 * @param rdlFile to be parsed
@@ -763,13 +765,12 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	 *  exiting file 
 	 */
 	@Override public void exitRoot(@NotNull SystemRDLParser.RootContext ctx) { 
-		// create list of defined signals recursively from each leaf instance
-		List<String> usrSignalNames = new ArrayList<String>();
+		// create list of defined signals recursively from each leaf instance since signal defines are sparse
 		for (ModSignal sig: usrSignals)
-			sig.getDefinedSignalNames(usrSignalNames);  // 
-		System.out.println("RdlModelExtract exitRoot: found " + usrSignals.size() + " defined signals");
-		for (String sigName: usrSignalNames)
-			System.out.println("RdlModelExtract exitRoot: found signal " + sigName);
+			sig.getDefinedSignalNames(usrSignalNames); 
+		//System.out.println("RdlModelExtract exitRoot: found " + usrSignals.size() + " defined signals");
+		//for (String sigName: usrSignalNames)
+			//System.out.println("RdlModelExtract exitRoot: found signal " + sigName);
 	}
 
 	/**
@@ -883,6 +884,12 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/** return true if field offsets are relative to zero or max reg/fieldset width (rdl=true, jspec=false) **/
 	public boolean fieldOffsetsFromZero() {
 		return true;
+	}
+
+	@Override
+	/** return true if specified name is a user-defined signal name */
+	public boolean isUserDefinedSignal(String name) {
+		return usrSignalNames.contains(name);  
 	}
 
     // ------------------------------------------------------------------------------------------------

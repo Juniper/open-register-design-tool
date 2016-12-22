@@ -104,7 +104,8 @@ public class RhsExpression {
 	   return retList;
    }*/
 
-   /** return the resolved rtl expression */
+   /** return the resolved rtl expression. 
+    *     note - since method uses userDefinedSignals it is only usable after generation phase */
    public String getResolvedExpression(InstanceProperties instProperties, HashMap<String, SignalProperties> userDefinedSignals) {
 	   String retExpression = baseExpression;
 	   //System.out.println("RhsExpression getResolvedExpression: baseExpression=" + baseExpression);

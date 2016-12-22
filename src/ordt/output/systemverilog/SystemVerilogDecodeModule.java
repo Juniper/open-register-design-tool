@@ -1444,8 +1444,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addRegAssign(groupName,  s8StateName + " <= #1  " + s8StateNextName + ";");  
 
 		// s8 cmd inputs will feed into sm
-		this.addScalarWire(serial8CmdValidName);  
-		this.addVectorWire(serial8CmdDataName, 0, 8); 
+		//this.addScalarWire(serial8CmdValidName);  
+		//this.addVectorWire(serial8CmdDataName, 0, 8); 
         // s8 res outputs will be set in sm 
 		this.addScalarReg(serial8ResValidName);  
 		this.addVectorReg(serial8ResDataName, 0, 8); 
@@ -1819,8 +1819,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addRegAssign(groupName,  ringStateName + " <= #1  " + ringStateNextName + ";");  
 
 		// ring cmd inputs will feed into sm (after cmd delay regs)
-		this.addScalarWire(ringCmdValidName);  
-		this.addVectorWire(ringCmdDataName, 0, ringWidth); 
+		//this.addScalarWire(ringCmdValidName);  
+		//this.addVectorWire(ringCmdDataName, 0, ringWidth); 
         // ring res outputs will be set in sm (after res delay regs)
 		this.addScalarWire(ringResValidName);  
 		this.addVectorWire(ringResDataName, 0, ringWidth); 

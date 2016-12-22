@@ -5,7 +5,6 @@ package ordt.extract;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 
 import ordt.annotate.AnnotateCommand;
 import ordt.extract.Ordt.InputType;
@@ -166,7 +165,7 @@ public class ModInstance extends ModBaseComponent {
 	}
 
 	/** recursively build user defined signal name list */
-	public void getDefinedSignalNames(String suffix, List<String> nameList) {
+	public void getDefinedSignalNames(String suffix, HashSet<String> nameList) {
 		String separator = suffix.isEmpty()? "" : "_"; 
 		// append inst name to suffix including replication
 		if (repCount>1) {

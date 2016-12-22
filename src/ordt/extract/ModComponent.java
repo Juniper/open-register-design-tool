@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -585,7 +586,7 @@ public abstract class ModComponent extends ModBaseComponent {
 	}
 	
 	/** recursively build user defined signal name list */
-	public void getDefinedSignalNames(String newSuffix, List<String> nameList) {
+	public void getDefinedSignalNames(String newSuffix, HashSet<String> nameList) {
 		// pass along to all instances of this component
 		for (ModInstance inst: instancesOf) inst.getDefinedSignalNames(newSuffix, nameList);
 		

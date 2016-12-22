@@ -27,9 +27,10 @@ import ordt.parameters.Utils;
  *  
  * signal resolution flow:
  *    - RdlModel extractor flags all lhs instance ref assignments w/o a property deref as new signalAssign property
+ *          extractor also pre-computes list of user-defined signals and exposes isUserDefinedSignal method
  *    - in generate, when signal encountered, addSignal is called in SVBuilder
  *          at this point signalProperties is updated and signal assignment has been extracted via setAssignExpression in extractProperties
- *          signalProperties is added to userDefinedSignals using sig_* prefix string name as key 
+ *          signalProperties is added to module-specific userDefinedSignals using sig_* prefix string name as key 
  *          if an assignment is found, output port strings are created
  *             for each rhs reference, resolveAsSignalOrField is called, addRhsSignal is called
  *                resolveAsSignalOrField - if in userDefinedSignals, converts to name to sig_* form and marks the sig as a rhs reference << FIXME problem if sig assign order is wrong
@@ -41,7 +42,7 @@ import ordt.parameters.Utils;
 
  */
 public class SystemVerilogLogicModule extends SystemVerilogModule {
-	private HashMap<String, SignalProperties> userDefinedSignals = new HashMap<String, SignalProperties>();  // all user defined signals in module
+	private HashMap<String, SignalProperties> userDefinedSignals = new HashMap<String, SignalProperties>();  // all user defined signals in current addrmap module / only valid after generate
 	private HashMap<String, RhsReferenceInfo> rhsSignals = new HashMap<String, RhsReferenceInfo>();  // all right hand side assignment references in module (used to create usable error messages)
 
 	private FieldProperties fieldProperties;
@@ -715,7 +716,10 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	/** save user defined signal info */
 	public void addUserDefinedSignal(String rtlName, SignalProperties signalProperties) {
 		//System.out.println("SystemVerilogLogicModule addUserDefinedSignal: ref=" + rtlName + ", key=" + signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL));
-		userDefinedSignals.put(signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), signalProperties);  
+		String sigName = signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL);
+		boolean setAsRhsReference = userDefinedSignals.containsKey(sigName) && (userDefinedSignals.get(sigName) == null);
+		if (setAsRhsReference) signalProperties.setRhsReference(true);
+		userDefinedSignals.put(sigName, signalProperties); 
 	}
 	
 	/** determine if a rhs reference is a signal or a field and return modified name if a signal.
@@ -724,15 +728,20 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	public String resolveAsSignalOrField(String ref) {
 		//if (ref.contains("log_enable_n")) System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: ref=" + ref);
 		String sigNameStr = ref.replaceFirst("rg_", "sig_");  // speculatively convert to signal prefix for lookup
-		if ((ref.startsWith("rg_") && userDefinedSignals.containsKey(sigNameStr))) {
-			userDefinedSignals.get(sigNameStr).setRhsReference(true);  // indicate that this signal is used internally as rhs
+		if ((ref.startsWith("rg_") && builder.isUserDefinedSignal(sigNameStr))) {  // check that signal is in pre-computed set  
+			// the local list may not have been populated, but can load with null to indicate that it's been seen on rhs of an assign
+			if (!userDefinedSignals.containsKey(sigNameStr)) {
+				//System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: " + sigNameStr + " was found in master list, but not in module-specific list");
+				userDefinedSignals.put(sigNameStr, null);
+			}
+			else userDefinedSignals.get(sigNameStr).setRhsReference(true);  // indicate that this signal is used internally as rhs  
 			//System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: marked signal " + retStr + " as rhsReference, rhs=" + userDefinedSignals.get(retStr).isRhsReference());
 			return sigNameStr;  // return signal form if found
 		}	
 		return ref;  // no name change by default
 	}
 	
-	/** loop through user defined signals and add assign statements to set these signals - call after build */  
+	/** loop through user defined signals and add assign statements to set these signals - call after build when userDefinedSignals is valid */  
 	public void createSignalAssigns() {
 		// first loop through signals, detect any signals on rhs, and verify each sig in rhs exists
 		for (String key: userDefinedSignals.keySet()) {
@@ -751,6 +760,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 						// check for a valid signal
 						if (!this.hasDefinedSignal(refName) && (rhsSignals.containsKey(refName))) {  
 							RhsReferenceInfo rInfo = rhsSignals.get(refName);
+							//System.out.println("SystemVerilogLogicModule createSignalAssigns: refName=" + refName + ", hasDefinedSignal=" + this.hasDefinedSignal(refName) + ", rhsSignals.containsKey=" + rhsSignals.containsKey(refName));
 							Ordt.errorMessage("unable to resolve " + rInfo.getRhsRefString() + " referenced in rhs dynamic property assignment for " + rInfo.getLhsInstance()); 
 						}						
 					}
@@ -794,6 +804,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		if (!this.hasDefinedSignal(postResolveName)) {
 			if (rhsSignals.containsKey(preResolveName)) {
 				RhsReferenceInfo rInfo = rhsSignals.get(preResolveName);
+				//System.out.println("SystemVerilogLogicModule checkSignalName: preResolveName=" + preResolveName + " found in rhsSignals, but postResolveName=" + postResolveName + " not found in definedSignals");
 				Ordt.errorMessage("unable to resolve " + rInfo.getRhsRefString() + " referenced in rhs dynamic property assignment for " + rInfo.getLhsInstance()); 
 			}
 			else
