@@ -11,7 +11,7 @@ public class SystemVerilogDefinedSignals {
 		FIELD, FIELD_NEXT, 
 		L2H_DATA, L2H_SWACC, L2H_SWMOD, L2H_OVERFLOW, L2H_UNDERFLOW, L2H_INCRSAT, L2H_DECRSAT, L2H_INCRTHOLD, L2H_DECRTHOLD, L2H_ANDED, L2H_ORED, L2H_XORED, 
 		H2L_WEL, H2L_WE, H2L_HWSET, H2L_HWCLR, H2L_SWWEL, H2L_SWWE, H2L_INTR, H2L_DATA, H2L_INCR, H2L_DECR, H2L_INCRVALUE, H2L_DECRVALUE, 
-		PREVINTR, CNTR_NEXT,
+		PREVINTR, CNTR_NEXT, INTR_CLEAR, INTR_DLY,
 		D2L_DATA, L2D_DATA, D2L_WE, D2L_RE, 
 		D2H_ADDR, D2H_DATA, D2H_SIZE, D2H_WE, D2H_RE, 
 		H2D_RETSIZE, H2D_DATA, H2D_ACK, H2D_NACK, 
@@ -72,6 +72,7 @@ public class SystemVerilogDefinedSignals {
 		
 		newList.put(DefSignalType.PREVINTR, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, NONE, NONE, "intr_", "previntr"));
 		newList.put(DefSignalType.CNTR_NEXT, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, NONE, NONE, "cntr_", "next"));
+		newList.put(DefSignalType.INTR_DLY, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, NONE, NONE, "intr_", "delay"));
 		
 		newList.put(DefSignalType.D2L_DATA, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, DECODE, LOGIC, "d2l_", "w"));
 		newList.put(DefSignalType.L2D_DATA, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, LOGIC, DECODE, "l2d_", "r"));
@@ -91,6 +92,7 @@ public class SystemVerilogDefinedSignals {
 		
 		newList.put(DefSignalType.L2H_INTR, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, LOGIC, HW, "l2h_", "intr_o"));
 		newList.put(DefSignalType.L2H_HALT, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, LOGIC, HW, "l2h_", "halt_o"));
+		newList.put(DefSignalType.INTR_CLEAR, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, NONE, NONE, "intr_", "clear"));
 		
 		newList.put(DefSignalType.USR_SIGNAL, new SystemVerilogDefinedSignal(DefSignalAssoc.SIGNAL, NONE, NONE, "sig_", null));  // default to no from/to
 		newList.put(DefSignalType.SIGSET, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, NONE, NONE, null, null));

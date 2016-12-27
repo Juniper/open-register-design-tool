@@ -172,11 +172,12 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		   boolean hwPrecedence = fieldProperties.hasHwPrecedence();
 		   boolean swPrecedence = !(fieldProperties.hasHwPrecedence());
 		   
-		   // if a counter (special case, hw has precedence by default)  
+		   // if a counter (special case, hw has precedence in counters by default)  
 		   if (fieldProperties.isCounter()) {
 			   genCounterWriteStmts(hwPrecedence);
 		   }
-		   // if hw uses interrupt  (special case, hw has precedence by default)
+		   
+		   // if hw uses interrupt  
 		   else if (fieldProperties.isInterrupt()) {  
 			   genInterruptWriteStmts(hwPrecedence);
 		   }
@@ -347,10 +348,16 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		   
 		   // if register is not already interrupt, then create signal assigns and mark for output creation in finishRegister
 		   String intrOutput = regProperties.getFullSignalName(DefSignalType.L2H_INTR);
+		   String intrClear = regProperties.getFullSignalName(DefSignalType.INTR_CLEAR);  // interrupt clear detect signal
 		   if (!regProperties.hasInterruptOutputDefined()) {
 			   regProperties.setHasInterruptOutputDefined(true);
 			   addScalarReg(intrOutput);
 		       addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, intrOutput + " = 1'b0;");  // default to intr off
+		       // if pulse on clear is set then add clear detect signal
+		       if (ExtParameters.sysVerPulseIntrOnClear()) {
+				   addScalarReg(intrClear);
+			       addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, intrClear + " = 1'b0;");  // default to clear off
+		       }
 		   }
 		   
 		   // if a halt field and register is not already halt, then create signal assigns and mark for output creation in finishRegister
@@ -425,6 +432,13 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			   orStr = " | ( | (";  endStr = "));";  // use or reduction
 		   }
 	       addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, intrOutput + " = " + intrOutput  + orStr + fieldRegisterName + intrOutputModifier + endStr);
+	       // if pulse on clear is set then create delayed intr value and add to clear detect signal
+	       if (ExtParameters.sysVerPulseIntrOnClear()) {
+			   String intrDlyName = fieldProperties.getFullSignalName(DefSignalType.INTR_DLY); 	   
+			   addVectorReg(intrDlyName, 0, fieldProperties.getFieldWidth());
+			   addRegAssign(regProperties.getBaseName(), intrDlyName  +  " <= #1 " + fieldRegisterName + ";");
+		       addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, intrClear + " = " + intrClear  + orStr + intrDlyName + " & ~" + fieldRegisterName + endStr);  // negedge detect
+	       }
 
 		   // if an enable/mask then gate halt output with this signal
 		   if (fieldProperties.hasRef(RhsRefType.HALT_ENABLE)) {

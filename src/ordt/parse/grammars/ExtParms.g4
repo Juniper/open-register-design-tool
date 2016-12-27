@@ -131,6 +131,7 @@ ext_parm_defs
    | 'include_default_coverage' EQ bool
    | 'generate_external_regs' EQ bool   // also allowed in bench output
    | 'child_info_mode' EQ ('perl' | 'module') 
+   | 'pulse_intr_on_clear' EQ bool
    ;
       
 // ------------ uvmregs_out_defs

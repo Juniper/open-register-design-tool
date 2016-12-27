@@ -314,6 +314,12 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   // if register has an interrupt output then create it
 		   if (regProperties.hasInterruptOutputDefined()) {
 			   hwSigList.addScalar(DefSignalType.L2H_INTR);    // add intr output signal  
+		       // if pulse on clear is set then qualify intr output with clear detect signal
+		       if (ExtParameters.sysVerPulseIntrOnClear()) {
+				   String intrOutput = regProperties.getFullSignalName(DefSignalType.L2H_INTR);
+				   String intrClear = regProperties.getFullSignalName(DefSignalType.INTR_CLEAR);  // interrupt clear detect signal
+			       logic.addPrecCombinAssign(regProperties.getBaseName(), false, intrOutput + " = " + intrOutput + " & ~" + intrClear + ";");  // qualify output with clear
+		       }
 		   }
 
 		   // if register has an halt output then create it

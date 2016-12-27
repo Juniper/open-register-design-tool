@@ -123,6 +123,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("bbv5_timeout_input", false); 
 		initBooleanParameter("include_default_coverage", false);
 		sysVerChildInfoMode = SVChildInfoModes.PERL;  
+		initBooleanParameter("pulse_intr_on_clear", false);
 
 		// ---- rdl output defaults
 		initBooleanParameter("root_component_is_instanced", true); 
@@ -650,6 +651,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	
 	public static Boolean sysVerIncludeDefaultCoverage() {
 		return getBooleanParameter("include_default_coverage");
+	}
+	
+	public static Boolean sysVerPulseIntrOnClear() {
+		return getBooleanParameter("pulse_intr_on_clear");
 	}
 	
 	public static Boolean sysVerGenerateExternalRegs() {
