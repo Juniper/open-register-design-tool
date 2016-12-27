@@ -760,9 +760,10 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		// first loop through signals, detect any signals on rhs, and verify each sig in rhs exists
 		for (String key: userDefinedSignals.keySet()) {
 			SignalProperties sig = userDefinedSignals.get(key);
-			//System.out.println("SystemVerilogLogicModule createSignalAssigns: sig key=" + key + ", sig id=" + sig.getId());
-			// if signal is assigned internally and has simple rhs, check for valid vlog define and resolve sig vs reg
-			if (sig.hasAssignExpr() ) {  
+			//if (sig == null) System.out.println("SystemVerilogLogicModule createSignalAssigns: null sig key=" + key);
+			//else System.out.println("SystemVerilogLogicModule createSignalAssigns: sig key=" + key + ", sig id=" + sig.getId());
+			// if signal in current module is assigned internally and has simple rhs, check for valid vlog define and resolve sig vs reg
+			if ((sig != null) && sig.hasAssignExpr() ) {  
 				// loop thru refs here... check each for well formed
 				List<RhsReference> rhsRefList = sig.getAssignExpr().getRefList(); 
 				for (RhsReference ref: rhsRefList) {
@@ -786,16 +787,18 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			SignalProperties sig = userDefinedSignals.get(key);
 			//System.out.println("SystemVerilogLogicModule createSignalAssigns: signal key=" + key + ", isRhs=" + sig.isRhsReference());
 			// if signal is assigned internally add an assign else an input
-			if (sig.hasAssignExpr()) {
-				//System.out.println("SystemVerilogLogicModule createSignalAssigns: raw expr=" + sig.getAssignExpr().getRawExpression() + ", res expr=" + sig.getAssignExpr().getResolvedExpression(sig, userDefinedSignals));
-				String rhsSigExpression = sig.getAssignExpr().getResolvedExpression(sig, userDefinedSignals); 
-				this.addCombinAssign("user defined signal assigns", sig.getFullSignalName(DefSignalType.USR_SIGNAL) + " = " + rhsSigExpression + ";");
-			}
-			// if not assigned a ref, must be an input, so verify use in an assign
-			else {
-				// if not used internally, issue an error
-				if (!sig.isRhsReference())
-					Ordt.errorMessage("user defined signal " + sig.getFullSignalName(DefSignalType.USR_SIGNAL) + " is not used");		
+			if (sig != null) {
+				if (sig.hasAssignExpr()) {
+					//System.out.println("SystemVerilogLogicModule createSignalAssigns: raw expr=" + sig.getAssignExpr().getRawExpression() + ", res expr=" + sig.getAssignExpr().getResolvedExpression(sig, userDefinedSignals));
+					String rhsSigExpression = sig.getAssignExpr().getResolvedExpression(sig, userDefinedSignals); 
+					this.addCombinAssign("user defined signal assigns", sig.getFullSignalName(DefSignalType.USR_SIGNAL) + " = " + rhsSigExpression + ";");
+				}
+				// if not assigned a ref, must be an input, so verify use in an assign
+				else {
+					// if not used internally, issue an error
+					if (!sig.isRhsReference())
+						Ordt.errorMessage("user defined signal " + sig.getFullSignalName(DefSignalType.USR_SIGNAL) + " is not used");		
+				}
 			}
 		}
 	}
