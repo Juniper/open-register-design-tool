@@ -125,6 +125,8 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
     			// set parent component
     			root.addCompInstance(newInstance);   // add this instance to root or container
     			newInstance.setParent(root);
+    			//processComp.addInstanceOf(newInstance);
+    			//System.out.println("RdlModelExtract processComponents: id=" + typedefName + ", isRootInstance=" + newInstance.isRootInstance());
     		}
     		else Ordt.errorExit("Unable to find specified component (" + typedefName + ") for processing.");        			
 			
@@ -768,9 +770,10 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 		// create list of defined signals recursively from each leaf instance since signal defines are sparse
 		for (ModSignal sig: usrSignals)
 			sig.getDefinedSignalNames(usrSignalNames); 
-		//System.out.println("RdlModelExtract exitRoot: found " + usrSignals.size() + " defined signals");
+		//System.out.println("RdlModelExtract exitRoot: found " + usrSignals.size() + " defined signal nodes with " + usrSignalNames.size() + " defined signals");
 		//for (String sigName: usrSignalNames)
 			//System.out.println("RdlModelExtract exitRoot: found signal " + sigName);
+		//if (sigName.contains("int_detected_cas_tx_afifo2_mem_0")) System.out.println("RdlModelExtract exitRoot: found signal " + sigName);
 	}
 
 	/**

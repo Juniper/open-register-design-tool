@@ -171,7 +171,7 @@ public class ModInstance extends ModBaseComponent {
 		if (repCount>1) {
 			for (int rep = 0; rep < repCount; rep++) {
 				String newSuffix = getId() + "_" + rep + separator + suffix;
-				if (isRootInstance()) nameList.add("sig_" + suffix);  // add to list if root instance  // TODO - what about hier addrmap sig names
+				if (isRootInstance()) nameList.add("sig_" + newSuffix);  // add to list if root instance  
 				else parent.getDefinedSignalNames(newSuffix, nameList);  // otherwise call ancestors
 			}
 				

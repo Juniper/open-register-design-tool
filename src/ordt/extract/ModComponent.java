@@ -588,7 +588,9 @@ public abstract class ModComponent extends ModBaseComponent {
 	/** recursively build user defined signal name list */
 	public void getDefinedSignalNames(String newSuffix, HashSet<String> nameList) {
 		// pass along to all instances of this component
-		for (ModInstance inst: instancesOf) inst.getDefinedSignalNames(newSuffix, nameList);
+		//System.out.println("ModComponent getDefinedSignalNames: id=" + getId() + ", instancesOf=" + instancesOf.size());
+		if (instancesOf.size() == 0) nameList.add("sig_" + newSuffix);  // root components that are not explicitly instanced have no inst count
+		else for (ModInstance inst: instancesOf) inst.getDefinedSignalNames(newSuffix, nameList);
 		
 	}
 

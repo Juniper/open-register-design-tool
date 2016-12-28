@@ -740,12 +740,12 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	 *  if a signal, it is tagged as a rhsReference in userDefinedSignals list. 
 	 * this method should only be called after entire signal list is created at addrmap exit */
 	public String resolveAsSignalOrField(String ref) {
-		//if (ref.contains("log_enable_n")) System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: ref=" + ref);
 		String sigNameStr = ref.replaceFirst("rg_", "sig_");  // speculatively convert to signal prefix for lookup
+		//if (ref.contains("int_detected_cas_tx_afifo2_mem_0")) System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: ref=" + ref + ", isUserDefinedSignal(sigNameStr)=" + builder.isUserDefinedSignal(sigNameStr));
 		if ((ref.startsWith("rg_") && builder.isUserDefinedSignal(sigNameStr))) {  // check that signal is in pre-computed set  
 			// the local list may not have been populated, but can load with null to indicate that it's been seen on rhs of an assign
 			if (!userDefinedSignals.containsKey(sigNameStr)) {
-				//System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: " + sigNameStr + " was found in master list, but not in module-specific list");
+				//if (ref.contains("int_detected_cas_tx_afifo2_mem_0")) System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: " + sigNameStr + " was found in master list, but not in module-specific list");
 				userDefinedSignals.put(sigNameStr, null);
 			}
 			else userDefinedSignals.get(sigNameStr).setRhsReference(true);  // indicate that this signal is used internally as rhs  
