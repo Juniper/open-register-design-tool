@@ -593,6 +593,37 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 		
 	}
 	
+	/**
+	test_group_def
+	   : 'test_group'
+	     LBRACE 
+	     id (COMMA id)* SEMI 
+	     RBRACE
+	     SEMI
+	  ;
+	 */
+	@Override public void enterTest_group_def(JSpecParser.Test_group_defContext ctx) { // TODO
+		activeRules.add(ctx.getRuleIndex());		
+		//System.out.println("JSpecModelExtractor: enterTest_group_def: --------  ctx=" + ctx.getText() );
+		// interpret test group as an aliased register set - assume second in set is alias of the first (eg diag)
+		if (ctx.getChildCount()>5) {
+			String firstID = ctx.getChild(2).getText();
+			String secondID = ctx.getChild(4).getText();
+			//System.out.println("JSpecModelExtractor: enterTest_group_def:  1=" + firstID );
+			//System.out.println("JSpecModelExtractor: enterTest_group_def:  2=" + secondID );
+	    	ModInstance aliasRegInst = activeCompDefs.peek().findLocalInstance(secondID);  // find instance with second name
+	    	if (aliasRegInst != null) {
+	    		aliasRegInst.setProperty("aliasedId", firstID, 0);
+	    	}
+		}
+	}
+	
+	/**
+	 */
+	@Override public void exitTest_group_def(JSpecParser.Test_group_defContext ctx) { 
+		activeRules.remove(ctx.getRuleIndex());
+	}
+	
 	/** issue unsupported msg for transaction */
 	@Override public void enterTransaction_def(@NotNull JSpecParser.Transaction_defContext ctx) {
 		Ordt.warnMessage("Jspec transaction definition not supported (line " + ctx.getStart().getLine() + ")"); 
@@ -617,6 +648,12 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	@Override public void exitType_definition(@NotNull JSpecParser.Type_definitionContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	
 	/**
 	typedef_instance

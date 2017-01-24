@@ -66,12 +66,21 @@ public class RdlBuilder extends OutputBuilder {
 	public void finishRegister() {
 		// only add the register if it is sw accessible
 		if (regProperties.isSwWriteable() || regProperties.isSwReadable()) {
+			//if (regProperties.isAlias()) System.out.println("RdlBuilder finishRegister: Id=" + regProperties.getId() + ", aliasedId=" + regProperties.getAliasedId());
 			// build the register header
-			buildRegHeader();
+			String aliasComp = regProperties.isAlias()? regProperties.getId() + "_ALIAS" : "";
+			buildRegHeader(aliasComp);
 			// add field info
 			buildFields();  
 			// close out the register definition
-			outputList.add(new OutputLine(--indentLvl, "} " + getInstanceStr(regProperties) + ";"));
+			// if not an alias, just generate the instance
+			if (!regProperties.isAlias()) outputList.add(new OutputLine(--indentLvl, "} " + getInstanceStr(regProperties) + ";"));
+			// otherwise make the reg a component define and instance as an alias
+			else {
+				outputList.add(new OutputLine(--indentLvl, "};"));
+				outputList.add(new OutputLine(indentLvl, ""));	
+				outputList.add(new OutputLine(indentLvl, "alias " + regProperties.getAliasedId() + " " + aliasComp + " " + getInstanceStr(regProperties) + ";"));	
+			}
 			outputList.add(new OutputLine(indentLvl, ""));	
 		}
 	}
@@ -145,7 +154,7 @@ public class RdlBuilder extends OutputBuilder {
 
     /** build instance string for a regfile or reg
      * 
-     * @param properties - register or reffile properties
+     * @param properties - register or regfile properties
      * @return instance string
      */
 	private String getInstanceStr(AddressableInstanceProperties properties) {
@@ -180,10 +189,17 @@ public class RdlBuilder extends OutputBuilder {
 		return false;
 	}
 
-	/** build a jspec header for current register instance */ 
-	private void buildRegHeader() {
-		outputList.add(new OutputLine(indentLvl, "// register " + regProperties.getId()));  // TODO external?
-		outputList.add(new OutputLine(indentLvl, "reg {"));
+	/** build aa rdl header for current register instance 
+	 * @param componentName - if not empty, this name will be used as the component name of this register (otherwise anonymous) */ 
+	private void buildRegHeader(String componentName) {
+		if (componentName.isEmpty()) {
+			outputList.add(new OutputLine(indentLvl, "// register " + regProperties.getId())); 
+			outputList.add(new OutputLine(indentLvl, "reg {"));
+		}
+		else {
+			outputList.add(new OutputLine(indentLvl, "// register define " + componentName));
+			outputList.add(new OutputLine(indentLvl, "reg " + componentName + " {"));
+		}
 		outputList.add(new OutputLine(indentLvl++, ""));	
 		//System.out.println("RdlBuilder buildRegHeader: id=" + regProperties.getId() + ", name=" + regProperties.getTextName());
 		//regProperties.display();
