@@ -208,8 +208,15 @@ public class RdlBuilder extends OutputBuilder {
 		if (regProperties.hasCategory())
 	        outputList.add(new OutputLine(indentLvl, "category = \"" + regProperties.getCategory() + "\";")); 
 		// set jspec properties if specified
-		if (ExtParameters.rdlOutputJspecAttributes() && regProperties.getJspecAttributes() != null)
-	        outputList.add(new OutputLine(indentLvl, "js_attributes = \"" + regProperties.getJspecAttributes() + "\";")); 
+		if (ExtParameters.rdlOutputJspecAttributes() && regProperties.getJspecAttributes() != null) {
+			// if do not test override is applied, make sure it's included in js_attributes
+			String doNotTestStr = "";
+			if (regProperties.isDontTest() && !regProperties.getJspecAttributes().contains("DO_NOT_TEST")) {
+				//System.out.println("RdlBuilder buildRegHeader: missing dont-test attribute in " + regProperties.getInstancePath());
+				doNotTestStr = "|JS_ATTRIB_DO_NOT_TEST";
+			}
+	        outputList.add(new OutputLine(indentLvl, "js_attributes = \"" + regProperties.getJspecAttributes() + doNotTestStr + "\";")); 
+		}
 		// add regwidth if not default
 		if (regProperties.getRegWidth() != ExtParameters.getMinDataSize())
 			outputList.add(new OutputLine(indentLvl, "regwidth = " + regProperties.getRegWidth() + ";"));
