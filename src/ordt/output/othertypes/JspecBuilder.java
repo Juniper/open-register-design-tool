@@ -261,7 +261,7 @@ public class JspecBuilder extends OutputBuilder {
 		else {
 			if (regProperties.isDontTest()) attrStr += " JS_ATTRIB_DO_NOT_TEST";  
 			if (regProperties.isDontCompare()) attrStr += " JS_ATTRIB_TEST_ACCESS_ONLY";
-			if (regProperties.hasInterruptFields()) attrStr += " JS_ATTRIB_INT_STATUS";
+			if (regProperties.hasInterruptFields() && (regProperties.getId().equals("status") || regProperties.getId().equals("diag"))) attrStr += " JS_ATTRIB_INT_STATUS";
 		}
 		if (!attrStr.isEmpty()) {
 			attrStr = attrStr.trim().replace(" ", "|"); // create OR'd attr string
