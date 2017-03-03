@@ -106,7 +106,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			   }
 			   // nothing writable so assign to a constant 
 			   else {
-				   //System.out.println("SystemVerilogBuilder genFieldWriteStmts constant field, id=" + fieldProperties.getId() + 
+				   //System.out.println("SystemVerilogBuilder genFieldWriteStmts constant field, id=" + fieldProperties.getPrefixedId() + 
 				   //	   ", writeable=" + fieldProperties.isHwWriteable() + ", intr=" + fieldProperties.isInterrupt() + ", changes val=" + fieldProperties.hwChangesValue());
 				   if (fieldProperties.getReset() != null ) {
 					   addVectorWire(fieldRegisterName, 0, fieldProperties.getFieldWidth());  // add field to wire define list

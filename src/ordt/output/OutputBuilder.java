@@ -131,21 +131,24 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		   fieldProperties.updateInstanceInfo(getInstancePath());
 		   
 		   if (regProperties == null ) {   //FIXME
-			   //System.out.println("OutputBuilder: addField: NO REGPROPS, path=" + getInstancePath() + ", id=" + fieldProperties.getId());
+			   //System.out.println("OutputBuilder: addField: NO REGPROPERTIES DEFINED, path=" + getInstancePath() + ", id=" + fieldProperties.getId());
                return;  // exit if no active register
 		   }
 		   // get index range of this field in the register
 		   Integer computedLowIndex = regProperties.addField(fieldProperties); // get field array indices from reg
-		   fieldProperties.setLowIndex(computedLowIndex); // save the computed index back into fieldProperties
+		   fieldProperties.setLowIndex(computedLowIndex); // save the computed index back into fieldProperties  // TODO - updateIndexInfo here or in addField?
 		   
+		   // set slice ref string for this field
 		   String fieldArrayString = "";
 		   if (fieldProperties.getFieldWidth() != regProperties.getRegWidth())  
 			   fieldArrayString = genRefArrayString(computedLowIndex, fieldProperties.getFieldWidth());
 		   fieldProperties.setFieldArrayString(fieldArrayString);
-		   // set fieldset prefix of this instance
+		   // set fieldset prefix of this field instance
 		   if (!fieldSetPropertyStack.isEmpty()) {
 			   String prefix = getFieldSetPrefix(); // extract from fieldset instance values
 			   //System.err.println("OutputBuilder: addField, setting prefix to  " + prefix);
+			   //System.out.println("  field path=" + fieldProperties.getInstancePath() + ", id=" + fieldProperties.getId());
+			   //System.out.println("    reg path=" + regProperties.getInstancePath() + ", id=" + regProperties.getId());
 			   fieldProperties.setFieldSetPrefixString(prefix);			   
 		   }
 		   
@@ -177,7 +180,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
      */
 	public void addFieldSet(FieldSetProperties fsProperties, int rep) {
 		if (fsProperties != null) {
-			   //System.err.println("OutputBuilder: addFieldSet, path=" + getInstancePath() + ", id=" + fsProperties.getId());
+			   //System.out.println("OutputBuilder: addFieldSet, path=" + getInstancePath() + ", id=" + fsProperties.getId());
 
 			   // extract properties from instance/component
 			   fieldSetProperties = fsProperties; 
@@ -188,8 +191,8 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			   
 			   fieldSetPropertyStack.push(fieldSetProperties);  // push active fieldset onto stack
 			   
-			   // add fieldset offset to active register definition
-			   regProperties.setFieldSetOffset(getCurrentFieldSetOffset()); 
+			   // update current fieldset offset in active register definition
+			   regProperties.setFieldSetOffset(getCurrentFieldSetOffset()); // FIXME - add call to abstract addFieldSet
 
 			}
 	}

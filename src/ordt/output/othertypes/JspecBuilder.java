@@ -69,8 +69,8 @@ public class JspecBuilder extends OutputBuilder {
 	@Override
 	public void addField() {
 		// if name is a reserved keyword then exit
-		if (reservedWords.contains(fieldProperties.getId()))
-			Ordt.errorMessage("field name " + fieldProperties.getId() + " is a jspec reserved word");
+		if (reservedWords.contains(fieldProperties.getPrefixedId()))
+			Ordt.errorMessage("field name " + fieldProperties.getPrefixedId() + " is a jspec reserved word");
 	}
 
 	@Override

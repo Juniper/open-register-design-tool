@@ -111,7 +111,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 
 	@Override
 	public void addField() {
-		//System.out.println("UVMRegsBuilder: addField id=" + fieldProperties.getId() + ", reset=" + fieldProperties.getReset());
+		//System.out.println("UVMRegsBuilder: addField id=" + fieldProperties.getPrefixedId() + ", reset=" + fieldProperties.getReset());
 	}
 
 	@Override
@@ -1123,7 +1123,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		
 		// now get the field
 		String fieldStr = eRef.getFieldName();
-		if (fieldStr.equals("*")) fieldStr = field.getId();
+		if (fieldStr.equals("*")) fieldStr = field.getPrefixedId();
 		outputList.add(new OutputLine(indentLvl, "m_cb_field = m_cb_reg.get_field_by_name(\"" + fieldStr +"\");"));
 	}
 

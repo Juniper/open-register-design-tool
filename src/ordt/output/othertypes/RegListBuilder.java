@@ -78,10 +78,10 @@ public class RegListBuilder extends OutputBuilder {  // TODO handle alias fields
 		// write field info
 		if (ExtParameters.reglistShowFields())  {
 			for (FieldProperties field: fieldList) {
-				String id = field.getId() + field.getFieldArrayString();
+				String id = field.getPrefixedId() + field.getFieldArrayString();
 				String access = getFieldAccessType(field);
 				String reset = ((field.getReset() != null) && field.getReset().isDefined())? field.getReset().toString() : "";
-				String indexedPath = getIndexedInstancePath() + "." + field.getId();
+				String indexedPath = getIndexedInstancePath() + "." + field.getPrefixedId();
 
 				String fieldAssign = "( " + indexedPath + (reset.isEmpty()? "" : " = " + reset) + " )";
 				outputList.add(new OutputLine(indentLvl, String.format("%-25s  mode: %-3s  reset: %-20s  %s" , 

@@ -49,9 +49,9 @@ public class XmlBuilder extends OutputBuilder {
 	@Override
 	public void addField() {
 		addXmlElementStart("field");
-		addXmlElement("id", fieldProperties.getId());
+		addXmlElement("id", fieldProperties.getPrefixedId());
 		String textName = fieldProperties.getTextName();
-		if (textName == null) textName = fieldProperties.getId() + " field";
+		if (textName == null) textName = fieldProperties.getPrefixedId() + " field";
 		textName = cleanXmlText(textName);
 		if (textName.length() > 255) {
 			Ordt.warnMessage("Field " + fieldProperties.getInstancePath() + " short text description exceeds 255 characters and will be truncated in xml.");
@@ -104,7 +104,7 @@ public class XmlBuilder extends OutputBuilder {
 		addXmlElementEnd("field");
 		/*
 		if (regProperties.getId().startsWith("features")) {
-			System.out.println("XmlBuilder addField: reg=" + regProperties.getId() + ", field=" + fieldProperties.getId());
+			System.out.println("XmlBuilder addField: reg=" + regProperties.getId() + ", field=" + fieldProperties.getPrefixedId());
 			System.out.println("   hwChanges=" + fieldProperties.hwChangesValue() + ", counter=" + fieldProperties.isCounter() + ", intr=" + fieldProperties.isInterrupt());	
 			System.out.println("   isHwWriteable=" + fieldProperties.isHwWriteable() + ", hasWe=" + fieldProperties.hasWriteEnable() );	
 		}*/

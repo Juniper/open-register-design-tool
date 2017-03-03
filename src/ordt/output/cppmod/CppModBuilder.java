@@ -60,7 +60,7 @@ public class CppModBuilder extends OutputBuilder {
 
 	@Override
 	public void addField() {
-		//System.out.println("CppModBuilder: addField id=" + fieldProperties.getId() + ", reset=" + fieldProperties.getReset());
+		//System.out.println("CppModBuilder: addField id=" + fieldProperties.getPrefixedId() + ", reset=" + fieldProperties.getReset());
 	}
 
 	@Override
@@ -170,9 +170,9 @@ public class CppModBuilder extends OutputBuilder {
 	private void addFieldInfo() {
 		for (FieldProperties fld: fieldList) {
 			// add info for this field to the parent reg
-			activeModClasses.peek().addChildFieldInfo(fld.getId(), fld.getLowIndex(), fld.getFieldWidth(), fld.getReset(),
+			activeModClasses.peek().addChildFieldInfo(fld.getPrefixedId(), fld.getLowIndex(), fld.getFieldWidth(), fld.getReset(),
 					getFieldReadAccessType(fld), getFieldWriteAccessType(fld));
-			//System.out.println("CppModBuilder addFieldInfo: ipath=" + fld.getBaseName() + ", id=" + fld.getId() );
+			//System.out.println("CppModBuilder addFieldInfo: ipath=" + fld.getBaseName() + ", id=" + fld.getPrefixedId() );
 		}	
 	}
 	

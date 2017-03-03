@@ -43,11 +43,11 @@ public class JsonBuilder extends OutputBuilder {
 	public void addField() {
         // build element for reg instance 
 		String textName = fieldProperties.getTextName();
-		if (textName == null) textName = fieldProperties.getId() + " field";
+		if (textName == null) textName = fieldProperties.getPrefixedId() + " field";
 		else textName = cleanJsonText(textName);
 		String textDescription = fieldProperties.getTextName();
 		if (textDescription != null) textDescription = cleanJsonText(textDescription);
-		addJsonElementStart(fieldProperties.getId(), "field", textName, textDescription);
+		addJsonElementStart(fieldProperties.getPrefixedId(), "field", textName, textDescription);
 		// address
 		addJsonStringElement("accessMode", getFieldAccessType(fieldProperties));
 		if (fieldProperties.getReset() != null) 
@@ -59,7 +59,7 @@ public class JsonBuilder extends OutputBuilder {
 		addJsonElementEnd(false);  // end field element
 		/*
 		if (regProperties.getId().startsWith("features")) {
-			System.out.println("JsonBuilder addField: reg=" + regProperties.getId() + ", field=" + fieldProperties.getId());
+			System.out.println("JsonBuilder addField: reg=" + regProperties.getId() + ", field=" + fieldProperties.getPrefixedId());
 			System.out.println("   hwChanges=" + fieldProperties.hwChangesValue() + ", counter=" + fieldProperties.isCounter() + ", intr=" + fieldProperties.isInterrupt());	
 		}*/
 		// save the common access mode
