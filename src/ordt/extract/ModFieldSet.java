@@ -51,15 +51,15 @@ public class ModFieldSet extends ModComponent {
 		this.union = union;
 	}
 
-	/** remove all except first child instance and return size of first instance */
+	/** remove all except first child instance and return size of first instance */  // TODO - js specific move into extractor
 	public Integer cleanupUnion() {
 		if (childInstances.size() > 1) {
 			for (int idx=childInstances.size()-1; idx>0; idx--) childInstances.remove(idx);
 			ModComponent child = childInstances.get(0).getRegComp();
 			if (child.isField()) return child.getIntegerProperty("fieldwidth");
-			if (child.isFieldSet()) return child.getIntegerProperty("fieldsetwidth");
+			if (child.isFieldSet()) return child.getIntegerProperty("fieldstructwidth");
 		}
-		return this.getIntegerProperty("fieldsetwidth");
+		return this.getIntegerProperty("fieldstructwidth");
 	}
 
 	// ------------------------------------ code gen templates ----------------------------------------

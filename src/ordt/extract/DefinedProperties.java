@@ -13,6 +13,7 @@ public class DefinedProperties {
 
 	private static HashMap<String, DefinedProperty> propertySet = initDefinedProperties();  // set of all defined properties
 	public static Set<String> userFieldPropertySet = new HashSet<String>();  // set of all user defined field property names
+	public static Set<String> userFieldSetPropertySet = new HashSet<String>();  // set of all user defined field set property names
 	public static Set<String> userRegPropertySet = new HashSet<String>();  // set of all user defined reg property names
 	public static Set<String> userRegSetPropertySet = new HashSet<String>();  // set of all user defined regset property names
 	
@@ -48,6 +49,8 @@ public class DefinedProperties {
 		addProperty(newList, "activehigh", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.SIGNAL, false, false);
 		addProperty(newList, "activelow", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.SIGNAL, false, false);
 		addProperty(newList, "signalwidth", DefinedPropertyType.NUMBER, "1", DefinedProperty.SIGNAL, false, false);
+		// fieldset only properties
+		addProperty(newList, "fieldstructwidth", DefinedPropertyType.NUMBER, "1", DefinedProperty.FIELDSET, false, false);
 		// field properties
 		addProperty(newList, "rset", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.FIELD, false, false);
 		addProperty(newList, "rclr", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.FIELD, false, false);
@@ -195,6 +198,7 @@ public class DefinedProperties {
 		// save set of new user properties by component
 		DefinedProperty userProp = propertySet.get(name);
 		if (userProp.isFieldProperty()) userFieldPropertySet.add(name);
+		if (userProp.isFieldsetProperty()) userFieldSetPropertySet.add(name);
 		if (userProp.isRegProperty()) userRegPropertySet.add(name);
 		if (userProp.isRegsetProperty()) userRegSetPropertySet.add(name);
 	}

@@ -73,7 +73,7 @@ public abstract class ModComponent extends ModBaseComponent {
 			return new ModEnum();   
 		}
 		// ----- field set
-		else if (type.equals("fieldset")) {
+		else if (type.equals("fieldstruct") || type.equals("fieldset")) {
 			return new ModFieldSet();   
 		}
 		else return null;

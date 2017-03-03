@@ -999,7 +999,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 					// if a second index, set explicit offset and width
 					if (ctx.getChild(1).getChildCount()>3) {
 						Integer rightIdx = Utils.strToInteger(ctx.getChild(1).getChild(3).getText(), " in instance " + activeInstance.getId());
-						((ModIndexedInstance) activeInstance).setWidth(leftIdx - rightIdx + 1);  // TODO assumes little endian						
+						((ModIndexedInstance) activeInstance).setWidth(leftIdx - rightIdx + 1);  // TODO assumes lsb0						
 						((ModIndexedInstance) activeInstance).setOffset(rightIdx);  						
 					}
 					// otherwise set width only, offset is unknown

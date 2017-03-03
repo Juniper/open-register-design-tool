@@ -4,8 +4,10 @@
 package ordt.output;
 
 
+import ordt.extract.DefinedProperties;
 import ordt.extract.ModIndexedInstance;
 import ordt.extract.ModInstance;
+import ordt.extract.PropertyList;
 
 /** class of properties needed for display of active signal instance */
 public class FieldSetProperties extends InstanceProperties {
@@ -33,6 +35,12 @@ public class FieldSetProperties extends InstanceProperties {
 		super.extractProperties(pList);  // extract common parameters
 		//Jrdl.infoMessage("FieldSetProperties: id=" + getId() + ", pList=" + pList);
     }*/	
+    
+	/** extract a PropertyList of user defined parameters for this instance */
+    @Override
+	protected void extractUserDefinedProperties(PropertyList pList) {
+		setUserDefinedProperties(pList, DefinedProperties.userFieldSetPropertySet);
+	}
 
 	/** get extractInstance
 	 *  @return the extractInstance

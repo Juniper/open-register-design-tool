@@ -39,7 +39,7 @@ public class DefinedProperty {
 	// ----------
 	
 	/** initialize the component encoding map 
-	 * 	 'signal' | 'addrmap' | 'reg' | 'regfile' | 'field' | 'all'
+	 * 	 'signal' | 'addrmap' | 'reg' | 'regfile' | 'field' | 'fieldstruct' | 'all'
     */
 	private static HashMap<String, Integer> initCompEncodings() {
 		HashMap<String, Integer> newList = new HashMap<String, Integer>();
@@ -50,6 +50,7 @@ public class DefinedProperty {
 		newList.put("regset", REGSET);
 		newList.put("field", FIELD);
 		newList.put("fieldset", FIELDSET);
+		newList.put("fieldstruct", FIELDSET);
 		newList.put("all", ANY);
 		return newList;
 	}
@@ -70,6 +71,7 @@ public class DefinedProperty {
 		//newList.put("regset", DefinedPropertyType.REGSET);
 		//newList.put("field", DefinedPropertyType.FIELD);
 		//newList.put("fieldset", DefinedPropertyType.FIELDSET);
+		//newList.put("fieldstruct", DefinedPropertyType.FIELDSET);
 		return newList;
 	}
 	

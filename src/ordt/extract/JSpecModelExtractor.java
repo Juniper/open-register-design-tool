@@ -281,7 +281,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 		if (!typeDefActiveStates.peek()) {
 			updateFieldIndexInfo(childOffset, true);  // if an instance, update current offset
 		}
-		activeCompDefs.peek().setProperty("fieldsetwidth", childOffset.toString(), 0);  // save the fieldset width in comp
+		activeCompDefs.peek().setProperty("fieldstructwidth", childOffset.toString(), 0);  // save the fieldset width as a property in the component
 		exitComponentDefinition();		
 	}
 
@@ -451,6 +451,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	}
 
     /** returns an Integer representing the width of a field or fieldset having specified id.
+     * Used for WIDTH() function resolution - in js, width property is always stored back into component
      *  If no field is found, null is returned
      * @param fldId - id of field to be found
      */
@@ -458,8 +459,8 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
     	ModComponent fldComp = activeCompDefs.peek().findCompDef(fldId);
     	Integer fldWidth = null;
     	if (fldComp != null) {
-    		if (fldComp.hasProperty("fieldwidth")) fldWidth = Utils.strToInteger(fldComp.getProperty("fieldwidth"));
-    		if (fldComp.hasProperty("fieldsetwidth")) fldWidth = Utils.strToInteger(fldComp.getProperty("fieldsetwidth"));
+    		if (fldComp.isField() && fldComp.hasProperty("fieldwidth")) fldWidth = Utils.strToInteger(fldComp.getProperty("fieldwidth"));
+    		else if (fldComp.isFieldSet() && fldComp.hasProperty("fieldstructwidth")) fldWidth = Utils.strToInteger(fldComp.getProperty("fieldstructwidth"));
     	}
 		return fldWidth;
 	}
@@ -690,9 +691,9 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 			newInst.updateProperties(comp.getProperties());   // get properties from from component type of this instance 
 			newInst.updateProperties(newInst.getParent().getDefaultProperties());   // get default properties from ancestors
 			// if a new field or fieldset instance, update field indices (relative - final vals resolved at builder)
-			if (comp.hasProperty("fieldwidth")) updateFieldIndexInfo(comp.getIntegerProperty("fieldwidth"), true);   
-			else if (comp.hasProperty("fieldsetwidth")) {
-				updateFieldIndexInfo(comp.getIntegerProperty("fieldsetwidth"), true);  // use stored fieldset width to compute instance offsets
+			if (comp.isField() && comp.hasProperty("fieldwidth")) updateFieldIndexInfo(comp.getIntegerProperty("fieldwidth"), true);   
+			else if (comp.isFieldSet() && comp.hasProperty("fieldstructwidth")) {
+				updateFieldIndexInfo(comp.getIntegerProperty("fieldstructwidth"), true);  // use stored fieldset width to compute instance offsets
 			}
 
 		}
