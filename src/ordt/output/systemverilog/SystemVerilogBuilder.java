@@ -289,6 +289,16 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   endIOHierarchy(fieldProperties);
 	}
 
+	/** add a fieldset for a particular output - concrete since most builders do not use */
+	protected void addFieldSet() {
+		   startIOHierarchy(fieldSetProperties);
+	}
+
+	/** finish a fieldset for a particular output - concrete since most builders do not use */
+	protected void finishFieldSet() {
+		   endIOHierarchy(fieldSetProperties);
+	}
+
 	/** add a register for a particular output */
 	@Override
 	public  void addRegister() {  

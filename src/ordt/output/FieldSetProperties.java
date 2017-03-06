@@ -69,18 +69,18 @@ public class FieldSetProperties extends InstanceProperties {
 	 *  @param instance
 	 */
 	public void setFieldSetWidth(ModIndexedInstance fsetInst) {
-		ModComponent regComp = fsetInst.getRegComp();  // get the component of this instance
+		ModComponent fsetComp = fsetInst.getRegComp();  // get the component of this instance
 		// otherwise look for width set in instance 
-		if (fsetInst.getWidth() != null)   
-			this.fieldSetWidth = fsetInst.getWidth(); 
+		//if ((fsetInst.getWidth() != null) && (fsetInst.getWidth() > 0))   
+		//	this.fieldSetWidth = fsetInst.getWidth(); 
 		// if instance prop is set then use it
-		else if (fsetInst.hasProperty("fieldstructwidth")) 
+		if (fsetInst.hasProperty("fieldstructwidth")) 
 			this.fieldSetWidth = fsetInst.getIntegerProperty("fieldstructwidth"); 
 		// otherwise look for a fieldstructwidth set in component
-		else if ((regComp != null) && (regComp.hasProperty("fieldstructwidth"))) {
-			this.fieldSetWidth = regComp.getIntegerProperty("fieldstructwidth");
+		else if ((fsetComp != null) && (fsetComp.hasProperty("fieldstructwidth"))) {
+			this.fieldSetWidth = fsetComp.getIntegerProperty("fieldstructwidth");
 		}
-		else this.fieldSetWidth = 1;
+		//System.out.println("FieldSetProperties setFieldSetWidth: " + fsetInst.getId() + ", fieldSetWidth=" + fieldSetWidth);
 	}
 
 	/** get lowIndex

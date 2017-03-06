@@ -44,11 +44,6 @@ public class RdlBuilder extends OutputBuilder {
 	//---------------------------- OutputBuilder methods to load jspec structures ----------------------------------------
 
 	@Override
-	public void addSignal() {
-		//System.out.println("Signal: " + signalProperties.getInstancePath());
-	}
-
-	@Override
 	public void addField() {
 	}
 
@@ -83,11 +78,6 @@ public class RdlBuilder extends OutputBuilder {
 			}
 			outputList.add(new OutputLine(indentLvl, ""));	
 		}
-	}
-
-	@Override
-	public void addRootExternalRegisters() {
-		//System.out.println("Root external registers: " + regProperties.getInstancePath() + ", base=" + getExternalBaseAddress());
 	}
 
 	@Override

@@ -105,11 +105,6 @@ public class UVMRegsBuilder extends OutputBuilder {
     //---------------------------- OutputBuilder methods to load structures ----------------------------------------
 
 	@Override
-	public void addSignal() {
-		//System.out.println("Signal: " + signalProperties.getInstancePath());
-	}
-
-	@Override
 	public void addField() {
 		//System.out.println("UVMRegsBuilder: addField id=" + fieldProperties.getPrefixedId() + ", reset=" + fieldProperties.getReset());
 	}
@@ -182,11 +177,6 @@ public class UVMRegsBuilder extends OutputBuilder {
 			// bump defined reg count on the stack
 			activeRegisterCount.push(activeRegisterCount.pop() + 1);
 		}
-	}
-
-	@Override
-	public void addRootExternalRegisters() {
-		//System.out.println("Root external registers: " + regProperties.getInstancePath() + ", base=" + getExternalBaseAddress());
 	}
 
 	@Override

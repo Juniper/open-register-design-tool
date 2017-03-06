@@ -40,13 +40,6 @@ public class XmlBuilder extends OutputBuilder {
 	//---------------------------- OutputBuilder methods to create xml structures ----------------------------------------
 
 	@Override
-	public void addSignal() {
-		/*addXmlElementStart("signal");
-		addXmlElement("id", signalProperties.getId());
-		addXmlElementEnd("signal");*/
-	}
-
-	@Override
 	public void addField() {
 		addXmlElementStart("field");
 		addXmlElement("id", fieldProperties.getPrefixedId());
@@ -172,10 +165,6 @@ public class XmlBuilder extends OutputBuilder {
 		// if this instance has user defined properties, add them
 		addUserDefinedPropertyElements(regProperties);
 		addXmlElementEnd("reg");
-	}
-
-	@Override
-	public void addRootExternalRegisters() {
 	}
 
 	@Override

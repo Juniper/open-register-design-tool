@@ -38,11 +38,6 @@ public class RegListBuilder extends OutputBuilder {  // TODO handle alias fields
 	
 	//---------------------------- OutputBuilder methods to load verilog structures ----------------------------------------
 
-	/** add a signal for a particular output */
-	@Override
-	public  void addSignal() {
-	}
-	
 	/** add a field for a particular output */
 	@Override
 	public  void addField() {
@@ -91,11 +86,6 @@ public class RegListBuilder extends OutputBuilder {  // TODO handle alias fields
 		indentLvl--;
 	}
 			
-	/** add an external register (or child addressmap) interface */
-	@Override
-	public  void addRootExternalRegisters() {
-	}
-	
 	/** add a register set for a particular output */
 	@Override
 	public  void addRegSet() {

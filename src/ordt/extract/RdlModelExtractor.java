@@ -285,7 +285,9 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			else if (childOffset>currentWidth)
 				Ordt.errorExit("Specified fieldstructwidth (" + currentWidth + ") in fieldstruct " + pe.getId() + " is smaller than total of child widths (" + childOffset + ")");
 			else
-				pe.setProperty("fieldstructwidth", childOffset.toString(), 0);  // save the fieldset width as a property in the component
+				pe.setProperty("fieldstructwidth", currentWidth.toString(), 0);  // save the fieldset width as a property in the component
+			//System.out.println("RdlModelExtractor exitComponent_def: Fieldstruct " + pe.getId() + ", width=" + pe.getIntegerProperty("fieldstructwidth")); 
+
 		}
 		
 		//if (pe != null) {
@@ -1041,25 +1043,28 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 				}
 				//System.out.println("RdlModelExtractor extractInstanceAddressInfo: getWidth=" + ((ModIndexedInstance) activeInstance).getWidth() + ", getOffset=" + ((ModIndexedInstance) activeInstance).getOffset());
 
-				// add width of this instance to parent on top of fieldOffset stack
-				if (!fieldOffsets.isEmpty()) {
-					Integer parentOffset = fieldOffsets.pop();
-					Integer activeInstWidth = activeInst.getWidth();
-					Integer activeInstOffset = activeInst.getOffset();
-					// if active instance has an offset, then use it's offset width
-					if (activeInstOffset != null) {
-						Integer indexedWidth = activeInstOffset + activeInstWidth;
-						if (indexedWidth >=  parentOffset)
-							fieldOffsets.push(indexedWidth);  // use width implied by indexed component
-						else
-							fieldOffsets.push(parentOffset);  // just restore previous value
-						//	Ordt.errorExit("Instance " + activeInst.getId() + " does not fit in fieldstruct " + activeInst.getParent().getId());
-					}
-					else
-						fieldOffsets.push(parentOffset + activeInstWidth * activeInst.getRepCount());
-				}
 
 			}
+		}
+		
+		// add width of this instance to its parent on top of fieldOffset stack
+		if (activeInstance.isIndexed() && !fieldOffsets.isEmpty()) {
+			ModIndexedInstance activeInst = ((ModIndexedInstance) activeInstance);
+			Integer parentOffset = fieldOffsets.pop();
+			// fieldstruct width is stored in component fieldstructwidth property
+			Integer activeInstWidth = activeInst.getRegComp().isFieldSet()? activeInst.getRegComp().getIntegerProperty("fieldstructwidth") :activeInst.getWidth();
+			Integer activeInstOffset = activeInst.getOffset();
+			// if active instance has an offset, then use it's offset width
+			if (activeInstOffset != null) {
+				Integer indexedWidth = activeInstOffset + activeInstWidth;
+				if (indexedWidth >=  parentOffset)
+					fieldOffsets.push(indexedWidth);  // use width implied by indexed component
+				else
+					fieldOffsets.push(parentOffset);  // just restore previous value
+				//	Ordt.errorExit("Instance " + activeInst.getId() + " does not fit in fieldstruct " + activeInst.getParent().getId());
+			}
+			else
+				fieldOffsets.push(parentOffset + activeInstWidth * activeInst.getRepCount());
 		}
 	}
 

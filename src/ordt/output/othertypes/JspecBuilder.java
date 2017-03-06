@@ -62,11 +62,6 @@ public class JspecBuilder extends OutputBuilder {
     //---------------------------- OutputBuilder methods to load jspec structures ----------------------------------------
 
 	@Override
-	public void addSignal() {
-		//System.out.println("Signal: " + signalProperties.getInstancePath());
-	}
-
-	@Override
 	public void addField() {
 		// if name is a reserved keyword then exit
 		if (reservedWords.contains(fieldProperties.getPrefixedId()))
@@ -118,11 +113,6 @@ public class JspecBuilder extends OutputBuilder {
 			}
 		}
 		else { System.err.println("register "+ regProperties.getInstancePath() + " is neither readable nor writeable"); System.exit(0); }
-	}
-
-	@Override
-	public void addRootExternalRegisters() {
-		//System.out.println("Root external registers: " + regProperties.getInstancePath() + ", base=" + getExternalBaseAddress());
 	}
 
 	@Override

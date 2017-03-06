@@ -36,10 +36,6 @@ public class JsonBuilder extends OutputBuilder {
 	//---------------------------- OutputBuilder methods to load jspec structures ----------------------------------------
 
 	@Override
-	public void addSignal() {
-	}
-
-	@Override
 	public void addField() {
         // build element for reg instance 
 		String textName = fieldProperties.getTextName();
@@ -112,10 +108,6 @@ public class JsonBuilder extends OutputBuilder {
 			addJsonStringElement("access", acc);
 		}*/   // TODO
 		addJsonElementEnd(false);  // end of reg
-	}
-
-	@Override
-	public void addRootExternalRegisters() {
 	}
 
 	@Override

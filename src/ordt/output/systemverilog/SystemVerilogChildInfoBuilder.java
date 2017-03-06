@@ -36,10 +36,6 @@ public class SystemVerilogChildInfoBuilder extends OutputBuilder {
 	//---------------------------- OutputBuilder overrides ----------------------------------
 
 	@Override
-	public void addSignal() {
-	}
-
-	@Override
 	public void addField() {
 	}
 
@@ -53,10 +49,6 @@ public class SystemVerilogChildInfoBuilder extends OutputBuilder {
 
 	@Override
 	public void finishRegister() {
-	}
-
-	@Override
-	public void addRootExternalRegisters() {
 	}
 
 	@Override

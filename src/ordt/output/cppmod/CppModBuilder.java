@@ -54,11 +54,6 @@ public class CppModBuilder extends OutputBuilder {
     //---------------------------- OutputBuilder methods to load structures ----------------------------------------
 
 	@Override
-	public void addSignal() {
-		//System.out.println("Signal: " + signalProperties.getInstancePath());
-	}
-
-	@Override
 	public void addField() {
 		//System.out.println("CppModBuilder: addField id=" + fieldProperties.getPrefixedId() + ", reset=" + fieldProperties.getReset());
 	}
@@ -98,11 +93,6 @@ public class CppModBuilder extends OutputBuilder {
 		}
 		// otherwise a non sw accessble reg, so just pop it from the stack
 		else activeModClasses.pop();
-	}
-
-	@Override
-	public void addRootExternalRegisters() {
-		//System.out.println("Root external registers: " + regProperties.getInstancePath() + ", base=" + getExternalBaseAddress());
 	}
 
 	@Override
