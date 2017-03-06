@@ -49,7 +49,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	boolean inhibitNextResolveCheck = false;
 	
 	private Integer registerWidth;  // TODO- needed? now that aligned-size info in model? 
-	private Stack<Integer> fieldOffsets = new Stack<Integer>();
+	private Stack<Integer> fieldOffsets = new Stack<Integer>(); // stack of offsets used to calculate fieldset widths
 	private static int anonCompId = 0;
 	private static HashSet<String> ignoredParameters = getIgnoredParameters();  // list of ignored jspec params
 	
@@ -262,7 +262,8 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 		// create the component (and instance if not typedef) 
 		enterComponentDefinition(ctx, "fieldset", 1, 2);		
 		// save the offset for this fieldset if an instance
-		// if a new field instance was created, update it's field indices (relative - final vals resolved at builder)
+		// initialize accumulated child widths for this fieldset component at zero 
+		// these are relative offsets - final values resolved at builder
 		fieldOffsets.push(0); // init fieldOffset for this fieldset
 
 	}
@@ -281,7 +282,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 		if (!typeDefActiveStates.peek()) {
 			updateFieldIndexInfo(childOffset, true);  // if an instance, update current offset
 		}
-		activeCompDefs.peek().setProperty("fieldstructwidth", childOffset.toString(), 0);  // save the fieldset width as a property in the component
+		currentFSet.setProperty("fieldstructwidth", childOffset.toString(), 0);  // save the fieldset width as a property in the component
 		exitComponentDefinition();		
 	}
 
@@ -777,7 +778,8 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 
     // ------------------------------------------------------------------------------------------------
 	
-	/** set the indices for current field instance - return true if 
+	/** set the width and offset for current field/fieldset instance
+	 * also add width of this instance to parent on fieldOffset stack
 	 * 
 	 * @param fieldWidth - width of field/fieldset being added
 	 * @param update - if true update field bit locations

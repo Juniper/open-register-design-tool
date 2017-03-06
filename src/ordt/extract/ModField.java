@@ -22,6 +22,12 @@ public class ModField extends ModComponent {
 		addInstanceOf(newInst);  // add instance to list for this comp
 		return newInst;
 	}
+	
+	/** return a string representing this sub-class for messages - overridden by child types */
+    @Override
+	protected String getBaseComponentTypeName() {
+		return "field";
+	}
 
 	// ------------------------------------ code gen templates ----------------------------------------
 	

@@ -27,6 +27,7 @@ Changes:
 - added verilog_expression to allow signal assigns using simple logic expressions
 - added predicates/lexer methods to correctly identify user-defined property ID tokens
 - added uvmreg_prune register property
+- added fieldstruct component type
 */
 
 grammar SystemRDL;
@@ -108,7 +109,7 @@ property_usage
   ;
 
 property_component
-  : ('signal' | 'addrmap' | 'reg' | 'regfile' | 'field' | 'all')
+  : ('signal' | 'addrmap' | 'reg' | 'regfile' | 'field' | 'fieldstruct' | 'all')
   ;
 
 property_boolean_type
@@ -124,11 +125,11 @@ property_number_type
   ;
 
 property_ref_type
-  : ('addrmap' | 'reg' | 'regfile'  | 'field' | 'ref')
+  : ('addrmap' | 'reg' | 'regfile'  | 'field' | 'fieldstruct' | 'ref')
   ;
 
 component_def
-  : ( 'addrmap' | 'regfile' | 'reg' | 'field' | 'signal' )
+  : ('addrmap' | 'reg' | 'regfile' | 'field' | 'fieldstruct' | 'signal' )
     ( id
     |
     )
@@ -362,6 +363,7 @@ property
   | 'sub_category'   // added
   | 'js_attributes'   // added
   | 'js_superset_check'   // added
+  | 'fieldstructwidth'  // added
 
   | 'rtl_coverage'   // added
 

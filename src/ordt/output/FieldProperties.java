@@ -535,33 +535,20 @@ public class FieldProperties extends InstanceProperties {
 	/** set fieldwidth from inst/comp properties
 	 *  @param instance
 	 */
-	public void setFieldWidth(ModIndexedInstance regInst) {
-		ModComponent regComp = regInst.getRegComp();  // get the component of this instance
+	public void setFieldWidth(ModIndexedInstance fldInst) {
+		ModComponent regComp = fldInst.getRegComp();  // get the component of this instance
 		// otherwise look for width set in instance 
-		if (regInst.getWidth() != null)   
-			this.fieldWidth = regInst.getWidth(); 
+		if (fldInst.getWidth() != null)   
+			this.fieldWidth = fldInst.getWidth(); 
 		// if instance prop is set then use it
-		else if (regInst.hasProperty("fieldwidth")) 
-			this.fieldWidth = regInst.getIntegerProperty("fieldwidth"); 
+		else if (fldInst.hasProperty("fieldwidth")) 
+			this.fieldWidth = fldInst.getIntegerProperty("fieldwidth"); 
 		// otherwise look for a fieldwidth set in component
 		else if ((regComp != null) && (regComp.hasProperty("fieldwidth"))) {
 			this.fieldWidth = regComp.getIntegerProperty("fieldwidth");
 		}
 		else this.fieldWidth = 1;
 	}
-
-	/** get field array string with explicit index range
-	 *
-	public String getFieldArrayString() {
-		String retStr = "";
-		// if a scalar then return empty string
-		int width = getFieldWidth();
-		if (width < 2) retStr = "";
-		// if no explicit bit locations
-		else if (getLowIndex() == null) retStr = " [" + (getFieldWidth() - 1) + ":0] ";
-		else retStr = " [" + (getLowIndex() + width - 1) + ":" + getLowIndex() + "] ";
-		return retStr;
-	}*/
 
 	/** get field array string with low range index starting at 0 (for defines)
 	 *  @param instance

@@ -40,7 +40,7 @@ public abstract class ModComponent extends ModBaseComponent {
 	 *  @return the name
 	 */
 	public static ModComponent createModComponent(String type) {
-		// rdl 'addrmap' | 'regfile' | 'reg' | 'field' | 'signal'
+		// rdl 'addrmap' | 'regfile' | 'reg' | 'field' | 'fieldstruct' | 'signal'
 		// ----- root
 		if (type.equals("root")) {  
 			ModRootComponent root = new ModRootComponent();

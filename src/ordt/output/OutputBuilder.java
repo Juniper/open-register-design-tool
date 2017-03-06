@@ -191,9 +191,15 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			   
 			   fieldSetPropertyStack.push(fieldSetProperties);  // push active fieldset onto stack
 			   
+			   // initialize w/ relative offset from model instance if it exists (will be overwritten w/ abs lowIndex value from setFieldSetOffset)
+			   Integer modOffset = fieldSetProperties.getExtractInstance().getOffset();
+			   if (modOffset!=null) fieldSetProperties.setLowIndex(modOffset);
+			   
 			   // update current fieldset offset in active register definition
-			   regProperties.setFieldSetOffset(getCurrentFieldSetOffset()); // FIXME - add call to abstract addFieldSet
-
+			   Integer computedLowIndex = regProperties.setFieldSetOffset(getCurrentFieldSetOffset()); 
+			   fieldSetProperties.setLowIndex(computedLowIndex); // save the computed index back into fieldProperties
+			   
+			   // FIXME - add call to abstract addFieldSet
 			}
 	}
 
@@ -201,7 +207,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		   fieldSetPropertyStack.pop();  // done, so pop from stack
 			if (fieldSetPropertyStack.isEmpty()) fieldSetProperties = null;
 			else fieldSetProperties = fieldSetPropertyStack.peek();  // restore parent as active fieldset
-			// restore fieldset offset post pop
+			// restore parent fieldset offset post pop
 			regProperties.setFieldSetOffset(getCurrentFieldSetOffset()); 
 	}
 
@@ -870,14 +876,21 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 	// ----------------- fieldset stack methods
 
-	/** get the field offset for the current fieldset by adding offsets properties found on the stack */
+	/** get the field offset for the current fieldset by adding offsets properties found on the stack 
+	 * this is used to update the offset used in regProperties when addField is called */
 	private Integer getCurrentFieldSetOffset() {
 		Integer offset = 0;
+		System.out.println("-- OutputBuilder getCurrentFieldSetOffset: getting fs offset");
 		Iterator<FieldSetProperties> iter = fieldSetPropertyStack.iterator();
 		while (iter.hasNext()) {
 			FieldSetProperties inst = iter.next();
 			// if extract instance of this fieldset has an offset then add it
-			offset += inst.getExtractInstance().getOffset();
+			Integer fsetOffset = inst.getExtractInstance().getOffset();
+			Integer fsetLowIdx = inst.getLowIndex();
+			System.out.println("   id=" + inst.getId() + ", offset=" + fsetOffset + ", lowIdx=" + fsetLowIdx);
+			if ( ((fsetOffset==null) && (fsetLowIdx!=null)) || ((fsetOffset!=null) && (fsetOffset!=fsetLowIdx))) System.out.println("   *** offset!=lowIdx");
+			if (fsetLowIdx==null) return null;  //Ordt.errorExit("null fs offset found");
+			offset += fsetLowIdx;  // changed to use lowIdx
 		}
 		return offset;
 	}

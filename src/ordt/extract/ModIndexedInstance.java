@@ -10,10 +10,6 @@ public class ModIndexedInstance extends ModInstance {
 	// store indeces by width and offset (from high or low boolean set in model extractor)
 	protected Integer width = 1;   // bit width of this instance 
 	protected Integer offset;   // offset of this instance relative to parent
-
-    // numeric params needed for math ops
-	protected Integer lowIndex;   // low index of the array  // FIXME - remove, this assumes absolute field indexing, need relative for jspec: indexIsRelative, msbPacking
-	protected Integer highIndex;   // high index of the array (this is repcount if no range specified)
 	
 	public ModIndexedInstance() {
 		isIndexed = true;
@@ -69,82 +65,6 @@ public class ModIndexedInstance extends ModInstance {
 		this.offset = offset;
 	}
 	
-	// ----------------------- index methods
-
-	/** set repCount and lowIndex based on lt array index change  // TODO little endian only
-	 *  @param  the arrayIdx1 value
-	 *
-	public void updateLeftArrayIndex(String numStr) {
-		Integer idx1;
-		//Integer idx2 = getLowIndex();
-		try {
-		  if (numStr != null) {
-			  idx1 = Integer.valueOf(numStr);
-			  setHighIndex(idx1);		  }
-		} catch (NumberFormatException e) {
-		   System.err.println("error parsing integer array value of <" + numStr + ">");  //FIXME
-		}
-	}*/
-	
-	/** set repCount and lowIndex based on rt array index change
-	 *  @param the arrayIdx2 value
-	 *
-	public void updateRightArrayIndex(String numStr) {  // TODO little endian only
-		//Integer idx1 = getHighIndex();
-		//System.out.println("--- idx1=" + idx1 + " idx2str=" + numStr);
-		Integer idx2;
-		try {
-		  if (numStr != null) {
-			  idx2 = Integer.valueOf(numStr);
-			  setLowIndex(idx2);
-		  }
-		} catch (NumberFormatException e) {
-		   System.err.println("error parsing integer array value of <" + numStr + ">"); //FIXME
-		}
-	}*/
-
-	/** get lowIndex (called in setLowIndex of field/signalPropertie)
-	 *  @return the lowIndex
-	 *
-	public Integer getLowIndex() {
-		return lowIndex;
-	}*/
-
-	/** set lowIndex
-	 *  @param lowIndex the lowIndex to set
-	 *
-	public void setLowIndex(Integer lowIndex) {
-		this.lowIndex = lowIndex;
-	}*/
-
-	/** get highIndex
-	 *  @return the highIndex
-	 *
-	public Integer getHighIndex() {
-		return highIndex;
-	}*/
-
-	/** set highIndex
-	 *  @param highIndex the highIndex to set
-	 *
-	public void setHighIndex(Integer highIndex) {
-		this.highIndex = highIndex;
-	}*/
-
-	/** get width   
-	 * @param if true, return the default value rather than a null
-	 *  @return the repCount
-	 *
-	public Integer getWidth(boolean useDefault) {
-		Integer reps = null;   
-		if (useDefault) reps = 1;   // default to one replication
-		if (getHighIndex() != null) {
-			if (getLowIndex() != null) reps = Math.abs(getHighIndex()-getLowIndex()) + 1;   // calculate from explicit range
-			else reps = getHighIndex();  // specified replication count
-		}
-		return reps;
-	}*/
-
 	/** set a numeric instance variable - overridden in ModInstance child classes
 	 * 
 	 * @param key - if this key is found, instance value will be updated to val
@@ -162,8 +82,6 @@ public class ModIndexedInstance extends ModInstance {
 	public int hashCode() {
 		final int prime = 31;
 		int result = super.hashCode();
-		result = prime * result + ((highIndex == null) ? 0 : highIndex.hashCode());
-		result = prime * result + ((lowIndex == null) ? 0 : lowIndex.hashCode());
 		result = prime * result + ((offset == null) ? 0 : offset.hashCode());
 		result = prime * result + ((width == null) ? 0 : width.hashCode());
 		return result;
@@ -178,16 +96,6 @@ public class ModIndexedInstance extends ModInstance {
 		if (getClass() != obj.getClass())
 			return false;
 		ModIndexedInstance other = (ModIndexedInstance) obj;
-		if (highIndex == null) {
-			if (other.highIndex != null)
-				return false;
-		} else if (!highIndex.equals(other.highIndex))
-			return false;
-		if (lowIndex == null) {
-			if (other.lowIndex != null)
-				return false;
-		} else if (!lowIndex.equals(other.lowIndex))
-			return false;
 		if (offset == null) {
 			if (other.offset != null)
 				return false;

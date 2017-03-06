@@ -21,8 +21,10 @@ public class RegProperties extends AddressableInstanceProperties {
 	private JspecCategory category = new JspecCategory("");  // category property
 	private Integer filledBits = 0;  // initially no fields instanced
 	private Integer fieldCount = 0;  // initially no fields instanced
+	
 	private int [] availableBits;  // track available bit locations in reg as fields added
-	private int fieldSetOffset = 0;  // current accumulated field offset used to compute new index
+	private int highAvailableIdx = 0;  // high available index with an assigned location blow
+	private Integer fieldSetOffset = 0;  // current accumulated field offset used to compute new index
 	private boolean fieldOffsetsFromZero;  // field offset direction for this reg
 	private int fieldHash = 0; // hash of this regs fields
 	
@@ -74,7 +76,8 @@ public class RegProperties extends AddressableInstanceProperties {
 		//System.out.println("RegProperties extractProperties: regwidth=" + getRegWidth());
 		availableBits = new int [getRegWidth() + 1];   // initializes all to 0
 		availableBits[0] = getRegWidth();
-
+		highAvailableIdx = 0;  // init bit 0 as high available index
+		
 		/*if (getInstancePath().contains("stats.spin")) { 
 		    //display();
 	        System.out.println("RegProperties extractInstance: inst=" + getInstancePath() + ", parmlist=" + pList);
@@ -392,13 +395,15 @@ public class RegProperties extends AddressableInstanceProperties {
 		return fieldCount;
 	}
 
-	/** adjust offset for a new fieldset hierarchy 
-	 * @param newOffset - total fieldset offset from all fsets in hierarchy  
+	/** adjust position offset for a new fieldset hierarchy 
+	 * @param newOffset - total fieldset offset from all fsets in current hierarchy (or null if next available bit position should be used)
+	 * @return calculated offset in current register 
 	 * */
-	public void setFieldSetOffset(Integer newOffset) {
+	public Integer setFieldSetOffset(Integer newOffset) {
 		// adjust current offset
-		fieldSetOffset = newOffset;
+		fieldSetOffset = (newOffset==null)? highAvailableIdx : newOffset;
 		//System.out.println("RegProperties setFieldSetOffset: offset=" + newOffset);
+		return fieldSetOffset;
 	}
 
 	/** add a new field to this register based on next available bits
@@ -411,7 +416,7 @@ public class RegProperties extends AddressableInstanceProperties {
 		Integer width = fieldProperties.getFieldWidth(); 
 		Integer offset = fieldProperties.getExtractInstance().getOffset();  // get the relative offset of this field
 		Integer bitPaddingOffset = ((ModRegister) getExtractInstance().getRegComp()).getPadBits();
-		//System.out.println("RegProperties addField: id=" + fieldProperties.getInstancePath() + ", offset=" + offset + ", width=" + width + ", fsetOffset=" + fieldSetOffset + ", bitPaddingOffset=" + bitPaddingOffset + ", regwidth=" + getRegWidth());
+		System.out.println("RegProperties addField: id=" + fieldProperties.getInstancePath() + ", offset=" + offset + ", width=" + width + ", fsetOffset=" + fieldSetOffset + ", bitPaddingOffset=" + bitPaddingOffset + ", regwidth=" + getRegWidth() + ", highAvailableIdx=" + highAvailableIdx);
 		
 		// compute the actual field index  
 		Integer lowFieldIndex = 0;
@@ -420,11 +425,12 @@ public class RegProperties extends AddressableInstanceProperties {
 			offset += bitPaddingOffset;  // also add an offset if bit padding is needed  TODO - this assumes padding is same dir as offset (pad from msb if pack from msb)
 			lowFieldIndex = addFixedField(offset, width);  // explicit location used
 		}
-		else lowFieldIndex = addFloatingField(width);
+		else lowFieldIndex = addFloatingField(fieldSetOffset, width);
 		// now create the output array index string
 		if (lowFieldIndex == null) {
 			Ordt.errorExit("Unable to fit all fields in register instance " + getId());
 		}
+		System.out.println("RegProperties addField: id=" + fieldProperties.getInstancePath() + ", adding at reg lowFieldIndex=" + lowFieldIndex);
 		fieldCount++;  // bump the field count
 		return lowFieldIndex;   
 	}
@@ -434,6 +440,7 @@ public class RegProperties extends AddressableInstanceProperties {
 	private Integer addFixedField(Integer offset, Integer width) {
 		// convert specified offset to an index value depending on direction
 		Integer lowIndex = fieldOffsetsFromZero ? offset : getRegWidth() - offset - width; 
+		if (lowIndex+width > highAvailableIdx) highAvailableIdx=lowIndex+width;  // save high bit
 		//System.out.println("RegProperties addFixedField id=" + getId() + ", rwidth=" + getRegWidth() + ", foffset=" + offset + ", fwidth=" + width + ", computed lowIndex=" + lowIndex);
 		// find next index that could fit this field
 		for (int idx=lowIndex; idx>=0; idx--) {
@@ -452,14 +459,25 @@ public class RegProperties extends AddressableInstanceProperties {
 
 	/** find first available register index that can fit this width
 	 * @return index of field or null if no suitable index found */
-	private Integer addFloatingField(Integer width) {
+	private Integer addFloatingField(Integer minOffset, Integer width) {
+		int minIdx = (minOffset==null) ? 0 : minOffset;
 		for (int idx=0; idx<getRegWidth(); idx++) {
-			// if space found then update the avail info and return the low index
-			if (availableBits[idx]>=width) {  
+			// if space found above minIdx then update the avail info and return the low index
+			if ((idx>=minIdx) && (availableBits[idx]>=width)) {  
 				filledBits += width;  // bump the filled bits count
-				availableBits[idx+width] = availableBits[idx] - width;  // change available space
-				availableBits[idx] = 0;  // no longer space avialable here
+				availableBits[idx+width] = availableBits[idx] - width;  // change available space after new field
+				availableBits[idx] = 0;  // no longer space available here
+				if (idx+width > highAvailableIdx) highAvailableIdx=idx+width;  // save high bit
 				return idx;
+			}
+			// otherwise if space found at minIdx then update the avail info and return the low index
+			else if ((idx<minIdx) && (availableBits[idx]>=(minIdx-idx)+width)) {  
+				filledBits += width;  // bump the filled bits count
+				availableBits[minIdx+width] = availableBits[idx] - ((minIdx-idx)+width);  // change available space after new field
+				availableBits[minIdx] = 0;  // no longer space available here
+				availableBits[idx] = minIdx-idx;  // change available space before new field
+				if (minIdx+width > highAvailableIdx) highAvailableIdx=minIdx+width;  // save high bit
+				return minIdx;
 			}
 		}
 		return null;  // search failed so return null

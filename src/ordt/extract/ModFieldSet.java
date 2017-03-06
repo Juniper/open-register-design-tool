@@ -45,6 +45,12 @@ public class ModFieldSet extends ModComponent {
 	public boolean isUnion() {
 		return union;
 	}
+	
+	/** return a string representing this sub-class for messages - overridden by child types */
+    @Override
+	protected String getBaseComponentTypeName() {
+		return Ordt.hasInputType(InputType.RDL)? "fieldstruct" : "field_set";
+	}
 
     /** set union fieldset boolean */
 	public void setUnion(boolean union) {

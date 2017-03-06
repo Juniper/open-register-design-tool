@@ -52,7 +52,9 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	// structures to pre-build a list of user-defined signals
 	private List<ModSignal> usrSignals = new ArrayList<ModSignal>();  // list of all signals in the model
 	private HashSet<String> usrSignalNames = new HashSet<String>();  // full list of extracted signal names
-	
+
+	private Stack<Integer> fieldOffsets = new Stack<Integer>(); // stack of offsets used to calculate fieldset widths
+
 	/** create data model from rdl file 
 	 * @param rdlFile to be parsed
 	 * @param moduleName to be used as default name for addrmap instances
@@ -225,7 +227,14 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 		String cd_type = ctx.getChild(0).getText();  // get component type
 		String secondToken = ctx.getChild(1).getText();
 		ModComponent rElem = ModComponent.createModComponent(cd_type);  
+		//System.out.println("RdlModelExtractor enterComponent_def: line=" + ctx.getStart().getLine() + ", type=" + cd_type + ", 2ndtoken=" + secondToken);
 		if (rElem != null) {
+			if (rElem.isFieldSet()) {
+				// initialize accumulated child widths for this fieldset component at zero 
+				// these are relative offsets - final values resolved at builder
+				fieldOffsets.push(0); // init fieldOffset for this fieldset
+			}
+
 			// set id of new component if specified
 			if (!"{".equals(secondToken)) rElem.setId(secondToken);
 			// otherwise give this anonymous component an id
@@ -249,6 +258,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 				//System.out.println("RdlModelExtract enterComponent_def: added signal comp id=" + rElem.getId());
 			}
 			//System.out.println(repeat(' ',ctx.depth()) + "  added new " + cd_type);
+			//System.out.println("RdlModelExtractor enterComponent_def: new comp id=" + rElem.getId() + ", type=" + rElem.getBaseComponentTypeName());
 		}
 		else {
 			Ordt.errorExit("component_def type=" + cd_type + " not implemented");
@@ -261,10 +271,23 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	 */
 	@Override public void exitComponent_def(@NotNull SystemRDLParser.Component_defContext ctx) {
 		activeRules.remove(ctx.getRuleIndex());
-		//System.out.println("RegExtractor: exitComponent_def, line=" +ctx.getStart().getLine() + ", " + ctx.getText());
+		//System.out.println("RdlModelExtractor exitComponent_def: line=" + ctx.getStart().getLine() + ", " + ctx.getText());
 		
-		@SuppressWarnings("unused")
 		ModComponent pe = activeCompDefs.pop();   // pop the stack since this definition is done
+		
+		// if a fieldstruct then save accumulated size
+		if ((pe != null) && pe.isFieldSet()) {
+			Integer childOffset = fieldOffsets.pop(); // grab the accumulated width of this fieldset from child offset
+			Integer currentWidth = pe.getIntegerProperty("fieldstructwidth");
+			// if accumulated width is bigger than current (if defined) then update
+			if (currentWidth == null)
+			    pe.setProperty("fieldstructwidth", childOffset.toString(), 0);  // save the fieldset width as a property in the component
+			else if (childOffset>currentWidth)
+				Ordt.errorExit("Specified fieldstructwidth (" + currentWidth + ") in fieldstruct " + pe.getId() + " is smaller than total of child widths (" + childOffset + ")");
+			else
+				pe.setProperty("fieldstructwidth", childOffset.toString(), 0);  // save the fieldset width as a property in the component
+		}
+		
 		//if (pe != null) {
 		//	System.out.println(repeat(' ',ctx.depth()) + "  created " + pe.getClass() + ", sub-defs=" + pe.getCompDefinitions().size() 
 		//			+ ", sub-insts=" + pe.getCompInstances().size() + ", id=" + pe.getId());			
@@ -283,7 +306,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	 */
 	@Override public void enterComponent_inst_elem(@NotNull SystemRDLParser.Component_inst_elemContext ctx) {
 		activeRules.add(ctx.getRuleIndex());
-		//System.out.println(repeat(' ', ctx.depth()) + "comp_instance_elem (d=" + ctx.depth() + ") " + ctx.getText());
+		//System.out.println("RdlModelExtractor enterComponent_inst_elem: text=" + ctx.getText());
 		//displayCtxChildren(ctx);
 
 		// set compoent being instanced and parent based on inst type
@@ -966,7 +989,8 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	 * @param ctx - instance element context
 	 */
 	private void extractInstanceAddressInfo(Component_inst_elemContext ctx) {
-		// loop through ctx children and set other parms  // TODO - detect addressable and update
+		// loop through ctx children, set address/reset parms, and count processed children
+		//System.out.println("RdlModelExrtactor extractInstanceAddressInfo: ctx=" + ctx.getText() + ", childCount="+ ctx.getChildCount());
 		int childrenFound = 1;  // init to 1 for id 
 		for (int idx=1; idx<ctx.getChildCount(); idx++) {
 			if ("=".equals(ctx.getChild(idx).getText())) {
@@ -988,26 +1012,53 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 				if (activeInstance.isAddressable()) ((ModAddressableInstance) activeInstance).setAddressModulus(ctx.getChild(idx+1).getText()); 
 				childrenFound += 2;
 			}
-			// extract array values if they exist    array [ nnn : nnn ] 
-			if (ctx.getChildCount()>childrenFound) {
-				Integer leftIdx = Utils.strToInteger(ctx.getChild(1).getChild(1).getText(), " in instance " + activeInstance.getId());
-				// save repcount (fieldsets not allowed in rdl so only addressable can be replicated)
-				if (activeInstance.isAddressable()) 
-					activeInstance.setRepCount(leftIdx); // left index will set repcount
-				// otherwise if a field or signal extract width/offset
-				else if (activeInstance.isIndexed()) {
-					// if a second index, set explicit offset and width
-					if (ctx.getChild(1).getChildCount()>3) {
-						Integer rightIdx = Utils.strToInteger(ctx.getChild(1).getChild(3).getText(), " in instance " + activeInstance.getId());
-						((ModIndexedInstance) activeInstance).setWidth(leftIdx - rightIdx + 1);  // TODO assumes lsb0						
-						((ModIndexedInstance) activeInstance).setOffset(rightIdx);  						
-					}
-					// otherwise set width only, offset is unknown
-					else {
-						((ModIndexedInstance) activeInstance).setWidth(leftIdx);  						
-						((ModIndexedInstance) activeInstance).setOffset(null);  						
-					}
+		}
+		// extract array values if they exist after processing address/reset assigns    array [ nnn : nnn ] 
+		//System.out.println("RdlModelExrtactor extractInstanceAddressInfo: childrenFound="+ childrenFound);
+		if (ctx.getChildCount()>childrenFound) {
+			Integer leftIdx = Utils.strToInteger(ctx.getChild(1).getChild(1).getText(), " in instance " + activeInstance.getId());
+			// save repcount (fieldsets not allowed in rdl so only addressable can be replicated)
+			if (activeInstance.isAddressable()) 
+				activeInstance.setRepCount(leftIdx); // left index will set repcount  
+			// otherwise if a field or signal extract width/offset
+			else if (activeInstance.isIndexed()) {
+				ModIndexedInstance activeInst = ((ModIndexedInstance) activeInstance);
+				//System.out.println("RdlModelExtractor extractInstanceAddressInfo: getBaseComponentTypeName=" + activeInstance.getRegComp().getBaseComponentTypeName() );
+
+				// if a second index, set explicit offset and width
+				if (ctx.getChild(1).getChildCount()>3) {
+					Integer rightIdx = Utils.strToInteger(ctx.getChild(1).getChild(3).getText(), " in instance " + activeInst.getId());
+					activeInst.setWidth(leftIdx - rightIdx + 1);  // TODO assumes lsb0						
+					activeInst.setOffset(rightIdx);  						
 				}
+				// otherwise set width only if field/reps only if fieldstruct, offset is unknown
+				else {
+					if (activeInst.getRegComp().isFieldSet()) {
+						activeInst.setRepCount(leftIdx); // interpret single fieldstruct index as repcount
+					}
+					else activeInst.setWidth(leftIdx);
+					activeInst.setOffset(null);  						
+				}
+				//System.out.println("RdlModelExtractor extractInstanceAddressInfo: getWidth=" + ((ModIndexedInstance) activeInstance).getWidth() + ", getOffset=" + ((ModIndexedInstance) activeInstance).getOffset());
+
+				// add width of this instance to parent on top of fieldOffset stack
+				if (!fieldOffsets.isEmpty()) {
+					Integer parentOffset = fieldOffsets.pop();
+					Integer activeInstWidth = activeInst.getWidth();
+					Integer activeInstOffset = activeInst.getOffset();
+					// if active instance has an offset, then use it's offset width
+					if (activeInstOffset != null) {
+						Integer indexedWidth = activeInstOffset + activeInstWidth;
+						if (indexedWidth >=  parentOffset)
+							fieldOffsets.push(indexedWidth);  // use width implied by indexed component
+						else
+							fieldOffsets.push(parentOffset);  // just restore previous value
+						//	Ordt.errorExit("Instance " + activeInst.getId() + " does not fit in fieldstruct " + activeInst.getParent().getId());
+					}
+					else
+						fieldOffsets.push(parentOffset + activeInstWidth * activeInst.getRepCount());
+				}
+
 			}
 		}
 	}
