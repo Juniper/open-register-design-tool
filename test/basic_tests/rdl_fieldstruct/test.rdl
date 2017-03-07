@@ -1,0 +1,42 @@
+// fieldstruct example
+
+addrmap foo_map {
+
+        // define simple packed fieldstruct
+	    fieldstruct fs1 {
+            field { sw=rw; hw=rw; we; } fld1[4] = 4'd0;
+            field { sw=rw; hw=r; } fld2;
+	    };
+        // define fieldstruct w/ field gaps
+	    fieldstruct fs2 {
+            field { sw=rw; hw=rw; we; } fld1[3:0] = 4'd0;
+            field { sw=rw; hw=r; } fld2[8:8];
+	    };
+        // define fieldstruct w/ explicit width
+	    fieldstruct fs3 {
+	        fieldstructwidth = 8;
+            field { sw=rw; hw=rw; we; } fld1[4] = 4'd0;
+            field { sw=rw; hw=r; } fld2;
+	    };
+        // define hierarchical fieldstruct
+	    fieldstruct hier_fs {
+            fs1 fs1;
+            field { sw=rw; hw=r; } fld1;
+            fs2 fs2;
+	    };
+	    
+	    // reg using these fieldstructs
+	    reg {
+	        hier_fs hier_fs;
+	        fs3 fs3[31:24];  // fieldstruct at a specific bit position
+	    } areg[2];
+	    
+	    // reg using replicated fieldstructs
+	    reg {
+	        fs1 fs1[3];
+	        fs3 fs3[2];
+	    } blabla;
+	        
+} foo;   
+
+

@@ -68,7 +68,7 @@ output reglist {
 	display_external_regs = true       // include external regs in output?
 	show_reg_type = true              // show int/ext type for each reg?
 	//match_instance = "sopf_ints"           // show only regs with matching instance names
-	show_fields = true                // show field info for each reg
+	//show_fields = true                // show field info for each reg
 }
 
 // uvmregs output parameters
@@ -93,6 +93,7 @@ annotate {
   
   //set_regset_property default uvmreg_prune = "true" components "assist_engine_1" // set parameter on all register instances with component name assist_engine_1
   set_reg_property uvmreg_prune = "true" components "*.assist_engine_1.**" // set parameter on all register instances with component path *.assist_engine_1.**  THIS DOESNT WORK!
+  set_fieldset_property use_new_interface = "true" instances "foo.blabla.*" // set parameter on all matching fieldsets
 }
 
 // testbench output parameters

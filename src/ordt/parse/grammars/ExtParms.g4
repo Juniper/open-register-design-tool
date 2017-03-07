@@ -206,7 +206,7 @@ ext_parm_defs
 
 // ------------ annotation_command
  annotation_command
-   : ('set_reg_property' | 'set_field_property' | 'set_regset_property')
+   : ('set_reg_property' | 'set_field_property' | 'set_fieldset_property' | 'set_regset_property')
      'default'? (ID | 'external') EQ STR  // external is a parms keyword, so special case ID
      ('instances' | 'components')
      STR
