@@ -4,29 +4,35 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
+	enum SignalSetType {SIGNALSET, INTERFACE, STRUCT}
+	protected SignalSetType signalSetType = SignalSetType.SIGNALSET;
 	protected List<SystemVerilogIOElement> childList = new ArrayList<SystemVerilogIOElement>(); // signals/signalsets in this signalset
 	protected String type;   // type of this signalset  
-	protected boolean hasExtType = false;   // type of this signalset  
+	protected boolean hasExtType = false;   // base IOSignalSet has no external type  
 
 	public SystemVerilogIOSignalSet(String tagPrefix, String name, int reps) { 
 		this.name = (name == null)? "" : name;
 		this.tagPrefix = tagPrefix;
 		this.reps = reps; 
+		//if (reps>1) System.out.println("SystemVerilogIOSignalSet: reps=" + reps + ", tagPrefix=" + tagPrefix + ", name=" + name);
 	}
 
 	/** returns true if this element is a set */
     @Override
 	public boolean isSignalSet() { return true; }
 	
-	/** returns true if this element is virtual (ie not an actually group in systemverilog output).
-	 *  This method is overridden in child classes */
-    @Override
-	public boolean isVirtual() { return true; }
+	/** returns true if this element is virtual (ie not an actually group in systemverilog output) */
+	public boolean isVirtual() { return (signalSetType == SignalSetType.SIGNALSET); }
+    	
+	/** returns true if this signalset is of specified settype */
+	public boolean hasSignalSetType(SignalSetType st) { return (signalSetType == st); }
     	
     /** return true if this signalset is externally defined (has type) */
 	public boolean hasExtType() {
 		return hasExtType;
 	}
+	
+	public String getCompId() { return null; }
 
 	/** returns true if this signalset has no children
 	 *  This method is overridden in child classes
@@ -263,5 +269,69 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		//System.out.println("  SystemVerilogIOSignalSet getIOSignalList: output size=" + outList.size());
 		return outList;
 	}
-		
+	
+	// hashCode/Equals overrides - type is omitted. rep compare on children
+
+	@Override
+	public int hashCode() {
+		return hashCode(false);  // reps not included at root level
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return equals(obj, false);  // reps not included at root level
+	}
+	
+	/** compute object hashCode with or without reps */
+	@Override
+	protected int hashCode(boolean includeReps) {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((childList == null) ? 0 : getChildListHashCodeWithReps(childList));
+		result = prime * result + (hasExtType ? 1231 : 1237);
+		result = prime * result + ((signalSetType == null) ? 0 : signalSetType.hashCode());
+		if (includeReps) result = prime * result + reps;
+		return result;
+	}
+
+	/** compute childList hashCode including child reps */
+	private int getChildListHashCodeWithReps(List<SystemVerilogIOElement> childList) {
+		  int hashCode = 1;
+		  for (SystemVerilogIOElement e : childList)
+		      hashCode = 31*hashCode + (e==null ? 0 : e.hashCode(true));
+		  return hashCode;
+	}
+
+	/** compute object equals with or without reps */
+	@Override
+	protected boolean equals(Object obj, boolean includeReps) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		SystemVerilogIOSignalSet other = (SystemVerilogIOSignalSet) obj;
+		if (childList == null) {
+			if (other.childList != null)
+				return false;
+		} else if (!getChildListEqualsWithReps(other.childList))
+			return false;
+		if (hasExtType != other.hasExtType)
+			return false;
+		if (signalSetType != other.signalSetType)
+			return false;
+		if (includeReps && (reps != other.reps))
+			return false;
+		return true;
+	}
+
+	/** compute childList equals including child reps */
+	private boolean getChildListEqualsWithReps(List<SystemVerilogIOElement> childList2) {
+		if ((childList2==null) || (childList.size()!=childList2.size())) return false;
+		for (int idx=0; idx<childList.size(); idx++)
+			if (!childList.get(idx).equals(childList2.get(idx), true)) return false;
+		return true;
+	}
+	
 }

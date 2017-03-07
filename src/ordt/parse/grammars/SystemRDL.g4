@@ -28,6 +28,7 @@ Changes:
 - added predicates/lexer methods to correctly identify user-defined property ID tokens
 - added uvmreg_prune register property
 - added fieldstruct component type
+- added use_struct, use_new_struct properties for systemverilog IO interface encaps
 */
 
 grammar SystemRDL;
@@ -372,6 +373,8 @@ property
   
   | 'use_new_interface'   // added
   | 'use_interface'   // added
+  | 'use_new_struct'   // added
+  | 'use_struct'   // added
 
   | 'cppmod_prune'   // added
 

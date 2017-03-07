@@ -36,6 +36,7 @@ public class InstanceProperties {
 	private boolean dontCompare = false;  // default is conpare this component
 	
 	private boolean useInterface = false;  // encapsulate logic IO in an interface?
+	private boolean useStruct = false;  // encapsulate logic IO in a struct?
 	private String extInterfaceName;   // override name for logic IO intf encap
 	
 	protected ModInstance extractInstance;   // ptr to instance info in the extract model
@@ -87,6 +88,7 @@ public class InstanceProperties {
 		setDontCompare(oldInstance.isDontCompare());  
 		setRepNum(oldInstance.getRepNum());  
 		setUseInterface(oldInstance.useInterface());  
+		setUseStruct(oldInstance.useStruct());  
 		setExtInterfaceName(oldInstance.getExtInterfaceName());  
 		setInstDefaultProperties(oldInstance.getInstDefaultProperties());  
 		setUserDefinedProperties(oldInstance.getUserDefinedProperties());  
@@ -106,6 +108,7 @@ public class InstanceProperties {
 		System.out.println("   dontcompare=" + this.isDontCompare());  
 		System.out.println("   rep num=" + this.getRepNum());  		
 		System.out.println("   use interface=" + this.useInterface());  		
+		System.out.println("   use struct=" + this.useStruct());  		
 		System.out.println("   external interface name=" + this.getExtInterfaceName());  		
 		// display default properties
 		System.out.println("    default properties:");
@@ -125,6 +128,11 @@ public class InstanceProperties {
 		else if (pList.hasProperty("use_interface") && !pList.hasBooleanProperty("use_interface")) {
 			setUseInterface(true);
 			setExtInterfaceName(pList.getProperty("use_interface"));
+		}
+		else if (pList.hasTrueProperty("use_new_struct"))  setUseStruct(true);
+		else if (pList.hasProperty("use_struct") && !pList.hasBooleanProperty("use_struct")) {
+			setUseStruct(true);
+			setExtInterfaceName(pList.getProperty("use_struct"));
 		}
 		if (pList.hasProperty("js_superset_check")) setJspecSupersetCheck(pList.getProperty("js_superset_check"));
 		// get any user defined property settings for this instance
@@ -508,16 +516,26 @@ public class InstanceProperties {
 		this.dontCompare = dontCompare;
 	}
 
-	/** get useInterface */
+	/** true if this instance will be encapsulated in an sv interface */
 	public boolean useInterface() {
 		return useInterface;
 	}
 
 	/** set useInterface
-	 *  @param useInterface the useInterface to set
 	 */
 	public void setUseInterface(boolean useInterface) {
 		this.useInterface = useInterface;
+	}
+
+	/** true if this instance will be encapsulated in an sv struct */
+	public boolean useStruct() {
+		return useStruct;
+	}
+
+	/** set useStruct
+	 */
+	public void setUseStruct(boolean useStruct) {
+		this.useStruct = useStruct;
 	}
 
 	/** get extInterfaceName
@@ -629,6 +647,7 @@ public class InstanceProperties {
 		result = prime * result + (rootExternal ? 1231 : 1237);
 		result = prime * result + ((textName == null) ? 0 : textName.hashCode());
 		result = prime * result + (useInterface ? 1231 : 1237);
+		result = prime * result + (useStruct ? 1231 : 1237);
 		result = prime * result + ((userDefinedProperties == null) ? 0 : userDefinedProperties.hashCode());
 		return result;
 	}
@@ -678,6 +697,8 @@ public class InstanceProperties {
 		} else if (!textName.equals(other.textName))
 			return false;
 		if (useInterface != other.useInterface)
+			return false;
+		if (useStruct != other.useStruct)
 			return false;
 		if (userDefinedProperties == null) {
 			if (other.userDefinedProperties != null)

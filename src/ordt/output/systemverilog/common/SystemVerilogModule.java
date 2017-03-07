@@ -402,11 +402,11 @@ public class SystemVerilogModule {
 	/** push IO hierarchy to active stack in specified list
 	 *   @param useFrom - if true the from location will be used to look up signal list to be updated, otherwise to location is used
 	 */
-	public SystemVerilogIOSignalSet pushIOSignalSet(boolean useFrom, Integer from, Integer to, String namePrefix, String name, int reps, boolean isFirstRep, boolean isIntf, String extType) {
+	public SystemVerilogIOSignalSet pushIOSignalSet(boolean useFrom, Integer from, Integer to, String namePrefix, String name, int reps, boolean isFirstRep, boolean isIntf, boolean isStruct, String extType, String compId) {
 		Integer locidx = useFrom? from : to;
 		SystemVerilogIOSignalList sigList = ioHash.get(locidx);  // get the siglist
 		if (sigList == null) return null;
-		return sigList.pushIOSignalSet(from, to, namePrefix, name,  reps,  isFirstRep,  isIntf,  extType); 
+		return sigList.pushIOSignalSet(from, to, namePrefix, name,  reps,  isFirstRep,  isIntf, isStruct, extType, compId); 
 	}
 	
 	/** pop IO hierarchy from active stack in specified list */

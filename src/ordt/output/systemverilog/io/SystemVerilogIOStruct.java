@@ -1,9 +1,8 @@
 package ordt.output.systemverilog.io;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
+public class SystemVerilogIOStruct extends SystemVerilogIOSignalSet {
 
 	protected String compId;
 	
@@ -18,7 +17,7 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 	 * @param genNewType - if true, interface type will generated for internal types, else type will be passed thru as-is
 	 * @param compId - optional component ID for name generation
 	 */
-	public SystemVerilogIOInterface(Integer from, Integer to, String tagPrefix, String name, int reps, String type, boolean hasExtType, boolean genNewType, String compId) { 
+	public SystemVerilogIOStruct(Integer from, Integer to, String tagPrefix, String name, int reps, String type, boolean hasExtType, boolean genNewType, String compId) { 
 		super(tagPrefix, name, reps);
 		signalSetType = SignalSetType.INTERFACE;
 		this.from = from;

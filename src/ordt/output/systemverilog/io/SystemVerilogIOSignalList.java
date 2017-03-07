@@ -41,7 +41,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	public void copyActiveSetStack(SystemVerilogIOSignalList sigList) {
 		for (SystemVerilogIOSignalSet sigSet: sigList.getActiveSetStack()) {
 			//System.out.println("SystemVerilogIOSIgnalList copyActiveSetStack: adding sigSet " + sigSet.getName());
-			this.pushIOSignalSet(DefSignalType.SIGSET, sigSet.getName(), 1, true, null);
+			this.pushIOSignalSet(DefSignalType.SIGSET, sigSet.getName(), 1, true, null, null);
 		}
 	}
 	
@@ -147,10 +147,12 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	 * @param reps - number of replications
 	 * @param isFirstRep - true if first rep is being processed
 	 * @param isIntf - true if set is an interface
+	 * @param isStruct - true if set is a struct
 	 * @param extType - externally defined type of this set, if null interface type is defined by path
+	 * @param compId - optional component ID for name generation
 	 * @return
 	 */
-	public SystemVerilogIOSignalSet pushIOSignalSet(Integer from, Integer to, String namePrefix, String name, int reps, boolean isFirstRep, boolean isIntf, String extType) {
+	public SystemVerilogIOSignalSet pushIOSignalSet(Integer from, Integer to, String namePrefix, String name, int reps, boolean isFirstRep, boolean isIntf, boolean isStruct, String extType, String compId) {
 		// first determine if push is inhibited
 		boolean inhibitAdd = inhibitAdd() || !isFirstRep;
 		inhibitInsertStack.push(inhibitAdd);  // always push to the inhibit stack 
@@ -159,7 +161,9 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		SystemVerilogIOSignalSet newSigSet;
 		boolean hasExtType = (extType !=null);
 		String newType = hasExtType? extType : getCurrentStackPath();  // if internally defined, pass in the current path
-		if (isIntf) newSigSet = new SystemVerilogIOInterface (from, to, namePrefix, name, reps, newType, hasExtType, true);  // create a new interface
+		// create appropriate signalset
+		if (isIntf) newSigSet = new SystemVerilogIOInterface (from, to, namePrefix, name, reps, newType, hasExtType, true, compId);  // create a new interface
+		else if (isStruct) newSigSet = new SystemVerilogIOStruct (from, to, namePrefix, name, reps, newType, hasExtType, true, compId);  // create a new struct
 		else newSigSet = new SystemVerilogIOSignalSet (namePrefix, name, reps);  // otherwise create default set
 		// add to active element or root level
 		if (activeSetStack.isEmpty()) super.addSignalSet(newSigSet);  // add new set at root
@@ -182,11 +186,11 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	}
 
 	/** if initial rep, create a new signal set class, add it to active stack */
-	public SystemVerilogIOSignalSet pushIOSignalSet(DefSignalType sigType, String name, int reps, boolean isFirstRep, String extType) {
+	public SystemVerilogIOSignalSet pushIOSignalSet(DefSignalType sigType, String name, int reps, boolean isFirstRep, String extType, String compId) {
 		Integer from = SystemVerilogDefinedSignals.getFrom(sigType);
 		Integer to = SystemVerilogDefinedSignals.getTo(sigType);
 		String prefix = SystemVerilogDefinedSignals.getPrefix(sigType);
-		return pushIOSignalSet(from, to, prefix, name,  reps,  isFirstRep,  sigType.isInterface(),  extType);  
+		return pushIOSignalSet(from, to, prefix, name,  reps,  isFirstRep,  sigType.isInterface(), sigType.isStruct(), extType, compId);  
 	}
 
 	/** done defining signalset, so pop the stacks */
@@ -270,12 +274,12 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
     	list1.addVector(DefSignalType.H2D_DATA, 3, 5);
     	
     	// add a signalset
-    	list1.pushIOSignalSet(null, null, null, "sigset1", 2, true, false, null);
+    	list1.pushIOSignalSet(null, null, null, "sigset1", 2, true, false, false, null, null);
     	list1.addScalar(DefSignalType.L2H_OVERFLOW);
     	list1.popIOSignalSet();
     	
     	// add an interface
-    	SystemVerilogIOInterface intf1 = (SystemVerilogIOInterface) list1.pushIOSignalSet(LOGIC, HW, "lh_", "intf1", 1, true, true, null);  // TODO add from/set method using type
+    	SystemVerilogIOInterface intf1 = (SystemVerilogIOInterface) list1.pushIOSignalSet(LOGIC, HW, "lh_", "intf1", 1, true, true, false, null, null);  // TODO add from/set method using type
     	list1.addScalar(DefSignalType.L2H_UNDERFLOW);
     	// with a child signalset
     	//list1.pushIOSignalSet(null, null, null, "childsigset", 1, true, false, null);

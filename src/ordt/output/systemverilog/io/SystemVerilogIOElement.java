@@ -9,7 +9,7 @@ import ordt.output.systemverilog.common.SystemVerilogSignal;
 public abstract class SystemVerilogIOElement {
 	
 	protected String name;       // local name of this element
-	protected String tagPrefix;       // prefix to be added to full generated name
+	protected String tagPrefix;       // prefix to be added to full generated name (eg l2h_)
 	protected int reps = 1;  // number of times this element is replicated  
 	Integer from, to = 0;  // direction of this signal/signalset
 
@@ -118,6 +118,52 @@ public abstract class SystemVerilogIOElement {
 	public abstract String getIODefString(boolean addTagPrefix, String sigIOType);
 
 	/** return a simple IOSignal with full generated name for this element */
-	public abstract SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix);  
+	public abstract SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix);
+
+	// hashCode/Equals overrides - name, reps omitted in match
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((from == null) ? 0 : from.hashCode());
+		result = prime * result + ((tagPrefix == null) ? 0 : tagPrefix.hashCode());
+		result = prime * result + ((to == null) ? 0 : to.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		SystemVerilogIOElement other = (SystemVerilogIOElement) obj;
+		if (from == null) {
+			if (other.from != null)
+				return false;
+		} else if (!from.equals(other.from))
+			return false;
+		if (tagPrefix == null) {
+			if (other.tagPrefix != null)
+				return false;
+		} else if (!tagPrefix.equals(other.tagPrefix))
+			return false;
+		if (to == null) {
+			if (other.to != null)
+				return false;
+		} else if (!to.equals(other.to))
+			return false;
+		return true;
+	}
+
+	protected int hashCode(boolean includeReps) {
+		return hashCode();  // ignore includeReps option by default
+	}
+
+	protected boolean equals(Object obj, boolean includeReps) {
+		return equals(obj);  // ignore includeReps option by default
+	}  
 	
 }

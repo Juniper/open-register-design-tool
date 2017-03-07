@@ -124,6 +124,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("include_default_coverage", false);
 		sysVerChildInfoMode = SVChildInfoModes.PERL;  
 		initBooleanParameter("pulse_intr_on_clear", false);
+		initBooleanParameter("reuse_iwrap_structures", false); 
 
 		// ---- rdl output defaults
 		initBooleanParameter("root_component_is_instanced", true); 
@@ -145,7 +146,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initIntegerParameter("is_mem_threshold", 1000);
 		initBooleanParameter("include_address_coverage", false); 
 		initIntegerParameter("max_reg_coverage_bins", 128);
-		initBooleanParameter("reuse_uvm_classes", false); 
+		initBooleanParameter("reuse_uvm_classes", true); 
 		
 		// ---- bench output defaults
 		initStringListParameter("add_test_command", new ArrayList<String>());
@@ -657,6 +658,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	
 	public static Boolean sysVerPulseIntrOnClear() {
 		return getBooleanParameter("pulse_intr_on_clear");
+	}
+		
+	public static Boolean sysVerReuseIwrapStructures() {
+		return getBooleanParameter("reuse_iwrap_structures");
 	}
 	
 	public static Boolean sysVerGenerateExternalRegs() {

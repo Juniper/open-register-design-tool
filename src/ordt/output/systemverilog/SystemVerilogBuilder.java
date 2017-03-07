@@ -6,6 +6,7 @@ package ordt.output.systemverilog;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import ordt.extract.Ordt;
@@ -540,14 +541,20 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	/** add IO hierarchy level */
 	private void startIOHierarchy(InstanceProperties properties) {
 		// if an interface, push intf type onto IO stack
-		   if (properties.useInterface() && !properties.isRootInstance()) {
-			   usesInterfaces = true;
-			   //System.out.println("SystemVerilogBuilder startIOHierarchy: name=" + properties.getBaseName() + ", repCount=" + properties.getRepCount() + ", ExtInterfaceName=" + properties.getExtInterfaceName());
-			   if (properties.isExternal()) hwSigList.pushIOSignalSet(DefSignalType.DH_INTERFACE, properties.getNoRepId(), properties.getRepCount(), properties.isFirstRep(), properties.getExtInterfaceName());
-			   else hwSigList.pushIOSignalSet(DefSignalType.LH_INTERFACE, properties.getNoRepId(), properties.getRepCount(), properties.isFirstRep(), properties.getExtInterfaceName());
-		   }	
-		   // otherwise a non-interface hierarchy level
-		   else hwSigList.pushIOSignalSet(DefSignalType.SIGSET, properties.getNoRepId(), properties.getRepCount(), properties.isFirstRep(), null);
+		if ((properties.useInterface() || properties.useStruct()) && !properties.isRootInstance()) {
+			usesInterfaces = true;
+			// set signal set type
+			DefSignalType sType = null;
+			if (properties.isExternal()) sType = properties.useInterface()? DefSignalType.DH_INTERFACE : DefSignalType.DH_STRUCT;
+			else sType = properties.useInterface()? DefSignalType.LH_INTERFACE : DefSignalType.LH_STRUCT;
+			// save component Id if it's not anonymous
+			String compId = properties.getExtractInstance().getRegComp().getId();
+			if ((compId != null) && compId.startsWith("aNON")) compId = null;
+			//System.out.println("SystemVerilogBuilder startIOHierarchy: name=" + properties.getBaseName() + ", repCount=" + properties.getRepCount() + ", ExtInterfaceName=" + properties.getExtInterfaceName());
+			hwSigList.pushIOSignalSet(sType, properties.getNoRepId(), properties.getRepCount(), properties.isFirstRep(), properties.getExtInterfaceName(), compId);
+		}	
+		// otherwise a non-interface hierarchy level
+		else hwSigList.pushIOSignalSet(DefSignalType.SIGSET, properties.getNoRepId(), properties.getRepCount(), properties.isFirstRep(), null, null);
 	}
 
 	/** close out active IO hierarchy level */
@@ -905,11 +912,26 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		}
 	}
 	
-	/** write out the interface defines */
+	/** write out the interface defines */  // TODO - capture link of unique defines and skip define of repeats (and override type?)
 	protected  void writeInterfaces() {
 		// get a list of all sv interfaces to be defined
 		List<SystemVerilogIOSignalSet> sigSets = hwSigList.getNonVirtualSignalSets(true);
-		//System.out.println("SystemVerilogBuilder writeInterfaces: found " + sigSets.size() + " interfaces");
+		
+		// if (sysVerReuseIwrapStructures) {
+		System.out.println("SystemVerilogBuilder writeInterfaces: found " + sigSets.size() + " interfaces");
+		HashSet<SystemVerilogIOSignalSet> uniqueStructures = new HashSet<SystemVerilogIOSignalSet>();
+		for (SystemVerilogIOSignalSet sset : sigSets) {
+			if (uniqueStructures.contains(sset)) {
+				System.out.println("   " + sset.getFullName() + " is a dup, compId=" + sset.getCompId());
+			}
+			else {
+				uniqueStructures.add(sset);
+				System.out.println("   " + sset.getFullName() + " is new, compId=");
+			}
+		}
+		System.out.println("SystemVerilogBuilder writeInterfaces: found " + uniqueStructures.size() + " unique structures");
+
+		
 		for (SystemVerilogIOSignalSet sset : sigSets) writeIOSignalSetDefine(sset);
 	}
 

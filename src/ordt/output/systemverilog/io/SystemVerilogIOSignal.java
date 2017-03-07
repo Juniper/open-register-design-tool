@@ -65,4 +65,39 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 		return new SystemVerilogIOSignal(from, to, newTagPrefix, pathPrefix + name, lowIndex, size);
 	}
 
+	// hashCode/Equals overrides - super.name and super.reps are added to match
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + lowIndex;
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + reps;
+		result = prime * result + size;
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		SystemVerilogIOSignal other = (SystemVerilogIOSignal) obj;
+		if (lowIndex != other.lowIndex)
+			return false;
+		if (reps != other.reps)
+			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
+		if (size != other.size)
+			return false;
+		return true;
+	}
+
 }

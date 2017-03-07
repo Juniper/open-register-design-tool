@@ -132,6 +132,7 @@ ext_parm_defs
    | 'generate_external_regs' EQ bool   // also allowed in bench output
    | 'child_info_mode' EQ ('perl' | 'module') 
    | 'pulse_intr_on_clear' EQ bool
+   | 'reuse_iwrap_structures' EQ bool
    ;
       
 // ------------ uvmregs_out_defs

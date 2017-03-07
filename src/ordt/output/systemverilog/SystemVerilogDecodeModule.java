@@ -690,14 +690,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// create hierarchical IO so we can encapsulate in an interface (will mimic this structure in rdl reg structure for simple connect)
 		int stateBits = 3;  // state machine bits
         int delayCountBits = 10;  // delay counter bits
-		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1BaseHierName,  1,  true,  true,  "interface"); // base e1 intf
+		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1BaseHierName,  1,  true,  true,  false, "interface", null); // base e1 intf
 		// cntl reg
-		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1CntlHierName,  1,  true,  false,  null); 
+		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1CntlHierName,  1,  true,  false,  false,  null, null); 
 		addScalarFrom(SystemVerilogBuilder.PIO, null, e1StartHierName);
 		addScalarFrom(SystemVerilogBuilder.PIO, null, e1StopHierName);
 		popIOSignalSet(SystemVerilogBuilder.PIO);  // end cntl reg
 		// cfg reg
-		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1CfgHierName,  1,  true,  false,  null); 
+		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1CfgHierName,  1,  true,  false,  false,  null, null); 
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ModeHierName, 0, 2);
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1StopOnReadHierName, 0, 2);
 		addScalarFrom(SystemVerilogBuilder.PIO, null, e1StopOnCountHierName);
@@ -716,7 +716,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ReadMatchHierName + "_val_r", 0, regWidth);
 		addVectorFrom(SystemVerilogBuilder.PIO, null, e1ReadMaskHierName + "_val_r", 0, regWidth);
 		// status reg
-		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1StatusHierName,  1,  true,  false,  null); 
+		pushIOSignalSet(false, SystemVerilogBuilder.DECODE, SystemVerilogBuilder.PIO, null, e1StatusHierName,  1,  true,  false, false, null, null); 
 		addVectorTo(SystemVerilogBuilder.PIO, null, e1StateHierName, 0, stateBits);
 		addScalarTo(SystemVerilogBuilder.PIO, null, e1NackErrorHierName);
 		addScalarTo(SystemVerilogBuilder.PIO, null, e1BadAddressErrorHierName);

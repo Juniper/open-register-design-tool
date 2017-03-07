@@ -17,10 +17,13 @@ public class SystemVerilogDefinedSignals {
 		H2D_RETSIZE, H2D_DATA, H2D_ACK, H2D_NACK, 
 		L2H_INTR, L2H_HALT, 
 		USR_SIGNAL,
-		LH_INTERFACE, DH_INTERFACE, SIGSET;
+		LH_INTERFACE, DH_INTERFACE, LH_STRUCT, DH_STRUCT, SIGSET;
 		
 		public boolean isInterface() {
 			return ((this == LH_INTERFACE) || (this == DH_INTERFACE));
+		}
+		public boolean isStruct() {
+			return ((this == LH_STRUCT) || (this == DH_STRUCT));
 		}
 	};
 	
@@ -98,6 +101,8 @@ public class SystemVerilogDefinedSignals {
 		newList.put(DefSignalType.SIGSET, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, NONE, NONE, null, null));
 		newList.put(DefSignalType.LH_INTERFACE, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, LOGIC, HW, "lh_", null)); 
 		newList.put(DefSignalType.DH_INTERFACE, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, DECODE, HW, "dh_", null)); 
+		newList.put(DefSignalType.LH_STRUCT, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, LOGIC, HW, "lh_", null)); 
+		newList.put(DefSignalType.DH_STRUCT, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, DECODE, HW, "dh_", null)); 
 		return newList;
 	}
 	
