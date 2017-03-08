@@ -2,7 +2,7 @@ package ordt.output.systemverilog.io;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SystemVerilogIOStruct extends SystemVerilogIOSignalSet {  // FIXME - update for struct support / fix getIODefString - fix sigset equals/hashset to consider child names - use inout wire type name form in inputs
+public class SystemVerilogIOStruct extends SystemVerilogIOSignalSet {  // FIXME - update for struct support / fix getIODefString - use inout wire type name form in inputs
 
 	protected String compId;
 	
@@ -52,6 +52,16 @@ public class SystemVerilogIOStruct extends SystemVerilogIOSignalSet {  // FIXME 
 		}
     	return outList;
     }	
+    
+	/** return sv string used in definition of this element in input/output lists - assumes element name is full instance name 
+	 *   includes type if non-virtual sigset, name, and array *
+	 *   @param addTagPrefix - if true signal tag prefix will be added to name
+	 *   @param sigIOType - this string will be used as IO define type for IOSignals */
+	@Override
+	public String getIODefString(boolean addTagPrefix, String sigIOType) {
+		//System.out.println("SystemVerilogIOSignalSet getIODefString: type=" + getType() + ", name=" + getFullName(null, addTagPrefix));
+		return "ref " + getType() + " " + getFullName(null, addTagPrefix) + getRepArray();
+	}
 
     // ----------------- methods returning sv formatted strings for output 
 

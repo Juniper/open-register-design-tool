@@ -289,7 +289,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		return equals(obj, false);  // reps not included at root level
 	}
 	
-	/** compute object hashCode with or without reps */
+	/** compute object hashCode with or without reps/name */
 	@Override
 	protected int hashCode(boolean includeReps) {
 		final int prime = 31;
@@ -297,7 +297,10 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		result = prime * result + ((childList == null) ? 0 : getChildListHashCodeWithReps(childList));
 		result = prime * result + (hasExtType ? 1231 : 1237);
 		result = prime * result + ((signalSetType == null) ? 0 : signalSetType.hashCode());
-		if (includeReps) result = prime * result + reps;
+		if (includeReps) {
+			result = prime * result + reps;
+			result = prime * result + ((name == null) ? 0 : name.hashCode());
+		}
 		return result;
 	}
 
@@ -309,7 +312,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		  return hashCode;
 	}
 
-	/** compute object equals with or without reps */
+	/** compute object equals with or without reps/name */
 	@Override
 	protected boolean equals(Object obj, boolean includeReps) {
 		if (this == obj)
@@ -328,8 +331,15 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 			return false;
 		if (signalSetType != other.signalSetType)
 			return false;
-		if (includeReps && (reps != other.reps))
-			return false;
+		if (includeReps) {
+			if (reps != other.reps)
+				return false;
+			if (name == null) {
+				if (other.name != null)
+					return false;
+			} else if (!name.equals(other.name))
+				return false;
+		}
 		return true;
 	}
 

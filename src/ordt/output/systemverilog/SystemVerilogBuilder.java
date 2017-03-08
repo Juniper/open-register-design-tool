@@ -915,7 +915,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		}
 	}
 	
-	/** write out the interface defines */  // TODO - capture link of unique defines and skip define of repeats (and override type?)
+	/** write out the interface/struct defines */
 	protected  void writeInterfaces() {
 		// get a list of all sv interfaces to be defined
 		List<SystemVerilogIOSignalSet> sigSets = hwSigList.getNonVirtualSignalSets(true);
@@ -936,16 +936,18 @@ public class SystemVerilogBuilder extends OutputBuilder {
 				}
 				// otherwise this is a new unique structure
 				else {
-					String newType = sset.getCompIdType(); 
-					String uniqueType = ((sset.getCompId()!=null) && !uniqueCompIds.contains(newType))? newType : sset.getType();
+					String newType = sset.getCompIdType(); // get structure name based on component id
+					String uniqueType = ((sset.getCompId()!=null) && !uniqueCompIds.contains(newType))? newType : sset.getType();  // use newType if it is unique
 					uniqueStructures.put(sset, uniqueType);
 					uniqueCompIds.add(uniqueType);  // save the new structure name to insure it isnt reused
+					sset.setType(uniqueType);  // replace type for this sigset
 					//System.out.println("   " + sset.getType() + " is new, compId=" + uniqueType);
 				}
 			}
 			//System.out.println("SystemVerilogBuilder writeInterfaces: found " + sigSets.size() + " unique structures");
 		}
 		
+		// now write the defines
 		for (SystemVerilogIOSignalSet sset : sigSets) writeIOSignalSetDefine(sset);
 	}
 
