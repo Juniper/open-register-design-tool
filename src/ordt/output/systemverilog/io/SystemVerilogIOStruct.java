@@ -2,7 +2,7 @@ package ordt.output.systemverilog.io;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SystemVerilogIOStruct extends SystemVerilogIOSignalSet {
+public class SystemVerilogIOStruct extends SystemVerilogIOSignalSet {  // FIXME - update for struct support / fix getIODefString - fix sigset equals/hashset to consider child names - use inout wire type name form in inputs
 
 	protected String compId;
 	
@@ -19,43 +19,43 @@ public class SystemVerilogIOStruct extends SystemVerilogIOSignalSet {
 	 */
 	public SystemVerilogIOStruct(Integer from, Integer to, String tagPrefix, String name, int reps, String type, boolean hasExtType, boolean genNewType, String compId) { 
 		super(tagPrefix, name, reps);
-		signalSetType = SignalSetType.INTERFACE;
+		signalSetType = SignalSetType.STRUCT;
 		this.from = from;
 		this.to = to;
 		this.hasExtType = hasExtType;
 		this.compId = compId;
 		String suffix = ((type==null) || type.isEmpty())? "" : "_";
-		this.type = (hasExtType || !genNewType)? type : getFullName(type + suffix, true) + "_intf";  // if not an ext type then build from path
-		//if (!hasExtType) System.out.println("SystemVerilogIOInterface: name=" + name + ", old type=" + type + ", new type=" + this.type + ", hasExtType=" + hasExtType);
+		this.type = (hasExtType || !genNewType)? type : getFullName(type + suffix, true) + "_struct";  // if not an ext type then build from path
+		//if (!hasExtType) System.out.println("SystemVerilogIOStruct: name=" + name + ", old type=" + type + ", new type=" + this.type + ", hasExtType=" + hasExtType);
 	}
 
 	/** return a simple IOElement with full generated name */
 	@Override
 	public SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix) {
 		String newTagPrefix = addTagPrefix? tagPrefix : "";
-		return new SystemVerilogIOInterface(from, to, newTagPrefix, pathPrefix + name, reps, type, hasExtType, false, null);
+		return new SystemVerilogIOStruct(from, to, newTagPrefix, pathPrefix + name, reps, type, hasExtType, false, null);
 	}
 
     /** return a list of definitions for this sigset - overridden in SignalSet child classses  */  
     @Override
     public List<String> getDefStrings() {
     	List<String> outList = new ArrayList<String>();
-		List<String> intfDefStrings = getChildInstanceStrings();  // get child definitions for this intf
-		// write the interface
-		if (intfDefStrings.size() > 0) {
+		List<String> structDefStrings = getChildInstanceStrings();  // get child definitions for this intf
+		// write the struct
+		if (structDefStrings.size() > 0) {
 			outList.add("//");
-			outList.add("//---------- interface " + getType());
+			outList.add("//---------- struct " + getType());
 			outList.add("//");
-			outList.add("interface " + getType() + ";");		
-			outList.addAll(intfDefStrings);   
-			outList.add("endinterface\n");	
+			outList.add("typedef struct {");		
+			outList.addAll(structDefStrings);   
+			outList.add("} " + getType() + ";\n");	
 		}
     	return outList;
     }	
 
     // ----------------- methods returning sv formatted strings for output 
 
-    /** return a list of instance strings for child elements in this interface */
+    /** return a list of instance strings for child elements in this struct */
     private List<String> getChildInstanceStrings() { 
     	List<String> outList = new ArrayList<String>();
     	// get a list of child elements
@@ -67,10 +67,21 @@ public class SystemVerilogIOStruct extends SystemVerilogIOSignalSet {
     	}
   	    return outList;
     }
+	/** return sv string instancing this element - assumes element name is full instance name */
+	@Override
+	public String getInstanceString(boolean addTagPrefix) {
+        //System.out.println("SystemVerilogIOStruct getInstanceString: addTagPrefix=" + addTagPrefix + ", fullName=" + getFullName(null, addTagPrefix));
+		return getType() + " " + getFullName(null, addTagPrefix) + getRepArray() + ";";
+	}
 
     @Override
 	public String getCompId() {
 		return compId;
 	}
+    
+    @Override
+	public String getCompIdType() { 
+    	return getTagPrefix() + getCompId() + "_struct"; 
+    }
 
 }

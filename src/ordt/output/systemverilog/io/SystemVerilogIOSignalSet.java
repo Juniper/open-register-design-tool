@@ -31,8 +31,6 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	public boolean hasExtType() {
 		return hasExtType;
 	}
-	
-	public String getCompId() { return null; }
 
 	/** returns true if this signalset has no children
 	 *  This method is overridden in child classes
@@ -80,6 +78,15 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	public List<String> getDefStrings() {
 	   return null;
     }
+	
+    /** set type of this signalset */
+	public void setType(String type) {
+		this.type = type;
+	}
+	
+	public String getCompId() { return null; }
+
+	public String getCompIdType() { return null; }
 
 	// ------------ methods overriding super
 

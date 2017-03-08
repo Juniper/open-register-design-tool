@@ -27,7 +27,7 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 		this.compId = compId;
 		String suffix = ((type==null) || type.isEmpty())? "" : "_";
 		this.type = (hasExtType || !genNewType)? type : getFullName(type + suffix, true) + "_intf";  // if not an ext type then build from path
-		//if (!hasExtType) System.out.println("SystemVerilogIOInterface: name=" + name + ", old type=" + type + ", new type=" + this.type + ", hasExtType=" + hasExtType);
+		//System.out.println("SystemVerilogIOInterface: name=" + name + ", compId=" + compId + ", old type=" + type + ", new type=" + this.type + ", hasExtType=" + hasExtType);
 	}
 
 	/** return a simple IOElement with full generated name */
@@ -73,5 +73,10 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 	public String getCompId() {
 		return compId;
 	}
+    
+    @Override
+	public String getCompIdType() { 
+    	return getTagPrefix() + getCompId() + "_intf"; 
+    }
 
 }

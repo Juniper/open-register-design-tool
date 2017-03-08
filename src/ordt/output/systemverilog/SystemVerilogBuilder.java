@@ -6,7 +6,9 @@ package ordt.output.systemverilog;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 
 import ordt.extract.Ordt;
@@ -293,6 +295,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	/** add a fieldset for a particular output - concrete since most builders do not use */
 	protected void addFieldSet() {
 		   startIOHierarchy(fieldSetProperties);
+		   //System.out.println("SystemVerilogBuilder addFieldSet: " + fieldSetProperties.getInstancePath() + ",  id=" + fieldSetProperties.getExtractInstance().getRegComp().getId());
 	}
 
 	/** finish a fieldset for a particular output - concrete since most builders do not use */
@@ -550,7 +553,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			// save component Id if it's not anonymous
 			String compId = properties.getExtractInstance().getRegComp().getId();
 			if ((compId != null) && compId.startsWith("aNON")) compId = null;
-			//System.out.println("SystemVerilogBuilder startIOHierarchy: name=" + properties.getBaseName() + ", repCount=" + properties.getRepCount() + ", ExtInterfaceName=" + properties.getExtInterfaceName());
+			//System.out.println("SystemVerilogBuilder startIOHierarchy: " + properties.getInstancePath() + ", compId=" + compId + ", repCount=" + properties.getRepCount() + ", ExtInterfaceName=" + properties.getExtInterfaceName());
 			hwSigList.pushIOSignalSet(sType, properties.getNoRepId(), properties.getRepCount(), properties.isFirstRep(), properties.getExtInterfaceName(), compId);
 		}	
 		// otherwise a non-interface hierarchy level
@@ -917,20 +920,31 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		// get a list of all sv interfaces to be defined
 		List<SystemVerilogIOSignalSet> sigSets = hwSigList.getNonVirtualSignalSets(true);
 		
-		// if (sysVerReuseIwrapStructures) {
-		System.out.println("SystemVerilogBuilder writeInterfaces: found " + sigSets.size() + " interfaces");
-		HashSet<SystemVerilogIOSignalSet> uniqueStructures = new HashSet<SystemVerilogIOSignalSet>();
-		for (SystemVerilogIOSignalSet sset : sigSets) {
-			if (uniqueStructures.contains(sset)) {
-				System.out.println("   " + sset.getFullName() + " is a dup, compId=" + sset.getCompId());
+		// uniquify structure names if reuse option enabled
+		if (ExtParameters.sysVerReuseIwrapStructures()) {
+			//System.out.println("SystemVerilogBuilder writeInterfaces: found " + sigSets.size() + " structures");
+			HashMap<SystemVerilogIOSignalSet, String> uniqueStructures = new HashMap<SystemVerilogIOSignalSet, String>();
+			HashSet<String> uniqueCompIds = new HashSet<String>();
+			Iterator<SystemVerilogIOSignalSet> it = sigSets.iterator();
+			while(it.hasNext()) {
+				SystemVerilogIOSignalSet sset = it.next();
+				// if a duplicate of an existing structure, use the existing structure's type
+				if (uniqueStructures.containsKey(sset)) {
+					sset.setType(uniqueStructures.get(sset));  // replace type for this sigset
+					it.remove();  // remove this sigset from the list needing defines
+					//System.out.println("   " + sset.getType() + " is a dup of compId=" + uniqueStructures.get(sset));
+				}
+				// otherwise this is a new unique structure
+				else {
+					String newType = sset.getCompIdType(); 
+					String uniqueType = ((sset.getCompId()!=null) && !uniqueCompIds.contains(newType))? newType : sset.getType();
+					uniqueStructures.put(sset, uniqueType);
+					uniqueCompIds.add(uniqueType);  // save the new structure name to insure it isnt reused
+					//System.out.println("   " + sset.getType() + " is new, compId=" + uniqueType);
+				}
 			}
-			else {
-				uniqueStructures.add(sset);
-				System.out.println("   " + sset.getFullName() + " is new, compId=");
-			}
+			//System.out.println("SystemVerilogBuilder writeInterfaces: found " + sigSets.size() + " unique structures");
 		}
-		System.out.println("SystemVerilogBuilder writeInterfaces: found " + uniqueStructures.size() + " unique structures");
-
 		
 		for (SystemVerilogIOSignalSet sset : sigSets) writeIOSignalSetDefine(sset);
 	}

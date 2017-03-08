@@ -46,7 +46,8 @@ output systemverilog {
 	ring_inter_node_delay = 2             // delay stages added between r16 clients 
 	//bbv5_timeout_input = true         // add input port(s) for bb root interface timeout
 	include_default_coverage = true   // include default cover points in rtl
-	pulse_intr_on_clear = true   // pulse interrupt output low if any child in intr tree is cleared
+	pulse_intr_on_clear = true    // pulse interrupt output low if any child in intr tree is cleared
+	reuse_iwrap_structures = true    // reuse similar interface/struct definitions in iwrap
 }
 
 // jspec output parameters
@@ -93,7 +94,7 @@ annotate {
   
   //set_regset_property default uvmreg_prune = "true" components "assist_engine_1" // set parameter on all register instances with component name assist_engine_1
   set_reg_property uvmreg_prune = "true" components "*.assist_engine_1.**" // set parameter on all register instances with component path *.assist_engine_1.**  THIS DOESNT WORK!
-  set_fieldset_property use_new_interface = "true" instances "foo.blabla.*" // set parameter on all matching fieldsets
+  //set_fieldset_property use_new_interface = "true" instances "foo.blabla.*" // set parameter on all matching fieldsets
 }
 
 // testbench output parameters
