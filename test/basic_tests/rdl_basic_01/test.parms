@@ -29,4 +29,5 @@ output reglist {
 output uvmregs {
 	suppress_no_category_warnings = true   // inhibit reg no category messages
 	include_address_coverage = false   // include address coverage in model
+	reuse_uvm_classes = false   // allow reuse of classes in model
 }

@@ -146,7 +146,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initIntegerParameter("is_mem_threshold", 1000);
 		initBooleanParameter("include_address_coverage", false); 
 		initIntegerParameter("max_reg_coverage_bins", 128);
-		initBooleanParameter("reuse_uvm_classes", false); 
+		initBooleanParameter("reuse_uvm_classes", true); 
 		
 		// ---- bench output defaults
 		initStringListParameter("add_test_command", new ArrayList<String>());
