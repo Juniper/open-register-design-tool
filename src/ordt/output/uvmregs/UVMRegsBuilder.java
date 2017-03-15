@@ -520,7 +520,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		// create new function
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl++, "function new(string name = \"" + uvmRegClassName + "\");"));
-		outputList.add(new OutputLine(indentLvl, "super.new(name, " + regProperties.getRegWidth() + ", build_coverage(UVM_NO_COVERAGE));"));
+		outputList.add(new OutputLine(indentLvl, "super.new(name, " + regProperties.getRegWidth() + ", UVM_NO_COVERAGE);"));
 		outputList.add(new OutputLine(--indentLvl, "endfunction: new"));
 
 		// create build function
