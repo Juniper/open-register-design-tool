@@ -11,6 +11,7 @@ import java.util.List;
 import ordt.annotate.AnnotateCommand;
 import ordt.output.OutputBuilder;
 import ordt.output.cppmod.CppModBuilder;
+import ordt.output.drvmod.cpp.CppDrvModBuilder;
 import ordt.output.othertypes.JsonBuilder;
 import ordt.output.othertypes.JspecBuilder;
 import ordt.output.othertypes.RdlBuilder;
@@ -27,7 +28,7 @@ import ordt.parameters.ExtParameters.SVChildInfoModes;
 
 public class Ordt {
 
-	private static String version = "170315.01"; 
+	private static String version = "170317.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -36,7 +37,7 @@ public class Ordt {
     private static String inputFile = null;
 
 	public enum OutputType { VERILOG, SYSTEMVERILOG, JSPEC, RALF, RDL, REGLIST, SVBENCH, VBENCH, 
-		                     UVMREGS, UVMREGSPKG, XML, CPPMOD, JSON, SVCHILDINFO };
+		                     UVMREGS, UVMREGSPKG, XML, CPPMOD, CPPDRVMOD, JSON, SVCHILDINFO };
 	private static HashMap<OutputType, String> outputNames = new HashMap<OutputType, String>();
 	private static HashMap<OutputType, String> commentChars = new HashMap<OutputType, String>();
 	private static HashMap<OutputType, String> outputFileNames = new HashMap<OutputType, String>();
@@ -144,6 +145,7 @@ public class Ordt {
 		outputArgs.put("-uvmregspkg", OutputType.UVMREGSPKG);
 		outputArgs.put("-xml", OutputType.XML);
 		outputArgs.put("-cppmod", OutputType.CPPMOD);
+		outputArgs.put("-cppdrvmod", OutputType.CPPDRVMOD);
 		outputArgs.put("-json", OutputType.JSON);
 		outputArgs.put("-svchildinfo", OutputType.SVCHILDINFO);
 	}
@@ -162,6 +164,7 @@ public class Ordt {
 		outputNames.put(OutputType.UVMREGSPKG, "UVM regs package");
 		outputNames.put(OutputType.XML, "xml");
 		outputNames.put(OutputType.CPPMOD, "C++ model");
+		outputNames.put(OutputType.CPPDRVMOD, "C++ driver model");
 		outputNames.put(OutputType.JSON, "json");
 		outputNames.put(OutputType.SVCHILDINFO, "systemverilog child map info");
 	}
@@ -180,6 +183,7 @@ public class Ordt {
 		commentChars.put(OutputType.UVMREGSPKG, "//");
 		commentChars.put(OutputType.XML, "<!--");
 		commentChars.put(OutputType.CPPMOD, "//");
+		commentChars.put(OutputType.CPPDRVMOD, "//");
 		commentChars.put(OutputType.JSON, null);
 		commentChars.put(OutputType.SVCHILDINFO, (ExtParameters.getSysVerChildInfoMode() == SVChildInfoModes.MODULE)? "//" : "#");
 	}
@@ -219,6 +223,8 @@ public class Ordt {
 			   return new CppModBuilder(model);
 			   //Ordt.warnMessage("C++ model output is disabled");
 			   //return null;
+		   case CPPDRVMOD: 
+			   return new CppDrvModBuilder(model);
 		   case JSON: 
 			   return new JsonBuilder(model);
 		   case SVCHILDINFO: 

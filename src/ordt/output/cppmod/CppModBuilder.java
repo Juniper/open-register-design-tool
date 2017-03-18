@@ -13,8 +13,8 @@ import java.util.Stack;
 import ordt.extract.RegModelIntf;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
-import ordt.output.cppmod.CppModClass.CppMethod;
-import ordt.output.cppmod.CppModClass.Vis;
+import ordt.output.drvmod.cpp.CppBaseModClass.CppMethod;
+import ordt.output.drvmod.cpp.CppBaseModClass.Vis;
 
 public class CppModBuilder extends OutputBuilder {
 

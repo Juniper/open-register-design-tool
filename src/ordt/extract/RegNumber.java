@@ -575,6 +575,18 @@ public class RegNumber implements Comparable<RegNumber> {
 		return retVal;
 	}
 
+	/** return long rep of this regnumber or null if unable to successfully convert */
+	public long toLong() {
+		// try integer conversion
+		Long retVal = null;
+		try {
+			if (isDefined()) retVal = Long.valueOf(toFormat(NumBase.Dec, NumFormat.Int));
+		}
+		catch (NumberFormatException e) {		
+		}
+		return retVal;
+	}
+
 
     public static void main (String[] args) {
     	//BigInteger bigint = new BigInteger("0"); bigint.bitLength();
