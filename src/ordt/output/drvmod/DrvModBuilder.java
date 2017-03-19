@@ -65,7 +65,7 @@ public class DrvModBuilder extends OutputBuilder {
 	public void finishRegister() {  // TODO toInteger wont work, need toLong
 		//	System.out.println("DrvModBuilder finishRegister: " + regProperties.getInstancePath() + ", base=" + regProperties.getBaseAddress());	
 		// create new reg instance
-		DrvModRegInstance newReg = new DrvModRegInstance(regProperties.getId(), 0, regProperties.getRelativeBaseAddress().toLong(), regProperties.getRepCount(), regProperties.getAddrStride().toLong());
+		DrvModRegInstance newReg = new DrvModRegInstance(regProperties.getId(), 0, regProperties.getRegWidth(), regProperties.getRelativeBaseAddress().toLong(), regProperties.getRepCount(), regProperties.getAddrStride().toLong());
 		uniqueRegs.add(newReg);
 		// add field info to this reg from sorted fieldList
 		for (FieldProperties fld: fieldList) 
@@ -76,12 +76,13 @@ public class DrvModBuilder extends OutputBuilder {
 
 	@Override
 	public void addRegSet() {
-		System.out.println("DrvModBuilder addRegSet: basename=" + regSetProperties.getBaseName() + ", id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", base=" + regSetProperties.getFullBaseAddress() + ", high=" + regSetProperties.getFullHighAddress() + ", alignedSize=" + regSetProperties.getAlignedSize());
 		// create new regset instance
-		DrvModRegSetInstance newRegSet = new DrvModRegSetInstance(regSetProperties.getId(), 0, regSetProperties.getRelativeBaseAddress().toLong(), regSetProperties.getRepCount(), regSetProperties.getAlignedSize().toLong());
+		Long relativeAddr = (regSetProperties.getRelativeBaseAddress() == null)? regSetProperties.getFullBaseAddress().toLong() : regSetProperties.getRelativeBaseAddress().toLong();
+		System.out.println("DrvModBuilder addRegSet: basename=" + regSetProperties.getBaseName() + ", id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", relAddr=" + relativeAddr + ", alignedSize=" + regSetProperties.getAlignedSize());
+		DrvModRegSetInstance newRegSet = new DrvModRegSetInstance(regSetProperties.getId(), 0, relativeAddr, regSetProperties.getRepCount(), regSetProperties.getAlignedSize().toLong());
 		uniqueRegSets.add(newRegSet);
 		// add this regset to its parent
-		currentRegSetStack.peek().addChild(newRegSet);
+		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(newRegSet);
 		// update current instance
 		currentRegSetStack.push(newRegSet);
 	}

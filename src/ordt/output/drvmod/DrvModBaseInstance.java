@@ -1,7 +1,7 @@
 package ordt.output.drvmod;
 
 /** base class for storing driver model reg/regset instances */
-public class DrvModBaseInstance {
+public abstract class DrvModBaseInstance {
 
 	String name; // instance name
 	int mapId = 0;  // id of register map that created this instance
@@ -38,6 +38,49 @@ public class DrvModBaseInstance {
 	public long getAddressStride() {
 		return addressStride;
 	}
+
+	/** includes name always, mapId never, address info optionally */
+	public int hashCode(boolean includeAddrInfo) {  
+		final int prime = 31;
+		int result = 1;
+		if (includeAddrInfo) {
+			result = prime * result + (int) (addressOffset ^ (addressOffset >>> 32));
+			result = prime * result + ((addressStride == null) ? 0 : addressStride.hashCode());
+			result = prime * result + reps;
+		}
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		return result;
+	}
+
+	/** includes name always, mapId never, address info optionally */
+	public boolean equals(Object obj, boolean includeAddrInfo) {   
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DrvModBaseInstance other = (DrvModBaseInstance) obj;
+		if (includeAddrInfo) {
+			if (addressOffset != other.addressOffset)
+				return false;
+			if (addressStride == null) {
+				if (other.addressStride != null)
+					return false;
+			} else if (!addressStride.equals(other.addressStride))
+				return false;
+			if (reps != other.reps)
+				return false;
+		}
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
+		return true;
+	}
 	
-	
+	abstract public int hashCode(boolean includeAddrInfo, boolean includeChildRegsets);
+	abstract public boolean equals(Object obj, boolean includeAddrInfo, boolean includeChildRegsets);
+
 }
