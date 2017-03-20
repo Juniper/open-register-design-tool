@@ -4,11 +4,11 @@
 package ordt.output;
 
 import ordt.extract.DefinedProperties;
-import ordt.extract.ModInstance;
 import ordt.extract.PropertyList;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
+import ordt.extract.model.ModInstance;
 import ordt.parameters.ExtParameters;
 
 /** extracted properties of a regset instance created during model walk */

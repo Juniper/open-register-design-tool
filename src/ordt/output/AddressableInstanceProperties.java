@@ -3,11 +3,11 @@
  */
 package ordt.output;
 
-import ordt.extract.ModAddressableInstance;
-import ordt.extract.ModInstance;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
+import ordt.extract.model.ModAddressableInstance;
+import ordt.extract.model.ModInstance;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 

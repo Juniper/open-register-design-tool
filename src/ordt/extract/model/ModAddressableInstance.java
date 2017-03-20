@@ -1,7 +1,9 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.extract;
+package ordt.extract.model;
+
+import ordt.extract.RegNumber;
 
 /** class of addressable model component instance (addrmap, regset, reg) */
 public class ModAddressableInstance extends ModInstance {

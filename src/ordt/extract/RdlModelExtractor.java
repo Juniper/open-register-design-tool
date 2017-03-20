@@ -13,6 +13,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 
+import ordt.extract.model.ModAddressableInstance;
+import ordt.extract.model.ModComponent;
+import ordt.extract.model.ModEnum;
+import ordt.extract.model.ModEnumElement;
+import ordt.extract.model.ModIndexedInstance;
+import ordt.extract.model.ModInstance;
+import ordt.extract.model.ModRootComponent;
+import ordt.extract.model.ModSignal;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 import ordt.parse.systemrdl.SystemRDLBaseListener;
@@ -631,7 +639,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 				// field wildcard, so assign to all child instances
 				else {
 					ModComponent regComp = regInst.getRegComp();
-					for (ModInstance regI : regComp.childInstances) {
+					for (ModInstance regI : regComp.getChildInstances()) {
 						//	System.out.println("setting property=" + property + " to " + ctx.getChild(2).getText() + ", was " + regInst.getProperty(property)+ ", in " + regInst.getId());
 						String rhsValue = (postPropertyAssignChildren>1) ? noEscapes(ctx.getChild(2).getText().replace("\"","")) : "true"; 
 						String wildcardInstPathStr = (instPathStr.length() > 0) ? instPathStr + "." + regI.getId() : regI.getId();

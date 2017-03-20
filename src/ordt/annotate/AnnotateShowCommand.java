@@ -3,9 +3,9 @@
  */
 package ordt.annotate;
 
-import ordt.extract.ModComponent;
-import ordt.extract.ModInstance;
-import ordt.extract.ModComponent.CompType;
+import ordt.extract.model.ModComponent;
+import ordt.extract.model.ModInstance;
+import ordt.extract.model.ModComponent.CompType;
 
 public class AnnotateShowCommand extends AnnotateCommand {
 	private boolean showInstanceComponent = false;

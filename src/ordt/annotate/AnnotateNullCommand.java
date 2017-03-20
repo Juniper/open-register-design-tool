@@ -3,7 +3,7 @@
  */
 package ordt.annotate;
 
-import ordt.extract.ModComponent.CompType;
+import ordt.extract.model.ModComponent.CompType;
 
 public class AnnotateNullCommand extends AnnotateCommand {
 

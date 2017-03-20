@@ -6,11 +6,11 @@ package ordt.output;
 import ordt.extract.Ordt;
 
 import ordt.extract.DefinedProperties;
-import ordt.extract.ModComponent;
-import ordt.extract.ModInstance;
-import ordt.extract.ModRegister;
 import ordt.extract.PropertyList;
 import ordt.extract.RegNumber;
+import ordt.extract.model.ModComponent;
+import ordt.extract.model.ModInstance;
+import ordt.extract.model.ModRegister;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 

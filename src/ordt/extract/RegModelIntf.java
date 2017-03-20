@@ -3,6 +3,9 @@
  */
 package ordt.extract;
 
+import ordt.extract.model.ModComponent;
+import ordt.extract.model.ModInstance;
+
 public interface RegModelIntf {
     /** get root component
 	 *  @return the root

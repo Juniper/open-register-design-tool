@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.extract;
+package ordt.extract.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,6 +12,9 @@ import java.util.Iterator;
 import java.util.List;
 
 import ordt.annotate.AnnotateCommand;
+import ordt.extract.Ordt;
+import ordt.extract.PropertyList;
+import ordt.extract.RegNumber;
 import ordt.output.InstanceProperties;
 import ordt.output.OutputBuilder;
 
@@ -19,7 +22,7 @@ import ordt.output.OutputBuilder;
 public abstract class ModComponent extends ModBaseComponent {
 
 	protected List<ModComponent> childComponents;   // sub-component definitions contained in this component
-	protected List<ModInstance> childInstances;   // instances contained in this component
+	private List<ModInstance> childInstances;   // instances contained in this component
 	protected List<ModInstance> instancesOf;   // instances of this component
 	protected List<ModEnum> enums;   // enums contained in this component
 	protected CompParameterLists postPropertyAssignLists;  // list of post property assignments for descendent instances  
@@ -89,7 +92,7 @@ public abstract class ModComponent extends ModBaseComponent {
 	/** process an annotation command on specified model instances */
 	public void processInstanceAnnotation(AnnotateCommand cmd, int pathLevel) {
 		// process all child instances - path checks are done in instance
-		for (ModInstance inst: childInstances) inst.processInstanceAnnotation(cmd, pathLevel);
+		for (ModInstance inst: getChildInstances()) inst.processInstanceAnnotation(cmd, pathLevel);
 	}
 
 	/** process an annotation command on specified model components  */
@@ -114,7 +117,7 @@ public abstract class ModComponent extends ModBaseComponent {
 			}	
 			// display instances
 			System.out.println("    child instances:");
-			for (ModInstance inst: childInstances) {
+			for (ModInstance inst: getChildInstances()) {
 				System.out.println("        id=" + inst.getId() + " of " + inst.getRegComp().getId());
 			}	
 			// display instances of
@@ -215,7 +218,7 @@ public abstract class ModComponent extends ModBaseComponent {
 			System.out.println("-- " + inst.getId() + " at addr=" + addr);
 		}
 		}*/
-		Collections.sort(childInstances, new Comparator<ModInstance>(){
+		Collections.sort(getChildInstances(), new Comparator<ModInstance>(){
             public int compare(ModInstance a, ModInstance b) {
             	RegNumber addr_a = null, addr_b = null;
     			if (a.isAddressable()) {
@@ -246,7 +249,7 @@ public abstract class ModComponent extends ModBaseComponent {
 	/** return true if out of order elements found */
 	protected boolean needsAddressSort() {
 		RegNumber lastAddr = null;
-		for (ModInstance regInst : childInstances) {
+		for (ModInstance regInst : getChildInstances()) {
 			if (regInst.isAddressable()) {
 				RegNumber addr = ((ModAddressableInstance) regInst).getAddress();
 				//if (this.getId().equals("ppe_regs")) System.out.println("ModComponent needsAddressSort: inst=" + regInst.getId() + " in " + getId() + ", lastAddr=" + lastAddr + ", addr=" + addr);
@@ -293,7 +296,7 @@ public abstract class ModComponent extends ModBaseComponent {
 	 */
 	public void addCompInstance(ModInstance regInst) {
 		if (findLocalInstance(regInst.getId()) != null) Ordt.errorMessage("Duplicate instance (" + regInst.getId() + ") declared in component " + getId());
-		childInstances.add(regInst);		
+		getChildInstances().add(regInst);		
 	}
 
 	/** add a child enum
@@ -351,7 +354,7 @@ public abstract class ModComponent extends ModBaseComponent {
 	public ModInstance findLocalInstance(String id) {    
 		//System.out.println("*** looking for inst" + id + " in " + this.getId());
 		// loop through child instances
-		for (ModInstance regInst : childInstances) {
+		for (ModInstance regInst : getChildInstances()) {
 			//System.out.println("  * looking for " + id + ", found " + regComp.getId());
 			if ((regInst != null) && (regInst.getId().equals(id))) return regInst;
 		}
@@ -464,8 +467,13 @@ public abstract class ModComponent extends ModBaseComponent {
 	
 	/** return the first child instance of this component */
 	public ModInstance getFirstChildInstance() {
-		if (childInstances.isEmpty()) return null;
-		return childInstances.get(0);
+		if (getChildInstances().isEmpty()) return null;
+		return getChildInstances().get(0);
+	}
+
+	/** return the list of child instances of this component */
+	public List<ModInstance> getChildInstances() {
+		return childInstances;
 	}
 
 	/** get the post property assigns in this component parents given an instance path */
@@ -602,7 +610,7 @@ public abstract class ModComponent extends ModBaseComponent {
 		// each subclass should override to create appropriate code based on calling instance
 		if (callingInst == null) return;
 		// generate each direct instance in this component
-		for (ModInstance regInst : childInstances) {
+		for (ModInstance regInst : getChildInstances()) {
 			outputBuilder.pushInstance(new InstanceProperties(callingInst));
 			regInst.generateOutput(outputBuilder);
 			outputBuilder.popInstance();
@@ -615,7 +623,7 @@ public abstract class ModComponent extends ModBaseComponent {
 		int result = super.hashCode();
 		result = prime * result + ((alignedSize == null) ? 0 : alignedSize.hashCode());
 		result = prime * result + ((childComponents == null) ? 0 : childComponents.hashCode());
-		result = prime * result + ((childInstances == null) ? 0 : childInstances.hashCode());
+		result = prime * result + ((getChildInstances() == null) ? 0 : getChildInstances().hashCode());
 		result = prime * result + ((compType == null) ? 0 : compType.hashCode());
 		result = prime * result + ((enums == null) ? 0 : enums.hashCode());
 		result = prime * result + (isRoot ? 1231 : 1237);
@@ -642,10 +650,10 @@ public abstract class ModComponent extends ModBaseComponent {
 				return false;
 		} else if (!childComponents.equals(other.childComponents))
 			return false;
-		if (childInstances == null) {
-			if (other.childInstances != null)
+		if (getChildInstances() == null) {
+			if (other.getChildInstances() != null)
 				return false;
-		} else if (!childInstances.equals(other.childInstances))
+		} else if (!getChildInstances().equals(other.getChildInstances()))
 			return false;
 		if (compType != other.compType)
 			return false;

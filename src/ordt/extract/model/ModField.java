@@ -1,8 +1,9 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.extract;
+package ordt.extract.model;
 
+import ordt.extract.Ordt;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
 
@@ -45,7 +46,7 @@ public class ModField extends ModComponent {
 		outputBuilder.addField(fieldProperties);  // instance id is picked up here
 		
 		// generate each direct instance in this component
-		for (ModInstance regInst : childInstances) {
+		for (ModInstance regInst : getChildInstances()) {
 			Ordt.errorExit("Rdl fields are not allowed to have child components, field=" + callingInst.getId());
 			regInst.generateOutput(outputBuilder);
 		}

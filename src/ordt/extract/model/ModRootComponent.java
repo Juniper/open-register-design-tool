@@ -1,20 +1,22 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.extract;
+package ordt.extract.model;
 
+import ordt.extract.Ordt;
+import ordt.extract.RegNumber;
 import ordt.output.OutputBuilder;
 
 public class ModRootComponent extends ModComponent {
 
-	ModRootComponent () {
+	public ModRootComponent () {
 		setId("root");  // set root name
     	setRoot(true);  // tag root component
 	}
 
 	/** remove all root instance children */
 	public void removeChildInstances() {
-		childInstances.clear();
+		getChildInstances().clear();
 	}
 
 	/** compute min size of all instanced subcomponents */  
@@ -42,7 +44,7 @@ public class ModRootComponent extends ModComponent {
 	public void sortRegisters() {
 		if (needsAddressSort()) sortChildrenByAddress();
 		// now process children
-		for (ModInstance regInst : childInstances) regInst.regComp.sortRegisters();
+		for (ModInstance regInst : getChildInstances()) regInst.regComp.sortRegisters();
 	}
 
 	// ------------------------------------ code gen templates ----------------------------------------
@@ -59,7 +61,7 @@ public class ModRootComponent extends ModComponent {
 
 		// issue warning if more than one root instance detected
 		ModInstance inst = this.getFirstChildInstance();
-		if (childInstances.size() > 1) {
+		if (getChildInstances().size() > 1) {
 			Ordt.warnMessage("More than one root instance found in input file. Only first instance ("+ inst.getId() + ") will be processed.");
 		}
 		

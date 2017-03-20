@@ -1,10 +1,13 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.extract;
+package ordt.extract.model;
 
 import java.util.HashSet;
 
+import ordt.extract.DefinedProperties;
+import ordt.extract.Ordt;
+import ordt.extract.RegNumber;
 import ordt.extract.Ordt.InputType;
 import ordt.output.OutputBuilder;
 import ordt.output.RegProperties;
@@ -129,7 +132,7 @@ public class ModRegister extends ModComponent  {
 			// visit children (fields) if externals are being processed
 			if (outputBuilder.visitExternalRegisters()) {
 				// generate each direct instance in this component
-				for (ModInstance regInst : childInstances) {
+				for (ModInstance regInst : getChildInstances()) {
 				   regInst.generateOutput(outputBuilder);
 				}
 			}
@@ -165,7 +168,7 @@ public class ModRegister extends ModComponent  {
 				outputBuilder.addRegister(regProperties, rep);   // add register to verilog output structures  <----- note that all inst properties are extracted here 
 		     			     	
 				// generate each direct instance in this component
-				for (ModInstance regInst : childInstances) {
+				for (ModInstance regInst : getChildInstances()) {
 					regInst.generateOutput(outputBuilder);
 				}
 				

@@ -9,11 +9,11 @@ import java.util.HashSet;
 import java.util.List;
 
 import ordt.extract.Ordt;
-import ordt.extract.ModComponent;
-import ordt.extract.ModEnum;
-import ordt.extract.ModEnumElement;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
+import ordt.extract.model.ModComponent;
+import ordt.extract.model.ModEnum;
+import ordt.extract.model.ModEnumElement;
 import ordt.output.AddressableInstanceProperties;
 import ordt.output.FieldProperties;
 import ordt.output.InstanceProperties;

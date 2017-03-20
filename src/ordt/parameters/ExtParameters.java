@@ -22,7 +22,7 @@ import ordt.annotate.AnnotateCommand;
 import ordt.annotate.AnnotateSetCommand;
 import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
-import ordt.extract.ModComponent.CompType;
+import ordt.extract.model.ModComponent.CompType;
 import ordt.parse.parameters.ExtParmsBaseListener;
 import ordt.parse.parameters.ExtParmsLexer;
 import ordt.parse.parameters.ExtParmsParser;

@@ -1,7 +1,10 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.extract;
+package ordt.extract.model;
+
+import ordt.extract.Ordt;
+import ordt.extract.RegNumber;
 
 /** class containing info for an enum value within a RegENum */
 public class ModEnumElement {

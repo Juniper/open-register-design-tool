@@ -28,13 +28,15 @@ import ordt.parameters.ExtParameters.SVChildInfoModes;
 
 public class Ordt {
 
-	private static String version = "170317.01"; 
+	private static String version = "170320.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
-	private static InputType inputType;
+	private static InputType inputType;   // primary input file type
+	private static String inputFile = null;   // primary input file
+    private static List<OverlayFileInfo> overlayFiles = new ArrayList<OverlayFileInfo>();   // overlay input files
+	
 	private static List<String> inputParmFiles = new ArrayList<String>();
-    private static String inputFile = null;
 
 	public enum OutputType { VERILOG, SYSTEMVERILOG, JSPEC, RALF, RDL, REGLIST, SVBENCH, VBENCH, 
 		                     UVMREGS, UVMREGSPKG, XML, CPPMOD, CPPDRVMOD, JSON, SVCHILDINFO };
@@ -68,6 +70,14 @@ public class Ordt {
         		else if (arg.equals("-parms") && (remainingArgs>1)) {
         			inputParmFiles.add(args[args.length - remainingArgs]);
             		remainingArgs -= 2;
+        		}
+        		// overlay file / form: -overlay file tag parent
+        		else if (arg.equals("-overlay") && (remainingArgs>3)) {
+        			String olayName = args[args.length - remainingArgs];
+        			String olayTag = args[args.length - remainingArgs + 1];
+        			String olayPtag = args[args.length - remainingArgs + 2];
+        			overlayFiles.add(new OverlayFileInfo(olayName, olayTag, olayPtag));
+            		remainingArgs -= 4;
         		}
         		else showUsage();
         	}
@@ -359,6 +369,13 @@ public class Ordt {
 		Ordt.inputType = inputType;
 	}
 
+	/** return true if an input parms file has been specified */
+	public static boolean hasInputParmFile() {
+		return !inputParmFiles.isEmpty();
+	}
+
+    // ------------------------ static methods for DebugController overrides ---------------------------
+	
 	/** override the input file name (used by DebugController) */
 	public static void setInputFile(String inFile) {
 		inputFile = inFile;
@@ -369,14 +386,14 @@ public class Ordt {
 		outputFileNames.put(type, name);  		
 	}
 
-	/** add in input parameter file (used by DebugController) */
+	/** add an input parameter file (used by DebugController) */
 	public static void addInputParmFile(String name) {
 		inputParmFiles.add(name);  		
 	}
 
-	/** return true if an input parms file has been specified */
-	public static boolean hasInputParmFile() {
-		return !inputParmFiles.isEmpty();
+	/** add an input overlay file (used by DebugController) */
+	public static void addOverlayFile(String olayName, String olayTag, String olayPtag) {
+		overlayFiles.add(new OverlayFileInfo(olayName, olayTag, olayPtag));
 	}
 
 }

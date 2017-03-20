@@ -13,7 +13,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Stack;
 
-import ordt.extract.ModComponent.CompType;
+import ordt.extract.model.ModAddressableInstance;
+import ordt.extract.model.ModBaseComponent;
+import ordt.extract.model.ModComponent;
+import ordt.extract.model.ModEnum;
+import ordt.extract.model.ModEnumElement;
+import ordt.extract.model.ModFieldSet;
+import ordt.extract.model.ModIndexedInstance;
+import ordt.extract.model.ModInstance;
+import ordt.extract.model.ModRegister;
+import ordt.extract.model.ModRootComponent;
+import ordt.extract.model.ModComponent.CompType;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 import ordt.parse.jspec.JSpecBaseListener;
@@ -1047,7 +1057,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 		//System.out.println("JSpecModelExtractor: setDynamicProperty, inst=" + currentInst.getId() + ", parent=" + parent.getId() + ", p=" + parm + ",  v=" + value); 
 		// add dynamic assigns for all fields to parent
 		ModComponent regComp = currentInst.getRegComp(); // get instance children
-		for (ModInstance childInst : regComp.childInstances) {
+		for (ModInstance childInst : regComp.getChildInstances()) {
 			String instPathStr = currentInst.getId() + "." + childInst.getId();
 			parent.addParameter(instPathStr, parm, value);
 			//System.out.println("JSpecModelExtractor: setDynamicProperty, instPathStr=" + instPathStr); 

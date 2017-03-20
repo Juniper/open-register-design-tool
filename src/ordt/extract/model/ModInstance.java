@@ -1,12 +1,14 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.extract;
+package ordt.extract.model;
 
 import java.util.HashMap;
 import java.util.HashSet;
 
 import ordt.annotate.AnnotateCommand;
+import ordt.extract.Ordt;
+import ordt.extract.PropertyList;
 import ordt.extract.Ordt.InputType;
 import ordt.extract.PropertyList.PropertyValue;
 import ordt.output.OutputBuilder;

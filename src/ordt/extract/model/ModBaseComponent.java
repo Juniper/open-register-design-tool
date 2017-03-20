@@ -1,14 +1,16 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.extract;
+package ordt.extract.model;
 
 import java.util.HashMap;
 
+import ordt.extract.Ordt;
+import ordt.extract.PropertyList;
 import ordt.extract.PropertyList.PropertyValue;
 
 /** model base class (ModComponent and ModInstance are child types) */
-abstract class ModBaseComponent {
+public abstract class ModBaseComponent {
 
 	protected String id = "";   // id (type) of component
 	protected ModComponent parent;   // parent component of this entity

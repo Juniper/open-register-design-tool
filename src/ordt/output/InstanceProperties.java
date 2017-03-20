@@ -11,10 +11,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import ordt.extract.Ordt;
-import ordt.extract.ModComponent;
-import ordt.extract.ModInstance;
 import ordt.extract.PropertyList;
 import ordt.extract.PropertyList.PropertyValue;
+import ordt.extract.model.ModComponent;
+import ordt.extract.model.ModInstance;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 

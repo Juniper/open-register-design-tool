@@ -12,11 +12,11 @@ import java.util.Iterator;
 import java.util.List;
 
 import ordt.extract.Ordt;
-import ordt.extract.ModInstance;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
+import ordt.extract.model.ModInstance;
 import ordt.output.InstanceProperties;
 import ordt.output.OutputBuilder;
 import ordt.output.RegProperties;

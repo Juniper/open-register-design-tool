@@ -5,10 +5,10 @@ package ordt.output;
 
 
 import ordt.extract.DefinedProperties;
-import ordt.extract.ModComponent;
-import ordt.extract.ModIndexedInstance;
-import ordt.extract.ModInstance;
 import ordt.extract.PropertyList;
+import ordt.extract.model.ModComponent;
+import ordt.extract.model.ModIndexedInstance;
+import ordt.extract.model.ModInstance;
 
 /** class of properties needed for display of active signal instance */
 public class FieldSetProperties extends InstanceProperties {

@@ -1,11 +1,12 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.extract;
+package ordt.extract.model;
 
 import java.util.HashSet;
 import java.util.Iterator;
 
+import ordt.extract.Ordt;
 import ordt.extract.Ordt.InputType;
 import ordt.output.FieldSetProperties;
 import ordt.output.OutputBuilder;
@@ -59,9 +60,9 @@ public class ModFieldSet extends ModComponent {
 
 	/** remove all except first child instance and return size of first instance */  // TODO - js specific move into extractor
 	public Integer cleanupUnion() {
-		if (childInstances.size() > 1) {
-			for (int idx=childInstances.size()-1; idx>0; idx--) childInstances.remove(idx);
-			ModComponent child = childInstances.get(0).getRegComp();
+		if (getChildInstances().size() > 1) {
+			for (int idx=getChildInstances().size()-1; idx>0; idx--) getChildInstances().remove(idx);
+			ModComponent child = getChildInstances().get(0).getRegComp();
 			if (child.isField()) return child.getIntegerProperty("fieldwidth");
 			if (child.isFieldSet()) return child.getIntegerProperty("fieldstructwidth");
 		}
@@ -92,7 +93,7 @@ public class ModFieldSet extends ModComponent {
 			outputBuilder.addFieldSet(fieldSetProperties, rep);  
 
 			// generate each direct instance in this component 
-			Iterator<ModInstance> it = childInstances.iterator();
+			Iterator<ModInstance> it = getChildInstances().iterator();
 			boolean processNextChild = it.hasNext(); 
 			while (processNextChild) { 
 				it.next().generateOutput(outputBuilder);

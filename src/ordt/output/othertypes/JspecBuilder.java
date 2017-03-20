@@ -11,11 +11,11 @@ import java.util.Comparator;
 import java.util.HashSet;
 
 import ordt.extract.Ordt;
-import ordt.extract.ModEnumElement;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
+import ordt.extract.model.ModEnumElement;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
 import ordt.output.OutputLine;

@@ -15,12 +15,12 @@ import java.util.PriorityQueue;
 import java.util.Stack;
 
 import ordt.extract.Ordt;
-import ordt.extract.ModInstance;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.Ordt.InputType;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
+import ordt.extract.model.ModInstance;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 

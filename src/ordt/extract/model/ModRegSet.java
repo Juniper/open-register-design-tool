@@ -1,10 +1,13 @@
 /*
  * Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
  */
-package ordt.extract;
+package ordt.extract.model;
 
 import java.util.HashSet;
 
+import ordt.extract.DefinedProperties;
+import ordt.extract.Ordt;
+import ordt.extract.RegNumber;
 import ordt.extract.Ordt.InputType;
 import ordt.output.OutputBuilder;
 import ordt.output.RegProperties;
@@ -66,7 +69,7 @@ public class ModRegSet extends ModComponent {
 		if (alignedSize != null) return;
 		// add all child sizes
 		RegNumber newAlignedSize = new RegNumber(0);
-		for (ModInstance regInst : childInstances) {  
+		for (ModInstance regInst : getChildInstances()) {  
 			// only consider addressable instances
 			if (regInst.isAddressable()) {
 				ModAddressableInstance childInst= (ModAddressableInstance) regInst;
@@ -89,7 +92,7 @@ public class ModRegSet extends ModComponent {
 	public void sortRegisters() {
 		if (needsAddressSort()) sortChildrenByAddress();
 		// now process children
-		for (ModInstance regInst : childInstances) regInst.regComp.sortRegisters();
+		for (ModInstance regInst : getChildInstances()) regInst.regComp.sortRegisters();
 	}
 
 	// ------------------------------------ code gen templates ----------------------------------------
@@ -118,7 +121,7 @@ public class ModRegSet extends ModComponent {
 			outputBuilder.addRegMap(callingInst);  // regSetProperties will be created for root map in this builder, indicate we're done with first map 
 
 			// generate each direct instance in this component
-			for (ModInstance regInst : childInstances) {
+			for (ModInstance regInst : getChildInstances()) {
 				regInst.generateOutput(outputBuilder);
 			}
 
@@ -149,7 +152,7 @@ public class ModRegSet extends ModComponent {
 				outputBuilder.addRegSet(regSetProperties, rep);  // FIXME - previous regSetProperties stuff could be pushed into addRegSet and return regSetProperties
 
 				// generate each direct instance in this component
-				for (ModInstance regInst : childInstances) {  
+				for (ModInstance regInst : getChildInstances()) {  
 					regInst.generateOutput(outputBuilder);
 				}	
 
