@@ -28,7 +28,7 @@ import ordt.parameters.ExtParameters.SVChildInfoModes;
 
 public class Ordt {
 
-	private static String version = "170320.01"; 
+	private static String version = "170321.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -95,31 +95,9 @@ public class Ordt {
 	    	ExtParameters.init();
 	    	ExtParameters.loadParameters(inputParmFiles);
 	    	
-			// extract model from rdl or jspec input file depending on name
-	    	if (inputFile.endsWith("js")) {
-	    		setInputType(InputType.JSPEC);
-	    		model = new JSpecModelExtractor(inputFile);
-	    	}
-	    	else {
-	    		setInputType(InputType.RDL);
-	    		model = new RdlModelExtractor(inputFile);
-	    	}
-	    	
-	    	// precompute min size of each regset
-	    	model.getRoot().setAlignedSize();
-	    	
-	    	// fix simple address ordering issues 
-	    	if (ExtParameters.allowUnorderedAddresses()) model.getRoot().sortRegisters();
-	    	
-	    	// add any debug annotations
-        	if (debug.isActive()) debug.addAnnotations(); 
-	    	
-	    	// process any model annotate cmds
-	    	for (AnnotateCommand cmd: ExtParameters.getAnnotations()) {
-	    		model.getRoot().processAnnotation(cmd, 0);
-	    		Ordt.infoMessage("Annotate command: " + cmd.getSignature() + " processed " + cmd.getChangeCount() + " elements");
-	    	}
-	    	
+			// extract model from input file and prep as needed
+	    	model = extractModel(inputFile);
+
         	// define output names/comment chars by type
         	defineOutputNames();
         	defineCommentChars();
@@ -141,6 +119,7 @@ public class Ordt {
 
     // ----------------------- output definition methods ----------------------------
     
+
 	/** assign an output type for each command line parm */
     private static void defineOutputArgs() {
 		outputArgs.put("-verilog", OutputType.VERILOG);
@@ -243,6 +222,8 @@ public class Ordt {
 		}
 		return null;
 	}
+
+	// -------------------------------------------------------------------------------
 	
 	/** return true if model has a root address map */
     private static boolean verifyRootAddressMap(RegModelIntf model, OutputType type) {
@@ -254,17 +235,60 @@ public class Ordt {
 		   }
 		return true;
 	}
-
-	// -------------------------------------------------------------------------------
+    
+	/** extract model from input file and prep as needed */
+	private static RegModelIntf extractModel(String inputFile) {
+		RegModelIntf newModel;
+		
+		// extract model from rdl or jspec input file depending on name
+    	if (inputFile.endsWith("js")) {
+    		setInputType(InputType.JSPEC);
+    		newModel = new JSpecModelExtractor(inputFile);
+    	}
+    	else {
+    		setInputType(InputType.RDL);
+    		newModel = new RdlModelExtractor(inputFile);
+    	}
+    	
+    	// precompute min size of each regset
+    	newModel.getRoot().setAlignedSize();
+    	
+    	// fix simple address ordering issues 
+    	if (ExtParameters.allowUnorderedAddresses()) newModel.getRoot().sortRegisters();
+    	
+    	// add any debug annotation commands to the active list
+    	if (debug.isActive()) debug.addAnnotations(); 
+    	
+    	// process any model annotate cmds
+    	for (AnnotateCommand cmd: ExtParameters.getAnnotations()) {
+    		newModel.getRoot().processAnnotation(cmd, 0);
+    		Ordt.infoMessage("Annotate command: " + cmd.getSignature() + " processed " + cmd.getChangeCount() + " elements");
+    	}
+    	return newModel;
+	}
 
 	/**create output of the specified type if non-null output name is specified
 	 */
     public static void createOutput(RegModelIntf model, OutputType type) { 
     	String outName = outputFileNames.get(type);
     	if (outName == null) return;
+    	// create builder and generate structures from model
 		System.out.println("Ordt: building " + outputNames.get(type) + "...");
-    	OutputBuilder outp = getBuilder(model, type);
-    	if (outp != null) outp.write(outName, outputNames.get(type), commentChars.get(type));
+    	OutputBuilder outBuilder = getBuilder(model, type);  
+    	if (outBuilder != null) {
+        	// process overlay files if builder type supports
+        	if (outBuilder.supportsOverlays()) {
+        		for (OverlayFileInfo ofile: overlayFiles) {
+        			String fname=ofile.getName();
+        			System.out.println("Ordt: processing overlay file " + fname + "...");
+        			// extract model from overlay file and prep as needed
+        	    	model = extractModel(fname);
+        	    	outBuilder.processOverlay(model);
+        		}
+        	}
+        	// generate output
+        	outBuilder.write(outName, outputNames.get(type), commentChars.get(type));
+    	}
     }
 
     /**create uvm registers output
@@ -392,7 +416,7 @@ public class Ordt {
 	}
 
 	/** add an input overlay file (used by DebugController) */
-	public static void addOverlayFile(String olayName, String olayTag, String olayPtag) {
+	public static void addOverlayFile(String olayName, String olayTag, String olayPtag) {   // TODO - add check on overlay file type, etc
 		overlayFiles.add(new OverlayFileInfo(olayName, olayTag, olayPtag));
 	}
 

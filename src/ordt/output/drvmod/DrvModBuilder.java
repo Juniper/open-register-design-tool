@@ -4,6 +4,7 @@
 package ordt.output.drvmod;
 
 import java.io.BufferedWriter;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Stack;
 
@@ -14,9 +15,13 @@ import ordt.output.OutputBuilder;
 /** builder class for creating reg driver data structures - language independent */
 public class DrvModBuilder extends OutputBuilder {
 	
-	protected HashSet<DrvModRegSetInstance> uniqueRegSets = new HashSet<DrvModRegSetInstance>();
-	protected HashSet<DrvModRegInstance> uniqueRegs = new HashSet<DrvModRegInstance>();
+	// use hashmap mapped w/ same key/value for storing unique instances so values can be extracted later
+	protected HashMap<DrvModRegSetInstance, DrvModRegSetInstance> uniqueRegSets = new HashMap<DrvModRegSetInstance, DrvModRegSetInstance>();
+	protected HashMap<DrvModRegInstance, DrvModRegInstance> uniqueRegs = new HashMap<DrvModRegInstance, DrvModRegInstance>();
+	
+	int addedInstances, uniqueInstances = 0;
 	private Stack<DrvModRegSetInstance> currentRegSetStack = new Stack<DrvModRegSetInstance>();
+	protected int overlayCount = 0;
 	
 	private static HashSet<String> reservedWords = getReservedWords();
 	
@@ -29,8 +34,18 @@ public class DrvModBuilder extends OutputBuilder {
 	    setVisitExternalRegisters(true);  // we will visit externals 
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
 	    setAllowLocalMapInternals(true);  // cascaded addrmaps will result in local non-ext regions   
+	    setSupportsOverlays(true);	    // support overlay files
 	    model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
     }
+    
+	/** process an overlay file */
+    @Override
+	public void processOverlay(RegModelIntf model) {
+    	overlayCount++;
+	    this.model = model;  // store the model ref
+	    resetBuilder();
+	    model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
+	}
 
     /** load C++ reserved words to be escaped */
 	private static HashSet<String> getReservedWords() {
@@ -62,27 +77,36 @@ public class DrvModBuilder extends OutputBuilder {
 	}
 
 	@Override
-	public void finishRegister() {  // TODO toInteger wont work, need toLong
+	public void finishRegister() {  
 		//	System.out.println("DrvModBuilder finishRegister: " + regProperties.getInstancePath() + ", base=" + regProperties.getBaseAddress());	
 		// create new reg instance
-		DrvModRegInstance newReg = new DrvModRegInstance(regProperties.getId(), 0, regProperties.getRegWidth(), regProperties.getRelativeBaseAddress().toLong(), regProperties.getRepCount(), regProperties.getAddrStride().toLong());
-		uniqueRegs.add(newReg);
-		// add field info to this reg from sorted fieldList
+		DrvModRegInstance newReg = new DrvModRegInstance(regProperties.getId(), overlayCount, regProperties.getRegWidth(), regProperties.getRelativeBaseAddress().toLong(), regProperties.getRepCount(), regProperties.getAddrStride().toLong());
+		// add field info to this reg before uniqueRegs check so has is valid
 		for (FieldProperties fld: fieldList) 
 			newReg.addField(fld.getPrefixedId(), fld.getLowIndex(), fld.getFieldWidth(), fld.isSwReadable(), fld.isSwWriteable());
-		// add this reg to its parent
-		currentRegSetStack.peek().addChild(newReg);
+        addedInstances++;
+		if (!uniqueRegs.containsValue(newReg)) {
+			uniqueRegs.put(newReg, newReg);
+        	uniqueInstances++;
+    		// add this reg to its parent
+    		currentRegSetStack.peek().addChild(newReg);  // if newReg is unique, add to parent's child list
+    		//System.out.println("DrvModBuilder finishRegister:    unique id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", base=" + regProperties.getFullBaseAddress() );
+        }
+		//else
+    	//	System.out.println("DrvModBuilder finishRegister: duplicate id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", base=" + regProperties.getFullBaseAddress() );
 	}
 
 	@Override
 	public void addRegSet() {
+		// clear tracking counters
+		if (regSetProperties.isRootInstance()) {
+			addedInstances = 0;
+			uniqueInstances = 0;
+		}
 		// create new regset instance
 		Long relativeAddr = (regSetProperties.getRelativeBaseAddress() == null)? regSetProperties.getFullBaseAddress().toLong() : regSetProperties.getRelativeBaseAddress().toLong();
-		System.out.println("DrvModBuilder addRegSet: basename=" + regSetProperties.getBaseName() + ", id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", relAddr=" + relativeAddr + ", alignedSize=" + regSetProperties.getAlignedSize());
-		DrvModRegSetInstance newRegSet = new DrvModRegSetInstance(regSetProperties.getId(), 0, relativeAddr, regSetProperties.getRepCount(), regSetProperties.getAlignedSize().toLong());
-		uniqueRegSets.add(newRegSet);
-		// add this regset to its parent
-		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(newRegSet);
+		//System.out.println("DrvModBuilder addRegSet: basename=" + regSetProperties.getBaseName() + ", id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", relAddr=" + relativeAddr + ", alignedSize=" + regSetProperties.getAlignedSize());
+		DrvModRegSetInstance newRegSet = new DrvModRegSetInstance(regSetProperties.getId(), overlayCount, relativeAddr, regSetProperties.getRepCount(), regSetProperties.getAlignedSize().toLong());
 		// update current instance
 		currentRegSetStack.push(newRegSet);
 	}
@@ -90,7 +114,24 @@ public class DrvModBuilder extends OutputBuilder {
 	@Override
 	public void finishRegSet() {    
 		//System.out.println("DrvModBuilder finishRegSet: " + regSetProperties.getBaseName() + ", id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", base=" + regSetProperties.getFullBaseAddress() + ", high=" + regSetProperties.getFullHighAddress() + ", stride=" + regSetProperties.getExtractInstance().getAddressIncrement());
-		currentRegSetStack.pop();
+		DrvModRegSetInstance newRegSet = currentRegSetStack.pop();
+		// now that all children are added, test for uniqueness
+        addedInstances++;
+		if ("rx_memctl".equals(newRegSet.getName()) || "hocrx_per_psc".equals(newRegSet.getName())) 
+			System.out.println("DrvModBuilder finishRegSet:        pre id=" + newRegSet.getName() + ", mapId=" + newRegSet.getMapId() + ", reps="  + newRegSet.getReps() + ", base=" + newRegSet.getAddressOffset() + ", stride=" + newRegSet.getAddressStride() + ", hashCode=" + newRegSet.hashCode() + ", containsKey=" + uniqueRegSets.containsKey(newRegSet)+ ", containsValue=" + uniqueRegSets.containsValue(newRegSet));
+		if (!uniqueRegSets.containsValue(newRegSet)) {
+        	uniqueRegSets.put(newRegSet, newRegSet);
+        	uniqueInstances++;
+    		if ((overlayCount>0) || "rx_memctl".equals(newRegSet.getName()) || "hocrx_per_psc".equals(newRegSet.getName())) 
+    			System.out.println("DrvModBuilder finishRegSet:    unique id=" + newRegSet.getName() + ", mapId=" + newRegSet.getMapId() + ", reps="  + newRegSet.getReps() + ", base=" + newRegSet.getAddressOffset() + ", stride=" + newRegSet.getAddressStride() + ", hashCode=" + newRegSet.hashCode() + ", containsKey=" + uniqueRegSets.containsKey(newRegSet)+ ", containsValue=" + uniqueRegSets.containsValue(newRegSet));
+    		// add this regset to its parent
+    		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(newRegSet); // if unique, add to parent's child list
+        }
+		//else 
+    	//	System.out.println("DrvModBuilder finishRegSet: duplicate id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", base=" + regSetProperties.getFullBaseAddress() + ", high=" + regSetProperties.getFullHighAddress() + ", stride=" + regSetProperties.getExtractInstance().getAddressIncrement());
+		
+		if (regSetProperties.isRootInstance())
+			System.out.println("DrvModBuilder finishRegSet: added instances=" + addedInstances + ", unique instances=" + uniqueInstances + ", duplicate instances=" + (addedInstances - uniqueInstances));
 	}
 
 	/** process root address map */

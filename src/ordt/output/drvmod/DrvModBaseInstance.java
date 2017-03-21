@@ -3,11 +3,11 @@ package ordt.output.drvmod;
 /** base class for storing driver model reg/regset instances */
 public abstract class DrvModBaseInstance {
 
-	String name; // instance name
-	int mapId = 0;  // id of register map that created this instance
-	long addressOffset = 0;  // relative address offset of this instance (64b max addr size)
-	int reps;  // number of replications of this instance
-	Long addressStride;  // address stride if a replicated instance (64b max addr size
+	protected String name; // instance name
+	protected int mapId = 0;  // id of register map that created this instance
+	protected long addressOffset = 0;  // relative address offset of this instance (64b max addr size)
+	protected int reps;  // number of replications of this instance
+	protected Long addressStride;  // address stride if a replicated instance (64b max addr size
 	
 	protected DrvModBaseInstance(String name, int mapId, long addressOffset, int reps, Long addressStride) {
 		super();
@@ -16,7 +16,7 @@ public abstract class DrvModBaseInstance {
 		this.addressOffset = addressOffset;
 		this.reps = reps;
 		this.addressStride = addressStride;
-		System.out.println("DrvModBaseInstance: creating name=" + name + ", mapId=" + mapId + ", addressOffset=" + addressOffset + ", reps=" + reps + ", addressStride=" + addressStride);
+		//System.out.println("DrvModBaseInstance: creating name=" + name + ", mapId=" + mapId + ", addressOffset=" + addressOffset + ", reps=" + reps + ", addressStride=" + addressStride);
 	}
 
 	public String getName() {

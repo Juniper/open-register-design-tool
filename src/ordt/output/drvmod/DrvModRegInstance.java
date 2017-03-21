@@ -44,10 +44,9 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 		}
 
 		@Override
-		public int hashCode() {
+		public int hashCode() {  // removed outertype from hash calculation
 			final int prime = 31;
 			int result = 1;
-			result = prime * result + getOuterType().hashCode();
 			result = prime * result + lowIndex;
 			result = prime * result + ((name == null) ? 0 : name.hashCode());
 			result = prime * result + (readable ? 1231 : 1237);
@@ -57,7 +56,7 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 		}
 
 		@Override
-		public boolean equals(Object obj) {
+		public boolean equals(Object obj) {  // removed outertype from equals calculation
 			if (this == obj)
 				return true;
 			if (obj == null)
@@ -65,8 +64,6 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 			if (getClass() != obj.getClass())
 				return false;
 			DrvModField other = (DrvModField) obj;
-			if (!getOuterType().equals(other.getOuterType()))
-				return false;
 			if (lowIndex != other.lowIndex)
 				return false;
 			if (name == null) {
@@ -81,10 +78,6 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 			if (writeable != other.writeable)
 				return false;
 			return true;
-		}
-
-		private DrvModRegInstance getOuterType() {
-			return DrvModRegInstance.this;
 		}
 		
 	}

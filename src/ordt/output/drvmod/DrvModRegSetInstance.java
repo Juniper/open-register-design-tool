@@ -5,7 +5,8 @@ import java.util.List;
 
 public class DrvModRegSetInstance extends DrvModBaseInstance {
 	
-	List<DrvModBaseInstance> children = new ArrayList<DrvModBaseInstance>();
+	List<DrvModBaseInstance> children = new ArrayList<DrvModBaseInstance>(); // children from same overlay as this instance 
+	List<DrvModBaseInstance> altChildren = new ArrayList<DrvModBaseInstance>(); // children from an alternate overlay (different child w/ same name/address)
 	
 	DrvModRegSetInstance(String name, int mapId, long addressOffset, int reps, long addressStride) {
 		super(name, mapId, addressOffset, reps, addressStride);
@@ -14,9 +15,16 @@ public class DrvModRegSetInstance extends DrvModBaseInstance {
 	public List<DrvModBaseInstance> getChildren() {
 		return children;
 	}
+	
+	public List<DrvModBaseInstance> getAltChildren() {
+		return altChildren;
+	}
 
 	public void addChild(DrvModBaseInstance child) {
-		this.children.add(child);
+		if (this.mapId==child.getMapId()) // add to primary list if child is from same overlay
+		    this.children.add(child);
+		else  // add to alternate list if child is from different overlay
+		    this.altChildren.add(child);
 	}
 
 	@Override
@@ -51,7 +59,7 @@ public class DrvModRegSetInstance extends DrvModBaseInstance {
 	public boolean equals(Object obj, boolean includeAddrInfo, boolean includeChildRegsets) {
 		if (this == obj)
 			return true;
-		if (!super.equals(obj, false))  // do not include address info
+		if (!super.equals(obj, includeAddrInfo)) 
 			return false;
 		if (getClass() != obj.getClass())
 			return false;

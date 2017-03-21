@@ -55,6 +55,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	private boolean visitExternalRegisters = false;  // should any register group/regset in an external group be visited
 	private boolean visitEachExternalRegister = false;  // should each register in an external group be visited (treated as internal)
 	private boolean allowLocalMapInternals = true;  // if true, address map instances encountered in builder will have local non-external regions
+	private boolean supportsOverlays = false;  // if true, builder supports processing of overlay models
 
 	private RegNumber externalBaseAddress;  // starting address of current external reg group
 		
@@ -76,6 +77,16 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	protected Stack<RegSetProperties> regSetPropertyStack = new Stack<RegSetProperties>();  // reg sets are nested so store stack
 	protected  RegSetProperties regSetProperties;  // output-relevant active register set properties  
 	private  RegSetProperties rootMapProperties;  // properties of root address map (separate from regSetProperties since root map is handled differently wrt rs stack) 
+	
+	/** reset builder state */
+	protected void resetBuilder() {
+		nextAddress = new RegNumber("0x0");   // initialize to address 0
+		baseAddress = new RegNumber("0x0");   // initialize to address 0
+		firstAddressMap = true;  // indication of first address map visited
+		instancePropertyStack.clear();
+		fieldSetPropertyStack.clear();
+		regSetPropertyStack.clear();
+	}
 	
 	/** get builderID
 	 *  @return the builderID
@@ -104,6 +115,10 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	/** return fieldOffsetsFromZero state from the model **/
 	public boolean fieldOffsetsFromZero() {
 		return model.fieldOffsetsFromZero();
+	}
+
+	/** process an overlay file */
+	public void processOverlay(RegModelIntf model) {
 	}
 		
 	//---------------------------- methods to load verilog structures ----------------------------------------
@@ -1013,6 +1028,14 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	 */
 	public void setAllowLocalMapInternals(boolean allowLocalMapInternals) {
 		this.allowLocalMapInternals = allowLocalMapInternals;
+	}
+
+	public boolean supportsOverlays() {
+		return supportsOverlays;
+	}
+
+	public void setSupportsOverlays(boolean supportsOverlays) {
+		this.supportsOverlays = supportsOverlays;
 	}
 
 	/** get next address  */
