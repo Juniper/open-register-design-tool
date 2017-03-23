@@ -18,7 +18,7 @@ public class DrvModBuilder extends OutputBuilder {
 	// use hashmap mapped w/ same key/value for storing unique instances so values can be extracted later
 	protected HashMap<DrvModRegSetInstance, DrvModRegSetInstance> uniqueRegSets = new HashMap<DrvModRegSetInstance, DrvModRegSetInstance>();
 	protected HashMap<DrvModRegInstance, DrvModRegInstance> uniqueRegs = new HashMap<DrvModRegInstance, DrvModRegInstance>();
-	
+
 	int addedInstances, uniqueInstances = 0;
 	private Stack<DrvModRegSetInstance> currentRegSetStack = new Stack<DrvModRegSetInstance>();
 	protected int overlayCount = 0;
@@ -89,11 +89,14 @@ public class DrvModBuilder extends OutputBuilder {
 			uniqueRegs.put(newReg, newReg);
         	uniqueInstances++;
     		// add this reg to its parent
-    		currentRegSetStack.peek().addChild(newReg);  // if newReg is unique, add to parent's child list
+    		currentRegSetStack.peek().addChild(newReg, overlayCount);  // if newReg is unique, add to parent's child list
     		//System.out.println("DrvModBuilder finishRegister:    unique id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", base=" + regProperties.getFullBaseAddress() );
         }
-		//else
-    	//	System.out.println("DrvModBuilder finishRegister: duplicate id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", base=" + regProperties.getFullBaseAddress() );
+		// otherwise add original instance as child  
+		else { 
+    		currentRegSetStack.peek().addChild(uniqueRegs.get(newReg), overlayCount); // if a dup, bump map encoding in parent's child list
+        	//	System.out.println("DrvModBuilder finishRegister: duplicate id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", base=" + regProperties.getFullBaseAddress() );
+		}
 	}
 
 	@Override
@@ -117,19 +120,26 @@ public class DrvModBuilder extends OutputBuilder {
 		DrvModRegSetInstance newRegSet = currentRegSetStack.pop();
 		// now that all children are added, test for uniqueness
         addedInstances++;
-		if ("rx_memctl".equals(newRegSet.getName()) || "hocrx_per_psc".equals(newRegSet.getName())) 
-			System.out.println("DrvModBuilder finishRegSet:        pre id=" + newRegSet.getName() + ", mapId=" + newRegSet.getMapId() + ", reps="  + newRegSet.getReps() + ", base=" + newRegSet.getAddressOffset() + ", stride=" + newRegSet.getAddressStride() + ", hashCode=" + newRegSet.hashCode() + ", containsKey=" + uniqueRegSets.containsKey(newRegSet)+ ", containsValue=" + uniqueRegSets.containsValue(newRegSet));
+		//if ("rx_memctl".equals(newRegSet.getName())) {
+		//	System.out.println("DrvModBuilder finishRegSet:        pre id=" + newRegSet.getName() + ", mapId=" + newRegSet.getMapId() + ", reps="  + newRegSet.getReps() + ", base=" + newRegSet.getAddressOffset() + ", stride=" + newRegSet.getAddressStride() + ", hashCode=" + newRegSet.hashCode() + ", containsKey=" + uniqueRegSets.containsKey(newRegSet)+ ", containsValue=" + uniqueRegSets.containsValue(newRegSet));
+		//}
 		if (!uniqueRegSets.containsValue(newRegSet)) {
         	uniqueRegSets.put(newRegSet, newRegSet);
         	uniqueInstances++;
-    		if ((overlayCount>0) || "rx_memctl".equals(newRegSet.getName()) || "hocrx_per_psc".equals(newRegSet.getName())) 
-    			System.out.println("DrvModBuilder finishRegSet:    unique id=" + newRegSet.getName() + ", mapId=" + newRegSet.getMapId() + ", reps="  + newRegSet.getReps() + ", base=" + newRegSet.getAddressOffset() + ", stride=" + newRegSet.getAddressStride() + ", hashCode=" + newRegSet.hashCode() + ", containsKey=" + uniqueRegSets.containsKey(newRegSet)+ ", containsValue=" + uniqueRegSets.containsValue(newRegSet));
+    		//if (/*(overlayCount>0) ||*/ "rx_memctl".equals(newRegSet.getName()) ) 
+    		//	System.out.println("DrvModBuilder finishRegSet:    unique id=" + newRegSet.getName() + ", mapId=" + newRegSet.getMapId() + ", reps="  + newRegSet.getReps() + ", base=" + newRegSet.getAddressOffset() + ", stride=" + newRegSet.getAddressStride() + ", hashCode=" + newRegSet.hashCode() + ", containsKey=" + uniqueRegSets.containsKey(newRegSet)+ ", containsValue=" + uniqueRegSets.containsValue(newRegSet));
     		// add this regset to its parent
-    		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(newRegSet); // if unique, add to parent's child list
+    		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(newRegSet, overlayCount); // if unique, add to parent's child list
         }
-		//else 
-    	//	System.out.println("DrvModBuilder finishRegSet: duplicate id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", base=" + regSetProperties.getFullBaseAddress() + ", high=" + regSetProperties.getFullHighAddress() + ", stride=" + regSetProperties.getExtractInstance().getAddressIncrement());
-		
+		// otherwise add original instance as child
+		else { 
+			// transfer newRegSet children into unique version
+			for (DrvModBaseInstance inst: newRegSet.getChildren()) {
+				uniqueRegSets.get(newRegSet).addChild(inst, overlayCount);
+			}
+    		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(uniqueRegSets.get(newRegSet), overlayCount); // if a dup, bump map encoding in parent's child list
+	    	//	System.out.println("DrvModBuilder finishRegSet: duplicate id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", base=" + regSetProperties.getFullBaseAddress() + ", high=" + regSetProperties.getFullHighAddress() + ", stride=" + regSetProperties.getExtractInstance().getAddressIncrement());
+		}
 		if (regSetProperties.isRootInstance())
 			System.out.println("DrvModBuilder finishRegSet: added instances=" + addedInstances + ", unique instances=" + uniqueInstances + ", duplicate instances=" + (addedInstances - uniqueInstances));
 	}

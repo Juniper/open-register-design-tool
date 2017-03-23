@@ -15,7 +15,7 @@ public abstract class DrvModBaseInstance {
 		this.mapId = mapId;
 		this.addressOffset = addressOffset;
 		this.reps = reps;
-		this.addressStride = addressStride;
+		this.addressStride = (addressStride == null)? 0 : addressStride;
 		//System.out.println("DrvModBaseInstance: creating name=" + name + ", mapId=" + mapId + ", addressOffset=" + addressOffset + ", reps=" + reps + ", addressStride=" + addressStride);
 	}
 
@@ -80,7 +80,7 @@ public abstract class DrvModBaseInstance {
 		return true;
 	}
 	
-	abstract public int hashCode(boolean includeAddrInfo, boolean includeChildRegsets);
-	abstract public boolean equals(Object obj, boolean includeAddrInfo, boolean includeChildRegsets);
+	abstract public int hashCode(boolean includeAddrInfo, boolean includeChildRegsets, boolean includeRegInfo);
+	abstract public boolean equals(Object obj, boolean includeAddrInfo, boolean includeChildRegsets, boolean includeRegInfo);
 
 }

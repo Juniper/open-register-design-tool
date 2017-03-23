@@ -1,43 +1,49 @@
 package ordt.output.drvmod;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class DrvModRegSetInstance extends DrvModBaseInstance {
 	
-	List<DrvModBaseInstance> children = new ArrayList<DrvModBaseInstance>(); // children from same overlay as this instance 
-	List<DrvModBaseInstance> altChildren = new ArrayList<DrvModBaseInstance>(); // children from an alternate overlay (different child w/ same name/address)
-	
+	HashMap<DrvModBaseInstance, Integer> childMaps = new HashMap<DrvModBaseInstance, Integer>(); // hash of child instances and encoded overlay use map 
+
 	DrvModRegSetInstance(String name, int mapId, long addressOffset, int reps, long addressStride) {
 		super(name, mapId, addressOffset, reps, addressStride);
 	}
 
+	/** get list of children with this instances mapId */
 	public List<DrvModBaseInstance> getChildren() {
-		return children;
+		return getChildren(this.mapId);
 	}
 	
-	public List<DrvModBaseInstance> getAltChildren() {
-		return altChildren;
+	/** get list of children with specified mapId */
+	private List<DrvModBaseInstance> getChildren(int mapId) {
+		List<DrvModBaseInstance> outList = new ArrayList<DrvModBaseInstance>();
+		for (DrvModBaseInstance inst: childMaps.keySet())
+			if ((childMaps.get(inst) & (1<<mapId))>0) outList.add(inst);
+		return outList;
 	}
 
-	public void addChild(DrvModBaseInstance child) {
-		if (this.mapId==child.getMapId()) // add to primary list if child is from same overlay
-		    this.children.add(child);
-		else  // add to alternate list if child is from different overlay
-		    this.altChildren.add(child);
+	/** add new child or add mapId to encoded value if a dup */
+	public void addChild(DrvModBaseInstance child, int mapId) {
+		Integer currentMap = childMaps.get(child);
+		int newMap = (currentMap == null)? mapId : currentMap & (1<<mapId);
+		childMaps.put(child, newMap);
 	}
 
 	@Override
 	public int hashCode() {
-		return hashCode(false, true);  // do not include address info, include child regsets
+		int hcode = hashCode(false, true, false);  // do not include address info, include child regsets, do not include reg info
+		return hcode;  
 	}
 
 	@Override
-	public int hashCode(boolean includeAddrInfo, boolean includeChildRegsets) {
+	public int hashCode(boolean includeAddrInfo, boolean includeChildRegsets, boolean includeRegInfo) {
 		final int prime = 31;
 		int result = super.hashCode(includeAddrInfo);  // do not include address info
 		if (includeChildRegsets) {
-			result = prime * result + ((children == null) ? 0 : getChildListHashCode());  // include address info + no children
+			result = prime * result + getChildListHashCode();  // include address info + no children
 		}
 		return result;
 	}
@@ -45,18 +51,18 @@ public class DrvModRegSetInstance extends DrvModBaseInstance {
 	/** compute children hashCode  */
 	private int getChildListHashCode() {
 		  int hashCode = 1;
-		  for (DrvModBaseInstance e : children)
-		      hashCode = 31*hashCode + (e==null ? 0 : e.hashCode(true, false));  // include address info + no children
+		  for (DrvModBaseInstance e : getChildren())
+		      hashCode = 31*hashCode + (e==null ? 0 : e.hashCode(true, true, false));  // include address info, include child regsets, do not include reg info
 		  return hashCode;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		return equals(obj, false, true);  // do not include address info, include child regsets
+		return equals(obj, false, true, false);  // do not include address info, include child regsets, do not include reg info
 	}
 	
 	@Override
-	public boolean equals(Object obj, boolean includeAddrInfo, boolean includeChildRegsets) {
+	public boolean equals(Object obj, boolean includeAddrInfo, boolean includeChildRegsets, boolean includeRegInfo) {
 		if (this == obj)
 			return true;
 		if (!super.equals(obj, includeAddrInfo)) 
@@ -65,10 +71,7 @@ public class DrvModRegSetInstance extends DrvModBaseInstance {
 			return false;
 		DrvModRegSetInstance other = (DrvModRegSetInstance) obj;
 		if (includeChildRegsets) {
-			if (children == null) {  
-				if (other.children != null)
-					return false;
-			} else if (!!getChildListEquals(other.children)) // include address info + no children
+			if (!getChildListEquals(other.getChildren())) // include address info + no children
 				return false;
 		}
 		return true;
@@ -76,9 +79,10 @@ public class DrvModRegSetInstance extends DrvModBaseInstance {
 	
 	/** compute childList equals */
 	private boolean getChildListEquals(List<DrvModBaseInstance> otherList) {
+		List<DrvModBaseInstance> children = getChildren();
 		if ((otherList==null) || (children.size()!=otherList.size())) return false;
 		for (int idx=0; idx<children.size(); idx++)
-			if (!children.get(idx).equals(otherList.get(idx), true, false)) return false;  // include address info + no children
+			if (!children.get(idx).equals(otherList.get(idx), true, true, false)) return false;  // include address info, include child regsets, do not include reg info
 		return true;
 	}
 

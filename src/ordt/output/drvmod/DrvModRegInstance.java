@@ -84,25 +84,27 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 
 	@Override
 	public int hashCode() { 
-		return hashCode(false, false);  // do not include address info, includeChildRegsets has no effect for a reg
+		return hashCode(false, false, true);  // do not include address info, include reg info, includeChildRegsets has no effect for a reg
 	}
 	
 	@Override
-	public int hashCode(boolean includeAddrInfo, boolean includeChildRegsets) {
+	public int hashCode(boolean includeAddrInfo, boolean includeChildRegsets, boolean includeRegInfo) {  
 		final int prime = 31;
-		int result = super.hashCode(includeAddrInfo);  
-		result = prime * result + ((fields == null) ? 0 : fields.hashCode());
-		result = prime * result + width;
+		int result = super.hashCode(includeAddrInfo);
+		if (includeRegInfo) {
+			result = prime * result + ((fields == null) ? 0 : fields.hashCode());
+			result = prime * result + width;
+		}
 		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		return equals(obj, false, false);  // do not include address info, includeChildRegsets has no effect for a reg
+		return equals(obj, false, false, true);  // do not include address info, include reg info, includeChildRegsets has no effect for a reg
 	}
 
 	@Override
-	public boolean equals(Object obj, boolean includeAddrInfo, boolean includeChildRegsets) {
+	public boolean equals(Object obj, boolean includeAddrInfo, boolean includeChildRegsets, boolean includeRegInfo) {
 		if (this == obj)
 			return true;
 		if (!super.equals(obj, includeAddrInfo)) 
@@ -110,13 +112,15 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 		if (getClass() != obj.getClass())
 			return false;
 		DrvModRegInstance other = (DrvModRegInstance) obj;
-		if (fields == null) {
-			if (other.fields != null)
+		if (includeRegInfo) {
+			if (fields == null) {
+				if (other.fields != null)
+					return false;
+			} else if (!fields.equals(other.fields))
 				return false;
-		} else if (!fields.equals(other.fields))
-			return false;
-		if (width != other.width)
-			return false;
+			if (width != other.width)
+				return false;
+		}
 		return true;
 	}
 
