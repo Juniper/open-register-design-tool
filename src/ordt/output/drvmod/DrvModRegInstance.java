@@ -27,6 +27,12 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 		return width;
 	}
 
+	@Override
+	/** walk tree and process instances matching map/reg criteria */
+	public void process(Integer mapId, boolean regsOnly) {
+		builder.processInstance();
+	}
+
 	public class DrvModField {
 		public String name;
 		public int lowIndex;
@@ -95,6 +101,7 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 			result = prime * result + ((fields == null) ? 0 : fields.hashCode());
 			result = prime * result + width;
 		}
+		//System.out.println("DrvModRegInstance hashCode:  return=" + result + ", name=" + getName() + ", includeAddrInfo=" + includeAddrInfo);
 		return result;
 	}
 

@@ -4,8 +4,10 @@
 package ordt.output.drvmod;
 
 import java.io.BufferedWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Stack;
 
 import ordt.extract.RegModelIntf;
@@ -15,6 +17,8 @@ import ordt.output.OutputBuilder;
 /** builder class for creating reg driver data structures - language independent */
 public class DrvModBuilder extends OutputBuilder {
 	
+	static int count=0;  // TODO
+	
 	// use hashmap mapped w/ same key/value for storing unique instances so values can be extracted later
 	protected HashMap<DrvModRegSetInstance, DrvModRegSetInstance> uniqueRegSets = new HashMap<DrvModRegSetInstance, DrvModRegSetInstance>();
 	protected HashMap<DrvModRegInstance, DrvModRegInstance> uniqueRegs = new HashMap<DrvModRegInstance, DrvModRegInstance>();
@@ -22,6 +26,7 @@ public class DrvModBuilder extends OutputBuilder {
 	int addedInstances, uniqueInstances = 0;
 	private Stack<DrvModRegSetInstance> currentRegSetStack = new Stack<DrvModRegSetInstance>();
 	protected int overlayCount = 0;
+	protected List<DrvModRegSetInstance> rootInstances = new ArrayList<DrvModRegSetInstance>();
 	
 	private static HashSet<String> reservedWords = getReservedWords();
 	
@@ -35,6 +40,7 @@ public class DrvModBuilder extends OutputBuilder {
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
 	    setAllowLocalMapInternals(true);  // cascaded addrmaps will result in local non-ext regions   
 	    setSupportsOverlays(true);	    // support overlay files
+	    DrvModBaseInstance.setBuilder(this);  // save this builder in overlay model
 	    model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
     }
     
@@ -112,6 +118,9 @@ public class DrvModBuilder extends OutputBuilder {
 		DrvModRegSetInstance newRegSet = new DrvModRegSetInstance(regSetProperties.getId(), overlayCount, relativeAddr, regSetProperties.getRepCount(), regSetProperties.getAlignedSize().toLong());
 		// update current instance
 		currentRegSetStack.push(newRegSet);
+		// save root instance for this overlay
+		if (regSetProperties.isRootInstance())
+			rootInstances.add(newRegSet);
 	}
 
 	@Override
@@ -123,24 +132,29 @@ public class DrvModBuilder extends OutputBuilder {
 		//if ("rx_memctl".equals(newRegSet.getName())) {
 		//	System.out.println("DrvModBuilder finishRegSet:        pre id=" + newRegSet.getName() + ", mapId=" + newRegSet.getMapId() + ", reps="  + newRegSet.getReps() + ", base=" + newRegSet.getAddressOffset() + ", stride=" + newRegSet.getAddressStride() + ", hashCode=" + newRegSet.hashCode() + ", containsKey=" + uniqueRegSets.containsKey(newRegSet)+ ", containsValue=" + uniqueRegSets.containsValue(newRegSet));
 		//}
-		if (!uniqueRegSets.containsValue(newRegSet)) {
+        // add newRegSet if it's unique
+		if (!uniqueRegSets.containsKey(newRegSet)) {  // same as containsValue in this case
         	uniqueRegSets.put(newRegSet, newRegSet);
         	uniqueInstances++;
     		//if (/*(overlayCount>0) ||*/ "rx_memctl".equals(newRegSet.getName()) ) 
     		//	System.out.println("DrvModBuilder finishRegSet:    unique id=" + newRegSet.getName() + ", mapId=" + newRegSet.getMapId() + ", reps="  + newRegSet.getReps() + ", base=" + newRegSet.getAddressOffset() + ", stride=" + newRegSet.getAddressStride() + ", hashCode=" + newRegSet.hashCode() + ", containsKey=" + uniqueRegSets.containsKey(newRegSet)+ ", containsValue=" + uniqueRegSets.containsValue(newRegSet));
-    		// add this regset to its parent
-    		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(newRegSet, overlayCount); // if unique, add to parent's child list
+    		// unique, so add this regset to its parent
+    		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(newRegSet, overlayCount); 
         }
-		// otherwise add original instance as child
-		else { 
-			// transfer newRegSet children into unique version
+		// otherwise add newRegSet instance as a duplicate
+		else { // FIXME - addChild is modifying the unique hash because child hashmap isnt hitting, so uniqueRegSets.get(newRegSet) returns null causing null ptr
+			DrvModRegSetInstance uniqueInstance=uniqueRegSets.get(newRegSet);
+			//System.out.println("DrvModBuilder finishRegSet: pre add child, uniqueInstance==null=" + (uniqueInstance==null) + ", uniqueRegSets.containsKey(newRegSet)=" + uniqueRegSets.containsKey(newRegSet) + ", newRegSet.hash=" + newRegSet.hashCode() + ", uniqueInstance.hash=" + uniqueInstance.hashCode());
+			// transfer newRegSet children into the unique version
 			for (DrvModBaseInstance inst: newRegSet.getChildren()) {
+				//System.out.println("DrvModBuilder finishRegSet: adding child=" + inst.getName() + " to null==uniqueRegSets.get(newRegSet)=" + (uniqueRegSets.get(newRegSet)==null) + ", uniqueRegSets.containsKey(newRegSet)=" + uniqueRegSets.containsKey(newRegSet) + ", newRegSet.hash=" + newRegSet.hashCode() + ", uniqueInstance.hash=" + uniqueInstance.hashCode());
 				uniqueRegSets.get(newRegSet).addChild(inst, overlayCount);
 			}
-    		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(uniqueRegSets.get(newRegSet), overlayCount); // if a dup, bump map encoding in parent's child list
+			// if a dup, bump map encoding in parent's child list
+    		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(uniqueRegSets.get(newRegSet), overlayCount); 
 	    	//	System.out.println("DrvModBuilder finishRegSet: duplicate id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", base=" + regSetProperties.getFullBaseAddress() + ", high=" + regSetProperties.getFullHighAddress() + ", stride=" + regSetProperties.getExtractInstance().getAddressIncrement());
 		}
-		if (regSetProperties.isRootInstance())
+		if (regSetProperties.isRootInstance())  // TODO - remove
 			System.out.println("DrvModBuilder finishRegSet: added instances=" + addedInstances + ", unique instances=" + uniqueInstances + ", duplicate instances=" + (addedInstances - uniqueInstances));
 	}
 
@@ -162,6 +176,16 @@ public class DrvModBuilder extends OutputBuilder {
     /** required default write method - not used in DrvModBuilder */
 	@Override
 	public void write(BufferedWriter bw) {
+        for(int overlay=0; overlay<rootInstances.size();overlay++) {
+    		count = 0;  // TODO remove
+    		rootInstances.get(overlay).process(overlay, true);  // count regs only
+       	    System.out.println("DrvModBuilder write: overlay=" + overlay + ", count=" + count);
+        }
+	}
+
+	/** process an instance in the overlay model - override in DrvModBuilder child classes */
+	public void processInstance() {
+		count++;
 	}
 		
 }
