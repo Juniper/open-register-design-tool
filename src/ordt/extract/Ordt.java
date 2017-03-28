@@ -28,7 +28,7 @@ import ordt.parameters.ExtParameters.SVChildInfoModes;
 
 public class Ordt {
 
-	private static String version = "170325.01"; 
+	private static String version = "170328.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -210,8 +210,6 @@ public class Ordt {
 			   return new XmlBuilder(model);
 		   case CPPMOD: 
 			   return new CppModBuilder(model);
-			   //Ordt.warnMessage("C++ model output is disabled");
-			   //return null;
 		   case CPPDRVMOD: 
 			   return new CppDrvModBuilder(model);
 		   case JSON: 
@@ -346,7 +344,9 @@ public class Ordt {
     	System.out.println("   -xml <filename>");
     	System.out.println("       <filename> will be created containing xml output");
     	//System.out.println("   -cppmod <dirname>");
-    	//System.out.println("       <dirname> will be created containing C++ output files");
+    	//System.out.println("       <dirname> will be created containing C++ model output files");
+    	//System.out.println("   -cppdrvmod <dirname>");
+    	//System.out.println("       <dirname> will be created containing C++ driver model output files");
     	System.exit(0);
     }
     

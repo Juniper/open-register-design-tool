@@ -227,6 +227,183 @@ public class CppBaseModClass {
    }
 
 
+	/** create OrdtData class  */   
+	public static CppBaseModClass getOrdtDataClass() {
+		String className = "ordt_data";
+		CppBaseModClass newClass = new CppBaseModClass(className);
+		newClass.addParent("std::vector<uint32_t>");
+		// constructors
+		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "()");
+		nMethod.addInitCall("std::vector<uint32_t>()");
+		nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(int _size, uint32_t _data)");
+		nMethod.addInitCall("std::vector<uint32_t>(_size, _data)");
+		nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(const ordt_data& _data)");  // copy
+		nMethod.addInitCall("std::vector<uint32_t>(_data)");
+		
+		// set_slice method for ordt_data
+		nMethod = newClass.addMethod(Vis.PUBLIC, "void set_slice(int lobit, int size, const ordt_data& update)");
+		nMethod.addStatement("int data_size = this->size() * 32;");
+		//nMethod.addStatement("std::cout << \"set_slice: -------------------, lo bit=\" << lobit << \", size=\" << size << \"\\n\";");
+		nMethod.addStatement("if ((lobit % 32) > 0) {");
+		nMethod.addStatement("  std::cout << \"ERROR set_slice: non 32b aligned slices are not supported\" << \"\\n\";");
+		nMethod.addStatement("  return;");
+		nMethod.addStatement("}");
+		nMethod.addStatement("int hibit = lobit + size - 1;"); 
+		nMethod.addStatement("int loword = lobit / 32;"); 
+		nMethod.addStatement("int hiword = hibit / 32;"); 
+		nMethod.addStatement("if (hibit > data_size - 1) {");
+		nMethod.addStatement("  std::cout << \"ERROR set_slice: specified slice is not contained in data\" << \"\\n\";");
+		nMethod.addStatement("  return;");
+		nMethod.addStatement("}");
+		nMethod.addStatement("int update_idx=0;");
+		nMethod.addStatement("for (int idx=loword; idx < hiword + 1; idx++) {");
+		//nMethod.addStatement("  std::cout << \"set_slice: old word=\" << this->at(idx) << \"\\n\";");
+		nMethod.addStatement("  if (idx == hiword) {");
+		nMethod.addStatement("     int modsize = hibit - hiword*32 + 1;");		
+		nMethod.addStatement("     uint32_t mask = (modsize == 32)? 0xffffffff : (1 << modsize) - 1;");		
+		nMethod.addStatement("     this->at(idx) = (this->at(idx) & ~mask) ^ (update.at(update_idx) & mask);");
+		//nMethod.addStatement("  std::cout << \"set_slice: updating word=\" << idx  << \", mask=\" << mask << \"\\n\";");
+		nMethod.addStatement("  }");
+		nMethod.addStatement("  else this->at(idx) = update.at(update_idx);");
+		nMethod.addStatement("  update_idx++;");		
+		//nMethod.addStatement("  std::cout << \"set_slice: new word=\" << this->at(idx) << \"\\n\";");
+		nMethod.addStatement("}");
+		
+		// set_slice template method
+		nMethod = newClass.addTemplateMethod(Vis.PUBLIC, "void set_slice(int lobit, int size, const T& update)");
+		nMethod.addStatement("int data_size = this->size() * 32;");
+		//nMethod.addStatement("std::cout << \"set_slice: -------------------, lo bit=\" << lobit << \", size=\" << size << \"\\n\";");
+		nMethod.addStatement("if (sizeof(T) > 8) {");
+		nMethod.addStatement("  std::cout << \"ERROR set_slice: size of update type is greater than 64b\" << \"\\n\";");
+		nMethod.addStatement("  return;");
+		nMethod.addStatement("}");
+		nMethod.addStatement("int hibit = lobit + size - 1;"); 
+		nMethod.addStatement("int loword = lobit / 32;"); 
+		nMethod.addStatement("int hiword = hibit / 32;"); 
+		nMethod.addStatement("if (hibit > data_size - 1) {");
+		nMethod.addStatement("  std::cout << \"ERROR set_slice: specified slice is not contained in data\" << \"\\n\";");
+		nMethod.addStatement("  return;");
+		nMethod.addStatement("}");
+		nMethod.addStatement("int update_rshift=0;");
+		nMethod.addStatement("for (int idx=loword; idx < hiword + 1; idx++) {");
+		nMethod.addStatement("  int offset=idx*32;");
+		nMethod.addStatement("  int lo_modbit = std::max(0, lobit - offset);");		
+		nMethod.addStatement("  int hi_modbit = std::min(31, hibit - offset);");		
+		nMethod.addStatement("  int modsize = hi_modbit - lo_modbit + 1;");		
+		nMethod.addStatement("  uint32_t mask = (modsize == 32)? 0xffffffff : (1 << modsize) - 1;");		
+		nMethod.addStatement("  uint32_t shifted_mask = mask << lo_modbit;");
+		//nMethod.addStatement("  std::cout << \"set_slice: old word=\" << this->at(idx) << \"\\n\";");
+		nMethod.addStatement("  this->at(idx) = (this->at(idx) & ~shifted_mask) ^ (((update >> update_rshift) & mask) << lo_modbit);");
+		nMethod.addStatement("  update_rshift += modsize;");		
+		//nMethod.addStatement("  std::cout << \"set_slice: updating word=\" << idx << \", lo bit=\" << lo_modbit << \", hi bit=\" << hi_modbit  << \", mask=\" << mask << \"\\n\";");
+		//nMethod.addStatement("  std::cout << \"set_slice: new word=\" << this->at(idx) << \"\\n\";");
+		nMethod.addStatement("}");
+		
+		// get_slice method for ordt_data
+		nMethod = newClass.addMethod(Vis.PUBLIC, "void get_slice(int lobit, int size, ordt_data& slice_out) const");
+		nMethod.addStatement("int data_size = this->size() * 32;");
+		//nMethod.addStatement("std::cout << \"get_slice: -------------------, lo bit=\" << lobit << \", size=\" << size << \", slice_out=\" << slice_out << \", sizeof(T)=\" << sizeof(T) << \"\\n\";");
+		nMethod.addStatement("if ((lobit % 32) > 0) {");
+		nMethod.addStatement("  std::cout << \"ERROR set_slice: non 32b aligned large fields are not supported\" << \"\\n\";");
+		nMethod.addStatement("  return;");
+		nMethod.addStatement("}");
+		nMethod.addStatement("slice_out.clear();"); 
+		nMethod.addStatement("int hibit = lobit + size - 1;"); 
+		nMethod.addStatement("int loword = lobit / 32;"); 
+		nMethod.addStatement("int hiword = hibit / 32;"); 
+		nMethod.addStatement("if (hibit > data_size - 1) {");
+		nMethod.addStatement("  std::cout << \"ERROR set_slice: specified slice is not contained in data\" << \"\\n\";");
+		nMethod.addStatement("  return;");
+		nMethod.addStatement("}");
+		nMethod.addStatement("int out_idx=0;");
+		nMethod.addStatement("for (int idx=loword; idx < hiword + 1; idx++) {");
+		//nMethod.addStatement("  std::cout << \"get_slice: current word[\" << idx << \"]=\" << this->at(idx) << \"\\n\";");
+		nMethod.addStatement("  if (idx == hiword) {");
+		nMethod.addStatement("     int modsize = hibit - hiword*32 + 1;");		
+		nMethod.addStatement("     uint32_t mask = (modsize == 32)? 0xffffffff : (1 << modsize) - 1;");		
+		nMethod.addStatement("     slice_out.at(out_idx) = (this->at(idx) & mask);");
+		//nMethod.addStatement("  std::cout << \"get_slice: extracting word=\" << idx << \", mask=\" << mask << \"\\n\";");
+		nMethod.addStatement("  }");
+		nMethod.addStatement("  else slice_out.at(out_idx) = this->at(idx);");
+		nMethod.addStatement("  out_idx++;");	
+		//nMethod.addStatement("  std::cout << \"get_slice: slice=\" << slice_out[\" << out_idx << \"]\" << \"\\n\";");
+		nMethod.addStatement("}");
+		nMethod.addStatement("return;");
+		
+		// get_slice template method
+		nMethod = newClass.addTemplateMethod(Vis.PUBLIC, "void get_slice(int lobit, int size, T& slice_out) const");
+		nMethod.addStatement("int data_size = this->size() * 32;");
+		//nMethod.addStatement("std::cout << \"get_slice: -------------------, lo bit=\" << lobit << \", size=\" << size << \", slice_out=\" << slice_out << \", sizeof(T)=\" << sizeof(T) << \"\\n\";");
+		nMethod.addStatement("slice_out = 0;"); 
+        nMethod.addStatement("if (sizeof(T) > 8) {");
+		nMethod.addStatement("  std::cout << \"ERROR get_slice: size of return type is greater than 64b\" << \"\\n\";");
+		nMethod.addStatement("  return;");
+		nMethod.addStatement("}");
+		nMethod.addStatement("int hibit = lobit + size - 1;"); 
+		nMethod.addStatement("int loword = lobit / 32;"); 
+		nMethod.addStatement("int hiword = hibit / 32;"); 
+		nMethod.addStatement("if (hibit > data_size - 1) {");
+		nMethod.addStatement("  std::cout << \"ERROR set_slice: specified slice is not contained in data\" << \"\\n\";");
+		nMethod.addStatement("  return;");
+		nMethod.addStatement("}");
+		nMethod.addStatement("int ret_lshift=0;");
+		nMethod.addStatement("for (int idx=loword; idx < hiword + 1; idx++) {");
+		nMethod.addStatement("  int offset=idx*32;");
+		nMethod.addStatement("  int lo_modbit = std::max(0, lobit - offset);");		
+		nMethod.addStatement("  int hi_modbit = std::min(31, hibit - offset);");		
+		nMethod.addStatement("  int modsize = hi_modbit - lo_modbit + 1;");		
+		nMethod.addStatement("  uint32_t mask = (modsize == 32)? 0xffffffff : (1 << modsize) - 1;");		
+		nMethod.addStatement("  uint32_t shifted_mask = mask << lo_modbit;");
+		//nMethod.addStatement("  std::cout << \"get_slice: current word[\" << idx << \"]=\" << this->at(idx) << \"\\n\";");
+		nMethod.addStatement("  slice_out |= ((this->at(idx) & shifted_mask) >> lo_modbit) << ret_lshift;");
+		nMethod.addStatement("  ret_lshift += modsize;");		
+		//nMethod.addStatement("  std::cout << \"get_slice: extracting word=\" << idx << \", lo bit=\" << lo_modbit << \", hi bit=\" << hi_modbit  << \", mask=\" << mask << \"\\n\";");
+		//nMethod.addStatement("  std::cout << \"get_slice: slice=\" << slice_out << \"\\n\";");
+		nMethod.addStatement("}");
+		nMethod.addStatement("return;");
+		
+		// to_string method
+		nMethod = newClass.addMethod(Vis.PUBLIC, "std::string to_string() const");
+		nMethod.addStatement("std::stringstream ss;");
+		nMethod.addStatement("ss << \"{\" << std::hex << std::showbase;");
+		nMethod.addStatement("for (int idx=this->size() - 1; idx >= 0; idx--) ");
+		nMethod.addStatement("   ss << \" \" << this->at(idx);");
+		nMethod.addStatement("ss << \" }\";");
+		nMethod.addStatement("return ss.str();");
+		
+		// = overload
+		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data& operator=(const uint32_t rhs)");
+		//nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
+		//nMethod.addStatement("   this->at(idx) = rhs;");
+		nMethod.addStatement("   this->assign(this->size(), rhs);");
+		nMethod.addStatement("return *this;");
+		
+		// ~ overload
+		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data operator~()");
+		nMethod.addStatement("ordt_data temp;");
+		nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
+		nMethod.addStatement("   temp.at(idx) = ~ this->at(idx);");
+		nMethod.addStatement("return temp;");
+		
+		// & overload
+		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data operator&(const ordt_data& rhs)");
+		nMethod.addStatement("ordt_data temp;");
+		nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
+		nMethod.addStatement("   if (idx < rhs.size()) temp.at(idx) = this->at(idx) & rhs.at(idx);");
+		nMethod.addStatement("   else temp.at(idx) = 0;");
+		nMethod.addStatement("return temp;");
+		
+		// | overload
+		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data operator|(const ordt_data& rhs)");
+		nMethod.addStatement("ordt_data temp;");
+		nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
+		nMethod.addStatement("   if (idx < rhs.size()) temp.at(idx) = this->at(idx) | rhs.at(idx);");
+		nMethod.addStatement("   else temp.at(idx) = this->at(idx);");
+		nMethod.addStatement("return temp;");
+
+		return newClass;
+	}
+
    // --------------------------- output generation methods -----------------------------
 
    /** generate header output lines for this class

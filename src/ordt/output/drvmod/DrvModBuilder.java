@@ -15,10 +15,8 @@ import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
 
 /** builder class for creating reg driver data structures - language independent */
-public class DrvModBuilder extends OutputBuilder {
-	
-	static int count=0;  // TODO
-	
+public abstract class DrvModBuilder extends OutputBuilder {
+		
 	// use hashmap mapped w/ same key/value for storing unique instances so values can be extracted later
 	protected HashMap<DrvModRegSetInstance, DrvModRegSetInstance> uniqueRegSets = new HashMap<DrvModRegSetInstance, DrvModRegSetInstance>();
 	protected HashMap<DrvModRegInstance, DrvModRegInstance> uniqueRegs = new HashMap<DrvModRegInstance, DrvModRegInstance>();
@@ -143,7 +141,7 @@ public class DrvModBuilder extends OutputBuilder {
         }
 		// otherwise add newRegSet instance as a duplicate
 		else { // FIXME - addChild is modifying the unique hash because child hashmap isnt hitting, so uniqueRegSets.get(newRegSet) returns null causing null ptr
-			DrvModRegSetInstance uniqueInstance=uniqueRegSets.get(newRegSet);
+			//DrvModRegSetInstance uniqueInstance=uniqueRegSets.get(newRegSet);
 			//System.out.println("DrvModBuilder finishRegSet: pre add child, uniqueInstance==null=" + (uniqueInstance==null) + ", uniqueRegSets.containsKey(newRegSet)=" + uniqueRegSets.containsKey(newRegSet) + ", newRegSet.hash=" + newRegSet.hashCode() + ", uniqueInstance.hash=" + uniqueInstance.hashCode());
 			// transfer newRegSet children into the unique version
 			for (DrvModBaseInstance inst: newRegSet.getChildren()) {
@@ -176,16 +174,9 @@ public class DrvModBuilder extends OutputBuilder {
     /** required default write method - not used in DrvModBuilder */
 	@Override
 	public void write(BufferedWriter bw) {
-        for(int overlay=0; overlay<rootInstances.size();overlay++) {
-    		count = 0;  // TODO remove
-    		rootInstances.get(overlay).process(overlay, true);  // count regs only
-       	    System.out.println("DrvModBuilder write: overlay=" + overlay + ", count=" + count);
-        }
 	}
 
 	/** process an instance in the overlay model - override in DrvModBuilder child classes */
-	public void processInstance() {
-		count++;
-	}
+	public abstract void processInstance(); 
 		
 }
