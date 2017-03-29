@@ -1,8 +1,6 @@
 package ordt.output.drvmod;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
@@ -56,11 +54,14 @@ public class DrvModRegSetInstance extends DrvModBaseInstance {
 	
 	@Override
 	/** walk tree and process instances matching map/reg criteria */
-	public void process(Integer mapId, boolean regsOnly) {
+	public void process(Integer mapId, boolean regsOnly, boolean processOnce) {
 		List<DrvModBaseInstance> children = getChildren(mapId);
 		//System.out.println("DrvModRegSetInstance process: name=" + name + ", mapId=" + mapId + ", children=" + children.size()+ ", childMaps sz=" + childMaps.size());
-		for(DrvModBaseInstance inst: children) inst.process(mapId, regsOnly);  // process children recursively
-		if (!regsOnly) builder.processInstance();
+		for(DrvModBaseInstance inst: children) inst.process(mapId, regsOnly, processOnce);  // process children recursively
+		if ((!regsOnly) && (!processOnce || !hasBeenProcessed)) {
+			builder.processRegSetInstance(this);
+			hasBeenProcessed = true;
+		}
 	}
 
 	@Override

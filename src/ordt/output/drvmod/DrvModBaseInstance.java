@@ -9,6 +9,7 @@ public abstract class DrvModBaseInstance {
 	protected long addressOffset = 0;  // relative address offset of this instance (64b max addr size)
 	protected int reps;  // number of replications of this instance
 	protected Long addressStride;  // address stride if a replicated instance (64b max addr size
+	protected boolean hasBeenProcessed = false;  // set to true if this instance has been processed
 	
 	protected DrvModBaseInstance(String name, int mapId, long addressOffset, int reps, Long addressStride) {
 		super();
@@ -92,6 +93,6 @@ public abstract class DrvModBaseInstance {
 	
 	abstract public int hashCode(boolean includeAddrInfo, boolean includeChildRegsets, boolean includeRegInfo);
 	abstract public boolean equals(Object obj, boolean includeAddrInfo, boolean includeChildRegsets, boolean includeRegInfo);
-	abstract public void process(Integer mapId, boolean regsOnly);
+	abstract public void process(Integer mapId, boolean regsOnly, boolean processOnce);
 
 }

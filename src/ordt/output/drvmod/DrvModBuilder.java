@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Stack;
 
+import ordt.extract.Ordt;
 import ordt.extract.RegModelIntf;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
@@ -152,8 +153,8 @@ public abstract class DrvModBuilder extends OutputBuilder {
     		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(uniqueRegSets.get(newRegSet), overlayCount); 
 	    	//	System.out.println("DrvModBuilder finishRegSet: duplicate id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", base=" + regSetProperties.getFullBaseAddress() + ", high=" + regSetProperties.getFullHighAddress() + ", stride=" + regSetProperties.getExtractInstance().getAddressIncrement());
 		}
-		if (regSetProperties.isRootInstance())  // TODO - remove
-			System.out.println("DrvModBuilder finishRegSet: added instances=" + addedInstances + ", unique instances=" + uniqueInstances + ", duplicate instances=" + (addedInstances - uniqueInstances));
+		if (regSetProperties.isRootInstance())  
+			Ordt.infoMessage("Overlay " + overlayCount + " total processed instances=" + addedInstances + ", unique instances=" + uniqueInstances + ", duplicate instances=" + (addedInstances - uniqueInstances));
 	}
 
 	/** process root address map */
@@ -168,6 +169,11 @@ public abstract class DrvModBuilder extends OutputBuilder {
 	public  void finishRegMap() {
 		finishRegSet();
 	}
+	
+    //---------------------------- model process methods ----------------------------------------
+
+	public abstract void processRegSetInstance(DrvModRegSetInstance drvModRegSetInstance); 
+	public abstract void processRegInstance(DrvModRegInstance drvModRegInstance);
 
     //---------------------------- output write methods ----------------------------------------
 
@@ -176,7 +182,5 @@ public abstract class DrvModBuilder extends OutputBuilder {
 	public void write(BufferedWriter bw) {
 	}
 
-	/** process an instance in the overlay model - override in DrvModBuilder child classes */
-	public abstract void processInstance(); 
 		
 }

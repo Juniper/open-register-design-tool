@@ -4,21 +4,23 @@ import java.io.BufferedWriter;
 import java.io.File;
 
 import ordt.extract.RegModelIntf;
-//import ordt.output.cppmod.CppModClass;   // TODO remove
 import ordt.output.drvmod.DrvModBuilder;
+import ordt.output.drvmod.DrvModRegInstance;
+import ordt.output.drvmod.DrvModRegSetInstance;
 
+/** generate C++ pio driver model */
 public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder overrides in CppDrvModBuilder - these are in DrvModBuilder 
 	private BufferedWriter commonHppBw;
 	private BufferedWriter commonCppBw;
 	private BufferedWriter hppBw;
 	private BufferedWriter cppBw;
 
-	private static int count = 0;  // TODO
+	private static int count = 0;  // TODO - remove
 	
-	public CppDrvModBuilder(RegModelIntf model) {  // TODO
+	public CppDrvModBuilder(RegModelIntf model) {  
 		super(model);
-		
 	}
+	
     //---------------------------- output write methods ----------------------------------------
 
     /** required default write method - not used in CppDrvModBuilder*/
@@ -113,9 +115,9 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
     		writeClasses();
     		
     		// write model instances
-            for(int overlay=0; overlay<rootInstances.size();overlay++) {
+            for(int overlay=0; overlay<rootInstances.size();overlay++) {  // overlays have different roots
             	count=0;
-        		rootInstances.get(overlay).process(overlay, true);  // count regs only
+        		rootInstances.get(overlay).process(overlay, false, true);  // process both regs and regsets, only process each elem once
            	    System.out.println("CppDrvModBuilder write: overlay=" + overlay + ", count=" + count);
             }
 
@@ -137,12 +139,6 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		//writeOrdtDrvRegClass();  // TODO
 		// write design specific classes
 		//writeDesignSpecificClasses();
-	}
-
-	@Override
-	public void processInstance() {  // TODO need to add instance access here...
-		// TODO Auto-generated method stub
-		count++;
 	}
 
 	/** write all design-specific c++ classes   // TODO - use processInstance to create instances
@@ -341,5 +337,17 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		//writeStmt(hppBw, 0, "}");
 		//writeStmt(hppBw, 0, "");
 	}*/
+
+	// --- DrvModBuilder overrides
+	
+	@Override
+	public void processRegSetInstance(DrvModRegSetInstance drvModRegSetInstance) {
+		count++;	
+	}
+
+	@Override
+	public void processRegInstance(DrvModRegInstance drvModRegInstance) {
+		count++;
+	}
 
 }

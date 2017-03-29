@@ -98,22 +98,42 @@ public class CppModClass extends CppBaseModClass {
 	   // constructor
 	   CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(uint64_t _m_startaddress, uint64_t _m_endaddress)");
 	   nMethod.addInitCall("ordt_reg(_m_startaddress, _m_endaddress)");
+	   
 	   // overload write methods
-	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const uint64_t &addr, const ordt_data &wdata)");
-	   nMethod.addStatement("   std::cout << \"reg " + className + " write: ---- addr=\"<< addr << \", data=\" << wdata.to_string() << \"\\n\";");
-	   nMethod.addStatement("   if (this->hasStartAddress(addr))");
+	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual int write(const uint64_t &addr, const ordt_data &wdata)");
+	   nMethod.addStatement("#ifdef ORDT_PIO_VERBOSE");
+	   nMethod.addStatement("   std::cout << \"--> write of reg " + className + " at addr=\"<< addr << \", data=\" << wdata.to_string() << \"\\n\";");
+	   nMethod.addStatement("#endif");
+	   nMethod.addStatement("   if (this->hasStartAddress(addr)) {");
 	   nMethod.addStatement("      this->write(wdata);");
+	   nMethod.addStatement("      return 0;");
+	   nMethod.addStatement("   }");
+	   nMethod.addStatement("#ifdef ORDT_PIO_VERBOSE");
+	   nMethod.addStatement("   std::cout << \"--> write to invalid address \" << addr << \" in reg " + className + "\\n\";" );
+	   nMethod.addStatement("#endif");
+	   nMethod.addStatement("   return 8;" );
+	   
 	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const ordt_data &wdata)");  
-	   newClass.tagMethod("write", nMethod);  
+	   newClass.tagMethod("write", nMethod);  // tag this method so field info can be appended
 	   nMethod.addStatement("std::lock_guard<std::mutex> m_guard(m_mutex);");  // grab reg lock
+	   
 	   // overload read methods
-	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(const uint64_t &addr, ordt_data &rdata)");  
-	   nMethod.addStatement("   std::cout << \"reg " + className + " read: ---- addr=\"<< addr << \"\\n\";");
-	   nMethod.addStatement("   if (this->hasStartAddress(addr))");
+	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual int read(const uint64_t &addr, ordt_data &rdata)");  
+	   nMethod.addStatement("#ifdef ORDT_PIO_VERBOSE");
+	   nMethod.addStatement("   std::cout << \"--> read of reg " + className + " at addr=\"<< addr << \"\\n\";");
+	   nMethod.addStatement("#endif");
+	   nMethod.addStatement("   if (this->hasStartAddress(addr)) {");
 	   nMethod.addStatement("      this->read(rdata);");
-	   nMethod.addStatement("   else rdata.clear();");
+	   nMethod.addStatement("      return 0;");
+	   nMethod.addStatement("   }");
+	   nMethod.addStatement("#ifdef ORDT_PIO_VERBOSE");
+	   nMethod.addStatement("   std::cout << \"--> read to invalid address \" << addr << \" in reg " + className + "\\n\";" );
+	   nMethod.addStatement("#endif");
+	   nMethod.addStatement("   rdata.clear();");
+	   nMethod.addStatement("   return 8;" );
+	   
 	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(ordt_data &rdata)");  
-	   newClass.tagMethod("read", nMethod);  
+	   newClass.tagMethod("read", nMethod);  // tag this method so field info can be appended
 	   nMethod.addStatement("rdata.clear();");
 	   nMethod.addStatement("for (int widx=0; widx<((m_endaddress - m_startaddress + 1)/4); widx++) rdata.push_back(0);");
 	   return newClass;

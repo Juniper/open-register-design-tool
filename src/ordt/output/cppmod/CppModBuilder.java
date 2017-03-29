@@ -321,8 +321,8 @@ public class CppModBuilder extends OutputBuilder {
 		nMethod.addInitCall("m_startaddress(_m_startaddress)");
 		nMethod.addInitCall("m_endaddress(_m_endaddress)");
 		// methods
-		newClass.addMethod(Vis.PUBLIC, "pure virtual void write(const uint64_t &addr, const ordt_data &wdata)");
-		newClass.addMethod(Vis.PUBLIC, "pure virtual void read(const uint64_t &addr, ordt_data &rdata)");  
+		newClass.addMethod(Vis.PUBLIC, "pure virtual int write(const uint64_t &addr, const ordt_data &wdata)");
+		newClass.addMethod(Vis.PUBLIC, "pure virtual int read(const uint64_t &addr, ordt_data &rdata)");  
 		nMethod = newClass.addMethod(Vis.PUBLIC, "bool containsAddress(const uint64_t &addr)");
 		//nMethod.addStatement("std::cout << \"ordt_addr_elem containsAddress: addr=\"<< addr << \" start=\" << m_startaddress << \" end=\" << m_endaddress << \"\\n\";");
 		nMethod.addStatement("return ((addr >= m_startaddress) && (addr <= m_endaddress));");
@@ -373,27 +373,34 @@ public class CppModBuilder extends OutputBuilder {
 		nMethod.addStatement("}");
 		//nMethod.addStatement("std::cout << \"findAddrElem: did not find addr=\"<< addr << \"\\n\";");
 		nMethod.addStatement("return nullptr;");
+		
 		// methods
-		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const uint64_t &addr, const ordt_data &wdata)");  
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual int write(const uint64_t &addr, const ordt_data &wdata)");  
 		//nMethod.addStatement("   std::cout << \"regset write: ---- addr=\"<< addr << \", data=\" << wdata.to_string() << \"\\n\";");
 		nMethod.addStatement("   if (this->containsAddress(addr)) {");
 		//nMethod.addStatement("      std::cout << \"regset write: ordt_regset contains addr=\"<< addr << \"\\n\";");
 		nMethod.addStatement("      childElem = this->findAddrElem(addr);");
-		nMethod.addStatement("      if (childElem != nullptr) { childElem->write(addr, wdata); return; }");
+		nMethod.addStatement("      if (childElem != nullptr) { return childElem->write(addr, wdata); }");
 		//nMethod.addStatement("      else std::cout << \"write: findAddrElem returned nullptr, addr=\"<< addr << \"\\n\";" );
 		nMethod.addStatement("   }");
-		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(const uint64_t &addr, ordt_data &rdata)");  
+		nMethod.addStatement("#ifdef ORDT_PIO_VERBOSE");
+		nMethod.addStatement("   std::cout << \"--> write to invalid address \" << addr << \" in regset\\n\";" );
+		nMethod.addStatement("#endif");
+		nMethod.addStatement("   return 8;" );
+		
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual int read(const uint64_t &addr, ordt_data &rdata)");  
 		//nMethod.addStatement("   std::cout << \"regset read: ---- addr=\"<< addr << \"\\n\";");
 		nMethod.addStatement("   if (this->containsAddress(addr)) {");
 		//nMethod.addStatement("      std::cout << \"regset read: ordt_regset contains addr=\"<< addr << \"\\n\";");
 		nMethod.addStatement("      childElem = this->findAddrElem(addr);");
-		nMethod.addStatement("      if (childElem != nullptr) { childElem->read(addr, rdata); return; }");
+		nMethod.addStatement("      if (childElem != nullptr) { return childElem->read(addr, rdata); }");
 		//nMethod.addStatement("      else std::cout << \"read: findAddrElem returned nullptr, addr=\"<< addr << \"\\n\";" );
 		nMethod.addStatement("   }");
-		//nMethod.addStatement("   else {");
-		//nMethod.addStatement("      std::cout << \"regset read: \" << typeid(this).name() << \" does not contains addr=\"<< addr << \"\\n\";");
-		//nMethod.addStatement("   }");
+		nMethod.addStatement("#ifdef ORDT_PIO_VERBOSE");
+		nMethod.addStatement("   std::cout << \"--> read to invalid address \" << addr << \" in regset\\n\";" );
+		nMethod.addStatement("#endif");
 		nMethod.addStatement("   rdata.clear();");
+		nMethod.addStatement("   return 8;" );
         
 		// write class
 		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
@@ -411,8 +418,8 @@ public class CppModBuilder extends OutputBuilder {
 		writeStmt(hppBw, 0, "    uint64_t m_stride;");  
 		writeStmt(hppBw, 0, "  public:");
 		writeStmt(hppBw, 0, "    ordt_addr_elem_array(uint64_t _m_startaddress, uint64_t _m_endaddress, int _reps, uint64_t _m_stride);");
-		writeStmt(hppBw, 0, "    virtual void write(const uint64_t &addr, const ordt_data &wdata);");
-		writeStmt(hppBw, 0, "    virtual void read(const uint64_t &addr, ordt_data &rdata);");
+		writeStmt(hppBw, 0, "    virtual int write(const uint64_t &addr, const ordt_data &wdata);");
+		writeStmt(hppBw, 0, "    virtual int read(const uint64_t &addr, ordt_data &rdata);");
 		writeStmt(hppBw, 0, "};");
 		writeStmt(hppBw, 0, "");
 
@@ -433,29 +440,33 @@ public class CppModBuilder extends OutputBuilder {
 		writeStmt(hppBw, 0, "");
 
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "void ordt_addr_elem_array<T>::write(const uint64_t &addr, const ordt_data &wdata) {");
+		writeStmt(hppBw, 0, "int ordt_addr_elem_array<T>::write(const uint64_t &addr, const ordt_data &wdata) {");
 		//writeStmt(hppBw, 0, "   std::cout << \"addr_elem array write: ---- addr=\"<< addr << \", data=\" << wdata.to_string() << \"\\n\";");
 		writeStmt(hppBw, 0, "   if (this->containsAddress(addr)) {");
 		writeStmt(hppBw, 0, "      int idx = (addr - m_startaddress) / m_stride;");
 		//writeStmt(hppBw, 0, "      std::cout << \"addr_elem array write: array contains addr=\" << addr << \" at idx=\" << idx << \"\\n\";");
-		writeStmt(hppBw, 0, "      if (idx < this->size()) this->at(idx).write(addr, wdata);");
-		writeStmt(hppBw, 0, "      return;");
+		writeStmt(hppBw, 0, "      if (idx < this->size()) return this->at(idx).write(addr, wdata);");
 		writeStmt(hppBw, 0, "   }");
+		writeStmt(hppBw, 0, "#ifdef ORDT_PIO_VERBOSE");
+		writeStmt(hppBw, 0, "   std::cout << \"--> write to invalid address \" << addr << \" in arrayed regset\\n\";" );
+		writeStmt(hppBw, 0, "#endif");
+		writeStmt(hppBw, 0, "   return 8;" );
 		writeStmt(hppBw, 0, "}");
 		writeStmt(hppBw, 0, "");
+		
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "void ordt_addr_elem_array<T>::read(const uint64_t &addr, ordt_data &rdata) {");
+		writeStmt(hppBw, 0, "int ordt_addr_elem_array<T>::read(const uint64_t &addr, ordt_data &rdata) {");
 		//writeStmt(hppBw, 0, "   std::cout << \"addr_elem array read: ---- addr=\"<< addr << \", start=\" << m_startaddress << \", end=\" << m_endaddress<< \", stride=\" << m_stride<< \"\\n\";");
 		writeStmt(hppBw, 0, "   if (this->containsAddress(addr)) {");
 		writeStmt(hppBw, 0, "      int idx = (addr - m_startaddress) / m_stride;");
 		//writeStmt(hppBw, 0, "      std::cout << \"addr_elem array read: array contains addr=\" << addr << \" at idx=\" << idx << \", array size=\" << this->size() << \"\\n\";");
-		writeStmt(hppBw, 0, "      if (idx < this->size()) this->at(idx).read(addr, rdata);");
-		writeStmt(hppBw, 0, "      return;");
+		writeStmt(hppBw, 0, "      if (idx < this->size()) return this->at(idx).read(addr, rdata);");
 		writeStmt(hppBw, 0, "   }");
-		//writeStmt(hppBw, 0, "   else {");
-		//writeStmt(hppBw, 0, "      std::cout << \"addr_elem array read: \" << typeid(this).name() << \" does not contains addr=\"<< addr << \"\\n\";");
-		//writeStmt(hppBw, 0, "   }");
+		writeStmt(hppBw, 0, "#ifdef ORDT_PIO_VERBOSE");
+		writeStmt(hppBw, 0, "   std::cout << \"--> read to invalid address \" << addr << \" in arrayed regset\\n\";" );
+		writeStmt(hppBw, 0, "#endif");
 		writeStmt(hppBw, 0, "   rdata.clear();");
+		writeStmt(hppBw, 0, "   return 8;" );
 		writeStmt(hppBw, 0, "}");
 		writeStmt(hppBw, 0, "");
 	}
@@ -476,10 +487,12 @@ public class CppModBuilder extends OutputBuilder {
 		nMethod.addInitCall("m_mutex()");  
 		// write methods
 		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const ordt_data &wdata)");  // will be overriden by child classes
-		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void write(const uint64_t &addr, const ordt_data &wdata)");
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual int write(const uint64_t &addr, const ordt_data &wdata)");
+		nMethod.addStatement("   return 0;" );
 		// read methods
 		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(ordt_data &rdata)");  // will be overriden by child classes
-		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(const uint64_t &addr, ordt_data &rdata)");  
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual int read(const uint64_t &addr, ordt_data &rdata)");  
+		nMethod.addStatement("   return 0;" );
 		// write class
 		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
 		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace

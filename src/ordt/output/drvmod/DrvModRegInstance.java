@@ -29,8 +29,11 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 
 	@Override
 	/** walk tree and process instances matching map/reg criteria */
-	public void process(Integer mapId, boolean regsOnly) {
-		builder.processInstance();
+	public void process(Integer mapId, boolean regsOnly, boolean processOnce) {
+		if (!processOnce || !hasBeenProcessed) {
+			builder.processRegInstance(this);
+			hasBeenProcessed = true;
+		}
 	}
 
 	public class DrvModField {
