@@ -2,11 +2,18 @@ package ordt.output.drvmod.cpp;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 
 import ordt.extract.RegModelIntf;
+import ordt.output.drvmod.DrvModBaseInstance;
 import ordt.output.drvmod.DrvModBuilder;
 import ordt.output.drvmod.DrvModRegInstance;
+import ordt.output.drvmod.DrvModRegInstance.DrvModField;
 import ordt.output.drvmod.DrvModRegSetInstance;
+import ordt.output.drvmod.cpp.CppBaseModClass.CppMethod;
+import ordt.output.drvmod.cpp.CppBaseModClass.Vis;
 
 /** generate C++ pio driver model */
 public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder overrides in CppDrvModBuilder - these are in DrvModBuilder 
@@ -15,10 +22,53 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 	private BufferedWriter hppBw;
 	private BufferedWriter cppBw;
 
-	private static int count = 0;  // TODO - remove
+	private static CppBaseModClass rootClass;
+	
+	private static HashSet<String> reservedWords = getReservedWords();
 	
 	public CppDrvModBuilder(RegModelIntf model) {  
 		super(model);
+	}
+
+    /** load C++ reserved words to be escaped */
+	private static HashSet<String> getReservedWords() {
+		HashSet<String> reservedWords = new HashSet<String>();
+		//reservedWords.add("bit");
+		return reservedWords;
+	}
+	
+    /** escape string if a reserved words  */
+	@SuppressWarnings("unused")
+	private String escapeReservedString(String word) {
+		if (reservedWords.contains(word)) return ("\\" + word + " ");  
+		return word;
+	}
+
+	// ----------- DrvModBuilder overrides
+	
+	@Override
+	/** add a regset instance to the build */
+	public void processRegSetInstance(DrvModRegSetInstance rsInst) {
+		CppMethod rootBuild = rootClass.getTaggedMethod("build");
+		// create the new instance
+		rootBuild.addStatement("std::shared_ptr<ordt_drv_regset> " + rsInst.getInstName() + 
+				" = std::make_shared<ordt_drv_regset>(\"" + rsInst.getName() + "\", " + rsInst.getReps() + ", " + rsInst.getAddressOffset() + ", " + rsInst.getAddressStride() + ");");
+		// add this instance's children
+		HashMap<DrvModBaseInstance, Integer> children = rsInst.getChildMaps();
+		for(DrvModBaseInstance child: children.keySet())
+			rootBuild.addStatement(rsInst.getInstName() + "->add_child(" + children.get(child) + ", " + child.getInstName() + ");");
+	}
+
+	@Override
+	public void processRegInstance(DrvModRegInstance rInst) {
+		CppMethod rootBuild = rootClass.getTaggedMethod("build");
+		// create the new instance
+		rootBuild.addStatement("std::shared_ptr<ordt_drv_reg> " + rInst.getInstName() + 
+				" = std::make_shared<ordt_drv_reg>(\"" + rInst.getName() + "\", " + rInst.getReps() + ", " + rInst.getAddressOffset() + ", " + rInst.getAddressStride() + ");");
+		// add this instance's fields
+		List<DrvModField> fields = rInst.getFields();
+		for(DrvModField field: fields)
+			rootBuild.addStatement(rInst.getInstName() + "->add_field(\"" + field.name + "\", " + field.lowIndex + ", " + field.width + ");");
 	}
 	
     //---------------------------- output write methods ----------------------------------------
@@ -91,14 +141,12 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
     		writeStmt(hppBw, 0, "");	
     		writeStmt(hppBw, 0, "#include <vector>");
     		writeStmt(hppBw, 0, "#include <iostream>");  
-/*    		writeStmt(hppBw, 0, "#include <memory>");  // unique_ptr, etc g++  // TODO
+    		writeStmt(hppBw, 0, "#include <memory>");  // unique_ptr, etc g++ 
     		writeStmt(hppBw, 0, "#include <cstdint>");  
     		writeStmt(hppBw, 0, "#include <algorithm>");  // min/max  
     		writeStmt(hppBw, 0, "#include <string>");    
     		writeStmt(hppBw, 0, "#include <sstream>");    
-    		writeStmt(hppBw, 0, "#include <mutex>");    // reg mutex
-    		writeStmt(hppBw, 0, "#include <atomic>");    // field data atomic
-    	    writeStmt(hppBw, 0, "#define quote(x) #x"); // for debug display of vars*/
+    	    writeStmt(hppBw, 0, "#define quote(x) #x"); // for debug display of vars
     		writeStmt(hppBw, 0, "");		   
    		
     		// write the cpp file header
@@ -107,20 +155,9 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
     		writeStmt(cppBw, 0, "#include \"ordt_pio_drv.hpp\"");
     		writeStmt(cppBw, 0, "");
     		
-    		// define r/w modes
-    		//writeStmt(hppBw, 0, "enum read_mode_t : uint8_t {r_none, r_std, r_clr};");
-    		//writeStmt(hppBw, 0, "enum write_mode_t : uint8_t {w_none, w_std, w_1clr, w_1set};");
-
     		// write the driver model classes
     		writeClasses();
     		
-    		// write model instances
-            for(int overlay=0; overlay<rootInstances.size();overlay++) {  // overlays have different roots
-            	count=0;
-        		rootInstances.get(overlay).process(overlay, false, true);  // process both regs and regsets, only process each elem once
-           	    System.out.println("CppDrvModBuilder write: overlay=" + overlay + ", count=" + count);
-            }
-
             // close up hpp file
     		writeStmt(hppBw, 0, "#endif // __ORDT_PIO_DRV_HPP_INCLUDED__");
     		closeBufferedWriter(hppBw);
@@ -133,221 +170,171 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 	/** write model classes */
 	private void writeClasses() {
 		// write base classes
-		//writeOrdtDrvBaseClass();  // TODO
-		//writeOrdtDrvRegSetClass();  // TODO
-		//writeOrdtDrvRootClass();  // TODO
-		//writeOrdtDrvRegClass();  // TODO
-		// write design specific classes
-		//writeDesignSpecificClasses();
+		writeOrdtDrvBaseStructs();
+		// write base classes
+		writeOrdtDrvElementClass();
+		writeOrdtDrvRegsetChildClass();
+		writeOrdtDrvRegSetClass(); 
+		writeOrdtDrvRegClass();
+		// create the root class - will add model instantiations to build()
+		rootClass = createOrdtDrvRootClass();  
+		// add design specific class instances
+		addDesignInstances();
+		// add root the instances
+		addRootInstances();
+		// write the root class now that build method is populated
+		writeOrdtDrvRootClass();  
 	}
 
-	/** write all design-specific c++ classes   // TODO - use processInstance to create instances
-	private void writeDesignSpecificClasses() {
-		for (CppModClass mClass: modClasses) {
-			// write class
-			writeStmts(hppBw, mClass.genHeader(false)); // header with no include guards
-			writeStmts(cppBw, mClass.genMethods(true));  // methods with namespace			
-		}	
-	}*/
+	/** add design specific class instances to root.build()  */
+	private void addDesignInstances() {
+		// process unique instances of each overlay
+        for(int overlay=0; overlay<rootInstances.size();overlay++) {
+    		rootInstances.get(overlay).process(overlay, false, true);  // process both regs and regsets, only process each elem once
+        }
+	}
 
-	/** create and write OrdtDrvRoot class     
-	private void writeOrdtDrvRootClass() {
-		String className = "ordt_data";
-		CppModClass newClass = new CppModClass(className);
-		newClass.addParent("std::vector<uint32_t>");
+    /** add root class children in build */
+	private void addRootInstances() {
+		CppMethod rootBuild = rootClass.getTaggedMethod("build");
+        for(int overlay=0; overlay<rootInstances.size();overlay++) {
+        	DrvModRegSetInstance inst = rootInstances.get(overlay);
+			rootBuild.addStatement("add_child(" + (1 << overlay) + ", " + inst.getInstName() + ");");
+        }
+	}
+
+	// ------------------------- write driver model base classes -------------------------
+	
+	private void writeOrdtDrvBaseStructs() {
+		// path element class (vector of these are extracted from input path string)
+		String className = "ordt_drv_path_element";
+		CppBaseModClass newClass = new CppBaseModClass(className);
+		newClass.addDefine(Vis.PUBLIC, "std::string m_name");   // relative name of path element
+		newClass.addDefine(Vis.PUBLIC, "int m_idx");   // index of path element if replicated
 		// constructors
-		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "()");
-		nMethod.addInitCall("std::vector<uint32_t>()");
-		nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(int _size, uint32_t _data)");
-		nMethod.addInitCall("std::vector<uint32_t>(_size, _data)");
-		nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(const ordt_data& _data)");  // copy
-		nMethod.addInitCall("std::vector<uint32_t>(_data)");
-		
-		// set_slice method for ordt_data
-		nMethod = newClass.addMethod(Vis.PUBLIC, "void set_slice(int lobit, int size, const ordt_data& update)");
-		nMethod.addStatement("int data_size = this->size() * 32;");
-		//nMethod.addStatement("std::cout << \"set_slice: -------------------, lo bit=\" << lobit << \", size=\" << size << \"\\n\";");
-		nMethod.addStatement("if ((lobit % 32) > 0) {");
-		nMethod.addStatement("  std::cout << \"ERROR set_slice: non 32b aligned large fields are not supported\" << \"\\n\";");
-		nMethod.addStatement("  return;");
-		nMethod.addStatement("}");
-		nMethod.addStatement("int hibit = lobit + size - 1;"); 
-		nMethod.addStatement("int loword = lobit / 32;"); 
-		nMethod.addStatement("int hiword = hibit / 32;"); 
-		nMethod.addStatement("if (hibit > data_size - 1) {");
-		nMethod.addStatement("  std::cout << \"ERROR set_slice: specified slice is not contained in data\" << \"\\n\";");
-		nMethod.addStatement("  return;");
-		nMethod.addStatement("}");
-		nMethod.addStatement("int update_idx=0;");
-		nMethod.addStatement("for (int idx=loword; idx < hiword + 1; idx++) {");
-		//nMethod.addStatement("  std::cout << \"set_slice: old word=\" << this->at(idx) << \"\\n\";");
-		nMethod.addStatement("  if (idx == hiword) {");
-		nMethod.addStatement("     int modsize = hibit - hiword*32 + 1;");		
-		nMethod.addStatement("     uint32_t mask = (modsize == 32)? 0xffffffff : (1 << modsize) - 1;");		
-		nMethod.addStatement("     this->at(idx) = (this->at(idx) & ~mask) ^ (update.at(update_idx) & mask);");
-		//nMethod.addStatement("  std::cout << \"set_slice: updating word=\" << idx  << \", mask=\" << mask << \"\\n\";");
-		nMethod.addStatement("  }");
-		nMethod.addStatement("  else this->at(idx) = update.at(update_idx);");
-		nMethod.addStatement("  update_idx++;");		
-		//nMethod.addStatement("  std::cout << \"set_slice: new word=\" << this->at(idx) << \"\\n\";");
-		nMethod.addStatement("}");
-		
-		// set_slice template method
-		nMethod = newClass.addTemplateMethod(Vis.PUBLIC, "void set_slice(int lobit, int size, const T& update)");
-		nMethod.addStatement("int data_size = this->size() * 32;");
-		//nMethod.addStatement("std::cout << \"set_slice: -------------------, lo bit=\" << lobit << \", size=\" << size << \"\\n\";");
-		nMethod.addStatement("if (sizeof(T) > 8) {");
-		nMethod.addStatement("  std::cout << \"ERROR set_slice: size of update type is greater than 64b\" << \"\\n\";");
-		nMethod.addStatement("  return;");
-		nMethod.addStatement("}");
-		nMethod.addStatement("int hibit = lobit + size - 1;"); 
-		nMethod.addStatement("int loword = lobit / 32;"); 
-		nMethod.addStatement("int hiword = hibit / 32;"); 
-		nMethod.addStatement("if (hibit > data_size - 1) {");
-		nMethod.addStatement("  std::cout << \"ERROR set_slice: specified slice is not contained in data\" << \"\\n\";");
-		nMethod.addStatement("  return;");
-		nMethod.addStatement("}");
-		nMethod.addStatement("int update_rshift=0;");
-		nMethod.addStatement("for (int idx=loword; idx < hiword + 1; idx++) {");
-		nMethod.addStatement("  int offset=idx*32;");
-		nMethod.addStatement("  int lo_modbit = std::max(0, lobit - offset);");		
-		nMethod.addStatement("  int hi_modbit = std::min(31, hibit - offset);");		
-		nMethod.addStatement("  int modsize = hi_modbit - lo_modbit + 1;");		
-		nMethod.addStatement("  uint32_t mask = (modsize == 32)? 0xffffffff : (1 << modsize) - 1;");		
-		nMethod.addStatement("  uint32_t shifted_mask = mask << lo_modbit;");
-		//nMethod.addStatement("  std::cout << \"set_slice: old word=\" << this->at(idx) << \"\\n\";");
-		nMethod.addStatement("  this->at(idx) = (this->at(idx) & ~shifted_mask) ^ (((update >> update_rshift) & mask) << lo_modbit);");
-		nMethod.addStatement("  update_rshift += modsize;");		
-		//nMethod.addStatement("  std::cout << \"set_slice: updating word=\" << idx << \", lo bit=\" << lo_modbit << \", hi bit=\" << hi_modbit  << \", mask=\" << mask << \"\\n\";");
-		//nMethod.addStatement("  std::cout << \"set_slice: new word=\" << this->at(idx) << \"\\n\";");
-		nMethod.addStatement("}");
-		
-		// get_slice method for ordt_data
-		nMethod = newClass.addMethod(Vis.PUBLIC, "void get_slice(int lobit, int size, ordt_data& slice_out) const");
-		nMethod.addStatement("int data_size = this->size() * 32;");
-		//nMethod.addStatement("std::cout << \"get_slice: -------------------, lo bit=\" << lobit << \", size=\" << size << \", slice_out=\" << slice_out << \", sizeof(T)=\" << sizeof(T) << \"\\n\";");
-		nMethod.addStatement("if ((lobit % 32) > 0) {");
-		nMethod.addStatement("  std::cout << \"ERROR set_slice: non 32b aligned large fields are not supported\" << \"\\n\";");
-		nMethod.addStatement("  return;");
-		nMethod.addStatement("}");
-		nMethod.addStatement("slice_out.clear();"); 
-		nMethod.addStatement("int hibit = lobit + size - 1;"); 
-		nMethod.addStatement("int loword = lobit / 32;"); 
-		nMethod.addStatement("int hiword = hibit / 32;"); 
-		nMethod.addStatement("if (hibit > data_size - 1) {");
-		nMethod.addStatement("  std::cout << \"ERROR set_slice: specified slice is not contained in data\" << \"\\n\";");
-		nMethod.addStatement("  return;");
-		nMethod.addStatement("}");
-		nMethod.addStatement("int out_idx=0;");
-		nMethod.addStatement("for (int idx=loword; idx < hiword + 1; idx++) {");
-		//nMethod.addStatement("  std::cout << \"get_slice: current word[\" << idx << \"]=\" << this->at(idx) << \"\\n\";");
-		nMethod.addStatement("  if (idx == hiword) {");
-		nMethod.addStatement("     int modsize = hibit - hiword*32 + 1;");		
-		nMethod.addStatement("     uint32_t mask = (modsize == 32)? 0xffffffff : (1 << modsize) - 1;");		
-		nMethod.addStatement("     slice_out.at(out_idx) = (this->at(idx) & mask);");
-		//nMethod.addStatement("  std::cout << \"get_slice: extracting word=\" << idx << \", mask=\" << mask << \"\\n\";");
-		nMethod.addStatement("  }");
-		nMethod.addStatement("  else slice_out.at(out_idx) = this->at(idx);");
-		nMethod.addStatement("  out_idx++;");	
-		//nMethod.addStatement("  std::cout << \"get_slice: slice=\" << slice_out[\" << out_idx << \"]\" << \"\\n\";");
-		nMethod.addStatement("}");
-		nMethod.addStatement("return;");
-		
-		// get_slice template method
-		nMethod = newClass.addTemplateMethod(Vis.PUBLIC, "void get_slice(int lobit, int size, T& slice_out) const");
-		nMethod.addStatement("int data_size = this->size() * 32;");
-		//nMethod.addStatement("std::cout << \"get_slice: -------------------, lo bit=\" << lobit << \", size=\" << size << \", slice_out=\" << slice_out << \", sizeof(T)=\" << sizeof(T) << \"\\n\";");
-		nMethod.addStatement("slice_out = 0;"); 
-        nMethod.addStatement("if (sizeof(T) > 8) {");
-		nMethod.addStatement("  std::cout << \"ERROR get_slice: size of return type is greater than 64b\" << \"\\n\";");
-		nMethod.addStatement("  return;");
-		nMethod.addStatement("}");
-		nMethod.addStatement("int hibit = lobit + size - 1;"); 
-		nMethod.addStatement("int loword = lobit / 32;"); 
-		nMethod.addStatement("int hiword = hibit / 32;"); 
-		nMethod.addStatement("if (hibit > data_size - 1) {");
-		nMethod.addStatement("  std::cout << \"ERROR set_slice: specified slice is not contained in data\" << \"\\n\";");
-		nMethod.addStatement("  return;");
-		nMethod.addStatement("}");
-		nMethod.addStatement("int ret_lshift=0;");
-		nMethod.addStatement("for (int idx=loword; idx < hiword + 1; idx++) {");
-		nMethod.addStatement("  int offset=idx*32;");
-		nMethod.addStatement("  int lo_modbit = std::max(0, lobit - offset);");		
-		nMethod.addStatement("  int hi_modbit = std::min(31, hibit - offset);");		
-		nMethod.addStatement("  int modsize = hi_modbit - lo_modbit + 1;");		
-		nMethod.addStatement("  uint32_t mask = (modsize == 32)? 0xffffffff : (1 << modsize) - 1;");		
-		nMethod.addStatement("  uint32_t shifted_mask = mask << lo_modbit;");
-		//nMethod.addStatement("  std::cout << \"get_slice: current word[\" << idx << \"]=\" << this->at(idx) << \"\\n\";");
-		nMethod.addStatement("  slice_out |= ((this->at(idx) & shifted_mask) >> lo_modbit) << ret_lshift;");
-		nMethod.addStatement("  ret_lshift += modsize;");		
-		//nMethod.addStatement("  std::cout << \"get_slice: extracting word=\" << idx << \", lo bit=\" << lo_modbit << \", hi bit=\" << hi_modbit  << \", mask=\" << mask << \"\\n\";");
-		//nMethod.addStatement("  std::cout << \"get_slice: slice=\" << slice_out << \"\\n\";");
-		nMethod.addStatement("}");
-		nMethod.addStatement("return;");
-		
-		// to_string method
-		nMethod = newClass.addMethod(Vis.PUBLIC, "std::string to_string() const");
-		nMethod.addStatement("std::stringstream ss;");
-		nMethod.addStatement("ss << \"{\" << std::hex << std::showbase;");
-		nMethod.addStatement("for (int idx=this->size() - 1; idx >= 0; idx--) ");
-		nMethod.addStatement("   ss << \" \" << this->at(idx);");
-		nMethod.addStatement("ss << \" }\";");
-		nMethod.addStatement("return ss.str();");
-		
-		// = overload
-		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data& operator=(const uint32_t rhs)");
-		//nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
-		//nMethod.addStatement("   this->at(idx) = rhs;");
-		nMethod.addStatement("   this->assign(this->size(), rhs);");
-		nMethod.addStatement("return *this;");
-		
-		// ~ overload
-		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data operator~()");
-		nMethod.addStatement("ordt_data temp;");
-		nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
-		nMethod.addStatement("   temp.at(idx) = ~ this->at(idx);");
-		nMethod.addStatement("return temp;");
-		
-		// & overload
-		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data operator&(const ordt_data& rhs)");
-		nMethod.addStatement("ordt_data temp;");
-		nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
-		nMethod.addStatement("   if (idx < rhs.size()) temp.at(idx) = this->at(idx) & rhs.at(idx);");
-		nMethod.addStatement("   else temp.at(idx) = 0;");
-		nMethod.addStatement("return temp;");
-		
-		// | overload
-		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data operator|(const ordt_data& rhs)");
-		nMethod.addStatement("ordt_data temp;");
-		nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
-		nMethod.addStatement("   if (idx < rhs.size()) temp.at(idx) = this->at(idx) | rhs.at(idx);");
-		nMethod.addStatement("   else temp.at(idx) = this->at(idx);");
-		nMethod.addStatement("return temp;");
-
+		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_idx)");  
+		nMethod.addInitCall("m_name(_m_name)");  
+		nMethod.addInitCall("m_idx(_m_idx)");
 		// write class
 		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
-		writeStmts(hppBw, newClass.genMethods(true, true));  // template methods with namespace
-		writeStmts(cppBw, newClass.genMethods(true));  // non-template methods with namespace
+		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
 		
-		//writeStmt(hppBw, 0, "");
-		//writeStmt(hppBw, 0, "std::ostream& operator<<(std::ostream &strm, const ordt_data &d) {");
-		//writeStmt(hppBw, 0, "  strm << \"{ 0x\" << std::hex;");
-		//writeStmt(hppBw, 0, "  for(std::vector<int>::reverse_iterator rit = d.rbegin(); rit!= d.rend(); ++rit) strm << *rit << \" \";");
-		//writeStmt(hppBw, 0, "  return strm << std::dec << \"}");
-		//writeStmt(hppBw, 0, "}");
-		//writeStmt(hppBw, 0, "");
-	}*/
-
-	// --- DrvModBuilder overrides
-	
-	@Override
-	public void processRegSetInstance(DrvModRegSetInstance drvModRegSetInstance) {
-		count++;	
+		// field info class 
+		className = "ordt_drv_field";   // TODO - add readable/writeable booleans
+		newClass = new CppBaseModClass(className);
+		newClass.addDefine(Vis.PUBLIC, "std::string m_name");   // field name
+		newClass.addDefine(Vis.PUBLIC, "int m_loidx");   // low index of field
+		newClass.addDefine(Vis.PUBLIC, "int m_width");   // field width
+		// constructors
+		nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_loidx, int _m_width)");  
+		nMethod.addInitCall("m_name(_m_name)");  
+		nMethod.addInitCall("m_loidx(_m_loidx)");
+		nMethod.addInitCall("m_width(_m_width)");
+		// write class
+		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
+		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
 	}
 
-	@Override
-	public void processRegInstance(DrvModRegInstance drvModRegInstance) {
-		count++;
+	/** create and write ordt_drv_element classes */    
+	private void writeOrdtDrvElementClass() {
+		String className = "ordt_drv_element";
+		CppBaseModClass newClass = new CppBaseModClass(className);
+		newClass.addDefine(Vis.PUBLIC, "std::string m_name");
+		newClass.addDefine(Vis.PROTECTED, "int m_reps");
+		newClass.addDefine(Vis.PROTECTED, "uint64_t m_offset");
+		newClass.addDefine(Vis.PROTECTED, "uint64_t m_stride");
+		// constructors
+		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_reps, uint64_t _m_offset, uint64_t _m_stride)");  
+		nMethod.addInitCall("m_reps(_m_reps)");  // number of reps in this instance
+		nMethod.addInitCall("m_offset(_m_offset)");
+		nMethod.addInitCall("m_stride(_m_stride)");
+		nMethod.addInitCall("m_name(_m_name)");  // relative name of instance
+		// methods
+		newClass.addMethod(Vis.PUBLIC, "pure virtual uint64_t get_address(const int version, const std::vector<ordt_drv_path_element> &path)"); 
+		//newClass.addMethod(Vis.PUBLIC, "pure virtual " + className + " get_element(const int version, const std::vector<ordt_drv_path_element> &path)");  // TODO move this to regset?
+		// write class
+		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
+		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
+	}
+		
+	/** create and write ordt_drv_element and ordt_drv_regset_child classes */    
+	private void writeOrdtDrvRegsetChildClass() {
+		// regset child class 
+		String className = "ordt_drv_regset_child";
+		CppBaseModClass newClass = new CppBaseModClass(className);
+		newClass.addDefine(Vis.PROTECTED, "int m_map");  // encoded overlap map
+		newClass.addDefine(Vis.PROTECTED, "std::shared_ptr<ordt_drv_element> m_child");  // pointer to child element
+		// constructors
+		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(int _m_map, std::shared_ptr<ordt_drv_element> _m_child)");  
+		nMethod.addInitCall("m_map(_m_map)");  
+		nMethod.addInitCall("m_child(_m_child)");   
+		// write class
+		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
+		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
+	}
+	
+	/** create and write ordt_drv_regset class */    
+	private void writeOrdtDrvRegSetClass() {
+		String className = "ordt_drv_regset";
+		CppBaseModClass newClass = new CppBaseModClass(className);
+		newClass.addParent("ordt_drv_element");
+		newClass.addDefine(Vis.PROTECTED, "std::vector<ordt_drv_regset_child> m_children");
+		// constructors
+		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_reps, uint64_t _m_offset, uint64_t _m_stride)");  
+		nMethod.addInitCall("ordt_drv_element(_m_name, _m_reps, _m_offset, _m_stride)");
+		nMethod.addInitCall("m_children()");
+		// methods
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual uint64_t get_address(const int version, const std::vector<ordt_drv_path_element> &path)");  
+		nMethod.addStatement("return 0;");  // TODO
+		nMethod = newClass.addMethod(Vis.PUBLIC, "void add_child(int _m_map, std::shared_ptr<ordt_drv_element> _m_child)");  
+		nMethod.addStatement("ordt_drv_regset_child new_child(_m_map, _m_child);");  
+		nMethod.addStatement("m_children.push_back(new_child);");  
+		//newClass.addMethod(Vis.PUBLIC, "pure virtual " + className + " get_element(const int version, const std::vector<ordt_drv_path_element> &path)");  // TODO 
+		// write class
+		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
+		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
+	}
+
+	/** create and write ordt_drv_reg class */    
+	private void writeOrdtDrvRegClass() {
+		String className = "ordt_drv_reg";
+		CppBaseModClass newClass = new CppBaseModClass(className);
+		newClass.addParent("ordt_drv_element");
+		newClass.addDefine(Vis.PROTECTED, "std::vector<ordt_drv_field> m_fields");
+		// constructors
+		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_reps, uint64_t _m_offset, uint64_t _m_stride)");  
+		nMethod.addInitCall("ordt_drv_element(_m_name, _m_reps, _m_offset, _m_stride)");
+		nMethod.addInitCall("m_fields()");
+		// methods
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual uint64_t get_address(const int version, const std::vector<ordt_drv_path_element> &path)");  
+		nMethod.addStatement("return 0;");  // TODO
+		nMethod = newClass.addMethod(Vis.PUBLIC, "void add_field(std::string _m_name, int _m_loidx, int _width)");  
+		nMethod.addStatement("ordt_drv_field new_field(_m_name, _m_loidx, _width);");  
+		nMethod.addStatement("m_fields.push_back(new_field);");  
+		// write class
+		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
+		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
+	}
+
+	/** create ordt_drv_root class */    
+	private CppBaseModClass createOrdtDrvRootClass() {
+		String className = "ordt_drv_root";
+		CppBaseModClass newClass = new CppBaseModClass(className);
+		newClass.addParent("ordt_drv_regset");
+		// constructors
+		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_reps, uint64_t _m_offset, uint64_t _m_stride)");  
+		nMethod.addInitCall("ordt_drv_regset(_m_name, _m_reps, _m_offset, _m_stride)");
+		// methods
+		nMethod = newClass.addMethod(Vis.PUBLIC, "void build()"); 
+		newClass.tagMethod("build", nMethod);
+		// return the root class
+		return newClass;
+	}
+	
+	/** write the ordt_drv_root class */    
+	private void writeOrdtDrvRootClass() {
+		writeStmts(hppBw, rootClass.genHeader(false)); // header with no include guards
+		writeStmts(cppBw, rootClass.genMethods(true));  // methods with namespace
 	}
 
 }

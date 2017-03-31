@@ -6,7 +6,6 @@ package ordt.output.drvmod;
 import java.io.BufferedWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Stack;
 
@@ -22,12 +21,10 @@ public abstract class DrvModBuilder extends OutputBuilder {
 	protected HashMap<DrvModRegSetInstance, DrvModRegSetInstance> uniqueRegSets = new HashMap<DrvModRegSetInstance, DrvModRegSetInstance>();
 	protected HashMap<DrvModRegInstance, DrvModRegInstance> uniqueRegs = new HashMap<DrvModRegInstance, DrvModRegInstance>();
 
-	int addedInstances, uniqueInstances = 0;
+	int addedInstances, uniqueInstances = 0;  // counts per overlay
 	private Stack<DrvModRegSetInstance> currentRegSetStack = new Stack<DrvModRegSetInstance>();
 	protected int overlayCount = 0;
 	protected List<DrvModRegSetInstance> rootInstances = new ArrayList<DrvModRegSetInstance>();
-	
-	private static HashSet<String> reservedWords = getReservedWords();
 	
     //---------------------------- constructor ----------------------------------
 
@@ -50,20 +47,6 @@ public abstract class DrvModBuilder extends OutputBuilder {
 	    this.model = model;  // store the model ref
 	    resetBuilder();
 	    model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
-	}
-
-    /** load C++ reserved words to be escaped */
-	private static HashSet<String> getReservedWords() {
-		HashSet<String> reservedWords = new HashSet<String>();
-		//reservedWords.add("bit");
-		return reservedWords;
-	}
-	
-    /** escape string if a reserved words  */
-	@SuppressWarnings("unused")
-	private String escapeReservedString(String word) {
-		if (reservedWords.contains(word)) return ("\\" + word + " ");  
-		return word;
 	}
 
     //---------------------------- OutputBuilder methods to load structures ----------------------------------------
@@ -141,7 +124,7 @@ public abstract class DrvModBuilder extends OutputBuilder {
     		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(newRegSet, overlayCount); 
         }
 		// otherwise add newRegSet instance as a duplicate
-		else { // FIXME - addChild is modifying the unique hash because child hashmap isnt hitting, so uniqueRegSets.get(newRegSet) returns null causing null ptr
+		else { 
 			//DrvModRegSetInstance uniqueInstance=uniqueRegSets.get(newRegSet);
 			//System.out.println("DrvModBuilder finishRegSet: pre add child, uniqueInstance==null=" + (uniqueInstance==null) + ", uniqueRegSets.containsKey(newRegSet)=" + uniqueRegSets.containsKey(newRegSet) + ", newRegSet.hash=" + newRegSet.hashCode() + ", uniqueInstance.hash=" + uniqueInstance.hashCode());
 			// transfer newRegSet children into the unique version

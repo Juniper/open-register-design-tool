@@ -28,7 +28,7 @@ import ordt.parameters.ExtParameters.SVChildInfoModes;
 
 public class Ordt {
 
-	private static String version = "170329.01"; 
+	private static String version = "170330.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };

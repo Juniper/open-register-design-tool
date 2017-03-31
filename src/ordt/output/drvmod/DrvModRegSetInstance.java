@@ -18,7 +18,7 @@ public class DrvModRegSetInstance extends DrvModBaseInstance {
 	}
 	
 	/** get list of children with specified mapId or all children if mapId is null */
-	private List<DrvModBaseInstance> getChildren(Integer mapId) {
+	public List<DrvModBaseInstance> getChildren(Integer mapId) {
 		List<DrvModBaseInstance> outList = new ArrayList<DrvModBaseInstance>();
 		for (DrvModBaseInstance inst: childMaps.keySet()) {
 			//System.out.println("DrvModRegSetInstance getChildren: inst.name=" + inst.getName() + ", inst.map=" + childMaps.get(inst) + ", mapId=" + mapId);
@@ -29,9 +29,13 @@ public class DrvModRegSetInstance extends DrvModBaseInstance {
 		        @Override
 		        public int compare(DrvModBaseInstance inst1, DrvModBaseInstance inst2)
 		        { return  ((Long) inst2.getAddressOffset()).compareTo(inst1.getAddressOffset());}
-		    });*/
-		
+		    });*/		
 		return outList;
+	}
+
+	/** return the full hashmap of children  */
+	public HashMap<DrvModBaseInstance, Integer> getChildMaps() {
+		return childMaps;
 	}
 
 	/** add new child or add mapId to encoded value if a dup */

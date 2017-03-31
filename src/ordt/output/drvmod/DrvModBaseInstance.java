@@ -4,8 +4,11 @@ package ordt.output.drvmod;
 public abstract class DrvModBaseInstance {
 
 	protected static DrvModBuilder builder;
+	private static int instanceCount = 0;
+	
 	protected String name; // instance name
-	protected int mapId = 0;  // id of register map that created this instance
+	protected int mapId = 0;  // id of register map/overlay that created this instance
+	protected int instId = 0;  // unique instance id for inst name generation
 	protected long addressOffset = 0;  // relative address offset of this instance (64b max addr size)
 	protected int reps;  // number of replications of this instance
 	protected Long addressStride;  // address stride if a replicated instance (64b max addr size
@@ -15,6 +18,7 @@ public abstract class DrvModBaseInstance {
 		super();
 		this.name = name;
 		this.mapId = mapId;
+		this.instId = instanceCount++;  // bump unique instance count
 		this.addressOffset = addressOffset;
 		this.reps = reps;
 		this.addressStride = (addressStride == null)? 0 : addressStride;
@@ -31,6 +35,10 @@ public abstract class DrvModBaseInstance {
 
 	public String getName() {
 		return name;
+	}
+
+	public String getInstName() {
+		return name + '_' + instId;
 	}
 
 	public int getMapId() {

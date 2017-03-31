@@ -273,8 +273,8 @@ public class CppModBuilder extends OutputBuilder {
     		writeStmt(cppBw, 0, "");
     		
     		// define r/w modes
-    		writeStmt(hppBw, 0, "enum read_mode_t : uint8_t {r_none, r_std, r_clr};");
-    		writeStmt(hppBw, 0, "enum write_mode_t : uint8_t {w_none, w_std, w_1clr, w_1set};");
+    		writeStmt(hppBw, 0, "enum ordt_read_mode_t : uint8_t {r_none, r_std, r_clr};");
+    		writeStmt(hppBw, 0, "enum ordt_write_mode_t : uint8_t {w_none, w_std, w_1clr, w_1set};");
 
     		// write the model classes
     		writeClasses();
@@ -508,10 +508,10 @@ public class CppModBuilder extends OutputBuilder {
 		writeStmt(hppBw, 0, "    int lobit, size;");
 		writeStmt(hppBw, 0, "    T data;");
 		//writeStmt(hppBw, 0, "    std::atomic<T> data;");  // wrap data in atomic
-		writeStmt(hppBw, 0, "    read_mode_t r_mode;");
-		writeStmt(hppBw, 0, "    write_mode_t w_mode;");
-		writeStmt(hppBw, 0, "    ordt_field(int _lobit, int _size, int _vsize, uint32_t _data, read_mode_t _r_mode, write_mode_t _w_mode);"); // special case for wide fields
-		writeStmt(hppBw, 0, "    ordt_field(int _lobit, int _size, T _init_data, read_mode_t _r_mode, write_mode_t _w_mode);");
+		writeStmt(hppBw, 0, "    ordt_read_mode_t r_mode;");
+		writeStmt(hppBw, 0, "    ordt_write_mode_t w_mode;");
+		writeStmt(hppBw, 0, "    ordt_field(int _lobit, int _size, int _vsize, uint32_t _data, ordt_read_mode_t _r_mode, ordt_write_mode_t _w_mode);"); // special case for wide fields
+		writeStmt(hppBw, 0, "    ordt_field(int _lobit, int _size, T _init_data, ordt_read_mode_t _r_mode, ordt_write_mode_t _w_mode);");
 		// read/write 
 		writeStmt(hppBw, 0, "    void write(const ordt_data &wdata);");
 		writeStmt(hppBw, 0, "    void read(ordt_data &rdata);");
@@ -522,12 +522,12 @@ public class CppModBuilder extends OutputBuilder {
 		// constructors
 		writeStmt(hppBw, 0, "");
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "ordt_field<T>::ordt_field(int _lobit, int _size, int _vsize, uint32_t _data, read_mode_t _r_mode, write_mode_t _w_mode)");
+		writeStmt(hppBw, 0, "ordt_field<T>::ordt_field(int _lobit, int _size, int _vsize, uint32_t _data, ordt_read_mode_t _r_mode, ordt_write_mode_t _w_mode)");
 		writeStmt(hppBw, 0, "   : lobit(_lobit), size(_size), data(_vsize, _data), r_mode(_r_mode), w_mode(_w_mode) {");
 		writeStmt(hppBw, 0, "}");
 		writeStmt(hppBw, 0, "");
 		writeStmt(hppBw, 0, "template<typename T>");
-		writeStmt(hppBw, 0, "ordt_field<T>::ordt_field(int _lobit, int _size, T _init_data, read_mode_t _r_mode, write_mode_t _w_mode)");
+		writeStmt(hppBw, 0, "ordt_field<T>::ordt_field(int _lobit, int _size, T _init_data, ordt_read_mode_t _r_mode, ordt_write_mode_t _w_mode)");
 		writeStmt(hppBw, 0, "   : lobit(_lobit), size(_size), data(_init_data), r_mode(_r_mode), w_mode(_w_mode) {");
 		writeStmt(hppBw, 0, "}");
 		writeStmt(hppBw, 0, "");
