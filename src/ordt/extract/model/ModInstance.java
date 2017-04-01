@@ -8,7 +8,6 @@ import java.util.HashSet;
 
 import ordt.annotate.AnnotateCommand;
 import ordt.extract.Ordt;
-import ordt.extract.PropertyList;
 import ordt.extract.Ordt.InputType;
 import ordt.extract.PropertyList.PropertyValue;
 import ordt.output.OutputBuilder;

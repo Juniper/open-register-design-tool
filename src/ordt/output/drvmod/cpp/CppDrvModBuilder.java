@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import ordt.extract.Ordt;
 import ordt.extract.RegModelIntf;
 import ordt.output.drvmod.DrvModBaseInstance;
 import ordt.output.drvmod.DrvModBuilder;
@@ -139,7 +140,7 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
     		writeStmt(hppBw, 0, "#ifndef __ORDT_PIO_DRV_HPP_INCLUDED__");	
     		writeStmt(hppBw, 0, "#define __ORDT_PIO_DRV_HPP_INCLUDED__");
     		writeStmt(hppBw, 0, "");	
-    		writeStmt(hppBw, 0, "#include <vector>");
+    		writeStmt(hppBw, 0, "#include <list>");
     		writeStmt(hppBw, 0, "#include <iostream>");  
     		writeStmt(hppBw, 0, "#include <memory>");  // unique_ptr, etc g++ 
     		writeStmt(hppBw, 0, "#include <cstdint>");  
@@ -206,7 +207,7 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 	// ------------------------- write driver model base classes -------------------------
 	
 	private void writeOrdtDrvBaseStructs() {
-		// path element class (vector of these are extracted from input path string)
+		// path element class (list of these are extracted from input path string)
 		String className = "ordt_drv_path_element";
 		CppBaseModClass newClass = new CppBaseModClass(className);
 		newClass.addDefine(Vis.PUBLIC, "std::string m_name");   // relative name of path element
@@ -249,9 +250,69 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		nMethod.addInitCall("m_offset(_m_offset)");
 		nMethod.addInitCall("m_stride(_m_stride)");
 		nMethod.addInitCall("m_name(_m_name)");  // relative name of instance
-		// methods
-		newClass.addMethod(Vis.PUBLIC, "pure virtual uint64_t get_address(const int version, const std::vector<ordt_drv_path_element> &path)"); 
-		//newClass.addMethod(Vis.PUBLIC, "pure virtual " + className + " get_element(const int version, const std::vector<ordt_drv_path_element> &path)");  // TODO move this to regset?
+		// get_address methods
+		nMethod = newClass.addMethod(Vis.PUBLIC, "pure virtual int get_address_using_list(const int version, std::list<ordt_drv_path_element> &path, const bool bypass_names, uint64_t &address)"); 
+		//
+		nMethod = newClass.addMethod(Vis.PROTECTED, "virtual int get_address_using_tag(const std::string tag, std::list<ordt_drv_path_element> &path, uint64_t &address)"); 
+		nMethod.addStatement("int version = get_version(tag);");
+		nMethod.addStatement("if (version<0) {");  
+		nMethod.addStatement("#ifdef ORDT_PIO_DRV_VERBOSE");  
+		nMethod.addStatement("   std::cout << \"--> invalid tag: \" << tag << \"\\n\";" );
+		nMethod.addStatement("#endif");  
+		nMethod.addStatement("  return 2;");  
+		nMethod.addStatement("}");  
+		nMethod.addStatement("return get_address_using_list(version, path, false, address);");
+		//
+		nMethod = newClass.addMethod(Vis.PROTECTED, "int get_version(const std::string tag)");
+		String baseTag = rootInstances.get(0).getName();  // root instance name of overlay 0 will be used as tag
+		nMethod.addStatement("if (tag == \"" + baseTag + "\") return 0;");
+		int idx=1;
+		for (String tag: Ordt.getOverlayFileTags()) 
+			nMethod.addStatement("else if (tag == \"" + tag + "\") return " + idx++ + ";");
+		nMethod.addStatement("else return -1;");  // invalid tag
+		//
+		nMethod = newClass.addMethod(Vis.PUBLIC, "int get_address(const std::string tag, const std::string pathstr, uint64_t &address)"); 
+		nMethod.addStatement("std::list<ordt_drv_path_element> path = get_path(pathstr);");
+		nMethod.addStatement("if (path.size()>0) return get_address_using_tag(tag, path, address);");  
+		nMethod.addStatement("#ifdef ORDT_PIO_DRV_VERBOSE");  
+		nMethod.addStatement("   std::cout << \"--> invalid path: \" << pathstr << \"\\n\";" );
+		nMethod.addStatement("#endif");  
+		nMethod.addStatement("return 4;");  
+		//
+		nMethod = newClass.addMethod(Vis.PRIVATE, "std::list<std::string> split(const std::string &text, char sep, bool trim_rb)");
+		nMethod.addStatement("std::list<std::string> tokens;");
+		nMethod.addStatement("std::size_t start = 0, end = 0, end_adj = 0;");
+		nMethod.addStatement("while ((end = text.find(sep, start)) != std::string::npos) {");
+		nMethod.addStatement("  if (trim_rb && ((end_adj = text.find(']', start)) != std::string::npos) && (end_adj<end))");
+		nMethod.addStatement("    tokens.push_back(text.substr(start, end_adj - start));");
+		nMethod.addStatement("  else");
+		nMethod.addStatement("    tokens.push_back(text.substr(start, end - start));");
+		nMethod.addStatement("  start = end + 1;");
+		nMethod.addStatement("}");
+		nMethod.addStatement("if (trim_rb && ((end_adj = text.find(']', start)) != std::string::npos))");
+		nMethod.addStatement("  tokens.push_back(text.substr(start, end_adj - start));");
+		nMethod.addStatement("else");
+		nMethod.addStatement("  tokens.push_back(text.substr(start));");
+		nMethod.addStatement("return tokens;");
+		//
+		nMethod = newClass.addMethod(Vis.PRIVATE, "std::list<ordt_drv_path_element> get_path(const std::string pathstr)");
+		nMethod.addStatement("std::list<ordt_drv_path_element> pathlist;");
+		nMethod.addStatement("std::list<std::string> lst = split(pathstr, '.', true);");  // split and remove right bracket
+		//nMethod.addStatement("std::cout << \"--> list size: \" << lst.size() << \"\\n\";" );
+		nMethod.addStatement("for(auto const& str_elem: lst) {");
+		nMethod.addStatement("   std::list<std::string> sub_lst = split(str_elem, '[', false);");  // now split name and index
+		nMethod.addStatement("   if (sub_lst.size()==2) {");
+		//nMethod.addStatement("     std::cout << \"   >\" << sub_lst.front() << \" - \" << sub_lst.back() << \"\\n\";" );
+		nMethod.addStatement("     pathlist.emplace_back(sub_lst.front(), std::stoi(sub_lst.back()));");
+		nMethod.addStatement("   }");
+		nMethod.addStatement("   else {");
+		//nMethod.addStatement("     std::cout << \"   >\" << sub_lst.front() << \"\\n\";" );
+		nMethod.addStatement("     pathlist.emplace_back(sub_lst.front(), 1);");
+		nMethod.addStatement("   }");
+		nMethod.addStatement("}");
+		nMethod.addStatement("return pathlist;");  // invalid tag
+        // 
+		//newClass.addMethod(Vis.PUBLIC, "pure virtual " + className + " get_element(const int version, const std::list<ordt_drv_path_element> &path)");  // TODO move this to regset?
 		// write class
 		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
 		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
@@ -262,8 +323,8 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		// regset child class 
 		String className = "ordt_drv_regset_child";
 		CppBaseModClass newClass = new CppBaseModClass(className);
-		newClass.addDefine(Vis.PROTECTED, "int m_map");  // encoded overlap map
-		newClass.addDefine(Vis.PROTECTED, "std::shared_ptr<ordt_drv_element> m_child");  // pointer to child element
+		newClass.addDefine(Vis.PUBLIC, "int m_map");  // encoded overlap map
+		newClass.addDefine(Vis.PUBLIC, "std::shared_ptr<ordt_drv_element> m_child");  // pointer to child element
 		// constructors
 		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(int _m_map, std::shared_ptr<ordt_drv_element> _m_child)");  
 		nMethod.addInitCall("m_map(_m_map)");  
@@ -278,18 +339,37 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		String className = "ordt_drv_regset";
 		CppBaseModClass newClass = new CppBaseModClass(className);
 		newClass.addParent("ordt_drv_element");
-		newClass.addDefine(Vis.PROTECTED, "std::vector<ordt_drv_regset_child> m_children");
+		newClass.addDefine(Vis.PROTECTED, "std::list<ordt_drv_regset_child> m_children");
 		// constructors
 		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_reps, uint64_t _m_offset, uint64_t _m_stride)");  
 		nMethod.addInitCall("ordt_drv_element(_m_name, _m_reps, _m_offset, _m_stride)");
 		nMethod.addInitCall("m_children()");
-		// methods
-		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual uint64_t get_address(const int version, const std::vector<ordt_drv_path_element> &path)");  
-		nMethod.addStatement("return 0;");  // TODO
+		// get_address method
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual int get_address_using_list(const int version, std::list<ordt_drv_path_element> &path, const bool bypass_names, uint64_t &address)");  
+		nMethod.addStatement("if (path.empty())");  // exit with error if no path
+		nMethod.addStatement("  return 8;");
+		nMethod.addStatement("address += m_offset;");  // first add this regsets offset
+		nMethod.addStatement("ordt_drv_path_element pelem = path.front();");  // get this element from front of path
+		nMethod.addStatement("if (m_reps>1) address += (m_stride*pelem.m_idx);");  // add index offset if a replicated instance
+		nMethod.addStatement("if (!bypass_names) {");  
+		nMethod.addStatement("  path.pop_front();");  // remove element from front of path
+		nMethod.addStatement("  if (path.empty())");    // now if path is empty we're done
+		nMethod.addStatement("    return 0;");  
+		nMethod.addStatement("  pelem = path.front();");  // get child element from front of path
+		nMethod.addStatement("}");  
+		nMethod.addStatement("for (auto const &child: m_children) {");  // find matching child
+		//nMethod.addStatement("  std::cout << \"  --> checking child in regset \" << m_name  << \", bypass=\" << bypass_names << \", cname=\" << child.m_child->m_name << \", cmap=\" << child.m_map << \"\\n\";" );
+		nMethod.addStatement("  if (((1<<version) & child.m_map) && (bypass_names || (pelem.m_name == child.m_child->m_name))) return child.m_child->get_address_using_list(version, path, false, address);");  // recursive call to matching child
+		nMethod.addStatement("}");  
+		nMethod.addStatement("#ifdef ORDT_PIO_DRV_VERBOSE");  
+		nMethod.addStatement("std::cout << \"--> unable to find child \" << pelem.m_name << \" in regset \" << m_name << \"\\n\";" );
+		nMethod.addStatement("#endif");  
+		nMethod.addStatement("return 8;");  
+		// add_child method
 		nMethod = newClass.addMethod(Vis.PUBLIC, "void add_child(int _m_map, std::shared_ptr<ordt_drv_element> _m_child)");  
 		nMethod.addStatement("ordt_drv_regset_child new_child(_m_map, _m_child);");  
 		nMethod.addStatement("m_children.push_back(new_child);");  
-		//newClass.addMethod(Vis.PUBLIC, "pure virtual " + className + " get_element(const int version, const std::vector<ordt_drv_path_element> &path)");  // TODO 
+		//newClass.addMethod(Vis.PUBLIC, "pure virtual " + className + " get_element(const int version, std::list<ordt_drv_path_element> &path)");  // TODO 
 		// write class
 		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
 		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
@@ -300,14 +380,27 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		String className = "ordt_drv_reg";
 		CppBaseModClass newClass = new CppBaseModClass(className);
 		newClass.addParent("ordt_drv_element");
-		newClass.addDefine(Vis.PROTECTED, "std::vector<ordt_drv_field> m_fields");
+		newClass.addDefine(Vis.PROTECTED, "std::list<ordt_drv_field> m_fields");
 		// constructors
 		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_reps, uint64_t _m_offset, uint64_t _m_stride)");  
 		nMethod.addInitCall("ordt_drv_element(_m_name, _m_reps, _m_offset, _m_stride)");
 		nMethod.addInitCall("m_fields()");
-		// methods
-		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual uint64_t get_address(const int version, const std::vector<ordt_drv_path_element> &path)");  
-		nMethod.addStatement("return 0;");  // TODO
+		// get_address method
+		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual int get_address_using_list(const int version, std::list<ordt_drv_path_element> &path, const bool bypass_names, uint64_t &address)");  
+		nMethod.addStatement("if (path.empty())");  // exit with error if no path
+		nMethod.addStatement("  return 8;");
+		nMethod.addStatement("address += m_offset;");  // first add this regs offset
+		nMethod.addStatement("ordt_drv_path_element pelem = path.front();");  // get this element from front of path
+		nMethod.addStatement("if (m_reps>1) address += (m_stride*pelem.m_idx);");  // add index offset if a replicated instance
+		nMethod.addStatement("path.pop_front();");  // remove element from front of path
+		nMethod.addStatement("if (path.empty())");    // now if path is empty we're done
+		nMethod.addStatement("  return 0;");  
+		nMethod.addStatement("pelem = path.front();");  // get child element from front of path
+		nMethod.addStatement("#ifdef ORDT_PIO_DRV_VERBOSE");  
+		nMethod.addStatement("std::cout << \"--> invalid child \" << pelem.m_name << \" specified in reg \" << m_name << \"\\n\";" );
+		nMethod.addStatement("#endif");  
+		nMethod.addStatement("return 8;");  // TODO
+		//
 		nMethod = newClass.addMethod(Vis.PUBLIC, "void add_field(std::string _m_name, int _m_loidx, int _width)");  
 		nMethod.addStatement("ordt_drv_field new_field(_m_name, _m_loidx, _width);");  
 		nMethod.addStatement("m_fields.push_back(new_field);");  
@@ -322,11 +415,23 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		CppBaseModClass newClass = new CppBaseModClass(className);
 		newClass.addParent("ordt_drv_regset");
 		// constructors
-		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_reps, uint64_t _m_offset, uint64_t _m_stride)");  
-		nMethod.addInitCall("ordt_drv_regset(_m_name, _m_reps, _m_offset, _m_stride)");
+		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "()");  
+		nMethod.addInitCall("ordt_drv_regset(\"root\", 1, 0, 0)");
+		nMethod.addStatement("build();");  // call build in root constuctor
 		// methods
 		nMethod = newClass.addMethod(Vis.PUBLIC, "void build()"); 
 		newClass.tagMethod("build", nMethod);
+		// override of get_address to bypass names
+		nMethod = newClass.addMethod(Vis.PROTECTED, "virtual int get_address_using_tag(const std::string tag, std::list<ordt_drv_path_element> &path, uint64_t &address)"); 
+		nMethod.addStatement("int version = get_version(tag);");
+		nMethod.addStatement("if (version<0) {");  
+		nMethod.addStatement("#ifdef ORDT_PIO_DRV_VERBOSE");  
+		nMethod.addStatement("   std::cout << \"--> invalid tag: \" << tag << \"\\n\";" );
+		nMethod.addStatement("#endif");  
+		nMethod.addStatement("  return 2;");  
+		nMethod.addStatement("}");  
+		nMethod.addStatement("address=0;");  // initialize address if calling from root
+		nMethod.addStatement("return get_address_using_list(version, path, true, address);");
 		// return the root class
 		return newClass;
 	}

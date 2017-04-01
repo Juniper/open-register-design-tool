@@ -4,12 +4,10 @@ package ordt.extract;
 public class OverlayFileInfo {
 	String name;
 	String tag;
-	String parentTag;
-	public OverlayFileInfo(String name, String tag, String parentTag) {
+	public OverlayFileInfo(String name, String tag) {
 		super();
 		this.name = name;
 		this.tag = tag;
-		this.parentTag = parentTag;
 	}
 	public String getName() {
 		return name;
@@ -17,8 +15,4 @@ public class OverlayFileInfo {
 	public String getTag() {
 		return tag;
 	}
-	public String getParentTag() {
-		return parentTag;
-	}
-	
 }

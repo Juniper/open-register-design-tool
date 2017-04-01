@@ -28,7 +28,7 @@ import ordt.parameters.ExtParameters.SVChildInfoModes;
 
 public class Ordt {
 
-	private static String version = "170330.01"; 
+	private static String version = "170401.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -72,11 +72,10 @@ public class Ordt {
             		remainingArgs -= 2;
         		}
         		// overlay file / form: -overlay file tag parent
-        		else if (arg.equals("-overlay") && (remainingArgs>3)) {
-        			String olayName = args[args.length - remainingArgs];
-        			String olayTag = args[args.length - remainingArgs + 1];
-        			String olayPtag = args[args.length - remainingArgs + 2];
-        			overlayFiles.add(new OverlayFileInfo(olayName, olayTag, olayPtag));
+        		else if (arg.equals("-overlay") && (remainingArgs>2)) {
+        			String olayTag = args[args.length - remainingArgs];
+        			String olayName = args[args.length - remainingArgs + 1];
+        			overlayFiles.add(new OverlayFileInfo(olayName, olayTag));
             		remainingArgs -= 4;
         		}
         		else showUsage();
@@ -416,8 +415,15 @@ public class Ordt {
 	}
 
 	/** add an input overlay file (used by DebugController) */
-	public static void addOverlayFile(String olayName, String olayTag, String olayPtag) {   // TODO - add check on overlay file type, etc
-		overlayFiles.add(new OverlayFileInfo(olayName, olayTag, olayPtag));
+	public static void addOverlayFile(String olayName, String olayTag) {   // TODO - add checks on overlay file type, etc
+		overlayFiles.add(new OverlayFileInfo(olayName, olayTag));
+	}
+
+    /** return the list of overlay file tags */
+	public static List<String> getOverlayFileTags() {
+		List<String> retlist = new ArrayList<String>();
+		for (OverlayFileInfo finfo: overlayFiles) retlist.add(finfo.getTag());
+		return retlist;
 	}
 
 }
