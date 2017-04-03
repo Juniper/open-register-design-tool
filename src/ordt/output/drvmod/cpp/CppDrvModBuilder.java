@@ -318,8 +318,6 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		nMethod.addStatement("   }");
 		nMethod.addStatement("}");
 		nMethod.addStatement("return pathlist;");  // invalid tag
-        // 
-		//newClass.addMethod(Vis.PUBLIC, "pure virtual " + className + " get_element(const int version, const std::list<ordt_drv_path_element> &path)");  // TODO move this to regset?
 		// write class
 		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
 		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
@@ -376,7 +374,6 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		nMethod = newClass.addMethod(Vis.PUBLIC, "void add_child(int _m_map, std::shared_ptr<ordt_drv_element> _m_child)");  
 		nMethod.addStatement("ordt_drv_regset_child new_child(_m_map, _m_child);");  
 		nMethod.addStatement("m_children.push_back(new_child);");  
-		//newClass.addMethod(Vis.PUBLIC, "pure virtual " + className + " get_element(const int version, std::list<ordt_drv_path_element> &path)");  // TODO 
 		// write class
 		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
 		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
@@ -408,7 +405,7 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		nMethod.addStatement("#ifdef ORDT_PIO_DRV_VERBOSE");  
 		nMethod.addStatement("std::cout << \"--> invalid child \" << pelem.m_name << \" specified in reg \" << m_name << \"\\n\";" );
 		nMethod.addStatement("#endif");  
-		nMethod.addStatement("return 8;");  // TODO
+		nMethod.addStatement("return 8;");
 		//
 		nMethod = newClass.addMethod(Vis.PUBLIC, "void add_field(std::string _m_name, int _m_loidx, int _width)");  
 		nMethod.addStatement("ordt_drv_field new_field(_m_name, _m_loidx, _width);");  

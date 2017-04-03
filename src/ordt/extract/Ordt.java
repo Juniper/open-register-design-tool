@@ -28,7 +28,7 @@ import ordt.parameters.ExtParameters.SVChildInfoModes;
 
 public class Ordt {
 
-	private static String version = "170402.01"; 
+	private static String version = "170403.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -314,38 +314,40 @@ public class Ordt {
     	System.out.println("   -parms <input_parms_filename>");
     	System.out.println("       <input_parms_filename> will be used to set ordt control parameters. The -parms");
     	System.out.println("       option may be specified multiple times to include multiple parameter files.");
-    	//System.out.println("   -verilog <filename>");
-    	//System.out.println("       <filename> will be created containing verilog output");
-    	System.out.println("   -systemverilog <output_name>");
-    	System.out.println("       if <output name> ends with '/', <output_name> will be a directory where multiple ");
-    	System.out.println("       systemverilog output files will be written.  Otherwise <output_name> will be a");
-    	System.out.println("       file containing systemverilog output for all generated modules.");
-    	System.out.println("   -svchildinfo <filename>");
-    	System.out.println("       <filename> will be created containing child decoder address information");
+    	System.out.println("   -cppmod <dirname>");
+    	System.out.println("       <dirname> will be created containing C++ model output files");
+    	System.out.println("   -cppdrvmod <dirname>");
+    	System.out.println("       <dirname> will be created containing C++ driver model output files");
     	//System.out.println("   -json <filename>");
     	//System.out.println("       <filename> will be created containing json output");
     	System.out.println("   -jspec <filename>");
     	System.out.println("       <filename> will be created containing jspec output");
+    	System.out.println("   -overlay <tag> <input_filename>");
+    	System.out.println("       <input_filename> will be processed as an overlay input with specified tag");
     	System.out.println("   -reglist <filename>");
     	System.out.println("       <filename> will be created containing a text listing of accessible registers");
     	//System.out.println("   -ralf <filename>");
     	//System.out.println("       <filename> will be created containing ralf output");
     	System.out.println("   -rdl <filename>");
     	System.out.println("       <filename> will be created containing rdl output");
-    	//System.out.println("   -vbench <filename>");
-    	//System.out.println("       <filename> will be created containing a basic verilog testbench"); 
     	//System.out.println("   -svbench <filename>");
     	//System.out.println("       <filename> will be created containing a basic systemverilog testbench"); 
+    	System.out.println("   -systemverilog <output_name>");
+    	System.out.println("       if <output name> ends with '/', <output_name> will be a directory where multiple ");
+    	System.out.println("       systemverilog output files will be written.  Otherwise <output_name> will be a");
+    	System.out.println("       file containing systemverilog output for all generated modules.");
+    	System.out.println("   -svchildinfo <filename>");
+    	System.out.println("       <filename> will be created containing child decoder address information");
     	System.out.println("   -uvmregs <filename>");
     	System.out.println("       <filename> will be created containing UVM register classes"); 
     	System.out.println("   -uvmregspkg <filename>");
     	System.out.println("       <filename> will be created containing package of ordt extended UVM classes"); 
+    	//System.out.println("   -vbench <filename>");
+    	//System.out.println("       <filename> will be created containing a basic verilog testbench"); 
+    	//System.out.println("   -verilog <filename>");
+    	//System.out.println("       <filename> will be created containing verilog output");
     	System.out.println("   -xml <filename>");
     	System.out.println("       <filename> will be created containing xml output");
-    	//System.out.println("   -cppmod <dirname>");
-    	//System.out.println("       <dirname> will be created containing C++ model output files");
-    	//System.out.println("   -cppdrvmod <dirname>");
-    	//System.out.println("       <dirname> will be created containing C++ driver model output files");
     	System.exit(0);
     }
     
