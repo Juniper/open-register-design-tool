@@ -477,7 +477,7 @@ public class CppModBuilder extends OutputBuilder {
 		CppModClass newClass = new CppModClass(className);
 		newClass.addParent("ordt_addr_elem");
 		// define mutex for reg
-		newClass.addDefine(Vis.PROTECTED, "std::mutex  m_mutex");
+		newClass.addDefine(Vis.PUBLIC, "std::mutex  m_mutex");
 		// constructors
 		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(uint64_t _m_startaddress, uint64_t _m_endaddress)");  
 		nMethod.addInitCall("ordt_addr_elem(_m_startaddress, _m_endaddress)");  
