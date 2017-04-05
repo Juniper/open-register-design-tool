@@ -10,8 +10,8 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 	private int width = ExtParameters.getMinDataSize();
 	private List<DrvModField> fields = new ArrayList<DrvModField>();
 	
-	DrvModRegInstance(String name, int mapId, int width, long addressOffset, int reps, long addressStride) {
-		super(name, mapId, addressOffset, reps, addressStride);
+	DrvModRegInstance(String name, int mapId, int width) {
+		super(name, mapId);
 		this.width=width;
 	}
 
@@ -88,49 +88,43 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 				return false;
 			return true;
 		}
-		
-	}
 
-	@Override
-	public int hashCode() { 
-		return hashCode(false, false, true);  // do not include address info, include reg info, includeChildRegsets has no effect for a reg
+		public String isReadable() {
+			return readable? "true" : "false";
+		}
+
+		public String isWriteable() {
+			return writeable? "true" : "false";
+		}
+		
 	}
 	
 	@Override
-	public int hashCode(boolean includeAddrInfo, boolean includeChildRegsets, boolean includeRegInfo) {  
+	public int hashCode() {  
 		final int prime = 31;
-		int result = super.hashCode(includeAddrInfo);
-		if (includeRegInfo) {
-			result = prime * result + ((fields == null) ? 0 : fields.hashCode());
-			result = prime * result + width;
-		}
-		//System.out.println("DrvModRegInstance hashCode:  return=" + result + ", name=" + getName() + ", includeAddrInfo=" + includeAddrInfo);
+		int result = super.hashCode();
+		result = prime * result + ((fields == null) ? 0 : fields.hashCode());
+		result = prime * result + width;
+		//System.out.println("DrvModRegInstance hashCode:  return=" + result + ", name=" + getName() );
 		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		return equals(obj, false, false, true);  // do not include address info, include reg info, includeChildRegsets has no effect for a reg
-	}
-
-	@Override
-	public boolean equals(Object obj, boolean includeAddrInfo, boolean includeChildRegsets, boolean includeRegInfo) {
 		if (this == obj)
 			return true;
-		if (!super.equals(obj, includeAddrInfo)) 
+		if (!super.equals(obj)) 
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
 		DrvModRegInstance other = (DrvModRegInstance) obj;
-		if (includeRegInfo) {
-			if (fields == null) {
-				if (other.fields != null)
-					return false;
-			} else if (!fields.equals(other.fields))
+		if (fields == null) {
+			if (other.fields != null)
 				return false;
-			if (width != other.width)
-				return false;
-		}
+		} else if (!fields.equals(other.fields))
+			return false;
+		if (width != other.width)
+			return false;
 		return true;
 	}
 

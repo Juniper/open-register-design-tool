@@ -13,6 +13,7 @@ import ordt.extract.Ordt;
 import ordt.extract.RegModelIntf;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
+import ordt.output.drvmod.DrvModRegSetInstance.DrvModRegSetChildInfo;
 
 /** builder class for creating reg driver data structures - language independent */
 public abstract class DrvModBuilder extends OutputBuilder {
@@ -24,7 +25,7 @@ public abstract class DrvModBuilder extends OutputBuilder {
 	int addedInstances, uniqueInstances = 0;  // counts per overlay
 	private Stack<DrvModRegSetInstance> currentRegSetStack = new Stack<DrvModRegSetInstance>();
 	protected int overlayCount = 0;
-	protected List<DrvModRegSetInstance> rootInstances = new ArrayList<DrvModRegSetInstance>();
+	protected List<RootInstanceInfo> rootInstances = new ArrayList<RootInstanceInfo>();
 	
     //---------------------------- constructor ----------------------------------
 
@@ -68,7 +69,7 @@ public abstract class DrvModBuilder extends OutputBuilder {
 	public void finishRegister() {  
 		//	System.out.println("DrvModBuilder finishRegister: " + regProperties.getInstancePath() + ", base=" + regProperties.getBaseAddress());	
 		// create new reg instance
-		DrvModRegInstance newReg = new DrvModRegInstance(regProperties.getId(), overlayCount, regProperties.getRegWidth(), regProperties.getRelativeBaseAddress().toLong(), regProperties.getRepCount(), regProperties.getAddrStride().toLong());
+		DrvModRegInstance newReg = new DrvModRegInstance(regProperties.getId(), overlayCount, regProperties.getRegWidth());
 		// add field info to this reg before uniqueRegs check so has is valid
 		for (FieldProperties fld: fieldList) 
 			newReg.addField(fld.getPrefixedId(), fld.getLowIndex(), fld.getFieldWidth(), fld.isSwReadable(), fld.isSwWriteable());
@@ -77,12 +78,12 @@ public abstract class DrvModBuilder extends OutputBuilder {
 			uniqueRegs.put(newReg, newReg);
         	uniqueInstances++;
     		// add this reg to its parent
-    		currentRegSetStack.peek().addChild(newReg, overlayCount);  // if newReg is unique, add to parent's child list
+    		currentRegSetStack.peek().addChild(newReg, regProperties.getRelativeBaseAddress().toLong(), regProperties.getRepCount(), regProperties.getAddrStride().toLong(), overlayCount);  // if newReg is unique, add to parent's child list
     		//System.out.println("DrvModBuilder finishRegister:    unique id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", base=" + regProperties.getFullBaseAddress() );
         }
 		// otherwise add original instance as child  
 		else { 
-    		currentRegSetStack.peek().addChild(uniqueRegs.get(newReg), overlayCount); // if a dup, bump map encoding in parent's child list
+    		currentRegSetStack.peek().addChild(uniqueRegs.get(newReg), regProperties.getRelativeBaseAddress().toLong(), regProperties.getRepCount(), regProperties.getAddrStride().toLong(), overlayCount); // if a dup, bump map encoding in parent's child list
         	//	System.out.println("DrvModBuilder finishRegister: duplicate id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", base=" + regProperties.getFullBaseAddress() );
 		}
 	}
@@ -95,45 +96,40 @@ public abstract class DrvModBuilder extends OutputBuilder {
 			uniqueInstances = 0;
 		}
 		// create new regset instance
-		Long relativeAddr = (regSetProperties.getRelativeBaseAddress() == null)? regSetProperties.getFullBaseAddress().toLong() : regSetProperties.getRelativeBaseAddress().toLong();
 		//System.out.println("DrvModBuilder addRegSet: basename=" + regSetProperties.getBaseName() + ", id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", relAddr=" + relativeAddr + ", alignedSize=" + regSetProperties.getAlignedSize());
-		DrvModRegSetInstance newRegSet = new DrvModRegSetInstance(regSetProperties.getId(), overlayCount, relativeAddr, regSetProperties.getRepCount(), regSetProperties.getAlignedSize().toLong());
+		DrvModRegSetInstance newRegSet = new DrvModRegSetInstance(regSetProperties.getId(), overlayCount);
 		// update current instance
 		currentRegSetStack.push(newRegSet);
 		// save root instance for this overlay
-		if (regSetProperties.isRootInstance())
-			rootInstances.add(newRegSet);
+		if (regSetProperties.isRootInstance()) {
+			Long relativeAddr = (regSetProperties.getRelativeBaseAddress() == null)? regSetProperties.getFullBaseAddress().toLong() : regSetProperties.getRelativeBaseAddress().toLong();
+			rootInstances.add(new RootInstanceInfo(newRegSet, relativeAddr));
+        }
 	}
 
 	@Override
-	public void finishRegSet() {    
+	public void finishRegSet() {   
+		Long relativeAddr = (regSetProperties.getRelativeBaseAddress() == null)? regSetProperties.getFullBaseAddress().toLong() : regSetProperties.getRelativeBaseAddress().toLong();
 		//System.out.println("DrvModBuilder finishRegSet: " + regSetProperties.getBaseName() + ", id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", base=" + regSetProperties.getFullBaseAddress() + ", high=" + regSetProperties.getFullHighAddress() + ", stride=" + regSetProperties.getExtractInstance().getAddressIncrement());
 		DrvModRegSetInstance newRegSet = currentRegSetStack.pop();
 		// now that all children are added, test for uniqueness
         addedInstances++;
-		//if ("rx_memctl".equals(newRegSet.getName())) {
-		//	System.out.println("DrvModBuilder finishRegSet:        pre id=" + newRegSet.getName() + ", mapId=" + newRegSet.getMapId() + ", reps="  + newRegSet.getReps() + ", base=" + newRegSet.getAddressOffset() + ", stride=" + newRegSet.getAddressStride() + ", hashCode=" + newRegSet.hashCode() + ", containsKey=" + uniqueRegSets.containsKey(newRegSet)+ ", containsValue=" + uniqueRegSets.containsValue(newRegSet));
-		//}
         // add newRegSet if it's unique
 		if (!uniqueRegSets.containsKey(newRegSet)) {  // same as containsValue in this case
         	uniqueRegSets.put(newRegSet, newRegSet);
         	uniqueInstances++;
-    		//if (/*(overlayCount>0) ||*/ "rx_memctl".equals(newRegSet.getName()) ) 
-    		//	System.out.println("DrvModBuilder finishRegSet:    unique id=" + newRegSet.getName() + ", mapId=" + newRegSet.getMapId() + ", reps="  + newRegSet.getReps() + ", base=" + newRegSet.getAddressOffset() + ", stride=" + newRegSet.getAddressStride() + ", hashCode=" + newRegSet.hashCode() + ", containsKey=" + uniqueRegSets.containsKey(newRegSet)+ ", containsValue=" + uniqueRegSets.containsValue(newRegSet));
     		// unique, so add this regset to its parent
-    		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(newRegSet, overlayCount); 
+    		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(newRegSet, relativeAddr, regSetProperties.getRepCount(), regSetProperties.getAlignedSize().toLong(), overlayCount); 
         }
 		// otherwise add newRegSet instance as a duplicate
 		else { 
-			//DrvModRegSetInstance uniqueInstance=uniqueRegSets.get(newRegSet);
-			//System.out.println("DrvModBuilder finishRegSet: pre add child, uniqueInstance==null=" + (uniqueInstance==null) + ", uniqueRegSets.containsKey(newRegSet)=" + uniqueRegSets.containsKey(newRegSet) + ", newRegSet.hash=" + newRegSet.hashCode() + ", uniqueInstance.hash=" + uniqueInstance.hashCode());
 			// transfer newRegSet children into the unique version
-			for (DrvModBaseInstance inst: newRegSet.getChildren()) {
-				//System.out.println("DrvModBuilder finishRegSet: adding child=" + inst.getName() + " to null==uniqueRegSets.get(newRegSet)=" + (uniqueRegSets.get(newRegSet)==null) + ", uniqueRegSets.containsKey(newRegSet)=" + uniqueRegSets.containsKey(newRegSet) + ", newRegSet.hash=" + newRegSet.hashCode() + ", uniqueInstance.hash=" + uniqueInstance.hashCode());
-				uniqueRegSets.get(newRegSet).addChild(inst, overlayCount);
+			for (DrvModRegSetChildInfo cInfo: newRegSet.getChildren()) {
+				//System.out.println("DrvModBuilder finishRegSet: updating child=" + cInfo.child.getName() + "of newRegSet " + newRegSet.getName() + ", null uniqueRegSets.get(newRegSet)?=" + (uniqueRegSets.get(newRegSet)==null) + ", uniqueRegSets.containsKey(newRegSet)=" + uniqueRegSets.containsKey(newRegSet) + ", newRegSet.hash=" + newRegSet.hashCode());
+				uniqueRegSets.get(newRegSet).updateChild(cInfo, overlayCount, false);  // no adds are allowed here
 			}
 			// if a dup, bump map encoding in parent's child list
-    		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(uniqueRegSets.get(newRegSet), overlayCount); 
+    		if (!currentRegSetStack.isEmpty()) currentRegSetStack.peek().addChild(uniqueRegSets.get(newRegSet), relativeAddr, regSetProperties.getRepCount(), regSetProperties.getAlignedSize().toLong(), overlayCount); 
 	    	//	System.out.println("DrvModBuilder finishRegSet: duplicate id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", base=" + regSetProperties.getFullBaseAddress() + ", high=" + regSetProperties.getFullHighAddress() + ", stride=" + regSetProperties.getExtractInstance().getAddressIncrement());
 		}
 		if (regSetProperties.isRootInstance())  
@@ -158,12 +154,22 @@ public abstract class DrvModBuilder extends OutputBuilder {
 	public abstract void processRegSetInstance(DrvModRegSetInstance drvModRegSetInstance); 
 	public abstract void processRegInstance(DrvModRegInstance drvModRegInstance);
 
+	// inner clas to save root instance/offset
+	public class RootInstanceInfo {
+		public DrvModRegSetInstance instance;
+		public long relativeAddress;
+		private RootInstanceInfo(DrvModRegSetInstance instance, long relativeAddress) {
+			super();
+			this.instance = instance;
+			this.relativeAddress = relativeAddress;
+		}
+	}
+	
     //---------------------------- output write methods ----------------------------------------
 
     /** required default write method - not used in DrvModBuilder */
 	@Override
 	public void write(BufferedWriter bw) {
 	}
-
 		
 }

@@ -12,6 +12,7 @@ import ordt.output.drvmod.DrvModBaseInstance;
 import ordt.output.drvmod.DrvModBuilder;
 import ordt.output.drvmod.DrvModRegInstance;
 import ordt.output.drvmod.DrvModRegInstance.DrvModField;
+import ordt.output.drvmod.DrvModRegSetInstance.DrvModRegSetChildInfo;
 import ordt.output.drvmod.DrvModRegSetInstance;
 import ordt.output.drvmod.cpp.CppBaseModClass.CppMethod;
 import ordt.output.drvmod.cpp.CppBaseModClass.Vis;
@@ -53,11 +54,13 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		CppMethod rootBuild = rootClass.getTaggedMethod("build");
 		// create the new instance
 		rootBuild.addStatement("std::shared_ptr<ordt_drv_regset> " + rsInst.getInstName() + 
-				" = std::make_shared<ordt_drv_regset>(\"" + rsInst.getName() + "\", " + rsInst.getReps() + ", " + rsInst.getAddressOffset() + ", " + rsInst.getAddressStride() + ");");
+				" = std::make_shared<ordt_drv_regset>(\"" + rsInst.getName() + "\");");
 		// add this instance's children
-		HashMap<DrvModBaseInstance, Integer> children = rsInst.getChildMaps();
-		for(DrvModBaseInstance child: children.keySet())
-			rootBuild.addStatement(rsInst.getInstName() + "->add_child(" + children.get(child) + ", " + child.getInstName() + ");");
+		HashMap<DrvModRegSetChildInfo, Integer> children = rsInst.getChildMaps();
+		for(DrvModRegSetChildInfo childInfo: children.keySet()) {
+			DrvModBaseInstance child = childInfo.child;
+			rootBuild.addStatement(rsInst.getInstName() + "->add_child(" + children.get(childInfo) + ", " + child.getInstName() + ", " + childInfo.reps + ", " + childInfo.addressOffset + ", " + childInfo.addressStride + ");");
+		}
 	}
 
 	@Override
@@ -65,11 +68,12 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		CppMethod rootBuild = rootClass.getTaggedMethod("build");
 		// create the new instance
 		rootBuild.addStatement("std::shared_ptr<ordt_drv_reg> " + rInst.getInstName() + 
-				" = std::make_shared<ordt_drv_reg>(\"" + rInst.getName() + "\", " + rInst.getReps() + ", " + rInst.getAddressOffset() + ", " + rInst.getAddressStride() + ");");
+				" = std::make_shared<ordt_drv_reg>(\"" + rInst.getName() + "\");");
 		// add this instance's fields
 		List<DrvModField> fields = rInst.getFields();
 		for(DrvModField field: fields)
-			rootBuild.addStatement(rInst.getInstName() + "->add_field(\"" + field.name + "\", " + field.lowIndex + ", " + field.width + ");");
+			rootBuild.addStatement(rInst.getInstName() + "->add_field(\"" + field.name + "\", " + field.lowIndex + ", " + field.width +
+					", " + field.isReadable() + ", " + field.isWriteable() +");");
 	}
 	
     //---------------------------- output write methods ----------------------------------------
@@ -191,7 +195,7 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 	private void addDesignInstances() {
 		// process unique instances of each overlay
         for(int overlay=0; overlay<rootInstances.size();overlay++) {
-    		rootInstances.get(overlay).process(overlay, false, true);  // process both regs and regsets, only process each elem once
+    		rootInstances.get(overlay).instance.process(overlay, false, true);  // process both regs and regsets, only process each elem once
         }
 	}
 
@@ -199,8 +203,9 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 	private void addRootInstances() {
 		CppMethod rootBuild = rootClass.getTaggedMethod("build");
         for(int overlay=0; overlay<rootInstances.size();overlay++) {
-        	DrvModRegSetInstance inst = rootInstances.get(overlay);
-			rootBuild.addStatement("add_child(" + (1 << overlay) + ", " + inst.getInstName() + ");");
+        	DrvModRegSetInstance inst = rootInstances.get(overlay).instance;
+        	Long offset = rootInstances.get(overlay).relativeAddress;
+			rootBuild.addStatement("add_child(" + (1 << overlay) + ", " + inst.getInstName() + ", 1, " + offset + ", 0);"); 
         }
 	}
 
@@ -221,16 +226,20 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
 		
 		// field info class 
-		className = "ordt_drv_field";   // TODO - add readable/writeable booleans
+		className = "ordt_drv_field";
 		newClass = new CppBaseModClass(className);
 		newClass.addDefine(Vis.PUBLIC, "std::string m_name");   // field name
 		newClass.addDefine(Vis.PUBLIC, "int m_loidx");   // low index of field
 		newClass.addDefine(Vis.PUBLIC, "int m_width");   // field width
+		newClass.addDefine(Vis.PUBLIC, "bool m_readable");   
+		newClass.addDefine(Vis.PUBLIC, "bool m_writeable");   
 		// constructors
-		nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_loidx, int _m_width)");  
+		nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_loidx, int _m_width, bool _m_readable, bool _m_writeable)");  
 		nMethod.addInitCall("m_name(_m_name)");  
 		nMethod.addInitCall("m_loidx(_m_loidx)");
 		nMethod.addInitCall("m_width(_m_width)");
+		nMethod.addInitCall("m_readable(_m_readable)");
+		nMethod.addInitCall("m_writeable(_m_writeable)");
 		// write class
 		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
 		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
@@ -241,14 +250,8 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		String className = "ordt_drv_element";
 		CppBaseModClass newClass = new CppBaseModClass(className);
 		newClass.addDefine(Vis.PUBLIC, "std::string m_name");
-		newClass.addDefine(Vis.PROTECTED, "int m_reps");
-		newClass.addDefine(Vis.PROTECTED, "uint64_t m_offset");
-		newClass.addDefine(Vis.PROTECTED, "uint64_t m_stride");
 		// constructors
-		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_reps, uint64_t _m_offset, uint64_t _m_stride)");  
-		nMethod.addInitCall("m_reps(_m_reps)");  // number of reps in this instance
-		nMethod.addInitCall("m_offset(_m_offset)");
-		nMethod.addInitCall("m_stride(_m_stride)");
+		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name)");  
 		nMethod.addInitCall("m_name(_m_name)");  // relative name of instance
 		// -- get_address methods
 		nMethod = newClass.addMethod(Vis.PUBLIC, "pure virtual int get_address_using_list(const int version, std::list<ordt_drv_path_element> &path, const bool bypass_names, uint64_t &address, std::list<ordt_drv_field> &fields)"); 
@@ -262,7 +265,7 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		nMethod.addStatement("return 4;");  
 		//
 		nMethod = newClass.addMethod(Vis.PROTECTED, "int get_version(const std::string tag)");
-		String baseTag = rootInstances.get(0).getName();  // root instance name of overlay 0 will be used as tag
+		String baseTag = rootInstances.get(0).instance.getName();  // root instance name of overlay 0 will be used as tag
 		nMethod.addStatement("if (tag == \"" + baseTag + "\") return 0;");
 		int idx=1;
 		for (String tag: Ordt.getOverlayFileTags()) 
@@ -330,10 +333,16 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		CppBaseModClass newClass = new CppBaseModClass(className);
 		newClass.addDefine(Vis.PUBLIC, "int m_map");  // encoded overlap map
 		newClass.addDefine(Vis.PUBLIC, "std::shared_ptr<ordt_drv_element> m_child");  // pointer to child element
+		newClass.addDefine(Vis.PUBLIC, "int m_reps");
+		newClass.addDefine(Vis.PUBLIC, "uint64_t m_offset");
+		newClass.addDefine(Vis.PUBLIC, "uint64_t m_stride");
 		// constructors
-		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(int _m_map, std::shared_ptr<ordt_drv_element> _m_child)");  
+		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(int _m_map, std::shared_ptr<ordt_drv_element> _m_child, int _m_reps, uint64_t _m_offset, uint64_t _m_stride)");  
 		nMethod.addInitCall("m_map(_m_map)");  
 		nMethod.addInitCall("m_child(_m_child)");   
+		nMethod.addInitCall("m_reps(_m_reps)");  // number of reps in this instance
+		nMethod.addInitCall("m_offset(_m_offset)");
+		nMethod.addInitCall("m_stride(_m_stride)");
 		// write class
 		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
 		writeStmts(cppBw, newClass.genMethods(true));  // methods with namespace
@@ -346,16 +355,14 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		newClass.addParent("ordt_drv_element");
 		newClass.addDefine(Vis.PROTECTED, "std::list<ordt_drv_regset_child> m_children");
 		// constructors
-		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_reps, uint64_t _m_offset, uint64_t _m_stride)");  
-		nMethod.addInitCall("ordt_drv_element(_m_name, _m_reps, _m_offset, _m_stride)");
+		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name)");  
+		nMethod.addInitCall("ordt_drv_element(_m_name)");
 		nMethod.addInitCall("m_children()");
 		// get_address method
 		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual int get_address_using_list(const int version, std::list<ordt_drv_path_element> &path, const bool bypass_names, uint64_t &address, std::list<ordt_drv_field> &fields)");  
 		nMethod.addStatement("if (path.empty())");  // exit with error if no path
 		nMethod.addStatement("  return 8;");
-		nMethod.addStatement("address += m_offset;");  // first add this regsets offset
-		nMethod.addStatement("ordt_drv_path_element pelem = path.front();");  // get this element from front of path
-		nMethod.addStatement("if (m_reps>1) address += (m_stride*pelem.m_idx);");  // add index offset if a replicated instance
+		nMethod.addStatement("ordt_drv_path_element pelem = path.front();");
 		nMethod.addStatement("if (!bypass_names) {");  
 		nMethod.addStatement("  path.pop_front();");  // remove element from front of path
 		nMethod.addStatement("  if (path.empty())");    // now if path is empty we're done
@@ -364,15 +371,20 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		nMethod.addStatement("}");  
 		nMethod.addStatement("for (auto const &child: m_children) {");  // find matching child
 		//nMethod.addStatement("  std::cout << \"  --> checking child in regset \" << m_name  << \", bypass=\" << bypass_names << \", cname=\" << child.m_child->m_name << \", cmap=\" << child.m_map << \"\\n\";" );
-		nMethod.addStatement("  if (((1<<version) & child.m_map) && (bypass_names || (pelem.m_name == child.m_child->m_name))) return child.m_child->get_address_using_list(version, path, false, address, fields);");  // recursive call to matching child
+		// if a matching child, update address and make recursive call
+		nMethod.addStatement("  if (((1<<version) & child.m_map) && (bypass_names || (pelem.m_name == child.m_child->m_name))) {");  
+		nMethod.addStatement("    address += child.m_offset;");  // first add this regsets offset
+		nMethod.addStatement("    if (child.m_reps>1) address += (child.m_stride*pelem.m_idx);");  // add index offset if a replicated instance
+		nMethod.addStatement("    return child.m_child->get_address_using_list(version, path, false, address, fields);");  // recursive call to matching child
+		nMethod.addStatement("  }");  
 		nMethod.addStatement("}");  
 		nMethod.addStatement("#ifdef ORDT_PIO_DRV_VERBOSE");  
 		nMethod.addStatement("std::cout << \"--> unable to find child \" << pelem.m_name << \" in regset \" << m_name << \"\\n\";" );
 		nMethod.addStatement("#endif");  
 		nMethod.addStatement("return 8;");  
 		// add_child method
-		nMethod = newClass.addMethod(Vis.PUBLIC, "void add_child(int _m_map, std::shared_ptr<ordt_drv_element> _m_child)");  
-		nMethod.addStatement("ordt_drv_regset_child new_child(_m_map, _m_child);");  
+		nMethod = newClass.addMethod(Vis.PUBLIC, "void add_child(int _m_map, std::shared_ptr<ordt_drv_element> _m_child, int _m_reps, uint64_t _m_offset, uint64_t _m_stride)");
+		nMethod.addStatement("ordt_drv_regset_child new_child(_m_map, _m_child, _m_reps, _m_offset, _m_stride);");  
 		nMethod.addStatement("m_children.push_back(new_child);");  
 		// write class
 		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
@@ -386,29 +398,26 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		newClass.addParent("ordt_drv_element");
 		newClass.addDefine(Vis.PROTECTED, "std::list<ordt_drv_field> m_fields");
 		// constructors
-		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name, int _m_reps, uint64_t _m_offset, uint64_t _m_stride)");  
-		nMethod.addInitCall("ordt_drv_element(_m_name, _m_reps, _m_offset, _m_stride)");
+		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "(std::string _m_name)");  
+		nMethod.addInitCall("ordt_drv_element(_m_name)");
 		nMethod.addInitCall("m_fields()");
 		// get_address method
 		nMethod = newClass.addMethod(Vis.PUBLIC, "virtual int get_address_using_list(const int version, std::list<ordt_drv_path_element> &path, const bool bypass_names, uint64_t &address, std::list<ordt_drv_field> &fields)");  
 		nMethod.addStatement("if (path.empty())");  // exit with error if no path
 		nMethod.addStatement("  return 8;");
-		nMethod.addStatement("address += m_offset;");  // first add this regs offset
-		nMethod.addStatement("ordt_drv_path_element pelem = path.front();");  // get this element from front of path
-		nMethod.addStatement("if (m_reps>1) address += (m_stride*pelem.m_idx);");  // add index offset if a replicated instance
 		nMethod.addStatement("path.pop_front();");  // remove element from front of path
 		nMethod.addStatement("if (path.empty()) {");    // now if path is empty we're done
 		nMethod.addStatement("  fields = m_fields;");  // return the field list
 		nMethod.addStatement("  return 0;");  
 		nMethod.addStatement("}");  
-		nMethod.addStatement("pelem = path.front();");  // get child element from front of path
 		nMethod.addStatement("#ifdef ORDT_PIO_DRV_VERBOSE");  
+		nMethod.addStatement("ordt_drv_path_element pelem = path.front();");  // get child element from front of path
 		nMethod.addStatement("std::cout << \"--> invalid child \" << pelem.m_name << \" specified in reg \" << m_name << \"\\n\";" );
 		nMethod.addStatement("#endif");  
 		nMethod.addStatement("return 8;");
 		//
-		nMethod = newClass.addMethod(Vis.PUBLIC, "void add_field(std::string _m_name, int _m_loidx, int _width)");  
-		nMethod.addStatement("ordt_drv_field new_field(_m_name, _m_loidx, _width);");  
+		nMethod = newClass.addMethod(Vis.PUBLIC, "void add_field(std::string _m_name, int _m_loidx, int _width, bool _m_readable, bool _m_writeable)");
+		nMethod.addStatement("ordt_drv_field new_field(_m_name, _m_loidx, _width, _m_readable, _m_writeable);");  
 		nMethod.addStatement("m_fields.push_back(new_field);");  
 		// write class
 		writeStmts(hppBw, newClass.genHeader(false)); // header with no include guards
@@ -422,7 +431,7 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		newClass.addParent("ordt_drv_regset");
 		// constructors
 		CppMethod nMethod = newClass.addConstructor(Vis.PUBLIC, className + "()");  
-		nMethod.addInitCall("ordt_drv_regset(\"root\", 1, 0, 0)");
+		nMethod.addInitCall("ordt_drv_regset(\"root\")");
 		nMethod.addStatement("build();");  // call build in root constuctor
 		// methods
 		nMethod = newClass.addMethod(Vis.PUBLIC, "void build()"); 
