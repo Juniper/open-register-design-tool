@@ -133,6 +133,7 @@ ext_parm_defs
    | 'child_info_mode' EQ ('perl' | 'module') 
    | 'pulse_intr_on_clear' EQ bool
    | 'reuse_iwrap_structures' EQ bool
+   | 'optimize_parallel_externals' EQ bool
    ;
       
 // ------------ uvmregs_out_defs

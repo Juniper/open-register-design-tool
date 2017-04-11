@@ -11,12 +11,11 @@ import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
-import ordt.output.RegProperties;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.AddressableInstanceProperties;
-import ordt.output.InstanceProperties.ExtType;
+import ordt.output.RegProperties;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 import ordt.parameters.ExtParameters.SVBlockSelectModes;
@@ -94,7 +93,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** create processor interface logic */  
-	public void genPioInterfaces(RegProperties topRegProperties) {
+	public void genPioInterfaces(AddressableInstanceProperties topRegProperties) {
 		// generate the primary processor interface
 		genPrimaryPioInterface(topRegProperties);
 		
@@ -109,7 +108,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** create primary processor interface */
-	private void genPrimaryPioInterface(RegProperties topRegProperties) {
+	private void genPrimaryPioInterface(AddressableInstanceProperties topRegProperties) {
         //System.out.println("SystemVerilogDecode genPrimaryPioInterface: isS8=" + hasPrimaryInterfaceType(SVDecodeInterfaceTypes.SERIAL8));
 		// create interface logic
 		if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.LEAF)) this.genLeafPioInterface(topRegProperties, true);
@@ -125,7 +124,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** create secondary processor interface */
-	private void genSecondaryPioInterface(RegProperties topRegProperties) {
+	private void genSecondaryPioInterface(AddressableInstanceProperties topRegProperties) {
 		// create interface logic
 		if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.NONE)) return;
 		//if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.LEAF)) this.genLeafPioInterface(topRegProperties, false);
@@ -512,7 +511,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** add parallel interface signals (internal intf signals passed thru to interface) */
-	private void genParallelPioInterface(RegProperties topRegProperties, boolean isPrimary) {
+	private void genParallelPioInterface(AddressableInstanceProperties topRegProperties, boolean isPrimary) {
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with parallel interface, id=" + topRegProperties.getInstancePath());
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
@@ -590,7 +589,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** generate an assist engine (not valid for primary interface) */
-	private void genEngine1Interface(RegProperties topRegProperties) {
+	private void genEngine1Interface(AddressableInstanceProperties topRegProperties) {
 		// exit with error if this addrmap has only a single address
 		if (!mapHasMultipleAddresses()) Ordt.errorExit("Assist engine can only be used in addrmaps with multiple addresses");
 		
@@ -1161,7 +1160,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** add interface signals for address maps talking to a leaf */
-	private void genLeafPioInterface(RegProperties topRegProperties, boolean isPrimary) {
+	private void genLeafPioInterface(AddressableInstanceProperties topRegProperties, boolean isPrimary) {
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with leaf interface");
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
@@ -1376,7 +1375,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** add serial8 pio interface */
-	private void genSerial8PioInterface(RegProperties topRegProperties, boolean isPrimary) {  
+	private void genSerial8PioInterface(AddressableInstanceProperties topRegProperties, boolean isPrimary) {  
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with external interface, id=" + topRegProperties.getInstancePath());
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
@@ -1687,7 +1686,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** add ring pio interface */ 
-	private void genRingPioInterface(int ringWidth, RegProperties topRegProperties, boolean isPrimary) {
+	private void genRingPioInterface(int ringWidth, AddressableInstanceProperties topRegProperties, boolean isPrimary) {
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with external interface, id=" + topRegProperties.getInstancePath());
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
@@ -2303,93 +2302,173 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		}
 	}
 
-
 	// ------------------------------ decoder external hw interface methods -------------------------------
 	
-	/** generate common external interface constructs */
-	public void generateBaseExternalInterface(AddressableInstanceProperties regProperties) {
-		   
-		   // detect if a DEFAULT interface type so default IO are created
-		   boolean isDEFAULT = regProperties.hasExternalType(ExtType.PARALLEL);
-			   
-		   // create verilog names associated with external
-		   String decodeToHwName = regProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
-		   String decodeToHwWeName = regProperties.getFullSignalName(DefSignalType.D2H_WE); // we
-		   String decodeToHwReName = regProperties.getFullSignalName(DefSignalType.D2H_RE); // re
-		   String hwToDecodeName = regProperties.getFullSignalName(DefSignalType.H2D_DATA); // read data
-		   String hwToDecodeAckName = regProperties.getFullSignalName(DefSignalType.H2D_ACK); // ext ack
-		   String hwToDecodeNackName = regProperties.getFullSignalName(DefSignalType.H2D_NACK); // ext nack
-		   
-		   // add default signals to module IO lists if DEFAULT
-		   if (isDEFAULT) {
-			   this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwName, 0, regProperties.getMaxRegWidth());    // add write data to decode to hw signal list 
-			   this.addSimpleScalarTo(SystemVerilogBuilder.HW, decodeToHwWeName);     
-			   this.addSimpleScalarTo(SystemVerilogBuilder.HW, decodeToHwReName);     
-			   this.addSimpleVectorFrom(SystemVerilogBuilder.HW, hwToDecodeName, 0, regProperties.getMaxRegWidth());    // add read data to hw to decode signal list 
-			   this.addSimpleScalarFrom(SystemVerilogBuilder.HW, hwToDecodeAckName);     
-			   this.addSimpleScalarFrom(SystemVerilogBuilder.HW, hwToDecodeNackName);     			   
-		   }
-		   
-		   // register the outputs and assign output reg values
-		   this.addVectorReg(decodeToHwName, 0, regProperties.getMaxRegWidth());  
-		   this.addScalarReg(decodeToHwWeName);  
-		   this.addScalarReg(decodeToHwReName);  
+	/** class containing common signal names, etc for an external interface */
+	private class ExternalInterfaceInfo  {
+		public String decodeToHwName;   // write data                   
+		public String decodeToHwWeName; // we
+		public String decodeToHwReName; //  re
+		public String hwToDecodeName; //  read data
+		public String hwToDecodeAckName; //  ext ack
+		public String hwToDecodeNackName; //  ext nack
+		public String decodeToHwAddrName; // address
+		public String decodeToHwTransactionSizeName;  // size of r/w transaction in words
+		public String hwToDecodeTransactionSizeName;  // size of return read transaction in word
+		public Boolean hasAddress;   // true if external region has an address
+		public Boolean hasSize;   // true if external region has size signals
 
-		   // add next signal assignments also
-		   this.addVectorReg(decodeToHwName + "_next", 0, regProperties.getMaxRegWidth());  
-		   this.addScalarReg(decodeToHwWeName + "_next");  
-		   this.addScalarReg(decodeToHwReName + "_next");  
-		   // reset output signals
-		   this.addResetAssign("external i/f", builder.getDefaultReset(), decodeToHwWeName + " <= #1  1'b0;" );   
-		   this.addResetAssign("external i/f", builder.getDefaultReset(), decodeToHwReName + " <= #1  1'b0;" );
+		/** extract external interface info from instance properties */
+		public ExternalInterfaceInfo(AddressableInstanceProperties addrInstProperties) {
+			   this.decodeToHwName = addrInstProperties.getFullSignalName(DefSignalType.D2H_DATA) + "_ex";   // write data                   
+			   this.decodeToHwWeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_WE) + "_ex"; //  we
+			   this.decodeToHwReName = addrInstProperties.getFullSignalName(DefSignalType.D2H_RE) + "_ex"; //  re
+			   this.hwToDecodeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_DATA) + "_ex"; //  read data
+			   this.hwToDecodeAckName = addrInstProperties.getFullSignalName(DefSignalType.H2D_ACK) + "_ex"; //  ext ack
+			   this.hwToDecodeNackName = addrInstProperties.getFullSignalName(DefSignalType.H2D_NACK) + "_ex"; //  ext nack
+			   this.decodeToHwAddrName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ADDR) + "_ex"; // address
+			   this.decodeToHwTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_SIZE) + "_ex";  // size of r/w transaction in words
+			   this.hwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE) + "_ex";  // size of return read transaction in words
+			   this.hasAddress = (addrInstProperties.getExtAddressWidth() > 0)  && !addrInstProperties.isSingleExtReg();
+			   this.hasSize = (addrInstProperties.getMaxRegWordWidth() > 1) && !addrInstProperties.isSingleExtReg();
+		}
+	}
+	
+	// ------------------------------ decoder external hw interface methods -------------------------------
+	
+	/** generate common external interface constructs - creates logic between the address decoder and
+	 *  common interface signals that are used in all external interface variants
+	 *  @return - ExternalInterfaceInfo for the common ext interface extracted from AddressableInstanceProperties */
+	private ExternalInterfaceInfo generateBaseExternalInterface(AddressableInstanceProperties addrInstProperties) { 
+		//extract interface info
+		ExternalInterfaceInfo extIf = new ExternalInterfaceInfo(addrInstProperties);
+		
+		// create verilog names used internally in decoder block (ack, nack, rdata pass thru to decoder as is)
+		String intDecodeToHwName = addrInstProperties.getFullSignalName(DefSignalType.D2H_DATA) + "_next";   // write data                   
+		String intDecodeToHwWeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_WE) + "_next"; // we
+		String intDecodeToHwReName = addrInstProperties.getFullSignalName(DefSignalType.D2H_RE) + "_next"; // re
+		String intDecodeToHwAddrName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ADDR) + "_next"; // address
+		String intDecodeToHwTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_SIZE) + "_next";  // size of r/w transaction in words
+		String intHwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE) + "_d1";  // size of return read transaction in words
 
-		   String ackInhibitStr = "~" + hwToDecodeAckName + " & ~" + hwToDecodeNackName;
-		   this.addRegAssign("external i/f",  decodeToHwName + " <= #1  " + decodeToHwName + "_next;");  // assign next to flop
-		   this.addRegAssign("external i/f",  decodeToHwWeName + " <= #1  " + decodeToHwWeName + "_next & " + ackInhibitStr  + ";");  // assign next to flop
-		   this.addRegAssign("external i/f",  decodeToHwReName + " <= #1  " + decodeToHwReName + "_next & " + ackInhibitStr  + ";");  // assign next to flop
+		// register the outputs and assign output reg values
+		this.addVectorReg(extIf.decodeToHwName, 0, addrInstProperties.getMaxRegWidth());  
+		this.addScalarReg(extIf.decodeToHwWeName);  
+		this.addScalarReg(extIf.decodeToHwReName);  
 
-		   // if size of external range is greater than one reg we'll need an external address  
-		   if ( (regProperties.getExtAddressWidth() > 0)  && !regProperties.isSingleExtReg()) {  
-			   String decodeToHwAddrName = regProperties.getFullSignalName(DefSignalType.D2H_ADDR); // address
-			   if (isDEFAULT) this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwAddrName, regProperties.getExtLowBit(), regProperties.getExtAddressWidth());     
-			   this.addVectorReg(decodeToHwAddrName, regProperties.getExtLowBit(), regProperties.getExtAddressWidth());  
-			   this.addVectorReg(decodeToHwAddrName + "_next", regProperties.getExtLowBit(), regProperties.getExtAddressWidth());  
-			   this.addRegAssign("external i/f",  decodeToHwAddrName + " <= #1  " + decodeToHwAddrName + "_next"  + ";");  // assign next to flop
-		   }	
-		   
-		   // if size of max pio transaction is greater than one word need to add transaction size/retry info 
-		   if ( (regProperties.getMaxRegWidth() > ExtParameters.getMinDataSize()) && !regProperties.isSingleExtReg()) { 
-			   String decodeToHwTransactionSizeName = regProperties.getFullSignalName(DefSignalType.D2H_SIZE);  // size of r/w transaction in words
-			   String hwToDecodeTransactionSizeName = regProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
+		// add next signal assignments also
+		this.addVectorReg(intDecodeToHwName, 0, addrInstProperties.getMaxRegWidth());  
+		this.addScalarReg(intDecodeToHwWeName);  
+		this.addScalarReg(intDecodeToHwReName);  
+		// reset output signals
+		this.addResetAssign("external i/f", builder.getDefaultReset(), extIf.decodeToHwWeName + " <= #1  1'b0;" );   
+		this.addResetAssign("external i/f", builder.getDefaultReset(), extIf.decodeToHwReName + " <= #1  1'b0;" );
 
-			   if (isDEFAULT) this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwTransactionSizeName, 0, Utils.getBits(regProperties.getMaxRegWordWidth()));     
-			   this.addVectorReg(decodeToHwTransactionSizeName, 0, Utils.getBits(regProperties.getMaxRegWordWidth()));  
-			   this.addVectorReg(decodeToHwTransactionSizeName + "_next", 0, Utils.getBits(regProperties.getMaxRegWordWidth()));  
-			   this.addRegAssign("external i/f",  decodeToHwTransactionSizeName + " <= #1  " + decodeToHwTransactionSizeName + "_next"  + ";");  // assign next to flop
+		String ackInhibitStr = "~" + extIf.hwToDecodeAckName + " & ~" + extIf.hwToDecodeNackName;
+		this.addRegAssign("external i/f",  extIf.decodeToHwName + " <= #1  " + intDecodeToHwName + ";");  // assign next to flop
+		this.addRegAssign("external i/f",  extIf.decodeToHwWeName + " <= #1  " + intDecodeToHwWeName + " & " + ackInhibitStr  + ";");  // assign next to flop
+		this.addRegAssign("external i/f",  extIf.decodeToHwReName + " <= #1  " + intDecodeToHwReName + " & " + ackInhibitStr  + ";");  // assign next to flop
 
-			   if (isDEFAULT) this.addSimpleVectorFrom(SystemVerilogBuilder.HW, hwToDecodeTransactionSizeName, 0, Utils.getBits(regProperties.getMaxRegWordWidth()));     
-			   this.addVectorReg(hwToDecodeTransactionSizeName + "_d1", 0, Utils.getBits(regProperties.getMaxRegWordWidth()));  
-			   this.addResetAssign("external i/f", builder.getDefaultReset(), hwToDecodeTransactionSizeName + "_d1 <= #1  " + Utils.getBits(regProperties.getMaxRegWordWidth()) +"'b0;");  // reset input size flop
-			   this.addRegAssign("external i/f",  hwToDecodeTransactionSizeName + "_d1 <= #1  " + hwToDecodeTransactionSizeName + ";");  // assign input size to flop
-		   }	
+		// if size of external range is greater than one reg we'll need an external address  
+		if (extIf.hasAddress) {  
+			this.addVectorReg(extIf.decodeToHwAddrName, addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());  
+			this.addVectorReg(intDecodeToHwAddrName, addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());  
+			this.addRegAssign("external i/f",  extIf.decodeToHwAddrName + " <= #1  " + intDecodeToHwAddrName  + ";");  // assign next to flop
+		}	
+
+		// if size of max pio transaction is greater than one word need to add transaction size/retry info 
+		if (extIf.hasSize) { 
+
+			this.addVectorReg(extIf.decodeToHwTransactionSizeName, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));  
+			this.addVectorReg(intDecodeToHwTransactionSizeName, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));  
+			this.addRegAssign("external i/f",  extIf.decodeToHwTransactionSizeName + " <= #1  " + intDecodeToHwTransactionSizeName  + ";");  // assign next to flop
+
+			this.addVectorReg(intHwToDecodeTransactionSizeName, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));  
+			this.addResetAssign("external i/f", builder.getDefaultReset(), intHwToDecodeTransactionSizeName + " <= #1  " + Utils.getBits(addrInstProperties.getMaxRegWordWidth()) +"'b0;");  // reset input size flop
+			this.addRegAssign("external i/f",  intHwToDecodeTransactionSizeName + " <= #1  " + extIf.hwToDecodeTransactionSizeName + ";");  // assign input size to flop
+		}	
+		return extIf;
+	}
+
+	/** generate PARALLEL external interface shim logic */  
+	public void generateExternalInterface_PARALLEL(AddressableInstanceProperties addrInstProperties) {
+		// generate common external interface constructs
+		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
+		
+		// define external signal names
+		String decodeToHwName = addrInstProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
+		String decodeToHwWeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_WE); //  we
+		String decodeToHwReName = addrInstProperties.getFullSignalName(DefSignalType.D2H_RE); //  re
+		String hwToDecodeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_DATA); //  read data
+		String hwToDecodeAckName = addrInstProperties.getFullSignalName(DefSignalType.H2D_ACK); //  ext ack
+		String hwToDecodeNackName = addrInstProperties.getFullSignalName(DefSignalType.H2D_NACK); //  ext nack
+		String decodeToHwAddrName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ADDR); // address
+		String decodeToHwTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_SIZE);  // size of r/w transaction in words
+		String hwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
+
+		// add default signals to module IO lists
+		this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwName, 0, addrInstProperties.getMaxRegWidth());    // add write data to decode to hw signal list 
+		this.addSimpleScalarTo(SystemVerilogBuilder.HW, decodeToHwWeName);     
+		this.addSimpleScalarTo(SystemVerilogBuilder.HW, decodeToHwReName);     
+		this.addSimpleVectorFrom(SystemVerilogBuilder.HW, hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());    // add read data to hw to decode signal list 
+		this.addSimpleScalarFrom(SystemVerilogBuilder.HW, hwToDecodeAckName);     
+		this.addSimpleScalarFrom(SystemVerilogBuilder.HW, hwToDecodeNackName); 
+
+		// add assigns
+		this.addWireAssign(decodeToHwName + " = " + extIf.decodeToHwName +  ";");
+		this.addWireAssign(decodeToHwWeName + " = " + extIf.decodeToHwWeName +  ";");
+		this.addWireAssign(decodeToHwReName + " = " + extIf.decodeToHwReName +  ";");
+		this.addWireAssign(extIf.hwToDecodeName + " = " + hwToDecodeName +  ";");
+		this.addWireAssign(extIf.hwToDecodeAckName + " = " + hwToDecodeAckName +  ";");
+		this.addWireAssign(extIf.hwToDecodeNackName + " = " + hwToDecodeNackName +  ";");
+		//this.addWireAssign(decodeToSrAddrName + " = " + extIf.decodeToHwAddrName + SystemVerilogSignal.genRefArrayString(regWordBits + addrInstProperties.getExtLowBit(), srAddrBits) + ";");
+
+		// create incoming signals TODO change to reg if needed
+		this.addVectorWire(extIf.hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());
+		this.addScalarWire(extIf.hwToDecodeAckName);
+		this.addScalarWire(extIf.hwToDecodeNackName);
+		
+		// TODO - special case for a single ext reg / naming problem for ack, nack, re, we if using ack state machine?
+		// remove nack input on single (or contiguous replacated?)
+		// internally nack on write if read only, read if write only - remove read/writes in these cases
+		// remove size in/out if all one size
+		//
+		// wdata, re, we, address, size use _next extension internally
+		// retsize uses _d1 extension internally
+		// ack, nack, rdata feed decoder directly so need name changes to handle ack sm
+		/*
+	    if (ExtParameters.sysVerOptimizeParallelExternals() && regProperties.isSingleExtReg()) {
+		    // TODO
+		    System.out.println("SystemVerilogDecodeModule generateBaseExternalInterface: single reg detected");
+	    }*/
+	    //System.out.println("SystemVerilogDecodeModule generateBaseExternalInterface: " + addrInstProperties.getId() + ", reps=" + addrInstProperties.getRepCount()+ ", regbwidth=" + addrInstProperties.getMaxRegByteWidth() + ", asize=" + addrInstProperties.getAlignedSize() + ", isSingExtReg=" + addrInstProperties.isSingleExtReg());
+
+		// if size of external range is greater than one reg we'll need an external address  
+		if (extIf.hasAddress) {  
+			this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwAddrName, addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth()); 
+			this.addWireAssign(decodeToHwAddrName + " = " + extIf.decodeToHwAddrName +  ";");
+		}
+
+		// if size of max pio transaction is greater than one word need to add transaction size/retry info 
+		if (extIf.hasSize) { 
+			this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwTransactionSizeName, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));     
+			this.addWireAssign(decodeToHwTransactionSizeName + " = " + extIf.decodeToHwTransactionSizeName +  ";");
+			this.addSimpleVectorFrom(SystemVerilogBuilder.HW, hwToDecodeTransactionSizeName, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));     
+			this.addWireAssign(extIf.hwToDecodeTransactionSizeName + " = " + hwToDecodeTransactionSizeName +  ";");
+		}	
+
 	}
 
 	/** generate BBV5 external interface shim logic */  
 	public void generateExternalInterface_BBV5(AddressableInstanceProperties addrInstProperties) {
 		//Jrdl.warnMessage("SystemVerilogBuilder gen_BBV5, ext type=" + regProperties.getExternalType() + ", id=" + regProperties.getId());
-		
-		// create verilog names associated with external
-		String decodeToHwName = addrInstProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
-		String decodeToHwWeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_WE); // we
-		String decodeToHwReName = addrInstProperties.getFullSignalName(DefSignalType.D2H_RE); // re
-		String hwToDecodeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_DATA); // read data
-		String hwToDecodeAckName = addrInstProperties.getFullSignalName(DefSignalType.H2D_ACK); // ext ack
-		String hwToDecodeNackName = addrInstProperties.getFullSignalName(DefSignalType.H2D_NACK); // ext nack
+		// generate common external interface constructs
+		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
 		
 		// create incoming signals (default IOs that now need to be set)
-		this.addVectorWire(hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());
-		this.addScalarReg(hwToDecodeAckName);
-		this.addScalarReg(hwToDecodeNackName);
+		this.addVectorWire(extIf.hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());
+		this.addScalarReg(extIf.hwToDecodeAckName);
+		this.addScalarReg(extIf.hwToDecodeNackName);
 
 		// create module IOs
 		String topBackboneReqName = "d2bb_" + addrInstProperties.getBaseName() + "_req";                      
@@ -2439,11 +2518,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		//RegNumber newBase = new RegNumber(ExtParameters.getLeafBaseAddress());  
 		//newBase.setVectorLen(ExtParameters.getLeafAddressSize());
 		//newBase.add(regProperties.getBaseAddress());
-		if ( (addrInstProperties.getExtAddressWidth() > 0)  && !addrInstProperties.isSingleExtReg()) {
-			String decodeToHwAddrName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ADDR); // address
+		if (extIf.hasAddress) {
 			//decodes.get(regProperties.getBaseName() + " (external BBV5)", topBackboneAddrName + " = " + 
 			//    newBase.toFormat(NumBase.Hex, NumFormat.Verilog) + "& " + decodeToHwAddrName + ";");    
-			this.addWireAssign(topBackboneAddrName + " = " + newBase.toFormat(NumBase.Hex, NumFormat.Verilog) + " | (" + decodeToHwAddrName + " << " + addrInstProperties.getExtLowBit() + ");");
+			this.addWireAssign(topBackboneAddrName + " = " + newBase.toFormat(NumBase.Hex, NumFormat.Verilog) + " | (" + extIf.decodeToHwAddrName + " << " + addrInstProperties.getExtLowBit() + ");");
 			//System.out.println("SystemVerilogBuilder generateExternalInterface_BBV5:base address=" + regProperties.getBaseAddress());
 		}
 		else 
@@ -2454,13 +2532,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int regWords = addrInstProperties.getMaxRegWordWidth();
 		int regWordBits = Utils.getBits(regWords);
 		//System.out.println("SystemVerilogBuilder generateExternalInterface_BBV5: regwords=" + regWords + ", bits=" + regWordBits);
-		if ((regWords > 1) && !addrInstProperties.isSingleExtReg()) {
-			String decodeToHwTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_SIZE);  // size of r/w transaction in words
-			String hwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
-			this.addWireAssign(topBackboneWrWidthName + " = 4'b0 | " + decodeToHwTransactionSizeName + ";");
+		if (extIf.hasSize) {
+			this.addWireAssign(topBackboneWrWidthName + " = 4'b0 | " + extIf.decodeToHwTransactionSizeName + ";");
 			// create inbound size signal
-			this.addVectorWire(hwToDecodeTransactionSizeName, 0, regWordBits);
-			this.addWireAssign(hwToDecodeTransactionSizeName + " = " + backboneTopWidthName + SystemVerilogSignal.genRefArrayString(0, regWordBits) + ";");
+			this.addVectorWire(extIf.hwToDecodeTransactionSizeName, 0, regWordBits);
+			this.addWireAssign(extIf.hwToDecodeTransactionSizeName + " = " + backboneTopWidthName + SystemVerilogSignal.genRefArrayString(0, regWordBits) + ";");
 		}
 		else
 			this.addWireAssign(topBackboneWrWidthName + " = 4'b" + (regWords-1) + ";");
@@ -2492,7 +2568,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorReg(bbRdAccumName, 0, addrInstProperties.getMaxRegWidth());  
 		this.addVectorReg(bbRdAccumNextName, 0, addrInstProperties.getMaxRegWidth());  
 		this.addRegAssign(groupName,  bbRdAccumName + " <= #1  " + bbRdAccumNextName + ";");  
-		this.addWireAssign(hwToDecodeName + " = " + bbRdAccumName + ";");
+		this.addWireAssign(extIf.hwToDecodeName + " = " + bbRdAccumName + ";");
 
 		// if wide regs in ext region, need word count
 		if (regWordBits > 0) {
@@ -2522,8 +2598,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName,  topBackboneReqName + " =  1'b0;");  
 		this.addCombinAssign(groupName,  topBackboneRdName + " =  1'b0;");  
 		this.addCombinAssign(groupName,  topBackboneWrDvldName + " =  1'b0;"); 
-		this.addCombinAssign(groupName,  hwToDecodeAckName + " =  1'b0;"); 
-		this.addCombinAssign(groupName,  hwToDecodeNackName + " =  1'b0;"); 
+		this.addCombinAssign(groupName,  extIf.hwToDecodeAckName + " =  1'b0;"); 
+		this.addCombinAssign(groupName,  extIf.hwToDecodeNackName + " =  1'b0;"); 
 		// put upper addr bits on wr data by default
 		this.addCombinAssign(groupName,  topBackboneWrDataName + " = " + topBackboneAddrName + SystemVerilogSignal.genRefArrayString(ExtParameters.getLeafAddressSize()-32, 32) + ";"); 
 		if (regWordBits > 0) {
@@ -2552,12 +2628,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "  " + IDLE + ": begin // IDLE");
 		if (regWordBits > 0)
 			this.addCombinAssign(groupName,  "      " + bbWordCntNextName + " = "  + regWordBits + "'b0;"); // reset word count
-		this.addCombinAssign(groupName, "      if (" + decodeToHwReName + ") begin");  
+		this.addCombinAssign(groupName, "      if (" + extIf.decodeToHwReName + ") begin");  
 		this.addCombinAssign(groupName, "        " + topBackboneReqName + " =  1'b1;");  
 		this.addCombinAssign(groupName, "        " + topBackboneRdName + " =  1'b1;");  
 		this.addCombinAssign(groupName, "        " + bbStateNextName + " = " + RES_WAIT + ";");  
 		this.addCombinAssign(groupName, "      end");  
-		this.addCombinAssign(groupName, "      else if (" + decodeToHwWeName + ") begin");  
+		this.addCombinAssign(groupName, "      else if (" + extIf.decodeToHwWeName + ") begin");  
 		//this.addCombinAssign(groupName, "        " + topBackboneReqName + " =  1'b1;");  
 		this.addCombinAssign(groupName, "        " + bbStateNextName + " = " + CMD_WRITE + ";");  
 		this.addCombinAssign(groupName, "      end");  
@@ -2570,11 +2646,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			for (int word=0; word < regWords; word++) {
 				String prefix = (word==0) ? "" : "else ";
 				this.addCombinAssign(groupName, "      " + prefix + "if (" + bbWordCntName + " == " + regWordBits + "'d" + word + ")");  
-				this.addCombinAssign(groupName, "        " + topBackboneWrDataName + " = " + decodeToHwName + "[" + (word*32 + 31) + ":" + (word*32) + "];"); 
+				this.addCombinAssign(groupName, "        " + topBackboneWrDataName + " = " + extIf.decodeToHwName + "[" + (word*32 + 31) + ":" + (word*32) + "];"); 
 			}
 		}
 		else  // otherwise just use lower 32b
-			this.addCombinAssign(groupName, "      " + topBackboneWrDataName + " = " + decodeToHwName + "[31:0];"); 
+			this.addCombinAssign(groupName, "      " + topBackboneWrDataName + " = " + extIf.decodeToHwName + "[31:0];"); 
 			
 		this.addCombinAssign(groupName, "      " + topBackboneWrDvldName + " =  1'b1;");  
 		this.addCombinAssign(groupName, "      " + bbStateNextName + " = " + CMD_WAIT + ";");  
@@ -2607,7 +2683,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// RES_WAIT
 		this.addCombinAssign(groupName, "  " + RES_WAIT + ": begin  // RES_WAIT");
-		this.addCombinAssign(groupName, "      " + topBackboneRdName + " = " + decodeToHwReName + ";"); // assert if rd  
+		this.addCombinAssign(groupName, "      " + topBackboneRdName + " = " + extIf.decodeToHwReName + ";"); // assert if rd  
 		this.addCombinAssign(groupName, "      " + "if ("  + bbTimeoutCntName + " != " + backboneTopTimeoutValue + ")"); 
 		this.addCombinAssign(groupName, "        " + bbTimeoutCntNextName + " = " + bbTimeoutCntName + " + " + backboneTopTimeoutBits + "'b1;");  // run timeout counter
 		if (regWordBits > 0)
@@ -2616,7 +2692,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "      " + "if (" + backboneTopReqName + ") begin");  
 		this.addCombinAssign(groupName, "        " + "if (" + backboneTopNack + ")");  
 		this.addCombinAssign(groupName, "          " + bbStateNextName + " = " + RES_DONE_NACK + ";");  
-		this.addCombinAssign(groupName, "        " + "else if (" + decodeToHwWeName + " | " + backboneTopWrRetry + ")");  
+		this.addCombinAssign(groupName, "        " + "else if (" + extIf.decodeToHwWeName + " | " + backboneTopWrRetry + ")");  
 		this.addCombinAssign(groupName, "          " + bbStateNextName + " = " + RES_DONE_ACK + ";");  
 		this.addCombinAssign(groupName, "        " + "else");  
 		this.addCombinAssign(groupName, "          " + bbStateNextName + " = " + RES_READ + ";");  
@@ -2652,13 +2728,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// RES_DONE_ACK
 		this.addCombinAssign(groupName, "  " + RES_DONE_ACK + ": begin // RES_DONE_ACK");
-		this.addCombinAssign(groupName, "      " + hwToDecodeAckName + " = 1'b1;");   
+		this.addCombinAssign(groupName, "      " + extIf.hwToDecodeAckName + " = 1'b1;");   
 		this.addCombinAssign(groupName, "      " + bbStateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// RES_DONE_NACK
 		this.addCombinAssign(groupName, "  " + RES_DONE_NACK + ": begin // RES_DONE_NACK");
-		this.addCombinAssign(groupName, "      " + hwToDecodeNackName + " = 1'b1;");   
+		this.addCombinAssign(groupName, "      " + extIf.hwToDecodeNackName + " = 1'b1;");   
 		this.addCombinAssign(groupName, "      " + bbStateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		
@@ -2673,20 +2749,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	/** generate SRAM external interface shim logic */  
 	public void generateExternalInterface_SRAM(AddressableInstanceProperties addrInstProperties) {
 		//Jrdl.warnMessage("SystemVerilogBuilder gen_SRAM, ext type=" + regProperties.getExternalType() + ", id=" + regProperties.getId());
-		
-		// create verilog names associated with default external
-		String decodeToHwName = addrInstProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
-		String decodeToHwWeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_WE); // we
-		String decodeToHwReName = addrInstProperties.getFullSignalName(DefSignalType.D2H_RE); // re
-		String hwToDecodeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_DATA); // read data
-		String hwToDecodeAckName = addrInstProperties.getFullSignalName(DefSignalType.H2D_ACK); // ext ack
-		String hwToDecodeNackName = addrInstProperties.getFullSignalName(DefSignalType.H2D_NACK); // ext nack
-		String decodeToHwAddrName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ADDR); // address
+		// generate common external interface constructs
+		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
 		
 		// create incoming signals (default IOs that now need to be set)
-		this.addVectorWire(hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());
-		this.addScalarReg(hwToDecodeAckName);
-		this.addScalarReg(hwToDecodeNackName);
+		this.addVectorWire(extIf.hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());
+		this.addScalarReg(extIf.hwToDecodeAckName);
+		this.addScalarReg(extIf.hwToDecodeNackName);
 
 		// create module IOs
 		String decodeToSrRdName = "d2sr_" + addrInstProperties.getBaseName() + "_rd";                      
@@ -2723,59 +2792,83 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToSrAddrName, regWordBits + addrInstProperties.getExtLowBit(), srAddrBits);    // address  
 		
 		// assign wr_data and addr outputs
-		this.addWireAssign(decodeToSrWrDataName + " = " + decodeToHwName +  ";");
-		this.addWireAssign(decodeToSrAddrName + " = " + decodeToHwAddrName + SystemVerilogSignal.genRefArrayString(regWordBits + addrInstProperties.getExtLowBit(), srAddrBits) + ";");
+		this.addWireAssign(decodeToSrWrDataName + " = " + extIf.decodeToHwName +  ";");
+		this.addWireAssign(decodeToSrAddrName + " = " + extIf.decodeToHwAddrName + SystemVerilogSignal.genRefArrayString(regWordBits + addrInstProperties.getExtLowBit(), srAddrBits) + ";");
 
 		// generate valid_size by comparing decodeToHwTransactionSizeName value with regWordWidth - 1
 		String srValidSizeName = "dsr_" + addrInstProperties.getBaseName() + "_valid_size"; 
 		this.addScalarWire(srValidSizeName);
 		if ((addrInstProperties.getMaxRegWordWidth() > 1) && !addrInstProperties.isSingleExtReg()) {
-			String decodeToHwTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_SIZE);  // size of w transaction in words
-			this.addWireAssign(srValidSizeName + " = (" + decodeToHwTransactionSizeName + " == " + srRegSize + ");");
+			this.addWireAssign(srValidSizeName + " = (" + extIf.decodeToHwTransactionSizeName + " == " + srRegSize + ");");
 		}
 		else
 			this.addWireAssign(srValidSizeName + " = 1'b1;");  // not a wide reg space, so always valid
 		
 		// set fixed external reg size
 		if ((addrInstProperties.getMaxRegWordWidth() > 1) && !addrInstProperties.isSingleExtReg()) {
-			String hwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
-			this.addVectorWire(hwToDecodeTransactionSizeName, 0, regWordBits);
-			this.addWireAssign(hwToDecodeTransactionSizeName + " = " + srRegSize + ";");
+			this.addVectorWire(extIf.hwToDecodeTransactionSizeName, 0, regWordBits);
+			this.addWireAssign(extIf.hwToDecodeTransactionSizeName + " = " + srRegSize + ";");
 		}
 		
 		// set rd_data input
-		this.addWireAssign(hwToDecodeName + " = " + srToDecodeRdDataName +  ";");
+		this.addWireAssign(extIf.hwToDecodeName + " = " + srToDecodeRdDataName +  ";");
 
 		// generate valid_addr - compare decodeToSrAddrName to max address of space
 		String srValidAddrName = "dsr_" + addrInstProperties.getBaseName() + "_valid_addr"; 
 		this.addScalarWire(srValidAddrName);
 		RegNumber extMaxAddr = builder.getExternalRegBytes().getSubVector(addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());
 		if (extMaxAddr.isNonZero()) // if max addr is less than allowed range, add compare stmt
-			this.addWireAssign(srValidAddrName + " = (" + decodeToHwAddrName + " < " + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ");");
+			this.addWireAssign(srValidAddrName + " = (" + extIf.decodeToHwAddrName + " < " + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ");");
 		else
 			this.addWireAssign(srValidAddrName + " = 1'b1;");
 		//System.out.println("SystemVerilogBuilder gen.._SRAM: ext size (Bytes)=" + getExternalRegBytes() + ", extMax=" + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog));  
 
 		// generate rd/wr pulses if valid_size and valid_addr
 		// generate ack/nack based on address compare, valid_size, valid_addr, rd_ack, and wr_status
+		String srStateName = "sr_" + addrInstProperties.getBaseName() + "_state";                      
+		String groupName = addrInstProperties.getBaseName() + " sr i/f";
+		generateAckNackMachine(srStateName, groupName, 
+				extIf.decodeToHwReName, extIf.decodeToHwWeName, srValidAddrName, srValidAddrName, srValidSizeName, srToDecodeAck, srToDecodeNack, 
+				decodeToSrRdName, decodeToSrWrName, extIf.hwToDecodeAckName, extIf.hwToDecodeNackName);
+		
+	}
+
+	/** generate state machine to generate acks/nacks internally based on transaction size, address being accessed.  
+	 *  Allows simplification of the external interface.
+	 * 
+	 * @param ackStateName - name of state variable
+	 * @param groupName - group name of generated statements
+	 * @param readIn - read active input
+	 * @param writeIn - write active input
+	 * @param validReadCondition - condition string, if false read will be nacked
+	 * @param validWriteCondition - condition string, if false write will be nacked
+	 * @param validSizeCondition - condition string, if false write will be acked
+	 * @param ackIn - ack input from ext
+	 * @param nackIn - nack input from ext
+	 * @param readOut - read active output to ext
+	 * @param writeOut - write active output to ext
+	 * @param ackOut - ack output
+	 * @param nackOut - nack output
+	 */
+	private void generateAckNackMachine(String ackStateName, String groupName, 
+			String readIn, String writeIn, String validReadCondition, String validWriteCondition, String validSizeCondition, String ackIn, String nackIn, 
+			String readOut, String writeOut, String ackOut, String nackOut) {
+		
+		String ackStateNextName = ackStateName + "_next";   
 		
 		// create state machine vars
-		String srStateName = "sr_" + addrInstProperties.getBaseName() + "_state";                      
-		String srStateNextName = "sr_" + addrInstProperties.getBaseName() + "_state_next";                      
-
-		String groupName = addrInstProperties.getBaseName() + " sr i/f";
 		int stateBits = 2;
-		this.addVectorReg(srStateName, 0, stateBits);  
-		this.addVectorReg(srStateNextName, 0, stateBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), srStateName + " <= #1  " + stateBits + "'b0;");  
-		this.addRegAssign(groupName,  srStateName + " <= #1  " + srStateNextName + ";");
+		this.addVectorReg(ackStateName, 0, stateBits);  
+		this.addVectorReg(ackStateNextName, 0, stateBits);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), ackStateName + " <= #1  " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  ackStateName + " <= #1  " + ackStateNextName + ";");
 		
 		// state machine init values
-		this.addCombinAssign(groupName,  srStateNextName + " = " + srStateName + ";");  
-		this.addCombinAssign(groupName,  decodeToSrRdName + " =  1'b0;");  
-		this.addCombinAssign(groupName,  decodeToSrWrName + " =  1'b0;");  
-		this.addCombinAssign(groupName,  hwToDecodeAckName + " =  1'b0;"); 
-		this.addCombinAssign(groupName,  hwToDecodeNackName + " =  1'b0;"); 
+		this.addCombinAssign(groupName,  ackStateNextName + " = " + ackStateName + ";");  
+		this.addCombinAssign(groupName,  readOut + " =  1'b0;");  
+		this.addCombinAssign(groupName,  writeOut + " =  1'b0;");  
+		this.addCombinAssign(groupName,  ackOut + " =  1'b0;"); 
+		this.addCombinAssign(groupName,  nackOut + " =  1'b0;"); 
 		
 		// state machine
 		String IDLE = stateBits + "'h0"; 
@@ -2783,55 +2876,55 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String NACK = stateBits + "'h2"; 
 		String ACK = stateBits + "'h3";
 		
-		this.addCombinAssign(groupName, "case (" + srStateName + ")"); 
+		this.addCombinAssign(groupName, "case (" + ackStateName + ")"); 
 		
 		// IDLE
 		this.addCombinAssign(groupName, "  " + IDLE + ": begin // IDLE");
-		this.addCombinAssign(groupName, "      if (" + decodeToHwReName + ") begin");  
-		this.addCombinAssign(groupName, "        if (~" + srValidAddrName + ") " + srStateNextName + " = " + NACK + ";");  
+		this.addCombinAssign(groupName, "      if (" + readIn + ") begin");  
+		this.addCombinAssign(groupName, "        if (~" + validReadCondition + ") " + ackStateNextName + " = " + NACK + ";");  
 		//this.addCombinAssign(groupName, "        else if (~" + srValidSizeName + ") " + srStateNextName + " = " + ACK + ";");  
 		this.addCombinAssign(groupName, "        else begin");  
-		this.addCombinAssign(groupName, "        " + decodeToSrRdName + " =  1'b1;");  
-		this.addCombinAssign(groupName, "        " + srStateNextName + " = " + ACK_WAIT + ";");  
+		this.addCombinAssign(groupName, "        " + readOut + " =  1'b1;");  
+		this.addCombinAssign(groupName, "        " + ackStateNextName + " = " + ACK_WAIT + ";");  
 		this.addCombinAssign(groupName, "        end");  
 		this.addCombinAssign(groupName, "      end");  
-		this.addCombinAssign(groupName, "      else if (" + decodeToHwWeName + ") begin");  
-		this.addCombinAssign(groupName, "        if (~" + srValidAddrName + ") " + srStateNextName + " = " + NACK + ";");  
-		this.addCombinAssign(groupName, "        else if (~" + srValidSizeName + ") " + srStateNextName + " = " + ACK + ";");  
+		this.addCombinAssign(groupName, "      else if (" + writeIn + ") begin");  
+		this.addCombinAssign(groupName, "        if (~" + validWriteCondition + ") " + ackStateNextName + " = " + NACK + ";");  
+		this.addCombinAssign(groupName, "        else if (~" + validSizeCondition + ") " + ackStateNextName + " = " + ACK + ";");  
 		this.addCombinAssign(groupName, "        else begin");  
-		this.addCombinAssign(groupName, "        " + decodeToSrWrName + " =  1'b1;");  
-		this.addCombinAssign(groupName, "        " + srStateNextName + " = " + ACK_WAIT + ";");  
+		this.addCombinAssign(groupName, "        " + writeOut + " =  1'b1;");  
+		this.addCombinAssign(groupName, "        " + ackStateNextName + " = " + ACK_WAIT + ";");  
 		this.addCombinAssign(groupName, "        end");  
 		this.addCombinAssign(groupName, "      end");  
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// ACK_WAIT
 		this.addCombinAssign(groupName, "  " + ACK_WAIT + ": begin // ACK_WAIT");
-		this.addCombinAssign(groupName, "      if (" + srToDecodeAck + ") begin");  
-		this.addCombinAssign(groupName, "        " + hwToDecodeAckName + " =  1'b1;");  
-		this.addCombinAssign(groupName, "        " + srStateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "      if (" + ackIn + ") begin");  
+		this.addCombinAssign(groupName, "        " + ackOut + " =  1'b1;");  
+		this.addCombinAssign(groupName, "        " + ackStateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "      end");  
-		this.addCombinAssign(groupName, "      else if (" + srToDecodeNack + ") begin");  
-		this.addCombinAssign(groupName, "        " + hwToDecodeNackName + " =  1'b1;");  
-		this.addCombinAssign(groupName, "        " + srStateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "      else if (" + nackIn + ") begin");  
+		this.addCombinAssign(groupName, "        " + nackOut + " =  1'b1;");  
+		this.addCombinAssign(groupName, "        " + ackStateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "      end");  
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// NACK
 		this.addCombinAssign(groupName, "  " + NACK + ": begin // NACK");
-		this.addCombinAssign(groupName, "      " + hwToDecodeNackName + " =  1'b1;");  
-		this.addCombinAssign(groupName, "      " + srStateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "      " + nackOut + " =  1'b1;");  
+		this.addCombinAssign(groupName, "      " + ackStateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// ACK
 		this.addCombinAssign(groupName, "  " + ACK + ": begin // ACK");
-		this.addCombinAssign(groupName, "      " + hwToDecodeAckName + " =  1'b1;");  
-		this.addCombinAssign(groupName, "      " + srStateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "      " + ackOut + " =  1'b1;");  
+		this.addCombinAssign(groupName, "      " + ackStateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// default
 		this.addCombinAssign(groupName, "  default:");
-		this.addCombinAssign(groupName, "    " + srStateNextName + " = " + IDLE + ";");  
+		this.addCombinAssign(groupName, "    " + ackStateNextName + " = " + IDLE + ";");  
 
 		this.addCombinAssign(groupName, "endcase"); 
 		
@@ -2841,21 +2934,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	public void generateExternalInterface_SERIAL8(AddressableInstanceProperties addrInstProperties) {   
 		//Jrdl.warnMessage("SystemVerilogBuilder gen_SERIAL8, ext type=" + regProperties.getExternalType()  + ", id=" + regProperties.getId());
 		
-		// create verilog names associated with external
-		String decodeToHwName = addrInstProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
-		String decodeToHwWeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_WE); // we
-		String decodeToHwReName = addrInstProperties.getFullSignalName(DefSignalType.D2H_RE); // re
-		String hwToDecodeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_DATA); // read data
-		String hwToDecodeAckName = addrInstProperties.getFullSignalName(DefSignalType.H2D_ACK); // ext ack
-		String hwToDecodeNackName = addrInstProperties.getFullSignalName(DefSignalType.H2D_NACK); // ext nack
-		String decodeToHwAddrName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ADDR); // address
-		String decodeToHwTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_SIZE);  // size of r/w transaction in words
-		String hwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
-		
+		// generate common external interface constructs
+		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
+
 		// create incoming signals (default IOs that now need to be set)
-		this.addVectorWire(hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());
-		this.addScalarReg(hwToDecodeAckName);
-		this.addScalarReg(hwToDecodeNackName);
+		this.addVectorWire(extIf.hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());
+		this.addScalarReg(extIf.hwToDecodeAckName);
+		this.addScalarReg(extIf.hwToDecodeNackName);
 		
 		// create module IOs
 		String serial8CmdValidName = "d2s_" + addrInstProperties.getBaseName() + "_cmd_valid";                      
@@ -2874,7 +2959,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// calculate number of 8b xfers required for address (same for all transctions to this i/f)
 		int addrXferCount = 0;
-		if ( (addrInstProperties.getExtAddressWidth() > 0)  && !addrInstProperties.isSingleExtReg()) {
+		if ( extIf.hasAddress) {
 			addrXferCount = (int) Math.ceil(addrInstProperties.getExtAddressWidth()/8.0);
 			//System.out.println("SystemVerilogBuilder generateExternalInterface_Serial8: addr width=" + regProperties.getExtAddressWidth() + ", addr count=" + addrXferCount);
 		}
@@ -2882,7 +2967,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// compute max transaction size in 32b words and number of bits to represent (4 max) 
 		int regWords = addrInstProperties.getMaxRegWordWidth();
 		int regWordBits = Utils.getBits(regWords);
-		boolean useTransactionSize = (regWords > 1) && !addrInstProperties.isSingleExtReg();  // if transaction sizes need to be sent/received
+		boolean useTransactionSize = extIf.hasSize;  // if transaction sizes need to be sent/received
 		
 		// now create state machine vars
 		String s8StateName = "s8_" + addrInstProperties.getBaseName() + "_state";                      
@@ -2950,19 +3035,19 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorReg(s8RdAccumName, 0, addrInstProperties.getMaxRegWidth());  
 		this.addVectorReg(s8RdAccumNextName, 0, addrInstProperties.getMaxRegWidth());  
 		this.addRegAssign(groupName,  s8RdAccumName + " <= #1  " + s8RdAccumNextName + ";");  
-		this.addWireAssign(hwToDecodeName + " = " + s8RdAccumName + ";");
+		this.addWireAssign(extIf.hwToDecodeName + " = " + s8RdAccumName + ";");
 		
 		//  will need to capture res width
 		String hwToDecodeTransactionSizeNextName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE) + "_next";  // res size will be set in sm
 		if (useTransactionSize) {
-			this.addVectorReg(hwToDecodeTransactionSizeName, 0, regWordBits);  
+			this.addVectorReg(extIf.hwToDecodeTransactionSizeName, 0, regWordBits);  
 			this.addVectorReg(hwToDecodeTransactionSizeNextName, 0, regWordBits);  // res size will be set in sm
-			this.addResetAssign(groupName, builder.getDefaultReset(), hwToDecodeTransactionSizeName + " <= #1  " + regWordBits + "'b0;");  
-			this.addRegAssign(groupName,  hwToDecodeTransactionSizeName + " <= #1  " + hwToDecodeTransactionSizeNextName + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), extIf.hwToDecodeTransactionSizeName + " <= #1  " + regWordBits + "'b0;");  
+			this.addRegAssign(groupName,  extIf.hwToDecodeTransactionSizeName + " <= #1  " + hwToDecodeTransactionSizeNextName + ";");  
 		}
 
 		// will need to capture nack state
-		String rxNackCaptureName = hwToDecodeNackName + "_early"; 
+		String rxNackCaptureName = addrInstProperties.getFullSignalName(DefSignalType.H2D_NACK) + "_early"; 
 		String rxNackCaptureNextName = rxNackCaptureName + "_next"; 
 		this.addScalarReg(rxNackCaptureName);  
 		this.addScalarReg(rxNackCaptureNextName);  
@@ -2991,13 +3076,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName,  s8StateNextName + " = " + s8StateName + ";");  
 		this.addCombinAssign(groupName,  cmdValidDlyName[0] + " =  1'b0;");  
 		this.addCombinAssign(groupName,  cmdDataDlyName[0] + " =  8'b0;");  
-		this.addCombinAssign(groupName,  hwToDecodeAckName + " =  1'b0;"); 
-		this.addCombinAssign(groupName,  hwToDecodeNackName + " =  1'b0;");
+		this.addCombinAssign(groupName,  extIf.hwToDecodeAckName + " =  1'b0;"); 
+		this.addCombinAssign(groupName,  extIf.hwToDecodeNackName + " =  1'b0;");
 		this.addCombinAssign(groupName,  rxNackCaptureNextName + " = " + rxNackCaptureName + ";");  
 		this.addCombinAssign(groupName,  s8RdAccumNextName + " = " + s8RdAccumName + ";");
 		// init res size capture
 		if (useTransactionSize)
-			this.addCombinAssign(groupName,  hwToDecodeTransactionSizeNextName + " = " + hwToDecodeTransactionSizeName + ";"); 
+			this.addCombinAssign(groupName,  hwToDecodeTransactionSizeNextName + " = " + extIf.hwToDecodeTransactionSizeName + ";"); 
 		// init counter values
 		if (addrXferCountBits > 0) {
 			this.addCombinAssign(groupName,  s8AddrCntNextName + " = "  + addrXferCountBits + "'b0;");
@@ -3020,19 +3105,19 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "      " + rxNackCaptureNextName + " = 1'b0;");  
 		this.addCombinAssign(groupName, "      " + s8RdAccumNextName + " = " + addrInstProperties.getMaxRegWidth() + "'b0;");
 		// go on read or write request
-		this.addCombinAssign(groupName, "      if (" + decodeToHwReName + " | " + decodeToHwWeName + ") begin");  
+		this.addCombinAssign(groupName, "      if (" + extIf.decodeToHwReName + " | " + extIf.decodeToHwWeName + ") begin");  
 		this.addCombinAssign(groupName, "        " + cmdValidDlyName[0] + " =  1'b1;");  // valid is set  
-		this.addCombinAssign(groupName, "        " + cmdDataDlyName[0] + "[7] = " + decodeToHwWeName + ";");  // bit 7 = write
+		this.addCombinAssign(groupName, "        " + cmdDataDlyName[0] + "[7] = " + extIf.decodeToHwWeName + ";");  // bit 7 = write
 		this.addCombinAssign(groupName, "        " + cmdDataDlyName[0] + "[6:4] = 3'd" + addrXferCount + ";");  // bits 6:4 = address xfers  
 		if (useTransactionSize)
-		    this.addCombinAssign(groupName, "        " + cmdDataDlyName[0] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + " = " + decodeToHwTransactionSizeName + ";");  // bits 3:0 = transaction size
+		    this.addCombinAssign(groupName, "        " + cmdDataDlyName[0] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + " = " + extIf.decodeToHwTransactionSizeName + ";");  // bits 3:0 = transaction size
         // if an address then send it next
 		if (addrXferCount > 0) {  
 			this.addCombinAssign(groupName, "        " + s8StateNextName + " = " + CMD_ADDR + ";");  
 		}
 		// otherwise send data if a write or wait for read response
 		else {
-			this.addCombinAssign(groupName, "        if (" + decodeToHwWeName + ") " + s8StateNextName + " = " + CMD_DATA + ";");  
+			this.addCombinAssign(groupName, "        if (" + extIf.decodeToHwWeName + ") " + s8StateNextName + " = " + CMD_DATA + ";");  
 			this.addCombinAssign(groupName, "        else " + s8StateNextName + " = " + RES_WAIT + ";");  
 		}
 		this.addCombinAssign(groupName, "      end");  
@@ -3052,21 +3137,21 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 					this.addCombinAssign(groupName, "      " + prefix + "if (" + s8AddrCntName + " == " + addrXferCountBits + "'d" + idx + ")");
 					int lowbit = idx*8 + addrInstProperties.getExtLowBit();
 					int size = ((idx+1)*8 > addrInstProperties.getExtAddressWidth())? addrInstProperties.getExtAddressWidth() - idx*8 : 8;  // last xfer can be smaller
-					this.addCombinAssign(groupName, "        " + cmdDataDlyName[0] + " = " + decodeToHwAddrName + SystemVerilogSignal.genRefArrayString(lowbit, size) + ";");
+					this.addCombinAssign(groupName, "        " + cmdDataDlyName[0] + " = " + extIf.decodeToHwAddrName + SystemVerilogSignal.genRefArrayString(lowbit, size) + ";");
 				}
 	
 				// if addr done, send data if a write or wait for read response 
 				this.addCombinAssign(groupName, "      if (" + s8AddrCntName + " == " + addrXferCountBits + "'d" + (addrXferCount-1) + ") begin");
-				this.addCombinAssign(groupName, "        if (" + decodeToHwWeName + ") " + s8StateNextName + " = " + CMD_DATA + ";");  
+				this.addCombinAssign(groupName, "        if (" + extIf.decodeToHwWeName + ") " + s8StateNextName + " = " + CMD_DATA + ";");  
 				this.addCombinAssign(groupName, "        else " + s8StateNextName + " = " + RES_WAIT + ";");
 				this.addCombinAssign(groupName, "      end"); 
 			}
 			// else a single addr xfer
 			else {
 				// set address
-				this.addCombinAssign(groupName, "      " + cmdDataDlyName[0] + SystemVerilogSignal.genRefArrayString(0, addrInstProperties.getExtAddressWidth()) + " = " + decodeToHwAddrName  + ";");  
+				this.addCombinAssign(groupName, "      " + cmdDataDlyName[0] + SystemVerilogSignal.genRefArrayString(0, addrInstProperties.getExtAddressWidth()) + " = " + extIf.decodeToHwAddrName  + ";");  
 				// next send data if a write or wait for read response 
-				this.addCombinAssign(groupName, "      if (" + decodeToHwWeName + ") " + s8StateNextName + " = " + CMD_DATA + ";");  
+				this.addCombinAssign(groupName, "      if (" + extIf.decodeToHwWeName + ") " + s8StateNextName + " = " + CMD_DATA + ";");  
 				this.addCombinAssign(groupName, "      else " + s8StateNextName + " = " + RES_WAIT + ";");  
 			}
 			this.addCombinAssign(groupName, "    end"); 
@@ -3081,11 +3166,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		for (int idx=0; idx<maxDataXferCount; idx++) {
 			String prefix = (idx == 0)? "" : "else ";
 			this.addCombinAssign(groupName, "      "+ prefix + "if (" + s8DataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
-			this.addCombinAssign(groupName, "        "  + cmdDataDlyName[0] + " = " + decodeToHwName + SystemVerilogSignal.genRefArrayString(8*idx, 8) + ";");
+			this.addCombinAssign(groupName, "        "  + cmdDataDlyName[0] + " = " + extIf.decodeToHwName + SystemVerilogSignal.genRefArrayString(8*idx, 8) + ";");
 		}
 		// if done, move to res wait
 		String finalCntStr = "2'b11";
-		if (useTransactionSize) finalCntStr = "{" + decodeToHwTransactionSizeName + ", 2'b11}";
+		if (useTransactionSize) finalCntStr = "{" + extIf.decodeToHwTransactionSizeName + ", 2'b11}";
 		this.addCombinAssign(groupName, "      if (" + s8DataCntName + " == " + finalCntStr + ")");
 		this.addCombinAssign(groupName, "        " + s8StateNextName + " = " + RES_WAIT + ";");
 		this.addCombinAssign(groupName, "    end"); 
@@ -3099,7 +3184,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addCombinAssign(groupName,  "        " + hwToDecodeTransactionSizeNextName + " = " + resDataDlyName[delayCount] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + ";");  
 		}
 		// if a read then get the data else ack/nack
-		this.addCombinAssign(groupName, "        if (" + decodeToHwReName + ") " + s8StateNextName + " = " + RES_READ + ";");  
+		this.addCombinAssign(groupName, "        if (" + extIf.decodeToHwReName + ") " + s8StateNextName + " = " + RES_READ + ";");  
 		this.addCombinAssign(groupName, "        else if (" + rxNackCaptureNextName + ") " + s8StateNextName + " = " + RES_DONE_NACK + ";");
 		this.addCombinAssign(groupName, "        else "+ s8StateNextName + " = " + RES_DONE_ACK + ";");
 		this.addCombinAssign(groupName, "      end"); 
@@ -3121,20 +3206,20 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// otherwise move to ack or nack done
 		this.addCombinAssign(groupName, "      " + "else if (" + rxNackCaptureName + ") " + s8StateNextName + " = " + RES_DONE_NACK + ";");
 		if (useTransactionSize) 
-		    this.addCombinAssign(groupName, "      if (" + s8DataCntName + " == {" + hwToDecodeTransactionSizeName + ", 2'b11}) " + s8StateNextName + " = " + RES_DONE_ACK + ";");
+		    this.addCombinAssign(groupName, "      if (" + s8DataCntName + " == {" + extIf.hwToDecodeTransactionSizeName + ", 2'b11}) " + s8StateNextName + " = " + RES_DONE_ACK + ";");
 		else
 		    this.addCombinAssign(groupName, "      if (" + s8DataCntName + " == 2'b11) " + s8StateNextName + " = " + RES_DONE_ACK + ";");
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// RES_DONE_ACK
 		this.addCombinAssign(groupName, "  " + RES_DONE_ACK + ": begin // RES_DONE_ACK");
-		this.addCombinAssign(groupName, "      " + hwToDecodeAckName + " = 1'b1;");   
+		this.addCombinAssign(groupName, "      " + extIf.hwToDecodeAckName + " = 1'b1;");   
 		this.addCombinAssign(groupName, "      " + s8StateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// RES_DONE_NACK
 		this.addCombinAssign(groupName, "  " + RES_DONE_NACK + ": begin // RES_DONE_NACK");
-		this.addCombinAssign(groupName, "      " + hwToDecodeNackName + " = 1'b1;");   
+		this.addCombinAssign(groupName, "      " + extIf.hwToDecodeNackName + " = 1'b1;");   
 		this.addCombinAssign(groupName, "      " + s8StateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		
@@ -3149,21 +3234,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	public void generateExternalInterface_RING(int ringWidth, AddressableInstanceProperties addrInstProperties) {
 		//Jrdl.warnMessage("SystemVerilogBuilder gen_RING, ext type=" + regProperties.getExternalType()  + ", id=" + regProperties.getId());
 		
-		// create verilog names associated with external
-		String decodeToHwName = addrInstProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
-		String decodeToHwWeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_WE); // we
-		String decodeToHwReName = addrInstProperties.getFullSignalName(DefSignalType.D2H_RE); // re
-		String hwToDecodeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_DATA); // read data
-		String hwToDecodeAckName = addrInstProperties.getFullSignalName(DefSignalType.H2D_ACK); // ext ack
-		String hwToDecodeNackName = addrInstProperties.getFullSignalName(DefSignalType.H2D_NACK); // ext nack
-		String decodeToHwAddrName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ADDR); // address
-		String decodeToHwTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_SIZE);  // size of r/w transaction in words
-		String hwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
-		
+		// generate common external interface constructs
+		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
+
 		// create incoming signals (default IOs that now need to be set)
-		this.addVectorWire(hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());
-		this.addScalarReg(hwToDecodeAckName);
-		this.addScalarReg(hwToDecodeNackName);
+		this.addVectorWire(extIf.hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());
+		this.addScalarReg(extIf.hwToDecodeAckName);
+		this.addScalarReg(extIf.hwToDecodeNackName);
 		
 		// create module IOs
 		String ringCmdValidName = "d2r_" + addrInstProperties.getBaseName() + "_cmd_valid";                      
@@ -3218,7 +3295,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// calculate number of xfers required for address (same for all transctions to this i/f)
 		int addrXferCount = 0;
 		int localAddrBits = addrInstProperties.getExtAddressWidth(); 
-		if ( (addrInstProperties.getExtAddressWidth() > 0)  && !addrInstProperties.isSingleExtReg()) {
+		if ( extIf.hasAddress) {
 			nonCntlAddrBits = (localAddrBits > addrOffset)? localAddrBits - addrOffset : 0;  // compute address bits not in cntl word
 			addrXferCount = (int) Math.ceil(nonCntlAddrBits/(double) ringWidth);
 			//System.out.println("SystemVerilogBuilder generateExternalInterface_ring: addr width=" + regProperties.getExtAddressWidth() + ", addr count=" + addrXferCount);
@@ -3231,7 +3308,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// compute max transaction size in 32b words and number of bits to represent (4 max) 
 		int regWords = addrInstProperties.getMaxRegWordWidth();
 		int regWordBits = Utils.getBits(regWords);
-		boolean useTransactionSize = (regWords > 1) && !addrInstProperties.isSingleExtReg();  // if transaction sizes need to be sent/received
+		boolean useTransactionSize = extIf.hasSize;  // if transaction sizes need to be sent/received
 		// error if max reg size is too big for this region 
 		if (regWordBits > maxRegWordBits) 
 			Ordt.errorExit("Max register width (" + addrInstProperties.getMaxRegWidth() + ") is too large for " + ringWidth + "b ring external region " + addrInstProperties.getInstancePath());
@@ -3302,15 +3379,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorReg(ringRdAccumName, 0, addrInstProperties.getMaxRegWidth());  
 		this.addVectorReg(ringRdAccumNextName, 0, addrInstProperties.getMaxRegWidth());  
 		this.addRegAssign(groupName,  ringRdAccumName + " <= #1  " + ringRdAccumNextName + ";");  
-		this.addWireAssign(hwToDecodeName + " = " + ringRdAccumName + ";");
+		this.addWireAssign(extIf.hwToDecodeName + " = " + ringRdAccumName + ";");
 		
 		//  will need to capture res width
 		String hwToDecodeTransactionSizeNextName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE) + "_next";  // res size will be set in sm
 		if (useTransactionSize) {
-			this.addVectorReg(hwToDecodeTransactionSizeName, 0, regWordBits);  
+			this.addVectorReg(extIf.hwToDecodeTransactionSizeName, 0, regWordBits);  
 			this.addVectorReg(hwToDecodeTransactionSizeNextName, 0, regWordBits);  // res size will be set in sm
-			this.addResetAssign(groupName, builder.getDefaultReset(), hwToDecodeTransactionSizeName + " <= #1  " + regWordBits + "'b0;");  
-			this.addRegAssign(groupName,  hwToDecodeTransactionSizeName + " <= #1  " + hwToDecodeTransactionSizeNextName + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), extIf.hwToDecodeTransactionSizeName + " <= #1  " + regWordBits + "'b0;");  
+			this.addRegAssign(groupName,  extIf.hwToDecodeTransactionSizeName + " <= #1  " + hwToDecodeTransactionSizeNextName + ";");  
 		}
 
         // address byte count
@@ -3337,12 +3414,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName,  ringStateNextName + " = " + ringStateName + ";");  
 		this.addCombinAssign(groupName,  cmdValidDlyName[0] + " =  1'b0;");  
 		this.addCombinAssign(groupName,  cmdDataDlyName[0] + " =  " + ringWidth + "'b0;");  
-		this.addCombinAssign(groupName,  hwToDecodeAckName + " =  1'b0;"); 
-		this.addCombinAssign(groupName,  hwToDecodeNackName + " =  1'b0;");
+		this.addCombinAssign(groupName,  extIf.hwToDecodeAckName + " =  1'b0;"); 
+		this.addCombinAssign(groupName,  extIf.hwToDecodeNackName + " =  1'b0;");
 		this.addCombinAssign(groupName,  ringRdAccumNextName + " = " + ringRdAccumName + ";");
 		// init res size capture
 		if (useTransactionSize)
-			this.addCombinAssign(groupName,  hwToDecodeTransactionSizeNextName + " = " + hwToDecodeTransactionSizeName + ";"); 
+			this.addCombinAssign(groupName,  hwToDecodeTransactionSizeNextName + " = " + extIf.hwToDecodeTransactionSizeName + ";"); 
 		// init counter values
 		if (addrXferCountBits > 0) {
 			this.addCombinAssign(groupName,  ringAddrCntNextName + " = "  + addrXferCountBits + "'b0;");
@@ -3364,15 +3441,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "  " + IDLE + ": begin // IDLE");
 		this.addCombinAssign(groupName, "      " + ringRdAccumNextName + " = " + addrInstProperties.getMaxRegWidth() + "'b0;");
 		// go on read or write request
-		this.addCombinAssign(groupName, "      if (" + decodeToHwReName + " | " + decodeToHwWeName + ") begin");  
+		this.addCombinAssign(groupName, "      if (" + extIf.decodeToHwReName + " | " + extIf.decodeToHwWeName + ") begin");  
 		this.addCombinAssign(groupName, "        " + cmdValidDlyName[0] + " =  1'b1;");  // valid is set  
-		this.addCombinAssign(groupName, "        " + cmdDataDlyName[0] + "[" + rwBitIndex + "] = " + decodeToHwWeName + ";");  //  write bit
+		this.addCombinAssign(groupName, "        " + cmdDataDlyName[0] + "[" + rwBitIndex + "] = " + extIf.decodeToHwWeName + ";");  //  write bit
 		this.addCombinAssign(groupName, "        " + cmdDataDlyName[0] + SystemVerilogSignal.genRefArrayString(addrBitIndex , 2) + " = 2'd" + addrXferCount + ";");  // address xfer bits 
 		if (useTransactionSize)
-		    this.addCombinAssign(groupName, "        " + cmdDataDlyName[0] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + " = " + decodeToHwTransactionSizeName + ";");  // bits 3:0 = transaction size
+		    this.addCombinAssign(groupName, "        " + cmdDataDlyName[0] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + " = " + extIf.decodeToHwTransactionSizeName + ";");  // bits 3:0 = transaction size
         // if a portion of address is in first word
 		if (addrOffset > 0)
-		   genRingExtAddrAssign(groupName, addrInstProperties, 0, addrOffset, ringWidth - addrOffset, decodeToHwAddrName, cmdDataDlyName[0]);
+		   genRingExtAddrAssign(groupName, addrInstProperties, 0, addrOffset, ringWidth - addrOffset, extIf.decodeToHwAddrName, cmdDataDlyName[0]);
 
 		// if an address then send it next
 		if (addrXferCount > 0) {  
@@ -3380,7 +3457,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		}
 		// otherwise send data if a write or wait for read response
 		else {
-			this.addCombinAssign(groupName, "        if (" + decodeToHwWeName + ") " + ringStateNextName + " = " + CMD_DATA + ";");  
+			this.addCombinAssign(groupName, "        if (" + extIf.decodeToHwWeName + ") " + ringStateNextName + " = " + CMD_DATA + ";");  
 			this.addCombinAssign(groupName, "        else " + ringStateNextName + " = " + RES_WAIT + ";");  
 		}
 		this.addCombinAssign(groupName, "      end");  
@@ -3398,12 +3475,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				for (int idx=0; idx<addrXferCount; idx++) {
 					String prefix = (idx == 0)? "" : "else ";
 					this.addCombinAssign(groupName, "      " + prefix + "if (" + ringAddrCntName + " == " + addrXferCountBits + "'d" + idx + ")");
-					genRingExtAddrAssign(groupName, addrInstProperties, idx*ringWidth + addrOffset, 0, ringWidth, decodeToHwAddrName, cmdDataDlyName[0]);
+					genRingExtAddrAssign(groupName, addrInstProperties, idx*ringWidth + addrOffset, 0, ringWidth, extIf.decodeToHwAddrName, cmdDataDlyName[0]);
 				}
 	
 				// if addr done, send data if a write or wait for read response 
 				this.addCombinAssign(groupName, "      if (" + ringAddrCntName + " == " + addrXferCountBits + "'d" + (addrXferCount-1) + ") begin");
-				this.addCombinAssign(groupName, "        if (" + decodeToHwWeName + ") " + ringStateNextName + " = " + CMD_DATA + ";");  
+				this.addCombinAssign(groupName, "        if (" + extIf.decodeToHwWeName + ") " + ringStateNextName + " = " + CMD_DATA + ";");  
 				this.addCombinAssign(groupName, "        else " + ringStateNextName + " = " + RES_WAIT + ";");
 				this.addCombinAssign(groupName, "      end"); 
 			}
@@ -3416,12 +3493,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				int addrPadSize = Math.min(ExtParameters.getLeafAddressSize() - addrPadLowbit, ringWidth - size);  // for ring, we'll use base address to fill all addr bits in this xfer
 				if (addrPadSize>0) {
 					String addrPadStr = addrInstProperties.getFullBaseAddress().getSubVector(addrPadLowbit, addrPadSize).toFormat(NumBase.Hex, NumFormat.Verilog);
-					this.addCombinAssign(groupName, "      " + cmdDataDlyName[0] + " = {" + addrPadStr + ", " + decodeToHwAddrName + "};");						
+					this.addCombinAssign(groupName, "      " + cmdDataDlyName[0] + " = {" + addrPadStr + ", " + extIf.decodeToHwAddrName + "};");						
 				}
 				else
-					this.addCombinAssign(groupName, "      " + cmdDataDlyName[0] + " = " + decodeToHwAddrName + ";");						
+					this.addCombinAssign(groupName, "      " + cmdDataDlyName[0] + " = " + extIf.decodeToHwAddrName + ";");						
 				// next send data if a write or wait for read response 
-				this.addCombinAssign(groupName, "      if (" + decodeToHwWeName + ") " + ringStateNextName + " = " + CMD_DATA + ";");  
+				this.addCombinAssign(groupName, "      if (" + extIf.decodeToHwWeName + ") " + ringStateNextName + " = " + CMD_DATA + ";");  
 				this.addCombinAssign(groupName, "      else " + ringStateNextName + " = " + RES_WAIT + ";");  
 			}
 			this.addCombinAssign(groupName, "    end"); 
@@ -3437,15 +3514,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			for (int idx=0; idx<maxDataXferCount; idx++) {
 				String prefix = (idx == 0)? "" : "else ";
 				this.addCombinAssign(groupName, "      "+ prefix + "if (" + ringDataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
-				this.addCombinAssign(groupName, "        "  + cmdDataDlyName[0] + " = " + decodeToHwName + SystemVerilogSignal.genRefArrayString(ringWidth*idx, ringWidth) + ";");
+				this.addCombinAssign(groupName, "        "  + cmdDataDlyName[0] + " = " + extIf.decodeToHwName + SystemVerilogSignal.genRefArrayString(ringWidth*idx, ringWidth) + ";");
 			}
 			// if done, move to res wait
-			String finalCntStr = getRingDataCountString(ringWidth, useTransactionSize, decodeToHwTransactionSizeName);
+			String finalCntStr = getRingDataCountString(ringWidth, useTransactionSize, extIf.decodeToHwTransactionSizeName);
 			this.addCombinAssign(groupName, "      if (" + ringDataCntName + " == " + finalCntStr + ")"); 
 			this.addCombinAssign(groupName, "        " + ringStateNextName + " = " + RES_WAIT + ";");			
 		}
 		else {
-			this.addCombinAssign(groupName, "        "  + cmdDataDlyName[0] + " = " + decodeToHwName + SystemVerilogSignal.genRefArrayString(0, ringWidth) + ";");
+			this.addCombinAssign(groupName, "        "  + cmdDataDlyName[0] + " = " + extIf.decodeToHwName + SystemVerilogSignal.genRefArrayString(0, ringWidth) + ";");
 			this.addCombinAssign(groupName, "        " + ringStateNextName + " = " + RES_WAIT + ";");			
 		}
 		this.addCombinAssign(groupName, "    end"); 
@@ -3458,7 +3535,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addCombinAssign(groupName,  "        " + hwToDecodeTransactionSizeNextName + " = " + resDataDlyName[delayCount] + SystemVerilogSignal.genRefArrayString(0, regWordBits) + ";");  
 		}
 		// if a valid read response then get the data else ack/nack
-		this.addCombinAssign(groupName,   "        if (" + decodeToHwReName + " & " + resDataDlyName[delayCount] + "[" + ackBitIndex + "] & ~" + resDataDlyName[delayCount] + "[" + nackBitIndex + "]) " + ringStateNextName + " = " + RES_READ + ";");  
+		this.addCombinAssign(groupName,   "        if (" + extIf.decodeToHwReName + " & " + resDataDlyName[delayCount] + "[" + ackBitIndex + "] & ~" + resDataDlyName[delayCount] + "[" + nackBitIndex + "]) " + ringStateNextName + " = " + RES_READ + ";");  
 		this.addCombinAssign(groupName,   "        else if (~" + resDataDlyName[delayCount] + "[" + ackBitIndex + "]) " + ringStateNextName + " = " + RES_DONE_NACK + ";"); // if no ack then nack it
 		this.addCombinAssign(groupName,   "        else "+ ringStateNextName + " = " + RES_DONE_ACK + ";");  // write ack
 		this.addCombinAssign(groupName,   "      end"); 
@@ -3479,7 +3556,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			}
 			this.addCombinAssign(groupName,     "      end"); 
 			// move to ack when done 
-			String finalCntStr = getRingDataCountString(ringWidth, useTransactionSize, hwToDecodeTransactionSizeName);
+			String finalCntStr = getRingDataCountString(ringWidth, useTransactionSize, extIf.hwToDecodeTransactionSizeName);
 			this.addCombinAssign(groupName, "      if (" + ringDataCntName + " == " + finalCntStr + ") " + ringStateNextName + " = " + RES_DONE_ACK + ";");
 		}
 		else {
@@ -3492,13 +3569,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// RES_DONE_ACK
 		this.addCombinAssign(groupName, "  " + RES_DONE_ACK + ": begin // RES_DONE_ACK");
-		this.addCombinAssign(groupName, "      " + hwToDecodeAckName + " = 1'b1;");   
+		this.addCombinAssign(groupName, "      " + extIf.hwToDecodeAckName + " = 1'b1;");   
 		this.addCombinAssign(groupName, "      " + ringStateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// RES_DONE_NACK
 		this.addCombinAssign(groupName, "  " + RES_DONE_NACK + ": begin // RES_DONE_NACK");
-		this.addCombinAssign(groupName, "      " + hwToDecodeNackName + " = 1'b1;");   
+		this.addCombinAssign(groupName, "      " + extIf.hwToDecodeNackName + " = 1'b1;");   
 		this.addCombinAssign(groupName, "      " + ringStateNextName + " = " + IDLE + ";");  
 		this.addCombinAssign(groupName, "    end"); 
 		
@@ -3637,7 +3714,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 						// assign write enable / clobber the we if wrong size
 						writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_WE) + "_next = pio_write_active & (pio_dec_trans_size_d1 >= reg_width) & ~(pio_external_ack | pio_external_nack);");
 						// generate a fake ack on invalid size
-						writeStmt(indentLevel, "pio_external_ack_next = " + elem.getFullSignalName(DefSignalType.H2D_ACK) + " | (pio_write_active & (pio_dec_trans_size_d1 < reg_width));"); 
+						writeStmt(indentLevel, "pio_external_ack_next = " + elem.getFullSignalName(DefSignalType.H2D_ACK) + "_ex | (pio_write_active & (pio_dec_trans_size_d1 < reg_width));"); 
 					}
 					
 					// otherwise this is a larger ext region so use size io
@@ -3646,13 +3723,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 						writeStmt(indentLevel, "reg_width" + SystemVerilogSignal.genRefArrayString(0, Utils.getBits(elem.getMaxRegWordWidth())) + " = " + elem.getFullSignalName(DefSignalType.H2D_RETSIZE) + "_d1;");  // set size for this register  
 						// assign write enable 
 						writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_WE) + "_next = pio_write_active & ~(pio_external_ack | pio_external_nack);");		// write goes thru even if invalid				
-						writeStmt(indentLevel, "pio_external_ack_next = " + elem.getFullSignalName(DefSignalType.H2D_ACK) + ";"); 
+						writeStmt(indentLevel, "pio_external_ack_next = " + elem.getFullSignalName(DefSignalType.H2D_ACK) + "_ex;"); 
 					}
 				   
 				}
 				else {
 					writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_WE) + "_next = pio_write_active & ~(pio_external_ack | pio_external_nack);"); 
-					writeStmt(indentLevel, "pio_external_ack_next = " + elem.getFullSignalName(DefSignalType.H2D_ACK) + ";"); 
+					writeStmt(indentLevel, "pio_external_ack_next = " + elem.getFullSignalName(DefSignalType.H2D_ACK) + "_ex;"); 
 				}
 				
 				// ext transaction is active if a valid read or write
@@ -3660,14 +3737,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				// create read enable
 				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_RE) + "_next = pio_read_active & ~(pio_external_ack | pio_external_nack);"); 
 				// capture ack/nack/read data
-				writeStmt(indentLevel, "pio_external_nack_next = " + elem.getFullSignalName(DefSignalType.H2D_NACK) + ";");  
-				writeStmt(indentLevel--, "dec_pio_read_data_next " + elem.getMaxRegArrayString() + " = " + elem.getFullSignalName(DefSignalType.H2D_DATA) + ";");
+				writeStmt(indentLevel, "pio_external_nack_next = " + elem.getFullSignalName(DefSignalType.H2D_NACK) + "_ex;");  
+				writeStmt(indentLevel--, "dec_pio_read_data_next " + elem.getMaxRegArrayString() + " = " + elem.getFullSignalName(DefSignalType.H2D_DATA) + "_ex;");
 				writeStmt(indentLevel--, "end");  								
 			}
 			
 			// else internal, so create internal ack, re/we to logic, and capture read data
 			else {
-				RegProperties regElem = (RegProperties) elem;  // internal must be a reg so cast
+				RegProperties regElem = (RegProperties) elem;  // internal must be a reg so cast - allows readable/writable properties to be accessed
 				// getNextAddress holds max value of address map at this point 
 				if (mapHasMultipleAddresses()) writeStmt(indentLevel++, getIntDecodeAddressString(regElem) + ":");  
 				writeStmt(indentLevel++, "begin");

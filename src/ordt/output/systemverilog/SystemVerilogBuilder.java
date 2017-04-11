@@ -375,9 +375,6 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   
 		   startIOHierarchy(regProperties);  // if an interface is specified add it
 
-		   // generate common external interface constructs
-		   decoder.generateBaseExternalInterface(regProperties);
-		   
 		   //System.out.println("SystemVerilogBuilder.addRootExternalRegisters, inst=" + regProperties.getInstancePath() + ", isAddressMap=" + regProperties.isAddressMap() + ", baseAddress=" + regProperties.getBaseAddress());
 		   //System.out.println("    SystemVerilogBuilder.addRootExternalRegisters, regset inst=" + regSetProperties.getInstancePath() + ", regset isAddressMap=" + regSetProperties.isAddressMap());
 		   
@@ -388,15 +385,16 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			   //System.out.println("SystemVerilogBuilder addRootExternalRegisters: reg=" + regProperties.getInstancePath() + ", regset=" + regSetProperties.getInstancePath() + ", mod prefix=" + modulePrefix + ", bId=" + getBuilderID() + ", mlevel=" + currentMapLevel() + ", testModule=" + isTestBuilder());  
 			   childAddrMaps.add(childVerilog);
 		   }
-		   // otherwise if building external regs for test create a builder (if not already a testbuilder)
+		   // otherwise if building external regs for test create a builder (if not already a testbuilder)  // TODO - this is broken
 		   else if (ExtParameters.sysVerGenerateExternalRegs() && !isTestBuilder()) {
 			   SystemVerilogBuilder childVerilog = new SystemVerilogBuilder(this, true); // inherit some parent properties and mark child as testBuilder
 			   //System.out.println("SystemVerilogBuilder addRootExternalRegisters: reg=" + regProperties.getInstancePath() + ", regset=" + regSetProperties.getInstancePath() + ", mod prefix=" + modulePrefix + ", bId=" + getBuilderID() + ", mlevel=" + currentMapLevel() );  
 			   childAddrMaps.add(childVerilog);
 		   }
 		   
-		   // if a special i/f type on this external
-		   if (regProperties.hasExternalType(ExtType.BBV5)) decoder.generateExternalInterface_BBV5(regProperties);
+		   // generate specific i/f type for this external region
+		   if (regProperties.hasExternalType(ExtType.PARALLEL)) decoder.generateExternalInterface_PARALLEL(regProperties);
+		   else if (regProperties.hasExternalType(ExtType.BBV5)) decoder.generateExternalInterface_BBV5(regProperties);
 		   else if (regProperties.hasExternalType(ExtType.SRAM)) decoder.generateExternalInterface_SRAM(regProperties);
 		   else if (regProperties.hasExternalType(ExtType.SERIAL8)) decoder.generateExternalInterface_SERIAL8(regProperties);
 		   else if (regProperties.hasExternalType(ExtType.RING)) decoder.generateExternalInterface_RING(regProperties.getExternalType().getParm("width"), regProperties);

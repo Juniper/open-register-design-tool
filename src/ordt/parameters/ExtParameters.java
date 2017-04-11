@@ -125,7 +125,8 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		sysVerChildInfoMode = SVChildInfoModes.PERL;  
 		initBooleanParameter("pulse_intr_on_clear", false);
 		initBooleanParameter("reuse_iwrap_structures", false); 
-
+		initBooleanParameter("optimize_parallel_externals", false); 
+		
 		// ---- rdl output defaults
 		initBooleanParameter("root_component_is_instanced", true); 
 		initBooleanParameter("output_jspec_attributes", false);
@@ -664,6 +665,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getBooleanParameter("reuse_iwrap_structures");
 	}
 	
+	public static Boolean sysVerOptimizeParallelExternals() {
+		return getBooleanParameter("optimize_parallel_externals");
+	}
+		
 	public static Boolean sysVerGenerateExternalRegs() {
 		return getBooleanParameter("generate_external_regs");
 	}
