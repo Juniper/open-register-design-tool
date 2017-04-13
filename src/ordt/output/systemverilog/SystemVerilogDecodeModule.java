@@ -2495,7 +2495,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			// generate ack/nack based on address compare, valid_size, valid_addr, rd_ack, and wr_status
 			String parStateName = "par_" + addrInstProperties.getBaseName() + "_state";                      
 			String groupName = addrInstProperties.getBaseName() + " optimized ext parallel i/f";
-			generateAckNackMachine(parStateName, groupName, 
+			generateAckNackMachine(parStateName, groupName, false, 
 					extIf.decodeToHwReName, extIf.decodeToHwWeName, validReadCond, validWriteCond, validSizeCond, hwToDecodeAckName, null, // no nack input
 					addrInstProperties.isSwReadable()? decodeToHwReName : null, addrInstProperties.isSwWriteable()? decodeToHwWeName : null, // eliminate re/we outputs if needed
 					extIf.hwToDecodeAckName, extIf.hwToDecodeNackName);
@@ -2900,7 +2900,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// generate ack/nack based on address compare, valid_size, valid_addr, rd_ack, and wr_status
 		String srStateName = "sr_" + addrInstProperties.getBaseName() + "_state";                      
 		String groupName = addrInstProperties.getBaseName() + " sr i/f";
-		generateAckNackMachine(srStateName, groupName, 
+		generateAckNackMachine(srStateName, groupName, true,
 				extIf.decodeToHwReName, extIf.decodeToHwWeName, srValidAddrName, srValidAddrName, srValidSizeName, srToDecodeAck, srToDecodeNack, 
 				decodeToSrRdName, decodeToSrWrName, extIf.hwToDecodeAckName, extIf.hwToDecodeNackName);
 		
@@ -2911,6 +2911,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	 * 
 	 * @param ackStateName - name of state variable
 	 * @param groupName - group name of generated statements
+	 * @param pulseRdWr - if true read/write signals will only pulse for a cycle
 	 * @param readIn - read active input
 	 * @param writeIn - write active input
 	 * @param validReadCondition - condition string, if false read will be nacked
@@ -2923,7 +2924,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	 * @param ackOut - ack output
 	 * @param nackOut - nack output
 	 */
-	private void generateAckNackMachine(String ackStateName, String groupName, 
+	private void generateAckNackMachine(String ackStateName, String groupName, boolean pulseRdWr, 
 			String readIn, String writeIn, String validReadCondition, String validWriteCondition, String validSizeCondition, String ackIn, String nackIn, 
 			String readOut, String writeOut, String ackOut, String nackOut) {
 		
@@ -2983,7 +2984,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		  this.addCombinAssign(groupName, "        " + ackStateNextName + " = " + IDLE + ";");  
 		  this.addCombinAssign(groupName, "      end");  
 		}
-		  this.addCombinAssign(groupName, "    end"); 
+		if (!pulseRdWr && (readOut != null)) this.addCombinAssign(groupName, "        " + readOut + " = " + readIn + ";");  
+		if (!pulseRdWr && (writeOut != null)) this.addCombinAssign(groupName, "        " + writeOut + " = " + writeIn + ";");  
+		this.addCombinAssign(groupName, "    end"); 
 		
 		// NACK
 		this.addCombinAssign(groupName, "  " + NACK + ": begin // NACK");
