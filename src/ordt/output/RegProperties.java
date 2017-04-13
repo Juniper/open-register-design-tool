@@ -37,10 +37,6 @@ public class RegProperties extends AddressableInstanceProperties {
 	private boolean hasInterruptOutputDefined = false;   // reg has interrupt output
 	private boolean hasHaltOutputDefined = false;   // reg has halt output
 	
-	// register properties - will be true if any field has corresponding access
-	private boolean isSwReadable = false; 
-	private boolean isSwWriteable = false;
-	
 	// uvmregs test info
 	private boolean isMem = false;
 	private boolean uvmRegPrune = false;
@@ -302,34 +298,6 @@ public class RegProperties extends AddressableInstanceProperties {
 		this.hasHaltOutputDefined = hasHaltOutputDefined;
 	}
 
-	/** get isSwReadable (valid after fields processed)
-	 *  @return the isSwReadable
-	 */
-	public boolean isSwReadable() {
-		return isSwReadable;
-	}
-
-	/** set isSwReadable 
-	 *  @param isSwReadable the isSwReadable to set
-	 */
-	public void setSwReadable(boolean isSwReadable) {
-		this.isSwReadable = isSwReadable;
-	}
-
-	/** get isSwWriteable (valid after fields processed)
-	 *  @return the isSwWriteable
-	 */
-	public boolean isSwWriteable() {
-		return isSwWriteable;
-	}
-
-	/** set isSwWriteable
-	 *  @param isSwWriteable the isSwWriteable to set
-	 */
-	public void setSwWriteable(boolean isSwWriteable) {
-		this.isSwWriteable = isSwWriteable;
-	}
-
 	/** get uvmreg isMem */
 	public boolean isMem() {
 		return isMem;
@@ -513,8 +481,6 @@ public class RegProperties extends AddressableInstanceProperties {
 		result = prime * result + (hasInterruptFields ? 1231 : 1237);
 		result = prime * result + (hasInterruptOutputDefined ? 1231 : 1237);
 		result = prime * result + (isMem ? 1231 : 1237);
-		result = prime * result + (isSwReadable ? 1231 : 1237);
-		result = prime * result + (isSwWriteable ? 1231 : 1237);
 		result = prime * result + ((jspecAttributes == null) ? 0 : jspecAttributes.hashCode());
 		result = prime * result + ((regWidth == null) ? 0 : regWidth.hashCode());
 		result = prime * result + fieldHash;
@@ -555,10 +521,6 @@ public class RegProperties extends AddressableInstanceProperties {
 		if (hasInterruptOutputDefined != other.hasInterruptOutputDefined)
 			return false;
 		if (isMem != other.isMem)
-			return false;
-		if (isSwReadable != other.isSwReadable)
-			return false;
-		if (isSwWriteable != other.isSwWriteable)
 			return false;
 		if (jspecAttributes == null) {
 			if (other.jspecAttributes != null)

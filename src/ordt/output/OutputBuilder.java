@@ -174,10 +174,13 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			   // handle field output for alias vs non-alias regs
 			   if (visitEachReg() || (regProperties.isFirstRep() && firstRegSetRep())) { // qualify add calls by valid register options	
 					fieldList.add(fieldProperties);  // add field to list for current register
-				   if (regProperties.isAlias()) 
-					   addAliasField();
-				   else
-					   addField();
+				   // inhibit child builder field call if external and not visiting externals
+				   if (!regProperties.isExternal() || visitExternalRegisters()) {
+					   if (regProperties.isAlias()) 
+						   addAliasField();
+					   else
+						   addField();
+				   }
 			   }
 			   //System.out.println("path=" + getInstancePath() + ", id=" + regInst.getId());
 		   }
@@ -215,7 +218,9 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			   Integer computedLowIndex = regProperties.setFieldSetOffsets(currentFsetOffset, currentFsetOffset); // offset and min valid are at same position
 			   fieldSetProperties.setLowIndex(computedLowIndex); // save the computed index back into fieldProperties
 			   
-			   addFieldSet();
+			   // inhibit child builder field call if external and not visiting externals
+			   if (!regProperties.isExternal() || visitExternalRegisters()) 
+			       addFieldSet();
 			}
 	}
 
@@ -224,8 +229,10 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 	public void finishFieldSet(FieldSetProperties fsProperties) {
 		if (fsProperties != null) {
-		   finishFieldSet();
-		   FieldSetProperties fset = fieldSetPropertyStack.pop();  // done, so pop from stack
+			// inhibit child builder field call if external and not visiting externals
+			if (!regProperties.isExternal() || visitExternalRegisters()) 
+				finishFieldSet();
+			FieldSetProperties fset = fieldSetPropertyStack.pop();  // done, so pop from stack
 			if (fieldSetPropertyStack.isEmpty()) fieldSetProperties = null;
 			else fieldSetProperties = fieldSetPropertyStack.peek();  // restore parent as active fieldset
 			// restore parent fieldset offset post pop
@@ -263,9 +270,10 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		   RegNumber addressIncrement = regProperties.getExtractInstance().getAddressIncrement();
 		   updateNextAddress(addressIncrement);  
 		   
+		   fieldList.clear();  // clear fields list for active register
+		   
 		   // only visit once if specified by this output type
 		   if (visitEachReg() || (regProperties.isFirstRep() && firstRegSetRep())) {
-			   fieldList.clear();  // clear fields in current register
 			   addRegister();   
 		   }
 		}
@@ -286,7 +294,6 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			}
 		}
 		//else System.out.println("OutputBuilder finishRegister: null regProperties");
-
 	}
 
 	/** finish a register for a particular output */
@@ -319,9 +326,10 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		   
 		   //System.out.println("addExternalRegisters: path=" + regProperties.getInstancePath() + ", base=" + regProperties.getBaseAddress()  + ", next=" + nextAddress);
 
+		   fieldList.clear();  // clear fields in current register
+
 		   // if this output type will process external register output
 		   if (visitExternalRegisters() && firstRegSetRep()) { // only first rset rep here (only one call for all reg reps)
-			   fieldList.clear();  // clear fields in current register
 			   addRegister();   
 		   }
 		}
@@ -330,9 +338,9 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	/** process ext register info after all fields added */  
 	public  void finishExternalRegisters(RegProperties rProperties) {
 		if (rProperties != null) {
+		    updateFinishRegProperties(regProperties);  // update regprops post field processing
 			// only visit once if specified by this output type
 			if (visitExternalRegisters() && firstRegSetRep()) {
-			    updateFinishRegProperties(regProperties);  // update regprops post field processing
 			    regSetProperties.updateChildHash(regProperties.hashCode()); // add this reg's hashcode to parent
 				finishRegister();   // only first rset rep here (only one call for all reg reps)
 			}
@@ -383,6 +391,8 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			if (isNonRootExternal) newRegProperties.setBaseAddress(regSetProperties.getBaseAddress());   //  use current base to support multiple child scenarios
 			else newRegProperties.setBaseAddress(getExternalBaseAddress());   //  use ext base address stored by builder
 			newRegProperties.updateInstanceInfo(getInstancePath());  		   // set instance path and instance property assigns
+			newRegProperties.setSwReadable(true);  // TODO - this is a regset external, so set readable/writeable to true
+			newRegProperties.setSwWriteable(true);
 			regProperties = newRegProperties;
 		}
 		//System.out.println("OutputBuilder addRootExternalRegisters: adding external reg set, path=" + getInstancePath()); // + ", reps=" + repCount);
@@ -612,6 +622,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		boolean regIsSwReadable = false, regIsSwWriteable = false, allFieldsSwReadable = true, allFieldsSwWriteable = true; 
 		boolean regIsHwReadable = false, regIsHwWriteable = false;
 		boolean regHasCounter = false, regHasInterrupt = false;
+		//setSwAccessProperties(rProperties);  // TODO update sw readable/writeable from field array
 		for (FieldProperties field : fieldList) {
 			   if (field.isSwReadable())  regIsSwReadable = true; 
 			   else allFieldsSwReadable = false;
@@ -622,7 +633,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			   if (field.isCounter()) regHasCounter = true;  
 			   if (field.isInterrupt()) regHasInterrupt = true;				
 		}
-		//System.out.println("OutputBuilder finishRegister: " + regProperties.getInstancePath() + ", sw r=" + regIsSwReadable+ ", sw w=" + regIsSwWriteable);
+		//System.out.println("OutputBuilder updateFinishRegProperties: " + regProperties.getInstancePath() + ", sw r=" + regIsSwReadable+ ", sw w=" + regIsSwWriteable);
 		// set reg sw access
 		rProperties.setSwReadable(regIsSwReadable);  
 		rProperties.setSwWriteable(regIsSwWriteable);

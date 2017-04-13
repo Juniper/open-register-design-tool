@@ -22,7 +22,11 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 	protected int extLowBit = 0;  // low bit in external address range
 	
 	private boolean externalDecode = false;   // inst declared as external decode
-
+	
+	// register properties - will be true if any field has corresponding access
+	private boolean isSwReadable = false; 
+	private boolean isSwWriteable = false;
+	
 	public AddressableInstanceProperties(ModInstance extractInstance) {
 		super(extractInstance);
 	}
@@ -153,6 +157,34 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 		this.externalDecode = externalDecode;
 	}
 
+	/** get isSwReadable (valid after fields processed)
+	 *  @return the isSwReadable
+	 */
+	public boolean isSwReadable() {
+		return isSwReadable;
+	}
+
+	/** set isSwReadable 
+	 *  @param isSwReadable the isSwReadable to set
+	 */
+	public void setSwReadable(boolean isSwReadable) {
+		this.isSwReadable = isSwReadable;
+	}
+
+	/** get isSwWriteable (valid after fields processed)
+	 *  @return the isSwWriteable
+	 */
+	public boolean isSwWriteable() {
+		return isSwWriteable;
+	}
+
+	/** set isSwWriteable
+	 *  @param isSwWriteable the isSwWriteable to set
+	 */
+	public void setSwWriteable(boolean isSwWriteable) {
+		this.isSwWriteable = isSwWriteable;
+	}
+
 	/** return true if this addressable instance is a register */
 	public abstract boolean isRegister();
 	
@@ -177,6 +209,31 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 	/** return the array string for this max width register in this AddressableInstance */
 	public String getMaxRegArrayString() {
 		return  " [" + (getMaxRegWidth() - 1) + ":0] ";
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + (isSwReadable ? 1231 : 1237);
+		result = prime * result + (isSwWriteable ? 1231 : 1237);
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		AddressableInstanceProperties other = (AddressableInstanceProperties) obj;
+		if (isSwReadable != other.isSwReadable)
+			return false;
+		if (isSwWriteable != other.isSwWriteable)
+			return false;
+		return true;
 	}
 
 }

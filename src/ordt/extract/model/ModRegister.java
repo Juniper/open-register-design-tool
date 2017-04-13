@@ -129,13 +129,13 @@ public class ModRegister extends ModComponent  {
 			// add external registers to output structures  
 			outputBuilder.addExternalRegisters(regProperties);     // <----- note that all inst properties are extracted here
 			
-			// visit children (fields) if externals are being processed
-			if (outputBuilder.visitExternalRegisters()) {
+			// visit children (fieldsets/fields) if externals are being processed
+			//if (outputBuilder.visitExternalRegisters()) {
 				// generate each direct instance in this component
 				for (ModInstance regInst : getChildInstances()) {
 				   regInst.generateOutput(outputBuilder);
 				}
-			}
+			//}
 			// wrap up register add after all sub-fields added
 			outputBuilder.finishExternalRegisters(regProperties);  
 			

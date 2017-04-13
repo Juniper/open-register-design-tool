@@ -38,13 +38,13 @@ public class Utils {
 	}
 
 	/** compute floor of log2 of integer */
-	private static int floorLog2(int n){
+	public static int floorLog2(int n){
 	    if(n <= 0) throw new IllegalArgumentException();
 	    return 31 - Integer.numberOfLeadingZeros(n);
 	}
 
 	/** compute ceil of log2 of integer */
-	private static int ceilLog2(int n){
+	public static int ceilLog2(int n){
 	    if(n <= 0) throw new IllegalArgumentException();
 	    return 32 - Integer.numberOfLeadingZeros(n-1);
 	}
