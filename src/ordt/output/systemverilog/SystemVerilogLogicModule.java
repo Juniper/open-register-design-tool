@@ -731,7 +731,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	public void addUserDefinedSignal(String rtlName, SignalProperties signalProperties) {
 		//System.out.println("SystemVerilogLogicModule addUserDefinedSignal: ref=" + rtlName + ", key=" + signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL));
 		String sigName = signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL);
-		boolean setAsRhsReference = userDefinedSignals.containsValue(sigName) && (userDefinedSignals.get(sigName) == null);
+		boolean setAsRhsReference = userDefinedSignals.containsKey(sigName) && (userDefinedSignals.get(sigName) == null);
 		if (setAsRhsReference) signalProperties.setRhsReference(true);
 		userDefinedSignals.put(sigName, signalProperties); 
 	}
@@ -744,12 +744,14 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		//if (ref.contains("int_detected_cas_tx_afifo2_mem_0")) System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: ref=" + ref + ", isUserDefinedSignal(sigNameStr)=" + builder.isUserDefinedSignal(sigNameStr));
 		if ((ref.startsWith("rg_") && builder.isUserDefinedSignal(sigNameStr))) {  // check that signal is in pre-computed set  
 			// the local list may not have been populated, but can load with null to indicate that it's been seen on rhs of an assign
-			if (!userDefinedSignals.containsValue(sigNameStr)) {
-				//if (ref.contains("int_detected_cas_tx_afifo2_mem_0")) System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: " + sigNameStr + " was found in master list, but not in module-specific list");
+			if (!userDefinedSignals.containsKey(sigNameStr)) {
+				//System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: " + sigNameStr + " was found in master list, but not in module-specific list");
 				userDefinedSignals.put(sigNameStr, null);
 			}
-			else userDefinedSignals.get(sigNameStr).setRhsReference(true);  // indicate that this signal is used internally as rhs  
-			//System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: marked signal " + retStr + " as rhsReference, rhs=" + userDefinedSignals.get(retStr).isRhsReference());
+			else {
+				//if (userDefinedSignals.get(sigNameStr)==null) System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: marking null signal " + sigNameStr + " as rhsReference");
+				if (userDefinedSignals.get(sigNameStr)!=null) userDefinedSignals.get(sigNameStr).setRhsReference(true);  // indicate that this signal is used internally as rhs  
+			}
 			return sigNameStr;  // return signal form if found
 		}	
 		return ref;  // no name change by default
@@ -773,9 +775,9 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 						//System.out.println("SystemVerilogLogicModule createSignalAssigns: sig prop inst=" + sig.getInstancePath() + ", refName=" + refName);
 						refName = resolveAsSignalOrField(refName);  // resolve and tag any signals as rhsReference
 						// check for a valid signal
-						if (!this.hasDefinedSignal(refName) && (rhsSignals.containsValue(refName))) {  
+						if (!this.hasDefinedSignal(refName) && (rhsSignals.containsKey(refName))) {  
 							RhsReferenceInfo rInfo = rhsSignals.get(refName);
-							//System.out.println("SystemVerilogLogicModule createSignalAssigns: refName=" + refName + ", hasDefinedSignal=" + this.hasDefinedSignal(refName) + ", rhsSignals.containsValue=" + rhsSignals.containsValue(refName));
+							//System.out.println("SystemVerilogLogicModule createSignalAssigns: refName=" + refName + ", hasDefinedSignal=" + this.hasDefinedSignal(refName) + ", rhsSignals.containsKey=" + rhsSignals.containsKey(refName));
 							Ordt.errorMessage("unable to resolve " + rInfo.getRhsRefString() + " referenced in rhs dynamic property assignment for " + rInfo.getLhsInstance()); 
 						}						
 					}
@@ -819,7 +821,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	public void checkSignalName(String preResolveName, String postResolveName) {
 		// issue an error if resolved name is not in the defined signal list
 		if (!this.hasDefinedSignal(postResolveName)) {
-			if (rhsSignals.containsValue(preResolveName)) {
+			if (rhsSignals.containsKey(preResolveName)) {
 				RhsReferenceInfo rInfo = rhsSignals.get(preResolveName);
 				//System.out.println("SystemVerilogLogicModule checkSignalName: preResolveName=" + preResolveName + " found in rhsSignals, but postResolveName=" + postResolveName + " not found in definedSignals");
 				Ordt.errorMessage("unable to resolve " + rInfo.getRhsRefString() + " referenced in rhs dynamic property assignment for " + rInfo.getLhsInstance()); 
