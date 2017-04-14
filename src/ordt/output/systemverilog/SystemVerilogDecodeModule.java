@@ -2391,7 +2391,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** generate PARALLEL external interface shim logic */  
-	public void generateExternalInterface_PARALLEL(AddressableInstanceProperties addrInstProperties) {
+	public void generateExternalInterface_PARALLEL(AddressableInstanceProperties addrInstProperties, boolean optimize, boolean keepNack) {
+	    //System.out.println("SystemVerilogDecodeModule generateExternalInterface_PARALLEL: " + addrInstProperties.getId() + ", optimize=" + optimize + ", keepNack=" + keepNack);
 		// generate common external interface constructs
 		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
 		
@@ -2407,7 +2408,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String hwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
 		
 		// use state machine if this is a contiguous replicated reg
-		boolean useAckStateMachine = ExtParameters.sysVerOptimizeParallelExternals() && (addrInstProperties.getMaxRegByteWidth() == addrInstProperties.getAlignedSize().toLong());
+		boolean useAckStateMachine = optimize && (addrInstProperties.getMaxRegByteWidth() == addrInstProperties.getAlignedSize().toLong());
 		
 		// if not optimized interface or writeable then add write external data/wr outputs
 		if (!useAckStateMachine || addrInstProperties.isSwWriteable()) {
@@ -2453,6 +2454,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			else
 				this.addWireAssign(validSizeCond + " = 1'b1;");  // not a wide reg space, so always valid
 			
+	    	// add nack input if override specified
+			if (keepNack) this.addSimpleScalarFrom(SystemVerilogBuilder.HW, hwToDecodeNackName); 
+			
 			// generate validReadCond - nack on addr out of range or if not readable
 			String validReadCond = "par_" + addrInstProperties.getBaseName() + "_valid_read"; 
 			this.addScalarWire(validReadCond);
@@ -2477,7 +2481,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				if (extIf.hasAddress && extMaxAddr.isNonZero()) { // if max addr is less than allowed range, add compare stmt
 					this.addWireAssign(validWriteCond + " = (" + extIf.decodeToHwAddrName + " < " + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ");");
 				}
-				else
+				else 
 					this.addWireAssign(validWriteCond + " = 1'b1;");  // all writes are valid
 			}
 	    	
@@ -2496,7 +2500,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			String parStateName = "par_" + addrInstProperties.getBaseName() + "_state";                      
 			String groupName = addrInstProperties.getBaseName() + " optimized ext parallel i/f";
 			generateAckNackMachine(parStateName, groupName, false, 
-					extIf.decodeToHwReName, extIf.decodeToHwWeName, validReadCond, validWriteCond, validSizeCond, hwToDecodeAckName, null, // no nack input
+					extIf.decodeToHwReName, extIf.decodeToHwWeName, validReadCond, validWriteCond, validSizeCond, hwToDecodeAckName, keepNack? hwToDecodeNackName : null,  // optional nack input
 					addrInstProperties.isSwReadable()? decodeToHwReName : null, addrInstProperties.isSwWriteable()? decodeToHwWeName : null, // eliminate re/we outputs if needed
 					extIf.hwToDecodeAckName, extIf.hwToDecodeNackName);
 	    }

@@ -393,7 +393,13 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   }
 		   
 		   // generate specific i/f type for this external region
-		   if (regProperties.hasExternalType(ExtType.PARALLEL)) decoder.generateExternalInterface_PARALLEL(regProperties);
+		   if (regProperties.hasExternalType(ExtType.PARALLEL)) {
+			   // pick up any instance overrides
+			   boolean optimize = regProperties.getExternalType().hasParm("optimize")? true :
+				   regProperties.getExternalType().hasParm("no_optimize")? false : ExtParameters.sysVerOptimizeParallelExternals();
+			   boolean keepNack = regProperties.getExternalType().hasParm("keep_nack")? true : false;
+			   decoder.generateExternalInterface_PARALLEL(regProperties, optimize, keepNack);
+		   }
 		   else if (regProperties.hasExternalType(ExtType.BBV5)) decoder.generateExternalInterface_BBV5(regProperties);
 		   else if (regProperties.hasExternalType(ExtType.SRAM)) decoder.generateExternalInterface_SRAM(regProperties);
 		   else if (regProperties.hasExternalType(ExtType.SERIAL8)) decoder.generateExternalInterface_SERIAL8(regProperties);

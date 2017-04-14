@@ -56,4 +56,6 @@ addrmap l1_map {
     external base_regs ext_base_regs @0x10000;
     external(RING16_D2) l2_map l2_r16_child @0x20000;
     external(SERIAL8_D1) l2_map l2_s8_child @0x30000;
+    external state_reg no_opt_reg @0x40000;
+    external(PARALLEL opt=YES) state_reg opt_reg @0x40010;
 } base_map;

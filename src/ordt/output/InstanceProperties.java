@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import ordt.extract.Ordt;
 import ordt.extract.PropertyList;
@@ -212,7 +210,17 @@ public class InstanceProperties {
 	public void setExternal(String externalStr) {
 		if (externalStr == null) this.externalType = new ExternalType(ExtType.INTERNAL);  // internal
 		else if ("DEFAULT".equals(externalStr)) this.externalType = new ExternalType(ExtType.PARALLEL);
-		else if ("PARALLEL".equals(externalStr)) this.externalType = new ExternalType(ExtType.PARALLEL);  // TODO deprecate
+		else if (externalStr.startsWith("PARALLEL")) {
+			this.externalType = new ExternalType(ExtType.PARALLEL);  
+			if (externalStr.contains("opt=")) {
+				String optMode = externalStr.substring(externalStr.indexOf('=')+1);
+				switch (optMode) {
+				case "YES" : this.externalType.addParm("optimize", 1);  break;
+				case "NO" :  this.externalType.addParm("no_optimize", 1);  break;
+				case "KEEP_NACK" : this.externalType.addParm("keep_nack", 1);  break;
+				}
+			}
+		}
 		else if ("EXTERNAL_DECODE".equals(externalStr)) this.externalType = new ExternalType(ExtType.EXTERNAL_DECODE);
 		else if ("BBV5_8".equals(externalStr)) {
 			this.externalType = new ExternalType(ExtType.BBV5);
@@ -223,21 +231,25 @@ public class InstanceProperties {
 			this.externalType.addParm("width", 16);
 		}
 		else if ("SRAM".equals(externalStr)) this.externalType = new ExternalType(ExtType.SRAM);
-		else if (externalStr.matches("^SERIAL8_D\\d$")) {
-			int delay = Integer.valueOf(externalStr.substring(externalStr.indexOf('_')+2));
+		else if (externalStr.startsWith("SERIAL8")) {
+			int delay=0;  // default delay
+			String modStr = externalStr.replace("_D", "dly="); // replace old parameter form
+			if (modStr.contains("dly=")) delay = Integer.valueOf(modStr.substring(modStr.indexOf('=')+1));
 			this.externalType = new ExternalType(ExtType.SERIAL8);
 			this.externalType.addParm("delay", delay);
 		}
-		else {
-			Pattern p = Pattern.compile("^RING(\\d+)_D(\\d+)$");
-			Matcher m = p.matcher(externalStr);
-			if (m.matches()) {
-				this.externalType = new ExternalType(ExtType.RING);
-				this.externalType.addParm("width", Integer.valueOf(m.group(1)));
-				this.externalType.addParm("delay", Integer.valueOf(m.group(2)));
-			}
-			else Ordt.errorExit("Invalid external interface type (" + externalStr + ") detected in instance " + getId());
+		else if (externalStr.startsWith("RING")) {
+			int delay=0;  // default delay
+			int width=16;  // default width
+			String modStr = externalStr.replace("_D", "dly="); // replace old parameter form
+			if (modStr.contains("dly=")) delay = Integer.valueOf(modStr.substring(modStr.indexOf('=')+1));
+			if (modStr.contains("RING8")) width = 8;
+			else if (modStr.contains("RING32")) width = 32;
+			this.externalType = new ExternalType(ExtType.RING);
+			this.externalType.addParm("width", width);
+			this.externalType.addParm("delay", delay);
 		}
+		else Ordt.errorExit("Invalid external interface type (" + externalStr + ") detected in instance " + getId());
 		//System.out.println("InstanceProperties setExternal: input=" + externalStr + ", new val=" + this.externalType + ", inst=" + getId());
 	}
 

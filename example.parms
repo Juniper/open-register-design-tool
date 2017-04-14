@@ -48,7 +48,7 @@ output systemverilog {
 	include_default_coverage = true   // include default cover points in rtl
 	pulse_intr_on_clear = true    // pulse interrupt output low if any child in intr tree is cleared
 	reuse_iwrap_structures = true    // reuse similar interface/struct definitions in iwrap
-	//optimize_parallel_externals = true    // eliminate nack/size/r/w io where possible in parallel external intfs
+	optimize_parallel_externals = true    // eliminate nack/size/r/w io where possible in parallel external intfs
 }
 
 // jspec output parameters
