@@ -299,11 +299,11 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		   // if a sw write one to clr/set
 		   if (fieldProperties.isWoset()) {
 			   addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicWeName + swWeStr + ") " + fieldRegisterNextName + " = (" + 
-					   fieldRegisterName + " | " + decodeToLogicDataName + fieldArrayString + ");");				   
+					   fieldRegisterNextName + " | " + decodeToLogicDataName + fieldArrayString + ");");				   
 		   }
 		   else if (fieldProperties.isWoclr()) {
 			   addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicWeName + swWeStr + ") " + fieldRegisterNextName + " = (" + 
-					   fieldRegisterName + " & ~" + decodeToLogicDataName + fieldArrayString + ");");				   
+					   fieldRegisterNextName + " & ~" + decodeToLogicDataName + fieldArrayString + ");");				   
 		   }
 		   // if a sw write is alowed 
 		   else if (fieldProperties.isSwWriteable()) {
