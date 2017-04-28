@@ -126,6 +126,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("pulse_intr_on_clear", false);
 		initBooleanParameter("reuse_iwrap_structures", false); 
 		initBooleanParameter("optimize_parallel_externals", false); 
+		initBooleanParameter("use_async_resets", false); 
 		
 		// ---- rdl output defaults
 		initBooleanParameter("root_component_is_instanced", true); 
@@ -574,7 +575,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getIntegerParameter("external_replication_threshold");
 	}
 
-	// -------- system verilog getters
+	// -------- systemverilog getters
 	
 	public static SVDecodeInterfaceTypes getSysVerRootDecoderInterface() {
 		return sysVerRootDecoderInterface;
@@ -630,21 +631,14 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return sysVerChildInfoMode;
 	}
 	
-	/** get sysVerSuppressNoResetWarnings  
-	 */
 	public static Boolean sysVerSuppressNoResetWarnings() {
 		return getBooleanParameter("suppress_no_reset_warnings");
 	}
 	
-	/** get sysVerGenerateChildAddrmaps
-	 */
 	public static Boolean sysVerGenerateChildAddrmaps() {
 		return getBooleanParameter("generate_child_addrmaps");
 	}
 	
-	/** get sysVerRingInterNodeDelay
-	 *  @return the sysVerRingInterNodeDelay
-	 */
 	public static int sysVerRingInterNodeDelay() {
 		return getIntegerParameter("ring_inter_node_delay");
 	}
@@ -669,10 +663,18 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getBooleanParameter("optimize_parallel_externals");
 	}
 		
+	public static Boolean sysVerUseAsyncResets() {
+		return getBooleanParameter("use_async_resets");
+	}
+	
+	// bench parameter getters
+
 	public static Boolean sysVerGenerateExternalRegs() {
 		return getBooleanParameter("generate_external_regs");
 	}
 
+	// rdl parameter getters
+	
 	/** get rdlRootComonentIsInstanced
 	 *  @return the rdlRootComonentIsInstanced
 	 */

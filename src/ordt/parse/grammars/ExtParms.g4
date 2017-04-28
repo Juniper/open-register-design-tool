@@ -134,6 +134,7 @@ ext_parm_defs
    | 'pulse_intr_on_clear' EQ bool
    | 'reuse_iwrap_structures' EQ bool
    | 'optimize_parallel_externals' EQ bool
+   | 'use_async_resets' EQ bool
    ;
       
 // ------------ uvmregs_out_defs

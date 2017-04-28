@@ -267,14 +267,12 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	void genSwFieldNextWriteStmts(String nextNameOverride, boolean swPrecedence) {  
 		   // get base register and field names
 		   String regBaseName = regProperties.getBaseName();
-		   String fieldRegisterName = fieldProperties.getFullSignalName(DefSignalType.FIELD);  //"reg_" + hwBaseName; 
 		   String fieldRegisterNextName = fieldProperties.getFullSignalName(DefSignalType.FIELD_NEXT);  //"reg_" + hwBaseName + "_next";
 		   String fieldArrayString = fieldProperties.getFieldArrayString();  
 		   
 		   // override names if an aliased register
 		   if (regProperties.isAlias()) {
 			   regBaseName = regProperties.getAliasBaseName();
-			   fieldRegisterName = FieldProperties.getFieldRegisterName(regBaseName + "_" + fieldProperties.getPrefixedId(), true);  
 			   fieldRegisterNextName = FieldProperties.getFieldRegisterNextName(regBaseName + "_" + fieldProperties.getPrefixedId(), true);  
 		   }
 

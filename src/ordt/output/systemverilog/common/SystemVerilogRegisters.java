@@ -10,16 +10,17 @@ import java.util.List;
 
 import ordt.extract.Ordt;
 import ordt.output.OutputWriterIntf;
+import ordt.parameters.ExtParameters;
 
-/** class to hold/generate systemverilog info associated with a set of registers
+/** class to hold/generate systemverilog info associated with a set of registers (for a module)
  *  @author snellenbach      
  *  Jul 16, 2014
  *
  */
 public class SystemVerilogRegisters {
 
-	private HashMap<String, VerilogRegInfo> registers = new HashMap<String, VerilogRegInfo>();  // info for a set of registers
-	private HashMap<String, Boolean> resetActiveLow = new HashMap<String, Boolean>();  // reset polarity for each reset signal		
+	private HashMap<String, VerilogRegInfo> registers = new HashMap<String, VerilogRegInfo>();  // info for a set of registers grouped by name
+	private HashMap<String, Boolean> resetActiveLow = new HashMap<String, Boolean>();  // reset polarity for each reset signal defined		
 	private OutputWriterIntf writer;
 	private String clkName;  // clock for this group of registers
 	
@@ -56,7 +57,7 @@ public class SystemVerilogRegisters {
 		return resetActiveLow;
 	}
 
-	/** class to hold verilog info associated with a register */   
+	/** inner class to hold verilog info associated with a register group */   
 	public  class VerilogRegInfo {
 		private String name;   // name of this register/always group
 		private String clock;  // clock name for synchronous assigns
@@ -204,8 +205,9 @@ public class SystemVerilogRegisters {
 			// write synchronous assignment block
 			if (!regAssignList.isEmpty()) {
 				writer.writeStmt(indentLevel, "//------- reg assigns for " + name);
-				if (SystemVerilogModule.isLegacyVerilog()) writer.writeStmt(indentLevel++, "always @ (posedge " + clkName + ") begin");  
-				else writer.writeStmt(indentLevel++, "always_ff @ (posedge " + clkName + ") begin");  
+				String asyncStr = ExtParameters.sysVerUseAsyncResets()? genAsyncString() : "";
+				if (SystemVerilogModule.isLegacyVerilog()) writer.writeStmt(indentLevel++, "always @ (posedge " + clkName + asyncStr + ") begin");  
+				else writer.writeStmt(indentLevel++, "always_ff @ (posedge " + clkName + asyncStr + ") begin");  
 				boolean hasResets = writeRegResets(indentLevel, resetAssignList);
 				writeRegAssigns(indentLevel, hasResets, regAssignList);
 				writer.writeStmt(--indentLevel, "end");  
@@ -213,6 +215,15 @@ public class SystemVerilogRegisters {
 			}
 		}
 		
+		/** generate always activation list for async resets */
+		private String genAsyncString() {
+			String outStr = "";
+			for (String reset : resetAssignList.keySet()) {
+				if (resetActiveLow.get(reset)) outStr += " or negedge " + reset;
+				else outStr += " or posedge " + reset;		
+			}
+			return outStr;
+		}
 		/** write always block reset stmts 
 		 * @param resolveNames */
 		private  boolean writeRegResets(int indentLevel, HashMap<String, List<String>> regResetList) {

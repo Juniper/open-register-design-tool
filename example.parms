@@ -49,6 +49,7 @@ output systemverilog {
 	pulse_intr_on_clear = true    // pulse interrupt output low if any child in intr tree is cleared
 	reuse_iwrap_structures = true    // reuse similar interface/struct definitions in iwrap
 	optimize_parallel_externals = true    // eliminate nack/size/r/w io where possible in parallel external intfs
+	use_async_resets = true          // registers will use asynchronous reset
 }
 
 // jspec output parameters
