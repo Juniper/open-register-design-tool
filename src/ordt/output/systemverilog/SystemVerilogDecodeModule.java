@@ -2378,13 +2378,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		// if size of max pio transaction is greater than one word need to add transaction size/retry info 
 		if (extIf.hasSize) { 
+			int regWordBits = Utils.getBits(addrInstProperties.getMaxRegWordWidth());
+			//if (addrInstProperties.getMaxRegWordWidth()==3) System.out.println("SystemVerilogDecodeModule generateBaseExternalInterface: regWordBits=" + regWordBits);
 
-			this.addVectorReg(extIf.decodeToHwTransactionSizeName, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));  
-			this.addVectorReg(intDecodeToHwTransactionSizeName, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));  
+			this.addVectorReg(extIf.decodeToHwTransactionSizeName, 0, regWordBits);  
+			this.addVectorReg(intDecodeToHwTransactionSizeName, 0, regWordBits);  
 			this.addRegAssign("external i/f",  extIf.decodeToHwTransactionSizeName + " <= #1  " + intDecodeToHwTransactionSizeName  + ";");  // assign next to flop
 
-			this.addVectorReg(intHwToDecodeTransactionSizeName, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));  
-			this.addResetAssign("external i/f", builder.getDefaultReset(), intHwToDecodeTransactionSizeName + " <= #1  " + Utils.getBits(addrInstProperties.getMaxRegWordWidth()) +"'b0;");  // reset input size flop
+			this.addVectorReg(intHwToDecodeTransactionSizeName, 0, regWordBits);  
+			this.addResetAssign("external i/f", builder.getDefaultReset(), intHwToDecodeTransactionSizeName + " <= #1  " + regWordBits +"'b0;");  // reset input size flop
 			this.addRegAssign("external i/f",  intHwToDecodeTransactionSizeName + " <= #1  " + extIf.hwToDecodeTransactionSizeName + ";");  // assign input size to flop
 		}	
 		return extIf;
@@ -2527,6 +2529,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwTransactionSizeName, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));     
 				this.addWireAssign(decodeToHwTransactionSizeName + " = " + extIf.decodeToHwTransactionSizeName +  ";");
 				this.addSimpleVectorFrom(SystemVerilogBuilder.HW, hwToDecodeTransactionSizeName, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));     
+				this.addVectorWire(extIf.hwToDecodeTransactionSizeName, 0, regWordBits);
 				this.addWireAssign(extIf.hwToDecodeTransactionSizeName + " = " + hwToDecodeTransactionSizeName +  ";");
 			}	
 
