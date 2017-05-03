@@ -383,7 +383,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	    benchtop.addStatement("  begin");
 	   	benchtop.addStatement("  $display(\" << Starting the Simulation >>\");");
 	   	benchtop.addStatement("  $dumpfile(\"test.vcd\");");
-	   	benchtop.addStatement("  $dumpvars(0," + getAddressMapName() + "_test);");
+	   	benchtop.addStatement("  $dumpvars(0," + getModuleName() + "_test);");
 	   	benchtop.addStatement("  #" + simEndTime);
 	   	benchtop.addStatement("  $dumpoff;");
 	   	benchtop.addStatement("  $finish;");
