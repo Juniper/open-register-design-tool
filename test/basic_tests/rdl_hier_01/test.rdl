@@ -1,5 +1,6 @@
 // ---- top down generation of hierarchical address maps
 //
+// also tests reuse_uvm_classes output option
 
 // define a config reg
 reg config_reg{

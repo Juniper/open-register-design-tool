@@ -129,6 +129,13 @@ public class RegSetProperties extends AddressableInstanceProperties {
 		RegSetProperties other = (RegSetProperties) obj;
 		if (childHash != other.childHash)
 			return false;
+		if (getExtractInstance().getRegComp() == null) {  // use model component compare if childHash is equal
+			if (other.getExtractInstance().getRegComp() != null)
+				return false;
+		} else if (!getExtractInstance().getRegComp().equals(other.getExtractInstance().getRegComp())) {
+			//System.out.println("RegSetProperties equals() fail for this=" + getInstancePath() + ", other=" + other.getInstancePath());
+			return false;
+		}
 		if (maxRegWidth != other.maxRegWidth)
 			return false;
 		return true;

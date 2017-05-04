@@ -460,6 +460,11 @@ public class RegProperties extends AddressableInstanceProperties {
 		return getRegWidth() != filledBits;
 	}
 
+    /** get the field hash value for this reg */
+	public int getFieldHash() {
+		return this.fieldHash;
+	}
+
     /** set the field hash value for this reg */
 	public void setFieldHash(int fieldHash) {
 		this.fieldHash = fieldHash;
@@ -534,6 +539,13 @@ public class RegProperties extends AddressableInstanceProperties {
 			return false;
 	    if (fieldHash != other.fieldHash)
 		    return false;
+		if (getExtractInstance().getRegComp() == null) {  // use model component compare if fieldhash is equal
+			if (other.getExtractInstance().getRegComp() != null)
+				return false;
+		} else if (!getExtractInstance().getRegComp().equals(other.getExtractInstance().getRegComp())) {
+			//System.out.println("RegProperties equals() fail for this=" + getInstancePath() + ", other=" + other.getInstancePath());
+			return false;
+		}
 		if (getExtractInstance().getAddressIncrement() == null) {
 			if (other.getExtractInstance().getAddressIncrement() != null)
 				return false;

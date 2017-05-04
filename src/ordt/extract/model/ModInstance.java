@@ -200,9 +200,11 @@ public class ModInstance extends ModBaseComponent {
 	}
 
 	@Override
+	// NOTE: currently used for uvm class reuse
 	public int hashCode() {
 		final int prime = 31;
 		int result = super.hashCode();
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + (isAddressable ? 1231 : 1237);
 		result = prime * result + (isIndexed ? 1231 : 1237);
 		result = prime * result + ((regComp == null) ? 0 : regComp.hashCode());
@@ -211,6 +213,7 @@ public class ModInstance extends ModBaseComponent {
 	}
 
 	@Override
+	// NOTE: currently used for uvm class reuse
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
@@ -219,6 +222,11 @@ public class ModInstance extends ModBaseComponent {
 		if (getClass() != obj.getClass())
 			return false;
 		ModInstance other = (ModInstance) obj;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
 		if (isAddressable != other.isAddressable)
 			return false;
 		if (isIndexed != other.isIndexed)

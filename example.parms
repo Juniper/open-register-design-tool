@@ -71,7 +71,7 @@ output reglist {
 	display_external_regs = true       // include external regs in output?
 	show_reg_type = true              // show int/ext type for each reg?
 	//match_instance = "sopf_ints"           // show only regs with matching instance names
-	show_fields = true                // show field info for each reg
+	//show_fields = true                // show field info for each reg
 }
 
 // uvmregs output parameters
@@ -80,7 +80,7 @@ output uvmregs {
 	suppress_no_category_warnings = true   // inhibit reg no category messages
 	//include_address_coverage = true   // include address coverage in model
 	max_reg_coverage_bins = 64   // limit address coverage bins for replicated regs
-	reuse_uvm_classes = false   // allow reuse of classes in model
+	reuse_uvm_classes = true   // allow reuse of classes in model
 }
 
 // model annotation commands

@@ -7,6 +7,11 @@ output systemverilog {
 	generate_child_addrmaps = true    // generate child address maps
 	ring_inter_node_delay = 2       // delay stages added between nodes in a ring16
 }
+// uvmregs output parameters
+output uvmregs {
+	reuse_uvm_classes = true   // allow reuse of classes in model
+}
+
 output bench {
     // read root
 	add_test_command = "read 32 0x0"  // read 

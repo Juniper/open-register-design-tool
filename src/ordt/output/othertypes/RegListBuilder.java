@@ -72,7 +72,8 @@ public class RegListBuilder extends OutputBuilder {  // TODO handle alias fields
 		indentLvl++;
 		// write field info
 		if (ExtParameters.reglistShowFields())  {
-			for (FieldProperties field: fieldList) {
+			while (fieldList.size() > 0) {
+				FieldProperties field = fieldList.remove();  // get next field
 				String id = field.getPrefixedId() + field.getFieldArrayString();
 				String access = getFieldAccessType(field);
 				String reset = ((field.getReset() != null) && field.getReset().isDefined())? field.getReset().toString() : "";

@@ -521,15 +521,17 @@ public abstract class ModComponent extends ModBaseComponent {
 		}
 
 		@Override
+		// NOTE: currently used for uvm class reuse
 		public int hashCode() {
 			final int prime = 31;
 			int result = 1;
-			result = prime * result + getOuterType().hashCode();
+			//result = prime * result + getOuterType().hashCode();
 			result = prime * result + ((parmLists == null) ? 0 : parmLists.hashCode());
 			return result;
 		}
 
 		@Override
+		// NOTE: currently used for uvm class reuse
 		public boolean equals(Object obj) {
 			if (this == obj)
 				return true;
@@ -538,8 +540,8 @@ public abstract class ModComponent extends ModBaseComponent {
 			if (getClass() != obj.getClass())
 				return false;
 			CompParameterLists other = (CompParameterLists) obj;
-			if (!getOuterType().equals(other.getOuterType()))
-				return false;
+			//if (!getOuterType().equals(other.getOuterType()))
+			//	return false;
 			if (parmLists == null) {
 				if (other.parmLists != null)
 					return false;
@@ -548,6 +550,7 @@ public abstract class ModComponent extends ModBaseComponent {
 			return true;
 		}
 
+		@SuppressWarnings("unused")
 		private ModComponent getOuterType() {
 			return ModComponent.this;
 		}
@@ -618,11 +621,13 @@ public abstract class ModComponent extends ModBaseComponent {
 	}
 
 	@Override
+	// NOTE: currently used for uvm class reuse
 	public int hashCode() {
 		final int prime = 31;
 		int result = super.hashCode();
+		if (!id.startsWith("aNON")) result = prime * result + ((id == null) ? 0 : id.hashCode());  // add id to hash if non anonymous
 		result = prime * result + ((alignedSize == null) ? 0 : alignedSize.hashCode());
-		result = prime * result + ((childComponents == null) ? 0 : childComponents.hashCode());
+		//result = prime * result + ((childComponents == null) ? 0 : childComponents.hashCode());
 		result = prime * result + ((getChildInstances() == null) ? 0 : getChildInstances().hashCode());
 		result = prime * result + ((compType == null) ? 0 : compType.hashCode());
 		result = prime * result + ((enums == null) ? 0 : enums.hashCode());
@@ -632,6 +637,7 @@ public abstract class ModComponent extends ModBaseComponent {
 	}
 
 	@Override
+	// NOTE: currently used for uvm class reuse
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
@@ -640,16 +646,21 @@ public abstract class ModComponent extends ModBaseComponent {
 		if (getClass() != obj.getClass())
 			return false;
 		ModComponent other = (ModComponent) obj;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.startsWith("aNON") && !id.equals(other.id))  // no match for anon components
+			return false;
 		if (alignedSize == null) {
 			if (other.alignedSize != null)
 				return false;
 		} else if (!alignedSize.equals(other.alignedSize))
 			return false;
-		if (childComponents == null) {
-			if (other.childComponents != null)
-				return false;
-		} else if (!childComponents.equals(other.childComponents))
-			return false;
+		//if (childComponents == null) {
+		//	if (other.childComponents != null)
+		//		return false;
+		//} else if (!childComponents.equals(other.childComponents))
+		//	return false;
 		if (getChildInstances() == null) {
 			if (other.getChildInstances() != null)
 				return false;

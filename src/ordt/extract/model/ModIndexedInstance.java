@@ -79,6 +79,7 @@ public class ModIndexedInstance extends ModInstance {
 	}
 
 	@Override
+	// NOTE: currently used for uvm class reuse
 	public int hashCode() {
 		final int prime = 31;
 		int result = super.hashCode();
@@ -88,6 +89,7 @@ public class ModIndexedInstance extends ModInstance {
 	}
 
 	@Override
+	// NOTE: currently used for uvm class reuse
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;

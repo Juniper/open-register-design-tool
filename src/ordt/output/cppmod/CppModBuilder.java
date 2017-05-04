@@ -161,7 +161,8 @@ public class CppModBuilder extends OutputBuilder {
 
 	/** add all fields info to active reg class using fieldList */
 	private void addFieldInfo() {
-		for (FieldProperties fld: fieldList) {
+		while (fieldList.size() > 0) {
+			FieldProperties fld = fieldList.remove();  // get next field
 			// add info for this field to the parent reg
 			activeModClasses.peek().addChildFieldInfo(fld.getPrefixedId(), fld.getLowIndex(), fld.getFieldWidth(), fld.getReset(),
 					getFieldReadAccessType(fld), getFieldWriteAccessType(fld));

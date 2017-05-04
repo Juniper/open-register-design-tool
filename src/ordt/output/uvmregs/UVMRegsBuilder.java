@@ -39,7 +39,6 @@ public class UVMRegsBuilder extends OutputBuilder {
 	private subComponentLists regCbsDefineStatements = new subComponentLists();  // list of register callback defines (per block)
 	private subComponentLists regCbsAssignStatements = new subComponentLists();  // list of register callback assign statements (per block)
 	
-	//private PriorityQueue<FieldProperties> fieldList;   // fields in current register
 	private int indentLvl = 0;
 	
 	private static HashSet<String> reservedWords = getReservedWords();
@@ -157,13 +156,18 @@ public class UVMRegsBuilder extends OutputBuilder {
 			// otherwise model as a register
 			else {
 				String uvmRegClassName = getUVMRegID();  // generate class name based on current register
+				//if ("reg_secaes_protect_in_databuf_ecc_regs_in_databuf_prot_intr_status".equals(uvmRegClassName))
+				//	   System.out.println("UVMRegsBuilder finishRegister: reg=" + uvmRegClassName + ", hash=" + regProperties.hashCode() + ", fieldHash=" + regProperties.getFieldHash());
+				//if ("reg_secaes_protect_cfgmem_ecc_regs_cfgmem_prot_intr_status".equals(uvmRegClassName))
+				//	   System.out.println("UVMRegsBuilder finishRegister: reg=" + uvmRegClassName + ", hash=" + regProperties.hashCode() + ", fieldHash=" + regProperties.getFieldHash());
 				//regClassCount++;
 				// if class reuse is specified, store new class names and reuse repeats
 				boolean createNewRegClass = true;
 				if (ExtParameters.uvmregsReuseUvmClasses()) {
 					if (!uniqueRegClasses.containsKey(regProperties)) uniqueRegClasses.put(regProperties, uvmRegClassName);
 					else {
-						//System.out.println("UVMRegsBuilder finishRegister: reg=" + uvmRegClassName + " is a copy of reg=" + uniqueRegClasses.get(regProperties));
+						//if ("reg_secaes_protect_in_databuf_ecc_regs_in_databuf_prot_intr_status".equals(uvmRegClassName))
+						//   System.out.println("UVMRegsBuilder finishRegister: reg=" + uvmRegClassName + " is a copy of reg=" + uniqueRegClasses.get(regProperties));
 						uvmRegClassName = uniqueRegClasses.get(regProperties);  // use existing reg class
 						createNewRegClass = false;
 					}

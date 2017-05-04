@@ -71,8 +71,10 @@ public abstract class DrvModBuilder extends OutputBuilder {
 		// create new reg instance
 		DrvModRegInstance newReg = new DrvModRegInstance(regProperties.getId(), overlayCount, regProperties.getRegWidth());
 		// add field info to this reg before uniqueRegs check so has is valid
-		for (FieldProperties fld: fieldList) 
+		while (fieldList.size() > 0) {
+			FieldProperties fld = fieldList.remove();  // get next field
 			newReg.addField(fld.getPrefixedId(), fld.getLowIndex(), fld.getFieldWidth(), fld.isSwReadable(), fld.isSwWriteable());
+		}
         addedInstances++;
 		if (!uniqueRegs.containsValue(newReg)) {
 			uniqueRegs.put(newReg, newReg);

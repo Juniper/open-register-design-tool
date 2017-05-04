@@ -7,6 +7,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
@@ -622,8 +623,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		boolean regIsSwReadable = false, regIsSwWriteable = false, allFieldsSwReadable = true, allFieldsSwWriteable = true; 
 		boolean regIsHwReadable = false, regIsHwWriteable = false;
 		boolean regHasCounter = false, regHasInterrupt = false;
-		//setSwAccessProperties(rProperties);  // TODO update sw readable/writeable from field array
-		for (FieldProperties field : fieldList) {
+		for (FieldProperties field : fieldList) {  // note that pq iterator, so no order
 			   if (field.isSwReadable())  regIsSwReadable = true; 
 			   else allFieldsSwReadable = false;
 			   if (field.isSwWriteable()) regIsSwWriteable = true;
@@ -637,7 +637,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		// set reg sw access
 		rProperties.setSwReadable(regIsSwReadable);  
 		rProperties.setSwWriteable(regIsSwWriteable);
-		rProperties.setFieldHash(fieldList.hashCode()); // set field hash for this reg 
+		rProperties.setFieldHash(getOrderedFieldList().hashCode()); // set field hash for this reg - need to convert pq to list
 		// set reg category if input is rdl
 		if (ExtParameters.rdlResolveRegCategory() && Ordt.hasInputType(InputType.RDL) && !rProperties.hasCategory()) {
 			boolean isStatus = allFieldsSwReadable && !regIsHwReadable && regIsHwWriteable && !regHasInterrupt;
@@ -645,6 +645,14 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			if (isStatus) rProperties.setCategory("STATE");
 			else if (isConfig) rProperties.setCategory("DYNAMIC_CONFIG");
 		}
+	}
+
+	/** return ordered list from fieldList priority queue */
+	protected List<FieldProperties> getOrderedFieldList() {
+		PriorityQueue<FieldProperties> temp = new PriorityQueue<FieldProperties>(fieldList);
+		ArrayList<FieldProperties> outList = new ArrayList<FieldProperties>();
+		while (!temp.isEmpty()) outList.add(temp.remove());
+		return outList;
 	}
 
 	/** set the base address of a register group (internal or external) */

@@ -321,7 +321,7 @@ public class PropertyList {
 		public int hashCode() {
 			final int prime = 31;
 			int result = super.hashCode();
-			result = prime * result + getOuterType().hashCode();
+			//result = prime * result + getOuterType().hashCode();
 			result = prime * result + depth;
 			return result;
 		}
@@ -335,13 +335,14 @@ public class PropertyList {
 			if (getClass() != obj.getClass())
 				return false;
 			DynamicPropertyValue other = (DynamicPropertyValue) obj;
-			if (!getOuterType().equals(other.getOuterType()))
-				return false;
+			//if (!getOuterType().equals(other.getOuterType()))
+			//	return false;
 			if (depth != other.depth)
 				return false;
 			return true;
 		}
 
+		@SuppressWarnings("unused")
 		private PropertyList getOuterType() {
 			return PropertyList.this;
 		}

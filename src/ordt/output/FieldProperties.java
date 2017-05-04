@@ -1269,7 +1269,7 @@ public class FieldProperties extends InstanceProperties {
 		result = prime * result + ((decrWidth == null) ? 0 : decrWidth.hashCode());
 		result = prime * result + ((dontCompareMask == null) ? 0 : dontCompareMask.hashCode());
 		result = prime * result + ((dontTestMask == null) ? 0 : dontTestMask.hashCode());
-		result = prime * result + ((encoding == null) ? 0 : encoding.hashCode());
+		//result = prime * result + ((encoding == null) ? 0 : encoding.hashCode());
 		result = prime * result + ((fieldArrayString == null) ? 0 : fieldArrayString.hashCode());
 		result = prime * result + ((fieldSetPrefixString == null) ? 0 : fieldSetPrefixString.hashCode());
 		result = prime * result + ((fieldWidth == null) ? 0 : fieldWidth.hashCode());
@@ -1353,11 +1353,11 @@ public class FieldProperties extends InstanceProperties {
 				return false;
 		} else if (!dontTestMask.equals(other.dontTestMask))
 			return false;
-		if (encoding == null) {
-			if (other.encoding != null)
-				return false;
-		} else if (!encoding.equals(other.encoding))
-			return false;
+		//if (encoding == null) {
+		//	if (other.encoding != null)
+		//		return false;
+		//} else if (!encoding.equals(other.encoding))
+		//	return false;
 		if (fieldArrayString == null) {
 			if (other.fieldArrayString != null)
 				return false;
