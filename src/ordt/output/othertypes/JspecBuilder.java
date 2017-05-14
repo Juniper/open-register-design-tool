@@ -117,37 +117,43 @@ public class JspecBuilder extends OutputBuilder {
 
 	@Override
 	public void addRegSet() {
-		// build the register header
-		buildRegSetHeader();  
-		//System.out.println("Register set: " + regSetProperties.getInstancePath() + ", addr=" + regSetProperties.getBaseAddress());
+		// skip this regset if it's empty
+		if (regSetProperties.getExtractInstance().getRegComp().hasChildInstances()) {
+			// build the register header
+			buildRegSetHeader();  
+			//System.out.println("Register set: " + regSetProperties.getInstancePath() + ", addr=" + regSetProperties.getBaseAddress());
+		}
 	}
 
 	@Override
 	public void finishRegSet() {  
-		// all jspec register sets must specify a size
-		boolean useAlignedStride = regSetProperties.isReplicated() && ExtParameters.useJsAddressAlignment();
-		//RegNumber regSetSize = getRegSetAddressStride(false);  // TODO - need to make sure this works before enabling
-		RegNumber regSetSize = getRegSetAddressStride(useAlignedStride); 
+		// skip this regset if it's empty
+		if (regSetProperties.getExtractInstance().getRegComp().hasChildInstances()) {
+			// all jspec register sets must specify a size
+			boolean useAlignedStride = regSetProperties.isReplicated() && ExtParameters.useJsAddressAlignment();
+			//RegNumber regSetSize = getRegSetAddressStride(false);  // TODO - need to make sure this works before enabling
+			RegNumber regSetSize = getRegSetAddressStride(useAlignedStride); 
 
-		// check for empty register set
-		if (!regSetSize.isGreaterThan(new RegNumber(0))) 
-			   Ordt.warnMessage("register set " + regSetProperties.getInstancePath() + 
-					   " has size 0B"); 
-		else {
-			// check for misaligned base address here since jspec doesn't like
-			if (!regSetProperties.getBaseAddress().isModulus(regSetSize.getNextHighestPowerOf2())) 
-				Ordt.errorMessage("register set " + regSetProperties.getInstancePath() + 
-						" base address (" + regSetProperties.getBaseAddress() +") is not aligned on " + regSetSize.getNextHighestPowerOf2() +" boundary for jspec"); 
-			// check for misaligned base addr 
-			if (regSetProperties.isReplicated() && !regSetProperties.getRelativeBaseAddress().isModulus(regSetSize)) 
-				Ordt.errorMessage("replicated register set " + regSetProperties.getInstancePath() + 
-						" jspec relative base address (" + regSetProperties.getRelativeBaseAddress() +") is not aligned with increment value (" + regSetSize +")"); 
+			// check for empty register set
+			if (!regSetSize.isGreaterThan(new RegNumber(0))) 
+				   Ordt.warnMessage("register set " + regSetProperties.getInstancePath() + 
+						   " has size 0B"); 
+			else {
+				// check for misaligned base address here since jspec doesn't like
+				if (!regSetProperties.getBaseAddress().isModulus(regSetSize.getNextHighestPowerOf2())) 
+					Ordt.errorMessage("register set " + regSetProperties.getInstancePath() + 
+							" base address (" + regSetProperties.getBaseAddress() +") is not aligned on " + regSetSize.getNextHighestPowerOf2() +" boundary for jspec"); 
+				// check for misaligned base addr 
+				if (regSetProperties.isReplicated() && !regSetProperties.getRelativeBaseAddress().isModulus(regSetSize)) 
+					Ordt.errorMessage("replicated register set " + regSetProperties.getInstancePath() + 
+							" jspec relative base address (" + regSetProperties.getRelativeBaseAddress() +") is not aligned with increment value (" + regSetSize +")"); 
+			}
+			
+			outputList.add(new OutputLine(indentLvl, "register_set_size = " + regSetSize + ";"));  
+			// close out the register set definition
+			outputList.add(new OutputLine(--indentLvl, "};"));
+			outputList.add(new OutputLine(indentLvl, ""));	
 		}
-		
-		outputList.add(new OutputLine(indentLvl, "register_set_size = " + regSetSize + ";"));  
-		// close out the register set definition
-		outputList.add(new OutputLine(--indentLvl, "};"));
-		outputList.add(new OutputLine(indentLvl, ""));	
 	}
 
 	/** process root address map */

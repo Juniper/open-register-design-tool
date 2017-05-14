@@ -476,6 +476,11 @@ public abstract class ModComponent extends ModBaseComponent {
 		return childInstances;
 	}
 
+	/** return true if this component has child instances */
+	public Boolean hasChildInstances() {
+		return !childInstances.isEmpty();
+	}
+
 	/** get the post property assigns in this component parents given an instance path */
 	public PropertyList getPostPropertyAssigns(List<String> instPath) {
 		// build a string to match
