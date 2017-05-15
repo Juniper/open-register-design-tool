@@ -174,7 +174,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 				}
 				// save info for this register to be used in parent uvm_reg_block
 				String uvmBlockClassName = getUVMBlockID();
-			    saveRegInfo(uvmRegClassName, uvmBlockClassName);
+			    saveRegInfo(uvmRegClassName, uvmBlockClassName);  // FIXME - what if parent is reused?  need to save in base
 				// build the register class definition
 				if (createNewRegClass) buildRegClass(uvmRegClassName);		
 			}
@@ -207,7 +207,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 					createNewBlockClass = false;
 				}
 			}
-			saveRegSetInfo(uvmBlockClassName, null, null);
+			saveRegSetInfo(uvmBlockClassName, null, null);   // FIXME - what if parent is reused?  need to save in base
 			// build the block class definition
 			if (createNewBlockClass) buildBlockClass(uvmBlockClassName, hasCallback);  
 		}
