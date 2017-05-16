@@ -149,6 +149,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("include_address_coverage", false); 
 		initIntegerParameter("max_reg_coverage_bins", 128);
 		initBooleanParameter("reuse_uvm_classes", false); 
+		initBooleanParameter("skip_no_reset_db_update", false); 
 		
 		// ---- bench output defaults
 		initStringListParameter("add_test_command", new ArrayList<String>());
@@ -750,10 +751,16 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getBooleanParameter("reuse_uvm_classes");
 	}
 
+	public static Boolean uvmregsSkipNoResetDbUpdate() {
+		return getBooleanParameter("skip_no_reset_db_update");
+	}
+
 	public static int uvmregsMaxRegCoverageBins() {
 		return getIntegerParameter("max_reg_coverage_bins");
 	}
 
+	// --------
+	
 	/** returns true if test commands have been specified  */
 	public static boolean hasTestCommands() {
 		return hasStringListParameter("add_test_command");

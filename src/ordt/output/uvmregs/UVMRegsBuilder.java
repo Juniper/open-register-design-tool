@@ -207,7 +207,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 					createNewBlockClass = false;
 				}
 			}
-			saveRegSetInfo(uvmBlockClassName, null, null);   // FIXME - what if parent is reused?  need to save in base
+			saveRegSetInfo(uvmBlockClassName, null, null);
 			// build the block class definition
 			if (createNewBlockClass) buildBlockClass(uvmBlockClassName, hasCallback);  
 		}
@@ -944,9 +944,12 @@ public class UVMRegsBuilder extends OutputBuilder {
 			//if (field.isDontCompare()) System.out.println("UVMRegsBuilder: buildRegBuildFunction volatile set for field=" + field.getInstancePath() + ";");
 			String isRand = field.isSwWriteable() ? "1" : "0";  
 			outputList.add(new OutputLine(indentLvl, "this." + fieldId + ".configure(this, " + field.getFieldWidth() + 
-					", " + field.getLowIndex() + ", \"" + getFieldAccessType(field) + "\", " + isVolatile + ", " + getFieldReset(field) + 
+					", " + field.getLowIndex() + ", \"" + getFieldAccessType(field) + "\", " + isVolatile + ", " + getFieldResetParameters(field) + 
 					", " + isRand + ", " + isOnlyField() + ");"));		
 			
+			// remove reset for uninitialized fields if db update is being skipped
+			if (fieldNeedsResetRemoval(field)) outputList.add(new OutputLine(indentLvl, "this." + fieldId + ".has_reset(.delete(1));"));
+				
 			// add explicit field dontcompare so reset test can be inhibited even if volatile is ignored
 			if (field.isDontCompare())
 				outputList.add(new OutputLine(indentLvl, "this." + fieldId +  ".set_dontcompare();"));  
@@ -1372,7 +1375,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		if (!isMemWrapper && isBaseBlock)
 			outputList.add(new OutputLine(indentLvl, "this.add_callbacks();"));
 		
-		outputList.add(new OutputLine(--indentLvl, "endfunction: build"));  // TODO - call getParentAddressMapName catenation above as prefix
+		outputList.add(new OutputLine(--indentLvl, "endfunction: build"));
 	}
 	
 	/** return "1" if this is the only field so can be accessed individually */
@@ -1382,8 +1385,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 
 	/** generate field reset string and has_reset indication 
 	 * @param field */
-	private String getFieldReset(FieldProperties field) {
-		String retStr = "0, 0";  // default to no reset
+	private String getFieldResetParameters(FieldProperties field) {
+		String retStr = ExtParameters.uvmregsSkipNoResetDbUpdate()? "0, 1" : "0, 0";  // if skip db update then config with a reset and remove after, else default to no reset
 		if (field.getReset() != null) {
 			RegNumber resetVal = new RegNumber(field.getReset());
 			if (resetVal.isDefined()) {
@@ -1391,6 +1394,17 @@ public class UVMRegsBuilder extends OutputBuilder {
 			}
 		}
 		return retStr;
+	}
+
+	/** return true if field has no reset and skip db update is specified  
+	 * @param field */
+	private boolean fieldNeedsResetRemoval(FieldProperties field) {
+		if (!ExtParameters.uvmregsSkipNoResetDbUpdate()) return false;
+		if (field.getReset() != null) {
+			RegNumber resetVal = new RegNumber(field.getReset());
+			if (resetVal.isDefined()) return false;
+		}
+		return true;
 	}
 	
 	/** generate field access type string */
