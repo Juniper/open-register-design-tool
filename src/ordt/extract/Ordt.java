@@ -21,14 +21,16 @@ import ordt.output.systemverilog.SystemVerilogBuilder;
 import ordt.output.systemverilog.SystemVerilogChildInfoBuilder;
 import ordt.output.systemverilog.SystemVerilogTestBuilder;
 import ordt.output.uvmregs.UVMRegsBuilder;
+import ordt.output.uvmregs.UVMRegsLiteBuilder;
 import ordt.output.verilog.VerilogBuilder;
 import ordt.output.verilog.VerilogTestBuilder;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.ExtParameters.SVChildInfoModes;
+import ordt.parameters.ExtParameters.UVMModelModes;
 
 public class Ordt {
 
-	private static String version = "170516.01"; 
+	private static String version = "170517.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -267,8 +269,8 @@ public class Ordt {
 	/**create output of the specified type if non-null output name is specified
 	 */
     public static void createOutput(RegModelIntf model, OutputType type) { 
-    	String outName = outputFileNames.get(type);
-    	if (outName == null) return;
+    	String outFileName = outputFileNames.get(type);
+    	if (outFileName == null) return;
     	// create builder and generate structures from model
 		System.out.println("Ordt: building " + outputNames.get(type) + "...");
     	OutputBuilder outBuilder = getBuilder(model, type);  
@@ -284,26 +286,32 @@ public class Ordt {
         		}
         	}
         	// generate output
-        	outBuilder.write(outName, outputNames.get(type), commentChars.get(type));
+        	outBuilder.write(outFileName, outputNames.get(type), commentChars.get(type));
     	}
     }
 
     /**create uvm registers output
      */
     public static void createUvmRegs(RegModelIntf model) {
-    	String outName = outputFileNames.get(OutputType.UVMREGS);
-    	String outPkgName = outputFileNames.get(OutputType.UVMREGSPKG);
-    	if (outName == null) return;
+    	String outFileName = outputFileNames.get(OutputType.UVMREGS);
+    	String outPkgFileName = outputFileNames.get(OutputType.UVMREGSPKG);
+    	// override description info w/ model type
+		String uvmModeStr = (ExtParameters.uvmregsModelMode() != UVMModelModes.HEAVY)? " (mode = " + ExtParameters.uvmregsModelMode() + ")" : "";
+    	String outName = outputNames.get(OutputType.UVMREGS) + uvmModeStr;
+    	String outPkgName = outputNames.get(OutputType.UVMREGSPKG) + uvmModeStr;
 
-		System.out.println("Ordt: building UVM regs...");
-		UVMRegsBuilder uvm = new UVMRegsBuilder(model);
+    	if (outFileName == null) return;
+
+		System.out.println("Ordt: building " + outName + "...");
+		UVMRegsBuilder uvm = (ExtParameters.uvmregsModelMode() == UVMModelModes.LITE1)? new UVMRegsLiteBuilder(model) :
+			new UVMRegsBuilder(model);
     	if (uvm != null) {
-    		uvm.write(outName, "UVM regs", "//");
+    		uvm.write(outFileName, outName, "//");
     		
     		// now output the pkg if specified
-    		if (outPkgName != null) {
-    			System.out.println("Ordt: building UVM regs package...");
-    			uvm.writePkg(outPkgName, "UVM regs package");  
+    		if (outPkgFileName != null) {
+    			System.out.println("Ordt: building " + outPkgName + "...");
+    			uvm.writePkg(outPkgFileName, outPkgName);  
     		}
     	}
     }

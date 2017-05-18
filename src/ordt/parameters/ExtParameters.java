@@ -38,16 +38,18 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	// standard typed parameter set
 	private static HashMap<String, ExtParameter<?>> params = new HashMap<String, ExtParameter<?>>();
 	
-	
+	// enums for non-standard parameter types
 	public enum SVBlockSelectModes { INTERNAL, EXTERNAL, ALWAYS } 
 	public enum SVDecodeInterfaceTypes { NONE, LEAF, SERIAL8, RING8, RING16, RING32, PARALLEL, ENGINE1} 
 	public enum SVChildInfoModes { PERL, MODULE } 
+	public enum UVMModelModes { HEAVY, LITE1 } 
 	
 	// non-standard typed parameters
 	private static SVDecodeInterfaceTypes sysVerRootDecoderInterface;
 	private static SVDecodeInterfaceTypes sysVerSecondaryDecoderInterface;
 	private static SVBlockSelectModes systemverilogBlockSelectMode;  
 	private static SVChildInfoModes sysVerChildInfoMode;  
+	private static UVMModelModes uvmModelMode;  
 
 	private static int maxInternalRegReps = 4096;  // max internal reg reps allowed (not set externally)
 	
@@ -150,6 +152,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initIntegerParameter("max_reg_coverage_bins", 128);
 		initBooleanParameter("reuse_uvm_classes", false); 
 		initBooleanParameter("skip_no_reset_db_update", false); 
+		uvmModelMode = UVMModelModes.HEAVY; 
 		
 		// ---- bench output defaults
 		initStringListParameter("add_test_command", new ArrayList<String>());
@@ -412,6 +415,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 			Ordt.warnMessage("Use of control parameter 'external_decode_is_root' is deprecated.");
 		}
 
+		else if (name.equals("uvm_model_mode")) {  
+			if (value.equals("lite1")) uvmModelMode = UVMModelModes.LITE1;
+			else uvmModelMode = UVMModelModes.HEAVY;
+		}
+		
 		//else
 		//	Ordt.errorMessage("invalid parameter detected (" + name + ").");
 	}
@@ -757,6 +765,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 
 	public static int uvmregsMaxRegCoverageBins() {
 		return getIntegerParameter("max_reg_coverage_bins");
+	}
+
+	public static UVMModelModes uvmregsModelMode() {
+		return uvmModelMode;
 	}
 
 	// --------

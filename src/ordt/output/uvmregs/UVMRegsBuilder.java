@@ -30,34 +30,34 @@ import ordt.parameters.ExtParameters;
 
 public class UVMRegsBuilder extends OutputBuilder {
 
-	private List<OutputLine> outputList = new ArrayList<OutputLine>();
-	private List<OutputLine> pkgOutputList = new ArrayList<OutputLine>();  // define a separate list for package info
+	protected List<OutputLine> outputList = new ArrayList<OutputLine>();
+	protected List<OutputLine> pkgOutputList = new ArrayList<OutputLine>();  // define a separate list for package info
 	
-	private subComponentLists subcompDefList = new subComponentLists();   // lists of subcomponent define statements (per block)
-	private subComponentLists subcompBuildList = new subComponentLists();  // lists of subcomponent build statements (per block)
-	private subComponentLists subcompAddrCoverGroupList = new subComponentLists();  // lists of subcomponent address covergroup statements (per block)
-	private subComponentLists regCbsDefineStatements = new subComponentLists();  // list of register callback defines (per block)
-	private subComponentLists regCbsAssignStatements = new subComponentLists();  // list of register callback assign statements (per block)
+	protected subComponentLists subcompDefList = new subComponentLists();   // lists of subcomponent define statements (per block)
+	protected subComponentLists subcompBuildList = new subComponentLists();  // lists of subcomponent build statements (per block)
+	protected subComponentLists subcompAddrCoverGroupList = new subComponentLists();  // lists of subcomponent address covergroup statements (per block)
+	protected subComponentLists regCbsDefineStatements = new subComponentLists();  // list of register callback defines (per block)
+	protected subComponentLists regCbsAssignStatements = new subComponentLists();  // list of register callback assign statements (per block)
 	
-	private int indentLvl = 0;
+	protected int indentLvl = 0;
 	
-	private static HashSet<String> reservedWords = getReservedWords();
+	protected static HashSet<String> reservedWords = getReservedWords();
 	
-	private AliasGroups aliasGroups = new AliasGroups();  // list of alias groups (per block class)
+	protected AliasGroups aliasGroups = new AliasGroups();  // list of alias groups (per block class)
 	
-	private Stack<Boolean> regSetHasCallback = new Stack<Boolean>();  // stack of flags indicating block needs add_callback overridden
-	private Stack<Integer> activeRegisterCount = new Stack<Integer>(); // stack of non-pruned register counts in active regset
+	protected Stack<Boolean> regSetHasCallback = new Stack<Boolean>();  // stack of flags indicating block needs add_callback overridden
+	protected Stack<Integer> activeRegisterCount = new Stack<Integer>(); // stack of non-pruned register counts in active regset
 	
 	// search state for use in field callbacks
-	private static int lastCBDepth = -1;
-	private static String lastCBRegSetPath = "<null>";
-	private static String lastCBReg = "<null>";
+	protected static int lastCBDepth = -1;
+	protected static String lastCBRegSetPath = "<null>";
+	protected static String lastCBReg = "<null>";
 	
 	// unique uvm reg and block class
-	private HashMap<RegProperties, String> uniqueRegClasses = new HashMap<RegProperties, String>(); // hashmap since even equal RegProperties can have dif't instance paths 
-	private HashMap<RegSetProperties, String> uniqueBlockClasses = new HashMap<RegSetProperties, String>();  // hashmap since even equal RegSetProperties can have dif't instance paths
-	//private int regClassCount = 0;
-	//private int blockClassCount = 0;
+	protected HashMap<RegProperties, String> uniqueRegClasses = new HashMap<RegProperties, String>(); // hashmap since even equal RegProperties can have dif't instance paths 
+	protected HashMap<RegSetProperties, String> uniqueBlockClasses = new HashMap<RegSetProperties, String>();  // hashmap since even equal RegSetProperties can have dif't instance paths
+	//protected int regClassCount = 0;
+	//protected int blockClassCount = 0;
 
     //---------------------------- constructor ----------------------------------
 
@@ -72,7 +72,7 @@ public class UVMRegsBuilder extends OutputBuilder {
     }
 
     /** load systemverilog reserved words to be escaped */
-	private static HashSet<String> getReservedWords() {
+	protected static HashSet<String> getReservedWords() {
 		HashSet<String> reservedWords = new HashSet<String>();
 		reservedWords.add("bit");
 		reservedWords.add("begin");
@@ -96,7 +96,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 	
     /** escape string if a reserved words  */
-	private String escapeReservedString(String word) {
+	protected String escapeReservedString(String word) {
 		if (reservedWords.contains(word)) return ("\\" + word + " ");
 		return word;
 	}
@@ -174,7 +174,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 				}
 				// save info for this register to be used in parent uvm_reg_block
 				String uvmBlockClassName = getUVMBlockID();
-			    saveRegInfo(uvmRegClassName, uvmBlockClassName);  // FIXME - what if parent is reused?  need to save in base
+			    saveRegInfo(uvmRegClassName, uvmBlockClassName);
 				// build the register class definition
 				if (createNewRegClass) buildRegClass(uvmRegClassName);		
 			}
@@ -228,8 +228,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	public void addRegMap() { 
 		regSetHasCallback.push(false);
 		activeRegisterCount.push(0);  // init to no defined regs
-		outputList.add(new OutputLine(indentLvl, "import uvm_pkg::*;"));
-		outputList.add(new OutputLine(indentLvl, "import ordt_uvm_reg_pkg::*;"));
+		generatePkgImports();
 	}
 
 	/** finish root address map  */
@@ -246,10 +245,18 @@ public class UVMRegsBuilder extends OutputBuilder {
 		activeRegisterCount.pop();  // pop the count
 	}
 
+    //---------------------------- helper methods --------------------------------------
+
+	/** generate package import statements */
+	protected void generatePkgImports() {
+		outputList.add(new OutputLine(indentLvl, "import uvm_pkg::*;"));
+		outputList.add(new OutputLine(indentLvl, "import ordt_uvm_reg_pkg::*;"));
+	}
+	
     //---------------------------- helper methods saving child info for parent build --------------------------------------
 
 	/** save register info for use in parent uvm_reg_block class */
-	private void saveRegInfo(String uvmRegClassName, String uvmBlockClassName) {
+	protected void saveRegInfo(String uvmRegClassName, String uvmBlockClassName) {
 		// get parent name
 		String parentID = this.getParentInstancePath().replace('.', '_');
 		// escape id and alias names
@@ -284,7 +291,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 	
 	/** create block addr covergroup statements adding current register */
-	private void addRegToAddrCoverageList(String parentID, String regId, boolean parentIsWrapper) {
+	protected void addRegToAddrCoverageList(String parentID, String regId, boolean parentIsWrapper) {
 		RegNumber baseAddress = parentIsWrapper? new RegNumber(0) : regProperties.getRelativeBaseAddress();
 		String addrString = baseAddress.toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
 		if (regProperties.isReplicated()) {
@@ -306,7 +313,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** create block build statements adding current register */
-	private void addRegToBuildList(String parentID, String regId) {
+	protected void addRegToBuildList(String parentID, String regId) {
 		// set hdl path component
 		String hdlPath = regProperties.isAlias() ? regProperties.getAliasedId() : regProperties.getId();
 		String addr = "`UVM_REG_ADDR_WIDTH" + regProperties.getRelativeBaseAddress().toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
@@ -339,7 +346,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/* return a string with a call to set_reg_test_info */
-	private String getUvmRegTestModeString() {
+	protected String getUvmRegTestModeString() {
 		String dontTestBit = regProperties.isDontTest()? "1" : "0";
 		String dontCompareBit = regProperties.isDontCompare()? "1" : "0";
 		return ".set_reg_test_info(" + dontTestBit + ", " + dontCompareBit + ", " + regProperties.getCategory().getValue() + ");";
@@ -348,7 +355,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	/** save memory info for use in parent uvm_reg_block class
 	 * @param parentIsWrapper - if true, info will be saved to a wrapper block and reg/mem instance names will be changed
 	 */
-	private void saveMemInfo(boolean parentIsWrapper) {
+	protected void saveMemInfo(boolean parentIsWrapper) {
 		// get parent block name (use reg name if a wrapper is being used)
 		String parentID = parentIsWrapper? regProperties.getInstancePath().replace('.', '_') : this.getParentInstancePath().replace('.', '_'); 
 		// set vreg instance id
@@ -377,7 +384,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 	
 	/** create block build statements adding current register */
-	private void addMemToBuildList(String parentID, String memId, String escapedRegId) {
+	protected void addMemToBuildList(String parentID, String memId, String escapedRegId) {
 		// save mem build statements for uvm_reg_block
 		subcompBuildList.addStatement(parentID, "this." + memId + " = new(\"" + memId + "\", " + regProperties.getRepCount() + ", " + regProperties.getRegWidth() + ");");  
 		subcompBuildList.addStatement(parentID, "this." + memId + ".configure(this);");  
@@ -401,7 +408,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** compute a register level reset from the current list of fields */
-	private RegNumber getVRegReset() {
+	protected RegNumber getVRegReset() {
 		RegNumber reset = new RegNumber(0);  // default to reset of zero
 		reset.setVectorLen(regProperties.getRegWidth());
 		boolean hasFieldReset = false;
@@ -438,7 +445,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	 *        (this is used for uvm_mem wrapper block gen)
 	 * @param addrOffsetOverride - if non null, specified address offset will be used rather than current regset offset
 	 */
-	private void saveRegSetInfo(String uvmBlockClassName, String blockIdOverride, RegNumber addrOffsetOverride) {
+	protected void saveRegSetInfo(String uvmBlockClassName, String blockIdOverride, RegNumber addrOffsetOverride) {
 		// get parent name
 		String parentID = this.getParentInstancePath().replace('.', '_');
 		// block id
@@ -487,14 +494,14 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** get the increment string for this group of regs */
-	private String getRegAddrIncr() {
+	protected String getRegAddrIncr() {
 		RegNumber incr = regProperties.getAddrStride();
 		String addr = "`UVM_REG_ADDR_WIDTH" + incr.toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
 		return addr;
 	}
 
 	/** get the increment string for this regset */
-	private String getRegSetAddrIncrString() {
+	protected String getRegSetAddrIncrString() {
 		RegNumber incr = getRegSetAddressStride(true);
 		String addr = "`UVM_REG_ADDR_WIDTH" + incr.toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
 		return addr;
@@ -503,7 +510,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	// ----------------------- uvm reg class builder methods -------------------------
 
 	/** build reg class definition for current register instance */   
-	private void buildRegClass(String uvmRegClassName) {
+	protected void buildRegClass(String uvmRegClassName) {
 		// create text name and description if null
 		String id = regProperties.getId();
 		String textName = regProperties.getTextName();
@@ -542,7 +549,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** add interrupt field get methods */
-	private void buildRegIntrFunctions() {
+	protected void buildRegIntrFunctions() {
 		// these override defaults in uvm_reg_rdl
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl++, "virtual function void get_intr_fields(ref uvm_reg_field fields[$]); // return all source interrupt fields"));
@@ -578,7 +585,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** build vreg class definition for current register instance */   
-	private void buildVRegClass() {   
+	protected void buildVRegClass() {   
 		// create text name and description if null
 		String id = regProperties.getId();
 		String fullId = getUVMVRegID();
@@ -610,7 +617,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 
 	/** build block class definition for current regset instance 
 	 * @param hasCallback - indicates block children have callbacks */   
-	private void buildBlockClass(String uvmBlockClassName, Boolean hasCallback) {
+	protected void buildBlockClass(String uvmBlockClassName, Boolean hasCallback) {
 		// create text name and description if null
 		String id = regSetProperties.getId();
 		String refId = regSetProperties.getBaseName();  // ref used for block structure lookup
@@ -653,7 +660,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	/** build uvm_mem/uvm_vreg wrapper block class definition as child of current regset block 
 	 *  callbacks, aliases not allowed in this block type 
 	 * @param b */   
-	private void buildMemWrapperBlockClass(String uvmBlockClassName, String nameSuffix, Integer mapWidthOverride) {
+	protected void buildMemWrapperBlockClass(String uvmBlockClassName, String nameSuffix, Integer mapWidthOverride) {
 		// create block name + id with suffix
 		String refId = ((regSetProperties == null) || regSetProperties.getBaseName().isEmpty()) ? nameSuffix : regSetProperties.getBaseName() + "_" + nameSuffix;  // id used for structure lookup
 		//System.out.println("UVMRegsBuilder buildMemWrapperBlockClass: fullId=" + uvmBlockClassName + ", refId=" + refId);
@@ -683,7 +690,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 
 	/** build block class definition for current regset instance 
 	 * @param hasCallback  - indicates block children have callbacks*/ 
-	private void buildBaseBlockClass(String uvmBlockClassName, Boolean hasCallback) {
+	protected void buildBaseBlockClass(String uvmBlockClassName, Boolean hasCallback) {
 		//System.out.println("UVMRegsBuilder buildBaseBlockClass: fullId=" + uvmBlockClassName + ", getUVMBlockID()=" + getUVMBlockID());
 		String refId = "";  // ref used for base block structure lookup
 		
@@ -722,26 +729,26 @@ public class UVMRegsBuilder extends OutputBuilder {
 	// ---------
 
 	/** return address map prefix string  */
-	private String getAddrMapPrefix() {
+	protected String getAddrMapPrefix() {
 		String map = getAddressMapName();
 		if (map.isEmpty()) return "";
 		return "_" + map;
 	}
 
 	/** return uvm_reg class name */
-	private String getUVMRegCbsID() {
+	protected String getUVMRegCbsID() {
 		String fullId = "alias_cbs" + getAddrMapPrefix() + "_" + regProperties.getBaseName();
 		return fullId;
 	}
 
 	/** return uvm_reg class name */
-	private String getUVMRegID() {
+	protected String getUVMRegID() {
 		String fullId = "reg" + getAddrMapPrefix() + "_" + regProperties.getBaseName();  
 		return fullId;
 	}
 
 	/** return uvm_vreg class name */
-	private String getUVMVRegID() {
+	protected String getUVMVRegID() {
 		String fullId = "vreg" + getAddrMapPrefix() + "_" + regProperties.getBaseName();  
 		return fullId;
 	}
@@ -750,7 +757,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	 * @param regSetProps - currently active regset properties
 	 * @param nameSuffix - optional block name suffix
 	 */
-	private String getUVMBlockID(RegSetProperties regSetProps, String nameSuffix) {
+	protected String getUVMBlockID(RegSetProperties regSetProps, String nameSuffix) {
 		String regSetStr = ((regSetProps == null) || regSetProps.getBaseName().isEmpty()) ? "" : "_" + regSetProps.getBaseName();
 		if (nameSuffix != null) regSetStr += "_" + nameSuffix;
 		String fullId = "block" + getAddrMapPrefix() + regSetStr;
@@ -759,21 +766,21 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** return uvm_reg_block class name */
-	private String getUVMBlockID() {
+	protected String getUVMBlockID() {
 		return getUVMBlockID(regSetProperties, null);
 	}
 
 	/** return uvm_reg_block class name
 	 * @param nameSuffix - optional block name suffix 
 	 */
-	private String getUVMBlockID(String nameSuffix) {
+	protected String getUVMBlockID(String nameSuffix) {
 		return getUVMBlockID(regSetProperties, nameSuffix);
 	}
 	
 	/** create add_callbacks methods for uvm_reg_block derived class   
 	 * @param outputList - list of output lines to be updated
 	 * @param indentLvl */
-	private void buildBlockAddCallbacksMethod() {
+	protected void buildBlockAddCallbacksMethod() {
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl++, "virtual function void add_callbacks();"));
 		outputList.add(new OutputLine(indentLvl, "uvm_reg m_regs[$];"));
@@ -797,7 +804,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** build field definitions for current register */
-	private void buildRegFieldDefines() {
+	protected void buildRegFieldDefines() {
 		Iterator<FieldProperties> iter = fieldList.iterator();
 		// traverse field list
 		while (iter.hasNext()) {
@@ -813,7 +820,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** build field definitions for current virtual register */
-	private void buildVRegFieldDefines() {
+	protected void buildVRegFieldDefines() {
 		Iterator<FieldProperties> iter = fieldList.iterator();
 		// traverse field list
 		while (iter.hasNext()) {
@@ -827,7 +834,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** build field hdl paths for current register */
-	private void buildRegHdlPaths() {
+	protected void buildRegHdlPaths() {
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "rdl_reg_name = get_rdl_name(\"rg_\");"));	// get register name
 		
@@ -841,7 +848,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 
 	/** build subcomponent definitions for current block 
 	 * @param block - getBaseName of current regSet used as hash key*/
-	private void buildBlockDefines(String block) {  
+	protected void buildBlockDefines(String block) {  
 		List<SpecialLine> defList = subcompDefList.getStatements(block);
 		if (defList == null) return;
 		Iterator<SpecialLine> iter = defList.iterator();
@@ -865,7 +872,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	
 	/** build subcomponent coverage definitions for current block 
 	 * @param block - getBaseName of current regSet used as hash key*/
-	private void buildBlockCoverageDefines(String block) {
+	protected void buildBlockCoverageDefines(String block) {
         // if address coverage is specified then init coverage vars
         if (ExtParameters.uvmregsIncludeAddressCoverage()) {
        	    outputList.add(new OutputLine(indentLvl, "local uvm_reg_addr_t m_offset;"));
@@ -885,7 +892,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** build new function and coverage sample methods */
-	private void buildBlockNewDefine(String fullId) {
+	protected void buildBlockNewDefine(String fullId) {
 		outputList.add(new OutputLine(indentLvl, ""));	
 		// if address coverage specified, add to new() and create sample
 		if (ExtParameters.uvmregsIncludeAddressCoverage()) {
@@ -912,15 +919,21 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 	
 	/** build the build function for current register */
-	private void buildRegBuildFunction() {
+	protected void buildRegBuildFunction() {
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl++, "virtual function void build();"));
 		outputList.add(new OutputLine(indentLvl, "string rdl_reg_name;"));
 		
 		// traverse field list and create field init statements
+		String accessType = null;
 		Iterator<FieldProperties> iter = fieldList.iterator();
 		while (iter.hasNext()) {
 			FieldProperties field = iter.next();
+			// TODO detect field access differences
+			if (accessType == null) accessType = getFieldAccessType(field); // save first field access type
+			else if (!accessType.equals(getFieldAccessType(field))) 
+				System.out.println("UVMRegsBuilder buildRegBuildFunction: access mismatch in reg=" + regProperties.getInstancePath() + ", was=" + accessType + ", is=" + getFieldAccessType(field)+ ", model type=" + ExtParameters.uvmregsModelMode());
+				
 			String fieldId = escapeReservedString(field.getPrefixedId()); 
 			
 			// create appropriate field class   
@@ -971,7 +984,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	
 	/** build the add_callbacks function for current register 
 	 *  add_callbacks is called recursively after build completes and sets field dynamic assign linkages and associated callbacks */
-	private void buildRegAddCallbacksFunction() {
+	protected void buildRegAddCallbacksFunction() {
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl++, "virtual function void add_callbacks();")); 
 		// find any fields needing callbacks/reference assignment and define callback vars
@@ -1114,7 +1127,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		outputList.add(new OutputLine(--indentLvl, "endfunction: add_callbacks"));
 	}
 	
-	private void buildFieldSearch(RhsReference eRef, FieldProperties field) {
+	protected void buildFieldSearch(RhsReference eRef, FieldProperties field) {
 		// build register search statements (sets m_cb_reg)
 		buildRegSearch(eRef);
 		
@@ -1125,7 +1138,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** generate statements to search for a rhs reg referenc in uvm model (sets m_cb_block)*/
-	private void buildRegSearch(RhsReference eRef) {
+	protected void buildRegSearch(RhsReference eRef) {
 		// get root ancestor for assign if depth hasn't changed
 		int newCBDepth = eRef.getDepth() - 1;
 		boolean cbDepthChanged = newCBDepth != lastCBDepth;
@@ -1151,7 +1164,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** build the build function for current virtual register */
-	private void buildVRegBuildFunction() {
+	protected void buildVRegBuildFunction() {
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl++, "virtual function void build();"));
 		Iterator<FieldProperties> iter = fieldList.iterator();
@@ -1170,7 +1183,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 	
 	/** generate set_rdl_access_info call */
-	private void addHWAccessInfo(FieldProperties field) {
+	protected void addHWAccessInfo(FieldProperties field) {
 		String fieldId = escapeReservedString(field.getPrefixedId());  
 		// function void set_rdl_access_info(bit is_sw_readable, bit is_sw_writeable, bit is_hw_readable, bit is_hw_writeable, bit has_hw_we, bit has_hw_wel)
 		char isSwReadable = field.isSwReadable() ? '1' : '0';
@@ -1183,7 +1196,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 	
 	/** generate add_intr, add_halt calls */
-	private void addInterruptInitInfo(FieldProperties field) {
+	protected void addInterruptInitInfo(FieldProperties field) {
 		String fieldId = escapeReservedString(field.getPrefixedId());  
 		// add intr info
 		//function void add_intr(int intr_level_type = 0, int intr_sticky_type = 0,
@@ -1203,7 +1216,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** add user defined property assigns (for fields) */
-	private void addUserDefinedPropertyElements(int indentLvl, FieldProperties instProperties, String instName) {
+	protected void addUserDefinedPropertyElements(int indentLvl, FieldProperties instProperties, String instName) {
 		if (!instProperties.hasUserDefinedProperties()) return;  // done if no external properties
 		PropertyList pList = instProperties.getUserDefinedProperties();
 		for (String name : pList.getProperties().keySet()) {
@@ -1213,7 +1226,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 	
 	/** add user defined property assigns (for regs, vregs, regsets) */
-	private void addUserDefinedPropertyElements(String parentID, InstanceProperties instProperties, String instName) {
+	protected void addUserDefinedPropertyElements(String parentID, InstanceProperties instProperties, String instName) {
 		if (!instProperties.hasUserDefinedProperties()) return;  // done if no external properties
 		PropertyList pList = instProperties.getUserDefinedProperties();
 		for (String name : pList.getProperties().keySet()) {
@@ -1224,7 +1237,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 //				subcompBuildList.addStatement(parentID, "  this." + regId + "[i].set_external(1);");
 	
 	/** generate add_incr, add_decr calls */
-	private void addCounterInitInfo(FieldProperties field) {
+	protected void addCounterInitInfo(FieldProperties field) {
 		String fieldId = escapeReservedString(field.getPrefixedId());  
 		// if incrementing counter, add info
 		if (field.isIncrCounter()) {
@@ -1308,7 +1321,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	 * @param mapWidthOverrride - if non-null, the created default map for this block will use specified value
 	 * @param isMemWrapper - if true, created block is a wrapper so will avoid regSetProperty references
 	 */
-	private void buildBlockBuildFunction(String uvmBlockClassName, String block, Integer mapWidthOverride, boolean isMemWrapper) {
+	protected void buildBlockBuildFunction(String uvmBlockClassName, String block, Integer mapWidthOverride, boolean isMemWrapper) {
 		outputList.add(new OutputLine(indentLvl, "")); 	
 		outputList.add(new OutputLine(indentLvl++, "virtual function void build();"));
 		// set access width of block to max of full addrmap by default (<MAX_REG_BYTE_WIDTH> will be replaced with final max value)
@@ -1379,13 +1392,13 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 	
 	/** return "1" if this is the only field so can be accessed individually */
-	private String isOnlyField() {
+	protected String isOnlyField() {
 		return (fieldList.size() == 1) ? "1" : "0";
 	}
 
 	/** generate field reset string and has_reset indication 
 	 * @param field */
-	private String getFieldResetParameters(FieldProperties field) {
+	protected String getFieldResetParameters(FieldProperties field) {
 		String retStr = ExtParameters.uvmregsSkipNoResetDbUpdate()? "0, 1" : "0, 0";  // if skip db update then config with a reset and remove after, else default to no reset
 		if (field.getReset() != null) {
 			RegNumber resetVal = new RegNumber(field.getReset());
@@ -1398,7 +1411,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 
 	/** return true if field has no reset and skip db update is specified  
 	 * @param field */
-	private boolean fieldNeedsResetRemoval(FieldProperties field) {
+	protected boolean fieldNeedsResetRemoval(FieldProperties field) {
 		if (!ExtParameters.uvmregsSkipNoResetDbUpdate()) return false;
 		if (field.getReset() != null) {
 			RegNumber resetVal = new RegNumber(field.getReset());
@@ -1408,7 +1421,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 	
 	/** generate field access type string */
-	private String getRegAccessType() {
+	protected String getRegAccessType() {
 		String accessMode = "RO";
 		if (regProperties.isSwWriteable()) {
 			accessMode = regProperties.isSwReadable() ? "RW" : "WO";
@@ -1418,7 +1431,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 
 	/** generate field access type string 
 	 * @param field */
-	private String getFieldAccessType(FieldProperties field) {
+	protected String getFieldAccessType(FieldProperties field) {
 		String accessMode = "RO";
 		// if read clear
 		if (field.isRclr()) {
@@ -1447,7 +1460,7 @@ public class UVMRegsBuilder extends OutputBuilder {
     // ------------------------ inner classes ---------------------------
 	
 	/** class of statement lists for a uvm_block */
-    private class subComponentLists {
+    protected class subComponentLists {
     	private HashMap<String,List<SpecialLine>> subCompList = new HashMap<String,List<SpecialLine>>();   // hashmap of subcomponent statements
     	
     	private void addStatement(String block, String statement) {
@@ -1479,7 +1492,7 @@ public class UVMRegsBuilder extends OutputBuilder {
     }
     
     /** class of alias regs in a group */
-    private class AliasGroup {
+    protected class AliasGroup {
     	private HashMap<String, HashSet<String>> group = new HashMap<String, HashSet<String>>();
        	
     	// return true if alias group exists for this base reg
@@ -1519,7 +1532,7 @@ public class UVMRegsBuilder extends OutputBuilder {
      
     /** class of all alias groups in a block/reg 
      *    structure is loaded during instance unroll - only valid at block completion */
-    private class AliasGroups {
+    protected class AliasGroups {
     	HashMap<String, AliasGroup> groups = new HashMap<String, AliasGroup>();
     	
     	// return true if alias group exists for this block
@@ -1576,7 +1589,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 
     /** special line class for post-processing output
      * in addition to line holds info for alias list generation at block finish (once groups are known) */
-    private class SpecialLine extends OutputLine {
+    protected class SpecialLine extends OutputLine {
     	private String blockId;
     	private String RegId;
     	private String AliasedId;
@@ -1697,12 +1710,17 @@ public class UVMRegsBuilder extends OutputBuilder {
 		writeStmt(0, "//");
 		writeStmt(0, "");
 		
-		// generate the 
-		UVMRdlClasses.buildRdlPackage(pkgOutputList, 0);
+		// generate the package output
+		buildRdlPackage();
 		
 		// write the output for each output group
 		for (OutputLine rLine: pkgOutputList) {
 			writeStmt(rLine.getIndent(), rLine.getLine());  
 		}
+	}
+
+	/** generate package info (overridden by child uvm builder classes) */
+	protected void buildRdlPackage() {
+		UVMRdlClasses.buildRdlPackage(pkgOutputList, 0);		
 	}
 }

@@ -152,6 +152,7 @@ ext_parm_defs
    | 'max_reg_coverage_bins' EQ NUM
    | 'reuse_uvm_classes' EQ bool
    | 'skip_no_reset_db_update' EQ bool
+   | 'uvm_model_mode' EQ ('heavy' | 'lite1') 
    ;   
    
 // ------------ reglist_out_defs
