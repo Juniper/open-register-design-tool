@@ -925,15 +925,9 @@ public class UVMRegsBuilder extends OutputBuilder {
 		outputList.add(new OutputLine(indentLvl, "string rdl_reg_name;"));
 		
 		// traverse field list and create field init statements
-		String accessType = null;
 		Iterator<FieldProperties> iter = fieldList.iterator();
 		while (iter.hasNext()) {
 			FieldProperties field = iter.next();
-			// TODO detect field access differences
-			if (accessType == null) accessType = getFieldAccessType(field); // save first field access type
-			else if (!accessType.equals(getFieldAccessType(field))) 
-				System.out.println("UVMRegsBuilder buildRegBuildFunction: access mismatch in reg=" + regProperties.getInstancePath() + ", was=" + accessType + ", is=" + getFieldAccessType(field)+ ", model type=" + ExtParameters.uvmregsModelMode());
-				
 			String fieldId = escapeReservedString(field.getPrefixedId()); 
 			
 			// create appropriate field class   
@@ -1463,7 +1457,7 @@ public class UVMRegsBuilder extends OutputBuilder {
     protected class subComponentLists {
     	private HashMap<String,List<SpecialLine>> subCompList = new HashMap<String,List<SpecialLine>>();   // hashmap of subcomponent statements
     	
-    	private void addStatement(String block, String statement) {
+    	protected void addStatement(String block, String statement) {
     		// if this hash isnt used then create a new list
     		if (!subCompList.containsKey(block)) {
     			subCompList.put(block, new ArrayList<SpecialLine>());
@@ -1472,7 +1466,7 @@ public class UVMRegsBuilder extends OutputBuilder {
     		subCompList.get(block).add(new SpecialLine(statement));
     	}
     	
-    	private void addStatement(String block, String statement, String cbsId, String regId, String aliasedId) {
+    	protected void addStatement(String block, String statement, String cbsId, String regId, String aliasedId) {
     		// if this hash isnt used then create a new list
     		if (!subCompList.containsKey(block)) {
     			subCompList.put(block, new ArrayList<SpecialLine>());
@@ -1482,7 +1476,7 @@ public class UVMRegsBuilder extends OutputBuilder {
     	}
     	
     	
-    	private List<SpecialLine> getStatements(String block) {
+    	protected List<SpecialLine> getStatements(String block) {
     		// if this hash isnt used then create a new list
     		if (subCompList.containsKey(block)) {
     			return subCompList.get(block);
@@ -1496,14 +1490,14 @@ public class UVMRegsBuilder extends OutputBuilder {
     	private HashMap<String, HashSet<String>> group = new HashMap<String, HashSet<String>>();
        	
     	// return true if alias group exists for this base reg
-    	private boolean baseRegExists(String id) {
+    	protected boolean baseRegExists(String id) {
     		return group.containsKey(id);
     	}
  
 		/** get group
 		 *  @return an alias group for the given base register
 		 */
-    	private HashSet<String> getGroup(String baseReg) {
+    	protected HashSet<String> getGroup(String baseReg) {
 			if (group.containsKey(baseReg)) return group.get(baseReg);
 			return null;
 		}
@@ -1511,7 +1505,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		/** add add a new alias group
 		 *  @param baseReg - name of base register being aliased 
 		 */
-		private void addNewGroup(String baseReg) {
+    	protected void addNewGroup(String baseReg) {
 			//System.out.println("UVMRegsBuilder:    added base reg:" + baseReg);
 			HashSet<String> newGrp = new HashSet<String>();
 			newGrp.add(baseReg);  // also add the base reg to the set
@@ -1522,7 +1516,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		 *  @param baseReg - name of base register being aliased 
 		 *  @param aliasReg - name of register being added 
 		 */
-		private void addGroupReg(String baseReg, String aliasReg) {
+    	protected void addGroupReg(String baseReg, String aliasReg) {
 			// create the alias group if it doesn't exist
 			if (!group.containsKey(baseReg)) addNewGroup(baseReg);
 			//System.out.println("   added alias reg:" + aliasReg);
@@ -1536,7 +1530,7 @@ public class UVMRegsBuilder extends OutputBuilder {
     	HashMap<String, AliasGroup> groups = new HashMap<String, AliasGroup>();
     	
     	// return true if alias group exists for this block
-    	private boolean blockExists(String id) {
+    	protected boolean blockExists(String id) {
     		return groups.containsKey(id);
     	}
     	
@@ -1555,7 +1549,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		 *  @param block - name of block  
 		 *  @param baseReg - name of base register being aliased 
 		 */
-    	private HashSet<String> getGroup(String id, String reg) {
+		protected HashSet<String> getGroup(String id, String reg) {
 			if (groups.containsKey(id)) {
 				AliasGroup grp = groups.get(id);
 				if ((reg != null) && grp.baseRegExists(reg)) return grp.getGroup(reg);  
@@ -1566,7 +1560,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		/** add add a new block alias group
 		 *  @param block - name of block  
 		 */
-		private void addNewGroup(String id) {
+		protected void addNewGroup(String id) {
 			//System.out.println("UVMRegsBuilder:    added block:" + id);
 			AliasGroup newGrp = new AliasGroup();
 			groups.put(id, newGrp);
@@ -1577,7 +1571,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		 *  @param baseReg - name of base register being aliased 
 		 *  @param aliasReg - name of register being added 
 		 */
-		private void addGroupReg(String id, String baseReg, String aliasReg) {
+		protected void addGroupReg(String id, String baseReg, String aliasReg) {
 			//System.out.println("UVMRegsBuilder: alias group add blk=" + id + ", reg=" + baseReg + ", alias=" + aliasReg);
 			// create the alias group if it doesn't exist
 			if (!groups.containsKey(id)) addNewGroup(id);

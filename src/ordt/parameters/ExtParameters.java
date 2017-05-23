@@ -42,7 +42,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public enum SVBlockSelectModes { INTERNAL, EXTERNAL, ALWAYS } 
 	public enum SVDecodeInterfaceTypes { NONE, LEAF, SERIAL8, RING8, RING16, RING32, PARALLEL, ENGINE1} 
 	public enum SVChildInfoModes { PERL, MODULE } 
-	public enum UVMModelModes { HEAVY, LITE1 } 
+	public enum UVMModelModes { HEAVY, LITE1, TRANSLATE1 } 
 	
 	// non-standard typed parameters
 	private static SVDecodeInterfaceTypes sysVerRootDecoderInterface;
@@ -417,6 +417,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 
 		else if (name.equals("uvm_model_mode")) {  
 			if (value.equals("lite1")) uvmModelMode = UVMModelModes.LITE1;
+			else if (value.equals("translate1")) uvmModelMode = UVMModelModes.TRANSLATE1;
 			else uvmModelMode = UVMModelModes.HEAVY;
 		}
 		

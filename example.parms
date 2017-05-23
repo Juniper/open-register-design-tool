@@ -82,7 +82,7 @@ output uvmregs {
 	max_reg_coverage_bins = 64   // limit address coverage bins for replicated regs
 	reuse_uvm_classes = true   // allow reuse of classes in model
 	skip_no_reset_db_update = true   // bypass uvm_resource_db update for fields with no reset
-	uvm_model_mode = lite1   // set uvm model type (heavy | lite1)
+	uvm_model_mode = translate1   // set uvm model type (heavy | lite1 | translate1)
 }
 
 // model annotation commands

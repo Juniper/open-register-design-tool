@@ -21,7 +21,8 @@ import ordt.output.systemverilog.SystemVerilogBuilder;
 import ordt.output.systemverilog.SystemVerilogChildInfoBuilder;
 import ordt.output.systemverilog.SystemVerilogTestBuilder;
 import ordt.output.uvmregs.UVMRegsBuilder;
-import ordt.output.uvmregs.UVMRegsLiteBuilder;
+import ordt.output.uvmregs.UVMRegsLite1Builder;
+import ordt.output.uvmregs.UVMRegsTranslate1Builder;
 import ordt.output.verilog.VerilogBuilder;
 import ordt.output.verilog.VerilogTestBuilder;
 import ordt.parameters.ExtParameters;
@@ -30,7 +31,7 @@ import ordt.parameters.ExtParameters.UVMModelModes;
 
 public class Ordt {
 
-	private static String version = "170517.01"; 
+	private static String version = "170522.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -303,7 +304,8 @@ public class Ordt {
     	if (outFileName == null) return;
 
 		System.out.println("Ordt: building " + outName + "...");
-		UVMRegsBuilder uvm = (ExtParameters.uvmregsModelMode() == UVMModelModes.LITE1)? new UVMRegsLiteBuilder(model) :
+		UVMRegsBuilder uvm = (ExtParameters.uvmregsModelMode() == UVMModelModes.LITE1)? new UVMRegsLite1Builder(model) :
+			(ExtParameters.uvmregsModelMode() == UVMModelModes.TRANSLATE1)? new UVMRegsTranslate1Builder(model) :
 			new UVMRegsBuilder(model);
     	if (uvm != null) {
     		uvm.write(outFileName, outName, "//");
