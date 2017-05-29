@@ -3,11 +3,11 @@ package ordt.output.drvmod;
 import java.util.ArrayList;
 import java.util.List;
 
-import ordt.parameters.ExtParameters;
+import ordt.extract.model.ModRegister;
 
 public class DrvModRegInstance extends DrvModBaseInstance {
 	
-	private int width = ExtParameters.getMinDataSize();
+	private int width = ModRegister.defaultWidth;
 	private List<DrvModField> fields = new ArrayList<DrvModField>();
 	
 	DrvModRegInstance(String name, int mapId, int width) {

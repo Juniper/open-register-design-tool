@@ -17,7 +17,8 @@ import ordt.parameters.ExtParameters;
 /** register class extracted from definition lang */
 public class ModRegister extends ModComponent  {
 		
-	private int padBits = 0;  // number of unused bits in this reg / used to compute field offsets for inputs that allow pad (jspec)   
+	private int padBits = 0;  // number of unused bits in this reg / used to compute field offsets for inputs that allow pad (jspec) 
+	public static int defaultWidth = 32;
 	
 	public ModRegister() {
 		super();
@@ -74,7 +75,7 @@ public class ModRegister extends ModComponent  {
 		// if already computed then exit
 		if (alignedSize != null) return;
 		// get reg width
-		int regWidth = hasProperty("regwidth") ? getIntegerProperty("regwidth")/8 : ExtParameters.getMinDataSize()/8;
+		int regWidth = hasProperty("regwidth") ? getIntegerProperty("regwidth")/8 : defaultWidth/8;
 		// add all child sizes
 		RegNumber newMinSize = new RegNumber(regWidth);
 		//System.out.println("ModRegister setMinSize, register instance=" + getId() + ", regwidth=" + newMinSize);

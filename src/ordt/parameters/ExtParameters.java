@@ -68,11 +68,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 			public void set(String valStr) {
 				Integer intval = Utils.strToInteger(valStr);
 				if (intval != null) {
-					if (!Utils.isPowerOf2(intval) || !Utils.isInRange(intval, 32, 1024))  
-						Ordt.errorMessage("invalid minimum data size (" + intval + ").  Must be power of 2 and >=32.");
+					if (!Utils.isPowerOf2(intval) || !Utils.isInRange(intval, 8, 128))  
+						Ordt.errorMessage("Invalid minimum data size (" + intval + ").  Must be power of 2 and >=8.");
 					else value = intval;
 				} 
-				else Ordt.errorMessage("invalid minimum data size specified (" + value + ").");
+				else Ordt.errorMessage("Invalid minimum data size specified (" + value + ").");
 			}
 		});
 		initRegNumberParameter("base_address", new RegNumber(0)); 

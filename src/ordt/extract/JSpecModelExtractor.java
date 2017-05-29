@@ -530,7 +530,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 		// create the component (and instance if not typedef) 
 		enterComponentDefinition(ctx, "reg", 1, 2);
 		// assume default width unless register_width assignment is made
-		registerWidth = ExtParameters.getMinDataSize();  // TODO - really should restructure width assign since regsets can assign 
+		registerWidth = ModRegister.defaultWidth;  // TODO - really should restructure width assign since regsets can assign 
 		//System.out.println("JSpecModelExtractor: enterRegister_def: --------  id=" + ctx.getChild(1).getText() );
 		fieldOffsets.push(0); // init fieldOffset for this reg
 	}

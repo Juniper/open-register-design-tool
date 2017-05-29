@@ -17,7 +17,7 @@ import ordt.parameters.Utils;
 /** extracted properties of a register instance created during model walk */
 public class RegProperties extends AddressableInstanceProperties {
 			
-	private Integer regWidth = ExtParameters.getMinDataSize();   // default to 32b register
+	private Integer regWidth = ModRegister.defaultWidth;   // default to 32b register
 	private JspecCategory category = new JspecCategory("");  // category property
 	private Integer filledBits = 0;  // initially no fields instanced
 	private Integer fieldCount = 0;  // initially no fields instanced
@@ -128,9 +128,8 @@ public class RegProperties extends AddressableInstanceProperties {
 		else if ((regComp != null) && (regComp.hasProperty("regwidth"))) {
 			regWidth = regComp.getIntegerProperty("regwidth");
 		}
-		// else use default min reg size
-		if (regWidth==null) regWidth = ExtParameters.getMinDataSize(); 
-
+		// else use default reg size
+		if (regWidth==null) regWidth = ModRegister.defaultWidth; 
 		//System.out.println("setting width to " + regWidth);
 	}
 	
@@ -138,9 +137,10 @@ public class RegProperties extends AddressableInstanceProperties {
 		// check for valid regwidth
 		//if (!Utils.isPowerOf2(regWidth))   
 		//	Jrdl.warnMessage("Non power of 2 register width (" + regWidth + ") specified in " + extractInstance.getFullId() + ".  Address alignment must be on next highest power of 2.");
-		if (!Utils.isInRange(regWidth, 32, 1024))   
-			Ordt.errorMessage("Invalid register width (" + regWidth + ") specified in " + extractInstance.getFullId() + ".  Size should be between 32 and 1024.");
-				
+        int minRegWidth = ExtParameters.getMinDataSize();
+        int maxRegWidth = minRegWidth * 16;
+		if (!Utils.isInRange(regWidth, minRegWidth, maxRegWidth))   
+			Ordt.errorMessage("Invalid register width (" + regWidth + ") specified in " + extractInstance.getFullId() + ".  Size should be between " + minRegWidth + " and " + maxRegWidth + ".");	
 	}
 	
 	/** set the width of register directly
@@ -148,8 +148,9 @@ public class RegProperties extends AddressableInstanceProperties {
 	public void setRegWidth(Integer width) {
 		regWidth = width;
 		// check for valid regwidth
-		if ((regWidth % ExtParameters.getMinDataSize()) != 0) {
-			Ordt.errorMessage("invalid register width (" + regWidth + ") specified");
+        int minRegWidth = ExtParameters.getMinDataSize();
+		if ((regWidth % minRegWidth) != 0) {
+			Ordt.errorMessage("Invalid register width (" + regWidth + ") specified in " + extractInstance.getFullId() + ".  Size must be a multiple of min_data_size (" + minRegWidth + ").");
 		}
 	}
 

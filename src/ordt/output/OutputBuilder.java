@@ -1099,9 +1099,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	    return extSize;
 	}
 		
-	/** get RegWidth in bytes
-	 *  @return the getRegByteWidth
-	 */
+	/** get MinRegWidth in bytes */
 	public  int getMinRegByteWidth() {
 		return ExtParameters.getMinDataSize()/8;
 	}
@@ -1119,8 +1117,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		return getMaxRegWidth() / 8;
 	}
 	
-	/** get maxRegWidth in words
-	 */
+	/** get maxRegWidth in words */
 	public int getMaxRegWordWidth() {
 		return getMaxRegWidth() / ExtParameters.getMinDataSize();
 	}

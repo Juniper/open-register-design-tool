@@ -16,6 +16,7 @@ import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.extract.model.ModEnumElement;
+import ordt.extract.model.ModRegister;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
 import ordt.output.OutputLine;
@@ -174,7 +175,7 @@ public class JspecBuilder extends OutputBuilder {
 		// start address is 0
 		outputList.add(new OutputLine(indentLvl, "address = 0x0;"));
 		// set default reg width
-	    outputList.add(new OutputLine(indentLvl, "register_width = " + ExtParameters.getMinDataSize() + ";"));
+	    outputList.add(new OutputLine(indentLvl, "register_width = " + ModRegister.defaultWidth + ";"));
 		// add description for this reg set
 		if (textDescription != null) { 
 		   outputList.add(new OutputLine(indentLvl, "description = \"{"));
@@ -269,7 +270,7 @@ public class JspecBuilder extends OutputBuilder {
 			outputList.add(new OutputLine(indentLvl, "superset_check = " + regProperties.getJspecSupersetCheck() + ";"));
 
 		// set reg width
-		if (regProperties.getRegWidth() != ExtParameters.getMinDataSize())
+		if (regProperties.getRegWidth() != ModRegister.defaultWidth)
 			outputList.add(new OutputLine(indentLvl, "register_width = " + regProperties.getRegWidth() + ";"));
 		// get repcount for this reg
 		int repCount = regProperties.getExtractInstance().getRepCount();

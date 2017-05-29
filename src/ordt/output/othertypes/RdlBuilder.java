@@ -14,6 +14,7 @@ import ordt.extract.RegNumber;
 import ordt.extract.model.ModComponent;
 import ordt.extract.model.ModEnum;
 import ordt.extract.model.ModEnumElement;
+import ordt.extract.model.ModRegister;
 import ordt.output.AddressableInstanceProperties;
 import ordt.output.FieldProperties;
 import ordt.output.InstanceProperties;
@@ -208,7 +209,7 @@ public class RdlBuilder extends OutputBuilder {
 	        outputList.add(new OutputLine(indentLvl, "js_attributes = \"" + regProperties.getJspecAttributes() + doNotTestStr + "\";")); 
 		}
 		// add regwidth if not default
-		if (regProperties.getRegWidth() != ExtParameters.getMinDataSize())
+		if (regProperties.getRegWidth() != ModRegister.defaultWidth)
 			outputList.add(new OutputLine(indentLvl, "regwidth = " + regProperties.getRegWidth() + ";"));
 		//  display enums defs in this reg
 		buildEnumDefs(regProperties.getExtractInstance().getRegComp());
