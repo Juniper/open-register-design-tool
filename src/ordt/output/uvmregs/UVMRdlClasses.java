@@ -13,7 +13,7 @@ import ordt.output.OutputLine;
 import ordt.output.systemverilog.common.SystemVerilogFunction;
 import ordt.output.systemverilog.common.SystemVerilogTask;
 
-public class UVMRdlClasses {
+public class UVMRdlClasses extends UVMRegsCommon {
 
 	/** build a package with all derived classes  
 	 * @param outputList 
@@ -251,7 +251,7 @@ public class UVMRdlClasses {
 		func.addStatement("lsb = vfld.get_lsb_pos_in_register();");
 		func.addStatement("fsize = vfld.get_n_bits();");
 		func.addStatement("rvalue = get_staged(stage_idx);");
-		func.addStatement("return (rvalue & (((1<<fsize)-1) << lsb)) >> lsb;");
+		addGetSliceStatements(func, "rvalue", "lsb", "fsize");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 				
 		func = new SystemVerilogFunction("void", "set_staged");  // set staged value at specified idx
@@ -285,9 +285,7 @@ public class UVMRdlClasses {
 		func.addStatement("  if (has_reset_value()) m_staged[stage_idx] = m_reset_value;");
 		func.addStatement("  else m_staged[stage_idx] = 0;");
 		func.addStatement("end");
-		func.addStatement("m_staged[stage_idx] |= (((1<<fsize)-1) << lsb);");
-		func.addStatement("m_staged[stage_idx] ^= (((1<<fsize)-1) << lsb);");
-		func.addStatement("m_staged[stage_idx] |= (value << lsb);");
+		addSetSliceStatements(func, "m_staged[stage_idx]", "value", "lsb", "fsize");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 				
 		SystemVerilogTask task = new SystemVerilogTask("write_staged");

@@ -390,7 +390,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		subcompBuildList.addStatement(parentID, "this." + memId + ".configure(this);");  
 		
 		// compute a reg level reset value from fields (null if no reset fields)
-		RegNumber reset = getVRegReset();
+		RegNumber reset = getFullRegReset();
 		
 		// save vreg build statements for uvm_reg_block  
 		subcompBuildList.addStatement(parentID, "this." + escapedRegId + " = new;");  
@@ -407,8 +407,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 		subcompBuildList.addStatement(parentID, "this." + escapedRegId + ".build();");		
 	}
 
-	/** compute a register level reset from the current list of fields */
-	protected RegNumber getVRegReset() {
+	/** compute a register level reset from the current list of fields (or null if none defined) */
+	protected RegNumber getFullRegReset() {
 		RegNumber reset = new RegNumber(0);  // default to reset of zero
 		reset.setVectorLen(regProperties.getRegWidth());
 		boolean hasFieldReset = false;
@@ -642,7 +642,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		}
 		
 		// create new function
-		buildBlockNewDefine(uvmBlockClassName);
+		buildBlockNewDefine(uvmBlockClassName, ExtParameters.uvmregsIncludeAddressCoverage());
 		
 		// if child callbacks, override add_callbacks
 		if (hasCallback) buildBlockAddCallbacksMethod();
@@ -677,7 +677,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		buildBlockCoverageDefines(refId);
 		
 		// create new function
-		buildBlockNewDefine(uvmBlockClassName);
+		buildBlockNewDefine(uvmBlockClassName, ExtParameters.uvmregsIncludeAddressCoverage());
 		
 		// create build function ising width of underlying virtual regs/mem
 		buildBlockBuildFunction(uvmBlockClassName, refId, mapWidthOverride, true);
@@ -712,7 +712,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		}
 		
 		// create new function
-		buildBlockNewDefine(uvmBlockClassName);
+		buildBlockNewDefine(uvmBlockClassName, ExtParameters.uvmregsIncludeAddressCoverage());
 		
 		// if child callbacks, override add_callbacks
 		if (hasCallback) buildBlockAddCallbacksMethod();
@@ -891,11 +891,12 @@ public class UVMRegsBuilder extends OutputBuilder {
         }
 	}
 
-	/** build new function and coverage sample methods */
-	protected void buildBlockNewDefine(String fullId) {
+	/** build new function and coverage sample methods 
+	 * @param includeCoverage */
+	protected void buildBlockNewDefine(String fullId, boolean includeCoverage) {
 		outputList.add(new OutputLine(indentLvl, ""));	
 		// if address coverage specified, add to new() and create sample
-		if (ExtParameters.uvmregsIncludeAddressCoverage()) {
+		if (includeCoverage) { 
 			outputList.add(new OutputLine(indentLvl++, "function new(string name = \"" + fullId + "\");"));
 			outputList.add(new OutputLine(indentLvl,     "super.new(name, build_coverage(UVM_CVR_ADDR_MAP));"));
 			outputList.add(new OutputLine(indentLvl,     "if (has_coverage(UVM_CVR_ADDR_MAP))"));	
