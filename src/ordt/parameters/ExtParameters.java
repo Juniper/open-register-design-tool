@@ -23,6 +23,7 @@ import ordt.annotate.AnnotateSetCommand;
 import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
 import ordt.extract.model.ModComponent.CompType;
+import ordt.extract.model.ModRegister;
 import ordt.parse.parameters.ExtParmsBaseListener;
 import ordt.parse.parameters.ExtParmsLexer;
 import ordt.parse.parameters.ExtParmsParser;
@@ -69,8 +70,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 				Integer intval = Utils.strToInteger(valStr);
 				if (intval != null) {
 					if (!Utils.isPowerOf2(intval) || !Utils.isInRange(intval, 8, 128))  
-						Ordt.errorMessage("Invalid minimum data size (" + intval + ").  Must be power of 2 and >=8.");
-					else value = intval;
+						Ordt.errorMessage("Invalid minimum data size (" + intval + ").  Must be power of 2 between 8 and 128.");
+					else {
+						value = intval;
+						if (value > 32) ModRegister.setDefaultWidth(value);  // if min size exceeds 32, change default
+					}
 				} 
 				else Ordt.errorMessage("Invalid minimum data size specified (" + value + ").");
 			}

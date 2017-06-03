@@ -135,9 +135,10 @@ public class Utils {
     	//for (int i=1; i<34; i++) {
     	//	System.out.println("i=" + i + ", floor=" + floorLog2(i) + ", ceil=" + ceilLog2(i) + ", nextHigh=" + getNextHighestPowerOf2(i) + ", isP2=" + isPowerOf2(i));
     	//}
-    	String inStr="1033300";
-    	System.out.println("str=" + inStr + ", simple int=" + strToInteger(inStr) + ", full int=" + numStrToInteger(inStr));
-
+    	//String inStr="1033300";
+    	//System.out.println("str=" + inStr + ", simple int=" + strToInteger(inStr) + ", full int=" + numStrToInteger(inStr));
+    	for(int i=0; i<10; i++)
+    	   System.out.println(i + ":" + getBits(i));
     }
 
 }

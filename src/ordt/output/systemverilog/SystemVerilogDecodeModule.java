@@ -1240,7 +1240,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		else if (!alwaysSelected || ExtParameters.systemverilogExportStartEnd()) 
 		   this.addWireAssign(sigBlockSelAddr + " = " + baseAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ";");  // constant define
 		
-		// check for ignored lower bits in base address  // TODO should this check also be in others (ring eg)
+		// check for ignored lower bits in base address 
 		int lowAddrBit = builder.getAddressLowBit();   
 		int addrSize = builder.getMapAddressWidth();    
 		RegNumber lowBaseBits = baseAddr.getSubVector(lowAddrBit, addrSize);
@@ -1409,7 +1409,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String s8WrStateCaptureName = getSigName(isPrimary, "s8_wr_state_capture");                      
 		String s8WrStateCaptureNextName = getSigName(isPrimary, "s8_wr_state_capture_next");                      
 		String s8RdCaptureName = getSigName(isPrimary, "s8_rdata_capture");                      
-		String s8RdCaptureNextName = getSigName(isPrimary, "s8_rdata_capture_next");                      		
+		String s8RdCaptureNextName = getSigName(isPrimary, "s8_rdata_capture_next");     
+		
+		// check for valid serial8 width
+		int transactionsInWord = ExtParameters.getMinDataSize()/8;
+		boolean multiTransactionWord = (transactionsInWord>1);
+		if (!multiTransactionWord) Ordt.errorExit("Serial8 interface type does not support 8b max width regions.  Use parallel interface instead.");
 		
 		// create module IOs
 		//  inputs
@@ -1428,7 +1433,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			//System.out.println("SystemVerilogBuilder genSerial8PioInterface: addr width=" + addressWidth + ", addr count=" + addrXferCount);
 		}
 		
-		// compute max transaction size in 32b words and number of bits to represent (4 max) 
+		// compute max transaction size in words and number of bits to represent (4b max)
 		int regWidth = builder.getMaxRegWidth();
 		int regWords = builder.getMaxRegWordWidth();
 		int regWordBits = Utils.getBits(regWords);
@@ -1494,7 +1499,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		}
 		
 		// data byte count
-		int maxDataXferCount = regWords * 4;
+		int maxDataXferCount = regWords * ExtParameters.getMinDataSize()/8;
 		int maxDataXferCountBits = Utils.getBits(maxDataXferCount);
 		this.addVectorReg(s8DataCntName, 0, maxDataXferCountBits);  
 		this.addVectorReg(s8DataCntNextName, 0, maxDataXferCountBits);  
@@ -1612,9 +1617,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addCombinAssign(groupName, "        "+ prefix + "if (" + s8DataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
 			this.addCombinAssign(groupName, "          "  + s8WrAccumNextName + SystemVerilogSignal.genRefArrayString(8*idx, 8) + " = " + serial8CmdDataName + ";");
 		}
-		// if done, move to res wait
-		String finalCntStr = "2'b11";
-		if (useTransactionSize) finalCntStr = "{" + pioInterfaceTransactionSizeName + ", 2'b11}";
+		// if done, move to res wait  
+		String finalCntStr = getSerialMaxDataCountStr(useTransactionSize, transactionsInWord, pioInterfaceTransactionSizeName);  // get final data count compare string
 		this.addCombinAssign(groupName, "        if (" + s8DataCntName + " == " + finalCntStr + ")");
 		this.addCombinAssign(groupName, "          " + s8StateNextName + " = " + RES_WAIT + ";");
 		this.addCombinAssign(groupName, "      end"); 
@@ -1650,11 +1654,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addCombinAssign(groupName, "      "+ prefix + "if (" + s8DataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
 			this.addCombinAssign(groupName, "        " + serial8ResDataName + " = " + s8RdCaptureName + SystemVerilogSignal.genRefArrayString(8*idx, 8) + ";");
 		}
-		// if final count we're done
-		if (useTransactionSize)
-			this.addCombinAssign(groupName, "      if (" + s8DataCntName + " == {" + pioInterfaceRetTransactionSizeName + ", 2'b11}) " + s8StateNextName + " = " + IDLE + ";");
-		else
-			this.addCombinAssign(groupName, "      if (" + s8DataCntName + " == 2'b11) " + s8StateNextName + " = " + IDLE + ";");
+		// if final count we're done 
+		finalCntStr = getSerialMaxDataCountStr(useTransactionSize, transactionsInWord, pioInterfaceRetTransactionSizeName);  // get final data count compare string
+		this.addCombinAssign(groupName, "      if (" + s8DataCntName + " == " + finalCntStr + ") " + s8StateNextName + " = " + IDLE + ";");
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// BAD_CMD
@@ -1683,6 +1685,20 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		// generate re/we assigns - use delayed versions if this is a single primary
 		assignReadWriteRequests(s8pioInterfaceReName, s8pioInterfaceWeName, pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());	
+	}
+	
+	/** create serial8/ring interface max data count compare string using transactions per word and transaction size
+	 *  
+	 * @param useTransactionSize - more than a single word width in this mem region
+	 * @param transactionsInWord - number of 8b transactions in each word
+	 * @param transactionSizeName - name of size variable
+	 */
+	private String getSerialMaxDataCountStr(boolean useTransactionSize, int transactionsInWord, String transactionSizeName) {
+		boolean multiTransactionWord = (transactionsInWord>1);
+		String finalWordCntStr = multiTransactionWord? Utils.getBits(transactionsInWord) + "'b" + Integer.toBinaryString(transactionsInWord-1) : "";
+		String finalCntStr = finalWordCntStr;  // single word xfer is default
+		if (useTransactionSize) finalCntStr = multiTransactionWord? "{" + transactionSizeName + ", " + finalWordCntStr + "}" : transactionSizeName;
+		return finalCntStr;
 	}
 
 	/** add ring pio interface */ 
@@ -1732,6 +1748,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String ringAddrCntCaptureNextName = getSigName(isPrimary, "r" + ringWidth + "_addr_cnt_capture_next");                      
 		String ringNotMineName = getSigName(isPrimary, "r" + ringWidth + "_not_mine");                      
 		String ringNotMineNextName = getSigName(isPrimary, "r" + ringWidth + "_not_mine_next");                      
+		
+		// check for valid ring width
+		int transactionsInWord = ExtParameters.getMinDataSize()/ringWidth;
+		if (ringWidth > ExtParameters.getMinDataSize()) Ordt.errorExit(ringWidth + "b ring interface type does not support min data size less than " + ringWidth + "b.");
 		
 		// create module IOs		
 		//  inputs
@@ -1935,8 +1955,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addResetAssign(groupName, builder.getDefaultReset(), ringNotMineName + " <= #1  1'b0;");  
 		this.addRegAssign(groupName,  ringNotMineName + " <= #1  " + ringNotMineNextName + ";");  
 		
-		// data byte count
-		int maxDataXferCount = regWords * 32/ringWidth; 
+		// data byte count 
+		int maxDataXferCount = regWords * ExtParameters.getMinDataSize()/ringWidth; 
 		int maxDataXferCountBits = Utils.getBits(maxDataXferCount);
 		boolean useDataCounter = maxDataXferCountBits > 0;
 		if (useDataCounter) {
@@ -2056,7 +2076,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// CMD_DATA - capture write data
 		this.addCombinAssign(groupName, "  " + CMD_DATA + ": begin // CMD_DATA");
-		String finalCntStr = getRingDataCountString(ringWidth, useTransactionSize, pioInterfaceTransactionSizeName);
+		String finalCntStr = getSerialMaxDataCountStr(useTransactionSize, transactionsInWord, pioInterfaceTransactionSizeName);
 		if (useDataCounter) { 
 			this.addCombinAssign(groupName,  "      " + ringDataCntNextName + " = " + ringDataCntName + ";");
 		    this.addCombinAssign(groupName,  "      if (" + cmdValidDlyName[cmdDelayCount] + ") begin");  
@@ -2116,7 +2136,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			}
 
 			// if final count we're done
-			String finalRetCntStr = getRingDataCountString(ringWidth, useTransactionSize, pioInterfaceRetTransactionSizeName);
+			String finalRetCntStr = getSerialMaxDataCountStr(useTransactionSize, transactionsInWord, pioInterfaceRetTransactionSizeName);
 			this.addCombinAssign(groupName, "      if (" + ringDataCntName + " == " + finalRetCntStr + ") " + ringStateNextName + " = " + IDLE + ";");
 		}
 		else {
@@ -2206,18 +2226,6 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		assignReadWriteRequests(ringpioInterfaceReName, ringpioInterfaceWeName, pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());
 	}
 	
-	/** create ring data count string using ring width and transaction size
-	 * 
-	 * @param ringWidth
-	 * @param useTransactionSize
-	 * @param transactionSizeName
-	 */
-	private String getRingDataCountString(int ringWidth, boolean useTransactionSize, String transactionSizeName) {
-		if (ringWidth == 8) return (useTransactionSize)? "{" + transactionSizeName + ", 2'b11}" : "2'b11";
-		if (ringWidth == 32) return (useTransactionSize)?  transactionSizeName : "";
-		return (useTransactionSize)? "{" + transactionSizeName + ", 1'b1}" : "1'b1";  // default to 16b
-	}
-
 	/** generate address accumulate and match detect assigns 
 	 * 
 	 * @param groupName - lable for comb assigns
@@ -3018,6 +3026,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	/** generate SERIAL8 external interface shim logic */  
 	public void generateExternalInterface_SERIAL8(AddressableInstanceProperties addrInstProperties) {   
 		//Jrdl.warnMessage("SystemVerilogBuilder gen_SERIAL8, ext type=" + regProperties.getExternalType()  + ", id=" + regProperties.getId());
+
+		// check for valid serial8 width
+		int transactionsInWord = ExtParameters.getMinDataSize()/8;
+		boolean multiTransactionWord = (transactionsInWord>1);
+		if (!multiTransactionWord) Ordt.errorExit("Serial8 external region (" + addrInstProperties.getInstancePath() + ") does not support 8b max width regions.  Use parallel interface instead.");
 		
 		// generate common external interface constructs
 		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
@@ -3149,8 +3162,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		}
 		
 		// data byte count
-		int maxDataXferCount = regWords * 4;
+		int maxDataXferCount = regWords * ExtParameters.getMinDataSize()/8;
 		int maxDataXferCountBits = Utils.getBits(maxDataXferCount);
+
 		this.addVectorReg(s8DataCntName, 0, maxDataXferCountBits);  
 		this.addVectorReg(s8DataCntNextName, 0, maxDataXferCountBits);  
 		this.addResetAssign(groupName, builder.getDefaultReset(), s8DataCntName + " <= #1  " + maxDataXferCountBits + "'b0;");  
@@ -3254,8 +3268,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addCombinAssign(groupName, "        "  + cmdDataDlyName[0] + " = " + extIf.decodeToHwName + SystemVerilogSignal.genRefArrayString(8*idx, 8) + ";");
 		}
 		// if done, move to res wait
-		String finalCntStr = "2'b11";
-		if (useTransactionSize) finalCntStr = "{" + extIf.decodeToHwTransactionSizeName + ", 2'b11}";
+		String finalCntStr = getSerialMaxDataCountStr(useTransactionSize, transactionsInWord, extIf.decodeToHwTransactionSizeName);
 		this.addCombinAssign(groupName, "      if (" + s8DataCntName + " == " + finalCntStr + ")");
 		this.addCombinAssign(groupName, "        " + s8StateNextName + " = " + RES_WAIT + ";");
 		this.addCombinAssign(groupName, "    end"); 
@@ -3290,10 +3303,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign(groupName, "      end"); 
 		// otherwise move to ack or nack done
 		this.addCombinAssign(groupName, "      " + "else if (" + rxNackCaptureName + ") " + s8StateNextName + " = " + RES_DONE_NACK + ";");
-		if (useTransactionSize) 
-		    this.addCombinAssign(groupName, "      if (" + s8DataCntName + " == {" + extIf.hwToDecodeTransactionSizeName + ", 2'b11}) " + s8StateNextName + " = " + RES_DONE_ACK + ";");
-		else
-		    this.addCombinAssign(groupName, "      if (" + s8DataCntName + " == 2'b11) " + s8StateNextName + " = " + RES_DONE_ACK + ";");
+		finalCntStr = getSerialMaxDataCountStr(useTransactionSize, transactionsInWord, extIf.hwToDecodeTransactionSizeName);
+		this.addCombinAssign(groupName, "      if (" + s8DataCntName + " == " + finalCntStr + ") " + s8StateNextName + " = " + RES_DONE_ACK + ";");
 		this.addCombinAssign(groupName, "    end"); 
 		
 		// RES_DONE_ACK
@@ -3318,6 +3329,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	/** generate RING external interface shim logic */    
 	public void generateExternalInterface_RING(int ringWidth, AddressableInstanceProperties addrInstProperties) {
 		//Jrdl.warnMessage("SystemVerilogBuilder gen_RING, ext type=" + regProperties.getExternalType()  + ", id=" + regProperties.getId());
+
+		// check for valid ring width
+		int transactionsInWord = ExtParameters.getMinDataSize()/ringWidth;
+		if (ringWidth > ExtParameters.getMinDataSize()) Ordt.errorExit(ringWidth + "b ring external region (" + addrInstProperties.getInstancePath() + ") does not support min data size less than " + ringWidth + "b.");
 		
 		// generate common external interface constructs
 		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
@@ -3484,7 +3499,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		}
 		
 		// data byte count
-		int maxDataXferCount = regWords * 32/ringWidth;
+		int maxDataXferCount = regWords * ExtParameters.getMinDataSize()/ringWidth;
 		int maxDataXferCountBits = Utils.getBits(maxDataXferCount);
 		boolean useDataCounter = maxDataXferCountBits > 0;
 		if (useDataCounter) {
@@ -3602,7 +3617,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				this.addCombinAssign(groupName, "        "  + cmdDataDlyName[0] + " = " + extIf.decodeToHwName + SystemVerilogSignal.genRefArrayString(ringWidth*idx, ringWidth) + ";");
 			}
 			// if done, move to res wait
-			String finalCntStr = getRingDataCountString(ringWidth, useTransactionSize, extIf.decodeToHwTransactionSizeName);
+			String finalCntStr = getSerialMaxDataCountStr(useTransactionSize, transactionsInWord, extIf.decodeToHwTransactionSizeName);
 			this.addCombinAssign(groupName, "      if (" + ringDataCntName + " == " + finalCntStr + ")"); 
 			this.addCombinAssign(groupName, "        " + ringStateNextName + " = " + RES_WAIT + ";");			
 		}
@@ -3641,7 +3656,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			}
 			this.addCombinAssign(groupName,     "      end"); 
 			// move to ack when done 
-			String finalCntStr = getRingDataCountString(ringWidth, useTransactionSize, extIf.hwToDecodeTransactionSizeName);
+			String finalCntStr = getSerialMaxDataCountStr(useTransactionSize, transactionsInWord, extIf.hwToDecodeTransactionSizeName);
 			this.addCombinAssign(groupName, "      if (" + ringDataCntName + " == " + finalCntStr + ") " + ringStateNextName + " = " + RES_DONE_ACK + ";");
 		}
 		else {

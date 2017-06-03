@@ -16,13 +16,18 @@ import ordt.parameters.ExtParameters;
 
 /** register class extracted from definition lang */
 public class ModRegister extends ModComponent  {
-		
+
 	private int padBits = 0;  // number of unused bits in this reg / used to compute field offsets for inputs that allow pad (jspec) 
 	public static int defaultWidth = 32;
 	
 	public ModRegister() {
 		super();
 		compType = CompType.REG;
+	}
+
+	/** set default width of registers */
+	public static void setDefaultWidth(int defaultWidth) {
+		ModRegister.defaultWidth = defaultWidth;
 	}
 
 	/** default check on valid property assignments - overridden by child types */
