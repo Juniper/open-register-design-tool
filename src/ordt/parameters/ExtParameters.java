@@ -155,7 +155,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("include_address_coverage", false); 
 		initIntegerParameter("max_reg_coverage_bins", 128);
 		initBooleanParameter("reuse_uvm_classes", false); 
-		initBooleanParameter("skip_no_reset_db_update", false); 
+		initBooleanParameter("skip_no_reset_db_update", true); 
 		uvmModelMode = UVMModelModes.HEAVY; 
 		initStringMapParameter("uvm_model_parameters", new HashMap<String, String>()); 
 		
