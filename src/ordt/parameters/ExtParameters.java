@@ -157,6 +157,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("reuse_uvm_classes", false); 
 		initBooleanParameter("skip_no_reset_db_update", false); 
 		uvmModelMode = UVMModelModes.HEAVY; 
+		initStringMapParameter("uvm_model_parameters", new HashMap<String, String>()); 
 		
 		// ---- bench output defaults
 		initStringListParameter("add_test_command", new ArrayList<String>());
@@ -196,7 +197,8 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	static String getStringParameter(String name) {
 		return (String) params.get(name).get();
 	}
-	
+
+	// StringList
 	static void initStringListParameter(String name, List<String> value) {
 		params.put(name, new ExtStringListParameter(name, value));
 	}
@@ -209,6 +211,21 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	@SuppressWarnings("unchecked")
 	static Boolean hasStringListParameter(String name) {
 		return !((List<String>) params.get(name).get()).isEmpty();
+	}
+	
+	// StringMap
+	static void initStringMapParameter(String name, HashMap<String, String> value) {
+		params.put(name, new ExtStringMapParameter(name, value));
+	}
+	
+	@SuppressWarnings("unchecked")
+	static HashMap<String, String> getStringMapParameter(String name) {
+		return (HashMap<String, String>) params.get(name).get();
+	}
+	
+	@SuppressWarnings("unchecked")
+	static Boolean hasStringMapParameter(String name) {
+		return !((HashMap<String, String>) params.get(name).get()).isEmpty();
 	}
 	
 	/**
@@ -744,7 +761,9 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static Boolean reglistShowFields() {
 		return getBooleanParameter("show_fields");
 	}
-
+	
+	// uvm getters
+	
 	public static Boolean uvmregsSuppressNoCategoryWarnings() {
 		return getBooleanParameter("suppress_no_category_warnings");
 	}
@@ -774,6 +793,13 @@ public class ExtParameters extends ExtParmsBaseListener  {
 
 	public static UVMModelModes uvmregsModelMode() {
 		return uvmModelMode;
+	}
+	
+	/** get specified uvm model parameter */
+	public static String getUvmModelParameter(String parm, String dflt) {
+		String retVal = getStringMapParameter("uvm_model_parameters").get(parm);
+		if (retVal==null) return dflt;  // return default value if parameter not found
+		return retVal;
 	}
 
 	// --------

@@ -153,6 +153,7 @@ ext_parm_defs
    | 'reuse_uvm_classes' EQ bool
    | 'skip_no_reset_db_update' EQ bool
    | 'uvm_model_mode' EQ ('heavy' | 'lite1' | 'translate1') 
+   | 'uvm_model_parameters' EQ STR 
    ;   
    
 // ------------ reglist_out_defs

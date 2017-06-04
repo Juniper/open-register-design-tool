@@ -83,6 +83,7 @@ output uvmregs {
 	reuse_uvm_classes = false   // allow reuse of classes in model
 	skip_no_reset_db_update = true   // bypass uvm_resource_db update for fields with no reset
 	uvm_model_mode = translate1   // set uvm model type (heavy | lite1 | translate1)
+	uvm_model_parameters = "altModelRootType=Zt_fabio, altModelPackageFile=zt_class.svh, altModelPackage=zt_jspec::*"  // set misc model parameters
 }
 
 // model annotation commands
