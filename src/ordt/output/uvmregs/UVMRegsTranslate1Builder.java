@@ -29,7 +29,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 	}
 
 	/** get alt reg type */
-	private String getAltRegType() {
+	private String getAltRegType() {  // TODO - fix Register reference hardcoded in reg defines parm default
 		String firstChar = regProperties.getId().substring(0, 1);
 		String regTypeParam = regProperties.getId().replaceFirst(firstChar, firstChar.toUpperCase());  // alt model parameter type 
 		String regBaseType = regProperties.isReplicated()? "RegisterArray" : "Register";
@@ -142,7 +142,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		// generate register header 
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// " + textName));
-		outputList.add(new OutputLine(indentLvl++, "class " + uvmRegClassName + " #(type ALTREG_T, type REGDATA_T, int REGWIDTH = 32) extends uvm_reg_translate #(REGDATA_T, REGWIDTH);"));  
+		outputList.add(new OutputLine(indentLvl++, "class " + uvmRegClassName + " #(type ALTREG_T = Register #(int), type REGDATA_T = int, int REGWIDTH = 32) extends uvm_reg_translate #(REGDATA_T, REGWIDTH);"));  
 		
 		// create field definitions
 		buildRegFieldDefines();  
@@ -208,7 +208,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		// generate register header 
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// " + textName));
-		outputList.add(new OutputLine(indentLvl++, "class " + fullId + " #(type ALTREG_T, type REGDATA_T, int REGWIDTH = 32) extends uvm_vreg_translate #(REGDATA_T, REGWIDTH);"));  
+		outputList.add(new OutputLine(indentLvl++, "class " + fullId + " #(type ALTREG_T = Register #(int), type REGDATA_T = int, int REGWIDTH = 32) extends uvm_vreg_translate #(REGDATA_T, REGWIDTH);"));  
 						
 		// override of read/write call tasks 
 		SystemVerilogTask task = new SystemVerilogTask("call_alt_read");
@@ -263,7 +263,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		// generate register header 
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// " + textName));
-		outputList.add(new OutputLine(indentLvl++, "class " + uvmBlockClassName + "#(type ALTBLOCK_T) extends uvm_block_translate;"));  
+		outputList.add(new OutputLine(indentLvl++, "class " + uvmBlockClassName + "#(type ALTBLOCK_T = " + altModelRootType + ") extends uvm_block_translate;"));  
 
 		// create field definitions  
 		buildBlockDefines(refId);
@@ -303,7 +303,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		// generate register header 
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// Uvm_mem wrapper block " + refId));
-		outputList.add(new OutputLine(indentLvl++, "class " + uvmBlockClassName + "#(type ALTBLOCK_T) extends uvm_block_translate;"));  
+		outputList.add(new OutputLine(indentLvl++, "class " + uvmBlockClassName + "#(type ALTBLOCK_T = " + altModelRootType + ") extends uvm_block_translate;"));  
 
 		// create field definitions  
 		buildBlockDefines(refId);
@@ -336,7 +336,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		// generate register header 
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// Base block"));
-		outputList.add(new OutputLine(indentLvl++, "class " + uvmBlockClassName + "#(type ALTBLOCK_T = " + getAddressMapName() + "_t) extends uvm_block_translate;"));
+		outputList.add(new OutputLine(indentLvl++, "class " + uvmBlockClassName + "#(type ALTBLOCK_T = " + altModelRootType + ") extends uvm_block_translate;"));
 		
 		outputList.add(new OutputLine(indentLvl, "local ALTBLOCK_T m_alt_root_instance;")); 
 		

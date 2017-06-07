@@ -34,6 +34,7 @@ public class UVMRdlTranslate1Classes extends UVMRegsCommon {
 		outputList.add(new OutputLine(indentLvl++, "package ordt_uvm_reg_translate1_pkg;")); 
 		outputList.add(new OutputLine(indentLvl,   "import uvm_pkg::*;"));
 		if (altModelPackage != null) outputList.add(new OutputLine(indentLvl, "import " + altModelPackage + ";"));  // add alt model pkg
+		outputList.add(new OutputLine(indentLvl,   "import jspec::*;"));
 		// create derived classes
 		buildRdlClasses(outputList, indentLvl);
 		// close out the package definition
@@ -71,7 +72,7 @@ public class UVMRdlTranslate1Classes extends UVMRegsCommon {
 		outputList.add(new OutputLine(indentLvl, "static uvm_reg_data_t m_data_store;")); 
 		outputList.add(new OutputLine(indentLvl, "static int m_data_store_id = 0;")); // reg id for current stored data
 		outputList.add(new OutputLine(indentLvl, "static int m_inst_count = 0;")); 
-		outputList.add(new OutputLine(indentLvl, "local int m_id = 0;")); // unique reg id
+		outputList.add(new OutputLine(indentLvl, "protected int m_id = 0;")); // unique reg id
 		
 		// get data_store slice  
 		SystemVerilogFunction func = new SystemVerilogFunction("int", "get_id");
@@ -168,7 +169,7 @@ public class UVMRdlTranslate1Classes extends UVMRegsCommon {
 	private static void buildUvmRegTranslateClass(List<OutputLine> outputList, int indentLvl) {
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// uvm_reg_translate class"));
-		outputList.add(new OutputLine(indentLvl++, "class uvm_reg_translate #(type REGDATA_T, int REGWIDTH = 32) extends uvm_base_translate;")); 
+		outputList.add(new OutputLine(indentLvl++, "class uvm_reg_translate #(type REGDATA_T = int, int REGWIDTH = 32) extends uvm_base_translate;")); 
 		
 		outputList.add(new OutputLine(indentLvl, "protected uvm_block_translate m_parent;")); // parent block
 		outputList.add(new OutputLine(indentLvl, "protected int m_rep;"));			
@@ -283,7 +284,7 @@ public class UVMRdlTranslate1Classes extends UVMRegsCommon {
 	private static void buildUvmVRegTranslateClass(List<OutputLine> outputList, int indentLvl) {
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// uvm_vreg_translate class"));
-		outputList.add(new OutputLine(indentLvl++, "class uvm_vreg_translate #(type REGDATA_T, int REGWIDTH = 32) extends uvm_base_translate;")); 
+		outputList.add(new OutputLine(indentLvl++, "class uvm_vreg_translate #(type REGDATA_T = int, int REGWIDTH = 32) extends uvm_base_translate;")); 
 		
 		outputList.add(new OutputLine(indentLvl, "protected uvm_block_translate m_parent;")); // parent block
 		
@@ -330,6 +331,7 @@ public class UVMRdlTranslate1Classes extends UVMRegsCommon {
 		task = new SystemVerilogTask("call_alt_write");
 		task.addComment("Alt model virtual register write (overloaded by child classes)");
 		task.setVirtual();
+		task.addIO("input", "longint unsigned", "idx", null);
 		task.addIO("input", "REGDATA_T", "write_data", null);
 		if (hasAddlParameter)
 			task.addIO("input", addlParameterType, addlParameterLocal, null);
