@@ -900,6 +900,13 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		return null;
 	}
 	
+	/** return parent of active RegSetProperties from the regset stack */
+	protected RegSetProperties getRegSetParent() {
+		int stackSize = regSetPropertyStack.size();
+		if (stackSize<2) return null;  // no parent
+		return regSetPropertyStack.get(stackSize-2);
+	}
+	
 	/** return name of current active address map from the regset stack
 	 */
 	protected String getParentAddressMapName() {

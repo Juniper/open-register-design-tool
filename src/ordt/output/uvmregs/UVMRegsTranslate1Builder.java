@@ -8,6 +8,7 @@ import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.output.FieldProperties;  
 import ordt.output.OutputLine;
+import ordt.output.RegSetProperties;
 import ordt.output.systemverilog.common.SystemVerilogFunction;
 import ordt.output.systemverilog.common.SystemVerilogTask;
 import ordt.parameters.ExtParameters;
@@ -29,17 +30,29 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 	}
 
 	/** get alt reg type */
-	private String getAltRegType() {  // TODO - fix Register reference hardcoded in reg defines parm default
+	private String getAltRegType() {  // TODO - fix Register reference hardcoded in reg defines parm default?
 		String firstChar = regProperties.getId().substring(0, 1);
-		String regTypeParam = regProperties.getId().replaceFirst(firstChar, firstChar.toUpperCase());  // alt model parameter type 
+		// change case of first character in name to create type
+		String regTypeParam;
+		if (firstChar.equals(firstChar.toUpperCase()))
+		    regTypeParam = regProperties.getId().replaceFirst(firstChar, firstChar.toLowerCase());  // change to lc
+		else
+		    regTypeParam = regProperties.getId().replaceFirst(firstChar, firstChar.toUpperCase());  // change to uc 
 		String regBaseType = regProperties.isReplicated()? "RegisterArray" : "Register";
 		return regBaseType + " #(" + getAltBlockType() + "::" + regTypeParam + ")";  // TODO - make parameterizable, getAddressMapName() + "_" + regProperties.getBaseName() + "_t"   
 	}
 
 	/** get alt block type */
-	private String getAltBlockType() { 
+	private String getAltBlockType() {
 		String blockBase = (regSetProperties.getBaseName().isEmpty())? "" : "_" + regSetProperties.getBaseName();
 		return altModelRootType + blockBase;    // TODO - make parameterizable, getAddressMapName() + "_" + regSetProperties.getBaseName() + "_t"
+	}
+
+	/** get alt block type of current block's parent */
+	private String getAltBlockParentType() {
+		RegSetProperties parent = getRegSetParent();
+		String blockBase = ((parent == null) || parent.getBaseName().isEmpty())? "" : "_" + parent.getBaseName();
+		return altModelRootType + blockBase;    
 	}
 
 	// --------------------------- package setup methods ------------------------
@@ -50,6 +63,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		outputList.add(new OutputLine(indentLvl, "import uvm_pkg::*;"));
 		outputList.add(new OutputLine(indentLvl, "import ordt_uvm_reg_translate1_pkg::*;"));
 		if (UVMRdlTranslate1Classes.altModelPackage != null) outputList.add(new OutputLine(indentLvl, "import " + UVMRdlTranslate1Classes.altModelPackage + ";"));  // add alt model pkg
+		outputList.add(new OutputLine(indentLvl,   "import jspec::*;"));
 	}
 
     //---------------------------- helper methods saving child info for parent build --------------------------------------
@@ -64,7 +78,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		//String aliasedId = escapeReservedString(regProperties.getAliasedId());
 		// save register define statements
 		String repStr = (regProperties.isReplicated()) ? "[" + regProperties.getRepCount() + "]" : "";
-		String regParameterStr = " #(" + getAltRegType() + ", " + getAltRegDataType() + ", " + regProperties.getRegWidth() + ") "; 
+		String regParameterStr = " #(" + getAltBlockType() + ", " + getAltRegType() + ", " + getAltRegDataType() + ", " + regProperties.getRegWidth() + ") "; 
 		subcompDefList.addStatement(parentID, uvmRegClassName + regParameterStr + " " + regId + repStr + " = new(this);");		
 		// save register build statements
 		if (regProperties.isReplicated()) {
@@ -86,7 +100,8 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		// escape id name
 		String escapedRegId = escapeReservedString(regId);		
 		// save vreg define statement
-		subcompDefList.addStatement(parentID, getUVMVRegID() + " " + escapedRegId + ";");   // virtual regs (name = vregs)
+		String vregParameterStr = " #(" + getAltBlockType() + ", " + getAltRegType() + ", " + getAltRegDataType() + ", " + regProperties.getRegWidth() + ") "; 
+		subcompDefList.addStatement(parentID, getUVMVRegID() + vregParameterStr + " " + escapedRegId + " = new(this);");   // virtual regs (name = vregs)
 		//System.out.println("UVMRegsTranslate1Builder saveMemInfo: saving statements into wrapper parentID=" + parentID);
 	}	
 	
@@ -108,7 +123,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		String escapedBlockId = escapeReservedString(blockId);
 		// save block define statements
 		String repStr = (!hasInstanceNameOverride && regSetProperties.isReplicated()) ? "[" + regSetProperties.getRepCount() + "]" : "";
-		String blockParameterStr = " #(" + getAltBlockType() + ") "; 
+		String blockParameterStr = " #(" + getAltBlockParentType() + ", " + getAltBlockType() + ") "; 
 		subcompDefList.addStatement(parentID, uvmBlockClassName + blockParameterStr + " " + escapedBlockId + repStr + " = new(this);");
 		//System.out.println("UVMBuild saveRegSetInfo: " + regSetProperties.getBaseName() + ", parent=" + parentID + ", rel addr=" + regSetProperties.getRelativeBaseAddress());
 		// save register build statements
@@ -142,7 +157,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		// generate register header 
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// " + textName));
-		outputList.add(new OutputLine(indentLvl++, "class " + uvmRegClassName + " #(type ALTREG_T = Register #(int), type REGDATA_T = int, int REGWIDTH = 32) extends uvm_reg_translate #(REGDATA_T, REGWIDTH);"));  
+		outputList.add(new OutputLine(indentLvl++, "class " + uvmRegClassName + " #(type ALTPBLOCK_T = " + altModelRootType + ", type ALTREG_T = Register #(int), type REGDATA_T = int, int REGWIDTH = 32) extends uvm_reg_translate #(REGDATA_T, REGWIDTH);"));  
 		
 		// create field definitions
 		buildRegFieldDefines();  
@@ -171,10 +186,11 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		// get_alt_reg - return alternate model register struct corresponding to this reg
 		SystemVerilogFunction func = new SystemVerilogFunction("ALTREG_T", "get_alt_reg");
 		String escRegId = escapeReservedString(regProperties.getId());
+		func.addStatement("ALTPBLOCK_T alt_parent = m_parent.get_alt_block();");
 		if (regProperties.isReplicated())
-		  func.addStatement("return m_parent.get_alt_block()." + escRegId + "[m_rep];");
+		  func.addStatement("return alt_parent." + escRegId + "[m_rep];");
 		else 
-			  func.addStatement("m_parent.get_alt_block()." + escRegId + ";"); 
+		  func.addStatement("alt_parent." + escRegId + ";"); 
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// close out the register definition
@@ -208,7 +224,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		// generate register header 
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// " + textName));
-		outputList.add(new OutputLine(indentLvl++, "class " + fullId + " #(type ALTREG_T = Register #(int), type REGDATA_T = int, int REGWIDTH = 32) extends uvm_vreg_translate #(REGDATA_T, REGWIDTH);"));  
+		outputList.add(new OutputLine(indentLvl++, "class " + fullId + " #(type ALTPBLOCK_T = " + altModelRootType + ", type ALTREG_T = Register #(int), type REGDATA_T = int, int REGWIDTH = 32) extends uvm_vreg_translate #(REGDATA_T, REGWIDTH);"));  
 						
 		// override of read/write call tasks 
 		SystemVerilogTask task = new SystemVerilogTask("call_alt_read");
@@ -237,10 +253,11 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		SystemVerilogFunction func = new SystemVerilogFunction("ALTREG_T", "get_alt_reg");
 		task.addIO("input", "longint unsigned", "idx", null);
 		String escRegId = escapeReservedString(regProperties.getId());
+		func.addStatement("ALTPBLOCK_T alt_parent = m_parent.get_alt_block();");
 		if (regProperties.isReplicated())
-		  func.addStatement("return m_parent.get_alt_block()." + escRegId + "[idx];");
+		  func.addStatement("return alt_parent." + escRegId + "[idx];");
 		else 
-			  func.addStatement("m_parent.get_alt_block()." + escRegId + ";"); 
+			  func.addStatement("alt_parent." + escRegId + ";"); 
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// close out the register definition
@@ -263,7 +280,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		// generate register header 
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// " + textName));
-		outputList.add(new OutputLine(indentLvl++, "class " + uvmBlockClassName + "#(type ALTBLOCK_T = " + altModelRootType + ") extends uvm_block_translate;"));  
+		outputList.add(new OutputLine(indentLvl++, "class " + uvmBlockClassName + "#(type ALTPBLOCK_T = " + altModelRootType + ", type ALTBLOCK_T = " + altModelRootType + ") extends uvm_block_translate;"));  
 
 		// create field definitions  
 		buildBlockDefines(refId);
@@ -279,10 +296,13 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		SystemVerilogFunction func = new SystemVerilogFunction("ALTBLOCK_T", "get_alt_block"); 
 		if (regSetProperties.isRootInstance())
 			  func.addStatement("return " + escRegSetId + ";");
-		if (regSetProperties.isReplicated())
-		  func.addStatement("return m_parent.get_alt_block()." + escRegSetId + "[m_rep];");
-		else 
-			  func.addStatement("return m_parent.get_alt_block()." + escRegSetId + ";"); 
+		else {
+			func.addStatement("ALTPBLOCK_T alt_parent = m_parent.get_alt_block();");
+			if (regSetProperties.isReplicated())
+			  func.addStatement("return alt_parent." + escRegSetId + "[m_rep];");
+			else 
+			  func.addStatement("return alt_parent." + escRegSetId + ";"); 
+		}
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// close out the class definition
@@ -303,7 +323,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		// generate register header 
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// Uvm_mem wrapper block " + refId));
-		outputList.add(new OutputLine(indentLvl++, "class " + uvmBlockClassName + "#(type ALTBLOCK_T = " + altModelRootType + ") extends uvm_block_translate;"));  
+		outputList.add(new OutputLine(indentLvl++, "class " + uvmBlockClassName + "#(type ALTPBLOCK_T = " + altModelRootType + ", type ALTBLOCK_T = " + altModelRootType + ") extends uvm_block_translate;"));  
 
 		// create field definitions  
 		buildBlockDefines(refId);
@@ -336,7 +356,7 @@ public class UVMRegsTranslate1Builder extends UVMRegsBuilder {
 		// generate register header 
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// Base block"));
-		outputList.add(new OutputLine(indentLvl++, "class " + uvmBlockClassName + "#(type ALTBLOCK_T = " + altModelRootType + ") extends uvm_block_translate;"));
+		outputList.add(new OutputLine(indentLvl++, "class " + uvmBlockClassName + "#(type ALTPBLOCK_T = " + altModelRootType + ", type ALTBLOCK_T = " + altModelRootType + ") extends uvm_block_translate;"));
 		
 		outputList.add(new OutputLine(indentLvl, "local ALTBLOCK_T m_alt_root_instance;")); 
 		
