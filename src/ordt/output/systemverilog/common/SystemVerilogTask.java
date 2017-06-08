@@ -2,22 +2,28 @@ package ordt.output.systemverilog.common;
 
 public class SystemVerilogTask extends SystemVerilogFunction {
 
+	public SystemVerilogTask(String name, String parentClass) {
+		super(null, name, parentClass);
+	}
+
 	public SystemVerilogTask(String name) {
 		super(null, name);
 	}
 
-	/** generate header string for this method (task) */
-	protected String genHeader() {
-		String retStr = isVirtual? "virtual task" : "task";
+	/** generate header type string for this method (task) */
+	@Override
+	protected String genHeaderType(boolean isExtern, boolean includeParent) {
+		   String retStr = isExtern? "extern " : "";
+		   retStr += (isVirtual && !includeParent)? "virtual task" : "task";
 		return retStr;
 	}
 	  
 	/** generate signature string for this method (task) */
 	@Override
-	protected String genSignature() {
+	public String genSignature(boolean isExtern, boolean includeParent) {
 		boolean showIODir = true;
-		String suffix = " " + name + genIODefs(showIODir) + ";";
-		return genHeader() + suffix;
+		String suffix = " " + genHeaderName(includeParent) + genIODefs(showIODir) + ";";
+		return genHeaderType(isExtern, includeParent) + suffix;
 	}
 
 	/** generate closing string for this method (task) */

@@ -26,6 +26,7 @@ import ordt.output.RegProperties;
 import ordt.output.RegSetProperties;
 import ordt.output.RhsReference;
 import ordt.output.FieldProperties.RhsRefType;
+import ordt.output.systemverilog.common.SystemVerilogFunction;
 import ordt.parameters.ExtParameters;
 
 public class UVMRegsBuilder extends OutputBuilder {
@@ -38,6 +39,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	protected subComponentLists subcompAddrCoverGroupList = new subComponentLists();  // lists of subcomponent address covergroup statements (per block)
 	protected subComponentLists regCbsDefineStatements = new subComponentLists();  // list of register callback defines (per block)
 	protected subComponentLists regCbsAssignStatements = new subComponentLists();  // list of register callback assign statements (per block)
+	protected List<SystemVerilogFunction> externMethods = new ArrayList<SystemVerilogFunction>();  // list of functions to be defined outside class scope
 	
 	protected int indentLvl = 0;
 	
@@ -986,8 +988,11 @@ public class UVMRegsBuilder extends OutputBuilder {
 	/** build the add_callbacks function for current register 
 	 *  add_callbacks is called recursively after build completes and sets field dynamic assign linkages and associated callbacks */
 	protected void buildRegAddCallbacksFunction() {
-		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl++, "virtual function void add_callbacks();")); 
+		// create a new function define
+		SystemVerilogFunction func = new SystemVerilogFunction("void", "add_callbacks", this.getUVMRegID());  // only have callbacks on regs
+		func.addComment("Add model callbacks associated with " + regProperties.getInstancePath() + ".");
+		func.setVirtual();
+		
 		// find any fields needing callbacks/reference assignment and define callback vars
 		boolean intrMaskDetected = false;  // detect intr enable or masks
 		boolean intrCascadeDetected = false;   // detect cascaded interrupt fields
@@ -997,12 +1002,12 @@ public class UVMRegsBuilder extends OutputBuilder {
 			if (field.isInterrupt() && (field.hasRef(RhsRefType.INTR_ENABLE) || field.hasRef(RhsRefType.INTR_MASK))) {
 				intrMaskDetected = true;
 				if (field.isMaskIntrBits())  // if maskintrbits then define a callback
-					outputList.add(new OutputLine(indentLvl, "rdl_mask_intr_field_cbs " + field.getPrefixedId() + "_mask_cb;")); // define mask field callback
+					func.addStatement("rdl_mask_intr_field_cbs " + field.getPrefixedId() + "_mask_cb;"); // define mask field callback
 			}
 			// intr cascade (callback disabled) 
 			if (field.isInterrupt() && (field.hasRef(RhsRefType.NEXT) || (field.hasRef(RhsRefType.INTR) && (field.getIntrType() == FieldProperties.IntrType.LEVEL)))) {
 				intrCascadeDetected = true;
-				//outputList.add(new OutputLine(indentLvl, "rdl_cascade_intr_field_cbs " + field.getPrefixedId() + "_cascade_cb;")); // define cascade field callback
+				//func.addStatement("rdl_cascade_intr_field_cbs " + field.getPrefixedId() + "_cascade_cb;"); // define cascade field callback
 			}
 		} 
 		
@@ -1010,10 +1015,10 @@ public class UVMRegsBuilder extends OutputBuilder {
 		boolean fieldCallbackNeeded  = intrMaskDetected || intrCascadeDetected;  // detect intr bit mask using enable or mask value 
 		if (fieldCallbackNeeded) {
 			// define vars used for extracting reg/fields and setting references in uvm model
-			outputList.add(new OutputLine(indentLvl, "uvm_reg_block m_root_cb_block;"));  // found from assign depth
-			outputList.add(new OutputLine(indentLvl, "uvm_reg_block m_cb_block;"));  // find from m_root_cb_block using rhs name
-			outputList.add(new OutputLine(indentLvl, "uvm_reg m_cb_reg;"));  // find from m_cb_block using reg name
-			outputList.add(new OutputLine(indentLvl, "uvm_reg_field m_cb_field;"));  // find from m_cb_reg using field name
+			func.addPreStatement("uvm_reg_block m_root_cb_block;" );  // found from assign depth
+			func.addPreStatement("uvm_reg_block m_cb_block;");  // find from m_root_cb_block using rhs name
+			func.addPreStatement("uvm_reg m_cb_reg;");  // find from m_cb_block using reg name
+			func.addPreStatement("uvm_reg_field m_cb_field;");  // find from m_cb_reg using field name
 			regSetHasCallback.pop();
 			regSetHasCallback.push(true);			
 
@@ -1049,18 +1054,18 @@ public class UVMRegsBuilder extends OutputBuilder {
 					}
 					else {
 						// build register search statements (sets m_cb_field)
-						buildFieldSearch(eRef, field);
+						buildFieldSearch(eRef, field, func); // TODO - replace with new set field method
 						
 						// set the enable/mask field reference in this field
 						String isEnableStr = isEnable ? "1" : "0";  
-						outputList.add(new OutputLine(indentLvl, fieldId + ".set_intr_mask_field(m_cb_field, " + isEnableStr + ");"));  
+						func.addStatement(fieldId + ".set_intr_mask_field(m_cb_field, " + isEnableStr + ");");  
 						
 						//System.out.println("UVMRegsBuilder buildRegAddCallbacksFunction: enable maskStr=" + maskStr + ", depth=" + eRef.getDepth() );
 						// if maskintrbits then also need a callback to change mirror value
 						if (field.isMaskIntrBits()) {
-							outputList.add(new OutputLine(indentLvl, field.getPrefixedId() + "_mask_cb = new(\"" +
-						                        field.getPrefixedId() + "_mask_cb\"," + fieldId + ");"));
-							outputList.add(new OutputLine(indentLvl, "uvm_reg_field_cb::add(this." + fieldId + ", " + field.getPrefixedId() + "_mask_cb);")); 						
+							func.addStatement(field.getPrefixedId() + "_mask_cb = new(\"" +
+						                        field.getPrefixedId() + "_mask_cb\"," + fieldId + ");");
+							func.addStatement("uvm_reg_field_cb::add(this." + fieldId + ", " + field.getPrefixedId() + "_mask_cb);"); 						
 						}
 					}
 				}
@@ -1087,11 +1092,11 @@ public class UVMRegsBuilder extends OutputBuilder {
 					}
 					else {
 						// build register search statements (sets m_cb_field)
-						buildFieldSearch(eRef, field);
+						buildFieldSearch(eRef, field, func); // TODO - replace with new set field method
 
 						// set the enable/mask field reference in this field
 						String isEnableStr = isEnable ? "1" : "0";  
-						outputList.add(new OutputLine(indentLvl, fieldId + ".set_halt_mask_field(m_cb_field, " + isEnableStr + ");"));  
+						func.addStatement(fieldId + ".set_halt_mask_field(m_cb_field, " + isEnableStr + ");");  
 					}
 				}
 				
@@ -1108,58 +1113,69 @@ public class UVMRegsBuilder extends OutputBuilder {
 					}
 					else {
 						// build register search statements (sets m_cb_reg)
-						buildRegSearch(eRef);
+						buildRegSearch(eRef, func);  // TODO - replace with new set reg method
 
 						// set the cascaded reg reference in this field
 						String cascadeIsHalt = eRef.hasDeRef("halt")? "1" : "0";
-						outputList.add(new OutputLine(indentLvl, fieldId + ".set_cascade_intr_reg(m_cb_reg, " + cascadeIsHalt + ");"));  
+						func.addStatement(fieldId + ".set_cascade_intr_reg(m_cb_reg, " + cascadeIsHalt + ");");  
 						
 						/* disable callback
 						//System.out.println("UVMRegsBuilder buildRegAddCallbacksFunction: cascade reg=" + eRef.getRegName() + ", depth=" + eRef.getDepth() );
-						outputList.add(new OutputLine(indentLvl, field.getPrefixedId() + "_cascade_cb = new(\"" +
+						func.addStatement(field.getPrefixedId() + "_cascade_cb = new(\"" +
 					                        field.getPrefixedId() + "_cascade_cb\", " + fieldId + ");")); 
-						outputList.add(new OutputLine(indentLvl, "uvm_reg_field_cb::add(this." + fieldId + ", " + field.getPrefixedId() + "_cascade_cb);"));
+						func.addStatement("uvm_reg_field_cb::add(this." + fieldId + ", " + field.getPrefixedId() + "_cascade_cb);"));
 						*/ 										
 					}   
 				}
 				
 			} // while		
 		}
-		outputList.add(new OutputLine(--indentLvl, "endfunction: add_callbacks"));
+		// save the function and add it's extern signature
+		if (!func.isEmpty()) {
+			externMethods.add(func);
+			outputList.add(new OutputLine(indentLvl, ""));	
+			outputList.add(new OutputLine(indentLvl, func.genSignature(true, false)));	
+		}
 	}
 	
-	protected void buildFieldSearch(RhsReference eRef, FieldProperties field) {
+	protected void buildFieldSearch(RhsReference eRef, FieldProperties field, SystemVerilogFunction func) {
 		// build register search statements (sets m_cb_reg)
-		buildRegSearch(eRef);
+		buildRegSearch(eRef, func);
 		
 		// now get the field
 		String fieldStr = eRef.getFieldName();
 		if (fieldStr.equals("*")) fieldStr = field.getPrefixedId();
-		outputList.add(new OutputLine(indentLvl, "m_cb_field = m_cb_reg.get_field_by_name(\"" + fieldStr +"\");"));
+		func.addStatement("m_cb_field = m_cb_reg.get_field_by_name(\"" + fieldStr +"\");");
 	}
 
 	/** generate statements to search for a rhs reg referenc in uvm model (sets m_cb_block)*/
-	protected void buildRegSearch(RhsReference eRef) {
+	protected void buildRegSearch(RhsReference eRef, SystemVerilogFunction func) {
 		// get root ancestor for assign if depth hasn't changed
 		int newCBDepth = eRef.getDepth() - 1;
 		boolean cbDepthChanged = newCBDepth != lastCBDepth;
 		if (cbDepthChanged) {
-			outputList.add(new OutputLine(indentLvl, "m_root_cb_block = this.get_ancestor(" + newCBDepth + ");")); // get root ancestor for assign (if it has changed)
+			// TODO generate ancestor class name so block can be cast
+			RegSetProperties ancRegset = getRegSetAncestor(newCBDepth);
+            String ancName = getUVMBlockID(ancRegset, null);
+			func.addStatement("m_root_cb_block = this.get_ancestor(" + newCBDepth + ");  // will cast to " + ancName); // TODO get root ancestor for assign (if it has changed)
+			func.addPreStatement(ancName + " m_" + ancName + ";");
+			func.addStatement("$cast(m_" + ancName + ", m_root_cb_block);");
+			//         
 			lastCBDepth = newCBDepth;
 		}
 		// now use rhs path to find leaf cb block
 		String newCBRegSetPath = (eRef.getRegSetPathLength() == 0)? "" : eRef.getRegSetPath();
 		boolean cbRegSetPathChanged = !newCBRegSetPath.equals(lastCBRegSetPath);
 		if (cbDepthChanged || cbRegSetPathChanged) {
-			if (eRef.getRegSetPathLength() == 0) outputList.add(new OutputLine(indentLvl, "m_cb_block = m_root_cb_block;"));
-			else outputList.add(new OutputLine(indentLvl, "m_cb_block = uvm_reg_block::find_block(\"" + eRef.getRegSetPath() + "\", m_root_cb_block);"));
+			if (eRef.getRegSetPathLength() == 0) func.addStatement("m_cb_block = m_root_cb_block;");
+			else func.addStatement("m_cb_block = uvm_reg_block::find_block(\"" + eRef.getRegSetPath() + "\", m_root_cb_block);");
 			lastCBRegSetPath = newCBRegSetPath;
 		}
 		// now get reg
 		String newCBReg = eRef.getRegName();
 		boolean cbRegChanged = (newCBReg != null) && !newCBReg.equals(lastCBReg);
 		if (cbRegChanged || cbDepthChanged || cbRegSetPathChanged) {
-			outputList.add(new OutputLine(indentLvl, "m_cb_reg = m_cb_block.get_reg_by_name(\"" + eRef.getRegName() +"\");"));
+			func.addStatement("m_cb_reg = m_cb_block.get_reg_by_name(\"" + eRef.getRegName() +"\");");
 			lastCBReg = newCBReg;							
 		}
 	}
@@ -1688,6 +1704,11 @@ public class UVMRegsBuilder extends OutputBuilder {
 		for (OutputLine rLine: outputList) {
 			writeStmt(rLine.getIndent(), rLine.getLine());  
 		}
+		
+		// write any extern methods	
+		for (SystemVerilogFunction func: externMethods)
+			writeStmts(func.genOutputLines(indentLvl, true));  
+
 	}
 	
 	/** write pkg output to specified output file  

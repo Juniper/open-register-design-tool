@@ -8,15 +8,23 @@ import ordt.output.OutputLine;
 
 public class SystemVerilogFunction {
    protected String name;
+   protected String parentClass;
    protected String retType;
    protected boolean isVirtual = false;
    protected List<SVMethodIO> ioList = new ArrayList<SVMethodIO>();
    protected List<String> comments = new ArrayList<String>();
    protected List<String> statements = new ArrayList<String>();
+   protected List<String> preStatements = new ArrayList<String>();  // statements at top of method
    
-   // constructor
-   public SystemVerilogFunction(String retType, String name) {
+   // constructors
+   public SystemVerilogFunction(String retType, String name, String parentClass) {
 		super();
+		this.retType = retType;
+		this.name = name;
+		this.parentClass = parentClass;
+   }
+   
+   public SystemVerilogFunction(String retType, String name) {
 		this.retType = retType;
 		this.name = name;
    }
@@ -53,12 +61,25 @@ public class SystemVerilogFunction {
    }
    
    /** add a statement line to this sv method */
+   public void addPreStatement(String stmt) {
+	   preStatements.add(stmt);
+   }
+   
+   /** add a statement line to this sv method */
    public void addStatement(String stmt) {
 	   statements.add(stmt);
    }
+   
+   /** return true if this method has no statements */
+   public boolean isEmpty() {
+	   return preStatements.isEmpty() && statements.isEmpty();
+   }
 
-   /** generate sv string list for this method */
-   public List<String> genSV() {
+   /** generate sv string list for this method 
+    * 
+    * @param includeParent - include parent class in name
+    */
+   protected List<String> genSV(boolean includeParent) {
 	   List<String> retList = new ArrayList<String>();
 	   retList.add("");  // leading blank line
 	   // add comments
@@ -71,7 +92,12 @@ public class SystemVerilogFunction {
 		   prefix = " * ";
 	   }
 	   // add signature
-	   retList.add(genSignature()); 
+	   retList.add(genSignature(false, includeParent)); 
+	   // add pre-statements
+	   it = preStatements.iterator();
+	   while (it.hasNext()) {
+		   retList.add("  " + it.next());
+	   }
 	   // add statements
 	   it = statements.iterator();
 	   while (it.hasNext()) {
@@ -87,7 +113,7 @@ public class SystemVerilogFunction {
    public List<String> genMarkup() {
 	   List<String> retList = new ArrayList<String>();
 	   // build markup
-	   retList.add(genHeader() + " **" + name + "()**");
+	   retList.add(genHeaderType(false, false) + " **" + name + "()**");
 	   retList.add(""); 
 	   retList.add("Parameters:"); 
 	   retList.add(""); 
@@ -106,16 +132,28 @@ public class SystemVerilogFunction {
 	   return retList;
    }
    
-   /** generate OutputLine list for this method */
-   public List<OutputLine> genOutputLines(int indentLvl) {
+   /** generate OutputLine list for this method
+    * 
+    * @param indentLvl
+    * @param includeParent - include parent class in name
+    */
+   public List<OutputLine> genOutputLines(int indentLvl, boolean includeParent) {
 	   List<OutputLine> retList = new ArrayList<OutputLine>();
-	   Iterator<String> it = genSV().iterator();
+	   Iterator<String> it = genSV(includeParent).iterator();
 	   //Iterator<String> it = genMarkup().iterator();  // generate markup for docs
 	   //indentLvl = 0;  // no indent for markup
 	   while (it.hasNext()) {
 		   retList.add(new OutputLine(indentLvl, it.next()));
 	   }	   
 	   return retList;
+   }
+   
+   /** generate OutputLine list for this method (w/ no parent class in name)
+    * 
+    * @param indentLvl
+    */
+   public List<OutputLine> genOutputLines(int indentLvl) {
+	   return genOutputLines(indentLvl, false);
    }
   
    // protected methods
@@ -133,19 +171,30 @@ public class SystemVerilogFunction {
 	   return retStr;
    }
    
-   /** generate header string for this method (function) */
-   protected String genHeader() {
-	   String retStr = isVirtual? "virtual function" : "function";
+   /** generate header type string for this method (function) */
+   protected String genHeaderType(boolean isExtern, boolean includeParent) {
+	   String retStr = isExtern? "extern " : "";
+	   retStr += (isVirtual && !includeParent)? "virtual function" : "function";
 	   retStr = (retType == null)? retStr : retStr + " " + retType; 
 	   return retStr;
    }
+   
+   /** generate header name string for this method */
+   protected String genHeaderName(boolean includeParent) {
+	   String retStr = (includeParent && (parentClass != null))? parentClass + "::" + name : name;
+	   return retStr;
+   }
   
-   /** generate signature string for this method (function) */
-   protected String genSignature() {
+   /** generate signature string for this method (function)
+    * 
+    * @param isExtern - add extern prefix if true
+    * @param includeParent - include parent class in name
+    */
+   public String genSignature(boolean isExtern, boolean includeParent) {
 	   boolean showIODir = false;
 	   for (SVMethodIO io: ioList) if (!"input".equals(io.dir)) showIODir = true;
-	   String suffix = " " + name + genIODefs(showIODir) + ";";
-	   return genHeader() + suffix;
+	   String suffix = " " + genHeaderName(includeParent) + genIODefs(showIODir) + ";";
+	   return genHeaderType(isExtern, includeParent) + suffix;
    }
    
    /** generate closing string for this method (function) */
