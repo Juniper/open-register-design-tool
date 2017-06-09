@@ -52,8 +52,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	
 	// search state for use in field callbacks
 	protected static int lastCBDepth = -1;
-	protected static String lastCBRegSetPath = "<null>";
-	protected static String lastCBReg = "<null>";
+	protected static int lastCBCount = 0;
 	
 	// unique uvm reg and block class
 	protected HashMap<RegProperties, String> uniqueRegClasses = new HashMap<RegProperties, String>(); // hashmap since even equal RegProperties can have dif't instance paths 
@@ -1016,7 +1015,6 @@ public class UVMRegsBuilder extends OutputBuilder {
 		if (fieldCallbackNeeded) {
 			// define vars used for extracting reg/fields and setting references in uvm model
 			func.addPreStatement("uvm_reg_block m_root_cb_block;" );  // found from assign depth
-			func.addPreStatement("uvm_reg_block m_cb_block;");  // find from m_root_cb_block using rhs name
 			func.addPreStatement("uvm_reg m_cb_reg;");  // find from m_cb_block using reg name
 			func.addPreStatement("uvm_reg_field m_cb_field;");  // find from m_cb_reg using field name
 			regSetHasCallback.pop();
@@ -1024,8 +1022,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 
 			// traverse field list and add any field callbacks
 			lastCBDepth = -1;
-			lastCBRegSetPath = "<null>";
-			lastCBReg = "<null>";
+			lastCBCount = 0;
 			iter = fieldList.iterator();
 			while (iter.hasNext()) {
 				FieldProperties field = iter.next();
@@ -1054,7 +1051,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 					}
 					else {
 						// build register search statements (sets m_cb_field)
-						buildFieldSearch(eRef, field, func); // TODO - replace with new set field method
+						buildFieldCbAssign(eRef, field, func);
 						
 						// set the enable/mask field reference in this field
 						String isEnableStr = isEnable ? "1" : "0";  
@@ -1092,7 +1089,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 					}
 					else {
 						// build register search statements (sets m_cb_field)
-						buildFieldSearch(eRef, field, func); // TODO - replace with new set field method
+						buildFieldCbAssign(eRef, field, func);
 
 						// set the enable/mask field reference in this field
 						String isEnableStr = isEnable ? "1" : "0";  
@@ -1113,7 +1110,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 					}
 					else {
 						// build register search statements (sets m_cb_reg)
-						buildRegSearch(eRef, func);  // TODO - replace with new set reg method
+						buildRegCbAssign(eRef, func);
 
 						// set the cascaded reg reference in this field
 						String cascadeIsHalt = eRef.hasDeRef("halt")? "1" : "0";
@@ -1130,7 +1127,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 				
 			} // while		
 		}
-		// save the function and add it's extern signature
+		// save the function and add its extern signature
 		if (!func.isEmpty()) {
 			externMethods.add(func);
 			outputList.add(new OutputLine(indentLvl, ""));	
@@ -1138,46 +1135,48 @@ public class UVMRegsBuilder extends OutputBuilder {
 		}
 	}
 	
-	protected void buildFieldSearch(RhsReference eRef, FieldProperties field, SystemVerilogFunction func) {
-		// build register search statements (sets m_cb_reg)
-		buildRegSearch(eRef, func);
-		
+	/** generate statements to assign a rhs field reference in uvm model (sets m_cb_field) */
+	protected void buildFieldCbAssign(RhsReference eRef, FieldProperties field, SystemVerilogFunction func) {
+		// get root ancestor for assign
+		String rootBlockName = buildBlockCbAssign(eRef, func);
 		// now get the field
 		String fieldStr = eRef.getFieldName();
 		if (fieldStr.equals("*")) fieldStr = field.getPrefixedId();
-		func.addStatement("m_cb_field = m_cb_reg.get_field_by_name(\"" + fieldStr +"\");");
+		// now add field assignment
+		String regSetPath = (eRef.getRegSetPathLength() == 0)? "" : "." + eRef.getRegSetPath();
+		func.addStatement("m_cb_field = " + rootBlockName + regSetPath + "." + eRef.getRegName() + "." + fieldStr + ";");
 	}
 
-	/** generate statements to search for a rhs reg referenc in uvm model (sets m_cb_block)*/
-	protected void buildRegSearch(RhsReference eRef, SystemVerilogFunction func) {
-		// get root ancestor for assign if depth hasn't changed
-		int newCBDepth = eRef.getDepth() - 1;
-		boolean cbDepthChanged = newCBDepth != lastCBDepth;
-		if (cbDepthChanged) {
-			// TODO generate ancestor class name so block can be cast
+	/** generate statements to assign for a rhs reg reference in uvm model (sets m_cb_reg) */
+	protected void buildRegCbAssign(RhsReference eRef, SystemVerilogFunction func) {
+		// get root ancestor for assign
+		String rootBlockName = buildBlockCbAssign(eRef, func);
+		// now add reg assignment
+		String regSetPath = (eRef.getRegSetPathLength() == 0)? "" : "." + eRef.getRegSetPath();
+		func.addStatement("m_cb_reg = " + rootBlockName + regSetPath + "." + eRef.getRegName() +";");
+	}
+
+	/** generate statements to assign/cast root cb block to its specific child class and return the name of the assigned block instance variable
+	 * 
+	 * @param eRef - right hand assign reference
+	 * @param func - function to which statements will be added
+	 * @return - name of the assigned root block variable
+	 */
+	private String buildBlockCbAssign(RhsReference eRef, SystemVerilogFunction func) {
+		int newCBDepth = eRef.getDepth() - 1;  // determine the ancestor depth of this callback reference
+		// if depth changed, assign and cast a new root cb block
+		if (newCBDepth != lastCBDepth) {
+			// generate the ancestor class name so generic block can be cast to specific child
 			RegSetProperties ancRegset = getRegSetAncestor(newCBDepth);
-            String ancName = getUVMBlockID(ancRegset, null);
-			func.addStatement("m_root_cb_block = this.get_ancestor(" + newCBDepth + ");  // will cast to " + ancName); // TODO get root ancestor for assign (if it has changed)
-			func.addPreStatement(ancName + " m_" + ancName + ";");
-			func.addStatement("$cast(m_" + ancName + ", m_root_cb_block);");
-			//         
+            String ancestorType = getUVMBlockID(ancRegset, null);
+            String ancestorName = "m_root_cb_block_" + ++lastCBCount;
+			func.addStatement("m_root_cb_block = this.get_ancestor(" + newCBDepth + ");"); // get root ancestor for assign (if it has changed)
+			func.addPreStatement(ancestorType + " " + ancestorName + ";");
+			func.addStatement("$cast(" + ancestorName + ", m_root_cb_block);");         
 			lastCBDepth = newCBDepth;
+			return ancestorName;  // return new ancestor name
 		}
-		// now use rhs path to find leaf cb block
-		String newCBRegSetPath = (eRef.getRegSetPathLength() == 0)? "" : eRef.getRegSetPath();
-		boolean cbRegSetPathChanged = !newCBRegSetPath.equals(lastCBRegSetPath);
-		if (cbDepthChanged || cbRegSetPathChanged) {
-			if (eRef.getRegSetPathLength() == 0) func.addStatement("m_cb_block = m_root_cb_block;");
-			else func.addStatement("m_cb_block = uvm_reg_block::find_block(\"" + eRef.getRegSetPath() + "\", m_root_cb_block);");
-			lastCBRegSetPath = newCBRegSetPath;
-		}
-		// now get reg
-		String newCBReg = eRef.getRegName();
-		boolean cbRegChanged = (newCBReg != null) && !newCBReg.equals(lastCBReg);
-		if (cbRegChanged || cbDepthChanged || cbRegSetPathChanged) {
-			func.addStatement("m_cb_reg = m_cb_block.get_reg_by_name(\"" + eRef.getRegName() +"\");");
-			lastCBReg = newCBReg;							
-		}
+		return "m_root_cb_block_" + lastCBCount;  // no change, so use last name
 	}
 
 	/** build the build function for current virtual register */
