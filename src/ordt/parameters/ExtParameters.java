@@ -158,7 +158,6 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("skip_no_reset_db_update", true); 
 		uvmModelMode = UVMModelModes.HEAVY; 
 		initStringMapParameter("uvm_model_parameters", new HashMap<String, String>()); 
-		initBooleanParameter("uvm_blocks_use_factory", true); 
 		
 		// ---- bench output defaults
 		initStringListParameter("add_test_command", new ArrayList<String>());
@@ -801,10 +800,6 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		String retVal = getStringMapParameter("uvm_model_parameters").get(parm);
 		if (retVal==null) return dflt;  // return default value if parameter not found
 		return retVal;
-	}
-
-	public static Boolean uvmregBlocksUseFactory() {
-		return getBooleanParameter("uvm_blocks_use_factory");
 	}
 	
 	// --------

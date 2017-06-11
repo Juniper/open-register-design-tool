@@ -463,10 +463,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		// save register build statements
 		if (!hasInstanceNameOverride && regSetProperties.isReplicated()) {  
 			subcompBuildList.addStatement(parentID, "foreach (this." + escapedBlockId + "[i]) begin");
-			if (ExtParameters.uvmregBlocksUseFactory()) 
-			    subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i] = " + uvmBlockClassName + "::type_id::create($psprintf(\"" + blockId + " [%0d]\",i),, get_full_name());");
-			else
-			    subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i] = new($psprintf(\"" + blockId + " [%0d]\",i));");
+			subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i] = " + uvmBlockClassName + "::type_id::create($psprintf(\"" + blockId + " [%0d]\",i),, get_full_name());");
 			subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].configure(this, \"\");");  
 			if (regSetProperties.isAddressMap()) {
 				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].set_rdl_address_map(1);");  // tag block as an address map
@@ -481,10 +478,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 			subcompBuildList.addStatement(parentID, "end");
 		}
 		else {
-		    if (ExtParameters.uvmregBlocksUseFactory())
-		    	subcompBuildList.addStatement(parentID, "this." + escapedBlockId + " = " + uvmBlockClassName + "::type_id::create(\"" + blockId + "\",, get_full_name());");
-		    else
-		    	subcompBuildList.addStatement(parentID, "this." + escapedBlockId + " = new(\"" + blockId + "\");");
+		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + " = " + uvmBlockClassName + "::type_id::create(\"" + blockId + "\",, get_full_name());");
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".configure(this, \"\");"); 
 		   if (!hasInstanceNameOverride && regSetProperties.isAddressMap()) {
 				subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_address_map(1);");  // tag block as an address map
@@ -660,7 +654,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		
 		// close out the class definition
 		outputList.add(new OutputLine(indentLvl, ""));	
-		if (ExtParameters.uvmregBlocksUseFactory()) outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmBlockClassName + ")"));
+		outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmBlockClassName + ")"));
 		outputList.add(new OutputLine(--indentLvl, "endclass : " + uvmBlockClassName));
 	}
 
@@ -691,7 +685,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		
 		// close out the class definition
 		outputList.add(new OutputLine(indentLvl, ""));	
-		if (ExtParameters.uvmregBlocksUseFactory()) outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmBlockClassName + ")"));
+		outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmBlockClassName + ")"));
 		outputList.add(new OutputLine(--indentLvl, "endclass : " + uvmBlockClassName));
 	}
 
@@ -729,7 +723,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		
 		// close out the class definition
 		outputList.add(new OutputLine(indentLvl, ""));	
-		if (ExtParameters.uvmregBlocksUseFactory()) outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmBlockClassName + ")"));
+		outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmBlockClassName + ")"));
 		outputList.add(new OutputLine(--indentLvl, "endclass : " + uvmBlockClassName));
 	}
 
