@@ -365,18 +365,18 @@ public class RegProperties extends AddressableInstanceProperties {
 		return fieldCount;
 	}
 
-	/** set current offset info to be used for field packing from fieldset hierarchy. 
+	/** set current offset info to be used for field packing within a fieldset hierarchy. 
 	 *  if a null newOffset is specified, the next available bit location in the register will be returned
 	 * @param newOffset - total fieldset offset for all fsets in current hierarchy (or null if next available bit position should be used)
-	 * @param minOffset - min valid offset for field placement
-	 * @return calculated offset in current register for current builder fieldSetProperties  
+	 * @param minOffset - min valid fieldset offset for field placement (total of fieldset offsets + width w/o padding)
 	 * */
-	public Integer setFieldSetOffsets(Integer newOffset, Integer minOffset) {
+	public void setFieldSetOffsets(Integer newOffset, Integer minOffset) {
 		// adjust current offset
-		fieldSetOffset = (newOffset==null)? highAvailableIdx : newOffset;
-		if (minOffset!=null) minValidOffset = minOffset;
-		//System.out.println("RegProperties setFieldSetOffset: offset=" + newOffset + ", fieldSetOffset=" + fieldSetOffset  + ", minValidOffset=" + minValidOffset);
-		return fieldSetOffset;
+		fieldSetOffset = (newOffset==null)? highAvailableIdx : newOffset;  // TODO null offset is correct only if packing from low to high since highAvailableIdx is absolute
+		Integer bitPaddingOffset = ((ModRegister) getExtractInstance().getRegComp()).getPadBits();
+		if (minOffset!=null) minValidOffset = bitPaddingOffset + minOffset;  // set min valid offset including padding
+		//if (getId().equals("scfg_data")) System.out.println("RegProperties setFieldSetOffset: in newOffset=" + newOffset + ", in minOffset=" + minOffset + ", out fieldSetOffset=" + fieldSetOffset + ", minValidOffset=" + minValidOffset);
+		return;
 	}
 
 	/** add a new field to this register based on next available bits
@@ -389,7 +389,7 @@ public class RegProperties extends AddressableInstanceProperties {
 		Integer width = fieldProperties.getFieldWidth(); 
 		Integer offset = fieldProperties.getExtractInstance().getOffset();  // get the relative offset of this field
 		Integer bitPaddingOffset = ((ModRegister) getExtractInstance().getRegComp()).getPadBits();
-		//System.out.println("RegProperties addField: id=" + fieldProperties.getInstancePath() + ", offset=" + offset + ", width=" + width + ", fsetOffset=" + fieldSetOffset + ", bitPaddingOffset=" + bitPaddingOffset + ", regwidth=" + getRegWidth() + ", highAvailableIdx=" + highAvailableIdx);
+		//if (getId().equals("scfg_data")) System.out.println("RegProperties addField: id=" + fieldProperties.getInstancePath() + ", offset=" + offset + ", width=" + width + ", fsetOffset=" + fieldSetOffset + ", bitPaddingOffset=" + bitPaddingOffset + ", regwidth=" + getRegWidth() + ", highAvailableIdx=" + highAvailableIdx);
 		
 		// compute the actual field index  
 		Integer lowFieldIndex = 0;
@@ -403,18 +403,20 @@ public class RegProperties extends AddressableInstanceProperties {
 		if (lowFieldIndex == null) {
 			Ordt.errorExit("Unable to fit all fields in register instance " + getId());
 		}
-		//System.out.println("RegProperties addField: id=" + fieldProperties.getInstancePath() + ", adding at reg lowFieldIndex=" + lowFieldIndex);
+		//if (getId().equals("scfg_data")) System.out.println("RegProperties addField: id=" + fieldProperties.getInstancePath() + ", adding at reg lowFieldIndex=" + lowFieldIndex);
 		fieldCount++;  // bump the field count
 		return lowFieldIndex;   
 	}
 
 	/** verify that field at specified location can fit in register
+	 * @param offset - full offset sum of this field including padding, fieldset offset, and relative field offset
+	 * @param width - field width in bits
 	 * @return specified index of field or null if no suitable index found */
 	private Integer addFixedField(Integer offset, Integer width) {
 		// convert specified offset to an index value depending on direction
 		Integer lowIndex = fieldOffsetsFromZero ? offset : getRegWidth() - offset - width; 
 		if (lowIndex+width > highAvailableIdx) highAvailableIdx=lowIndex+width;  // save high bit
-		//System.out.println("RegProperties addFixedField id=" + getId() + ", rwidth=" + getRegWidth() + ", foffset=" + offset + ", fwidth=" + width + ", computed lowIndex=" + lowIndex);
+		//if (getId().equals("scfg_data")) System.out.println("RegProperties addFixedField: id=" + getId() + ", rwidth=" + getRegWidth() + ", offset=" + offset + ", width=" + width + ", computed lowIndex=" + lowIndex);
 		// find next index that could fit this field
 		for (int idx=lowIndex; idx>=0; idx--) {
 			// if field fits update available and return lowIndex
@@ -427,12 +429,14 @@ public class RegProperties extends AddressableInstanceProperties {
 				return lowIndex;
 			}
 		}
+		//if (getId().equals("scfg_data")) System.out.println("RegProperties addFixedField: id=" + getId() + " returns null");
 		return null;
 	}
 
-	/** find first available register index that can fit this width
+	/** find first available register index that can fit this width  // TODO - floating field only works w/ pack from 0
 	 * @return index of field or null if no suitable index found */
 	private Integer addFloatingField(Integer width) {
+		//if (getId().equals("scfg_data")) System.out.println("RegProperties addFloatingField: id=" + getId() + ", rwidth=" + getRegWidth() + ", fwidth=" + width);
 		for (int idx=0; idx<getRegWidth(); idx++) {
 			// if space found above minIdx then update the avail info and return the low index
 			if ((idx>=minValidOffset) && (availableBits[idx]>=width)) {  
@@ -452,6 +456,7 @@ public class RegProperties extends AddressableInstanceProperties {
 				return minValidOffset;
 			}
 		}
+		//if (getId().equals("scfg_data")) System.out.println("RegProperties addFloatingField: id=" + getId() + " returns null");
 		return null;  // search failed so return null
 	}
 

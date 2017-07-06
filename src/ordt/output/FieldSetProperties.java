@@ -13,7 +13,7 @@ import ordt.extract.model.ModInstance;
 /** class of properties needed for display of active signal instance */
 public class FieldSetProperties extends InstanceProperties {
 	private Integer fieldSetWidth = 0;   // default to empty fieldset        
-	private Integer lowIndex = null;   // no specific index set
+	private Integer offset = null;   // no specific index set
 
 	/** init properties using defaults -> component -> instance values */
 	public FieldSetProperties(ModInstance fieldSetInst) {	
@@ -30,7 +30,7 @@ public class FieldSetProperties extends InstanceProperties {
 		super.display();
 		System.out.println("  FieldSetProperty info:" );  
 		System.out.println("   fieldset width=" + this.getFieldSetWidth());  		
-		System.out.println("   fieldset lowIndex=" + this.getLowIndex());  		
+		System.out.println("   fieldset offset=" + this.getOffset());  		
 	}
 	
 	/** extract properties from the calling instance */
@@ -83,18 +83,16 @@ public class FieldSetProperties extends InstanceProperties {
 		//System.out.println("FieldSetProperties setFieldSetWidth: " + fsetInst.getId() + ", fieldSetWidth=" + fieldSetWidth);
 	}
 
-	/** get lowIndex
-	 *  @return the lowIndex
+	/** get relative bit offset of this fieldset
 	 */
-	public Integer getLowIndex() {
-		return lowIndex;
+	public Integer getOffset() {
+		return offset;
 	}
 	
-	/** set lowIndex 
-	 *  @param lowIndex the lowIndex to set
+	/** set relative bit offset of this fieldset
 	 */
-	public void setLowIndex(Integer lowIdx) {
-		this.lowIndex = lowIdx;
+	public void setOffset(Integer offset) {
+		this.offset = offset;
 	}
 
 
