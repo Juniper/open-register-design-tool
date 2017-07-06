@@ -678,8 +678,8 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			   if (regProperties.isFirstRep()) {
 				   if (newBaseAddress.isLessThan(nextAddress)) {  // check for bad address here
 					   Ordt.errorMessage("out of order register address specified in " + regProperties.getInstancePath());
-					   System.out.println("OutputBuilder updateRegBaseAddress:   path=" + regProperties.getInstancePath() + 
-					   	      ", regAddress=" + regAddress  + ", parent addr=" + getRegSetParentAddress() + ", nextAddress=" + nextAddress + ", newBaseAddress=" + newBaseAddress);
+					   //System.out.println("OutputBuilder updateRegBaseAddress:   path=" + regProperties.getInstancePath() + 
+					   //	      ", regAddress=" + regAddress  + ", parent addr=" + getRegSetParentAddress() + ", nextAddress=" + nextAddress + ", newBaseAddress=" + newBaseAddress);
 					   //System.exit(0);
 				   }
 				   setNextAddress(newBaseAddress);  // explicit start address for this group of regs, so save it   
