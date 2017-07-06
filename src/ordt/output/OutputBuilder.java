@@ -695,11 +695,11 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		   int regBytes = regProperties.getRegByteWidth();
 		   int alignBytes = !Utils.isPowerOf2(regProperties.getRegWidth()) ? (Utils.getNextHighestPowerOf2(regProperties.getRegWidth())/8) : regBytes; 
 		   // if an external reg then need to align based on total size
-		   // else if a replicated internal using jspec alignment need to align on total size
-		   boolean isFirstReplicatedExternal = regProperties.isRootExternal() && regProperties.isReplicated() && regProperties.isFirstRep();
-		   boolean isFirstReplicatedInternal = ExtParameters.useJsAddressAlignment() && regProperties.isReplicated() && regProperties.isFirstRep();
+		   boolean isFirstReplicatedExternal = regProperties.isRootExternal() && regProperties.isReplicated() && regProperties.isFirstRep(); // TODO - child map root external reg arrays are not realigned - issue warning for now 
+           int arrayAlignBytes = alignBytes * Utils.getNextHighestPowerOf2(regProperties.getRepCount());
+		   if (isFirstReplicatedExternal) alignBytes = arrayAlignBytes;
+		   // inhibit address align shift if in an external region and jsAlign is disabled
 		   boolean doNotShift = regProperties.isExternal() && !regProperties.isRootExternal() && !ExtParameters.useJsAddressAlignment();
-		   if (isFirstReplicatedExternal || isFirstReplicatedInternal) alignBytes = alignBytes * Utils.getNextHighestPowerOf2(regProperties.getRepCount());
 
 		   //System.out.println("OutputBuilder updateRegBaseAddress: wide reg=" + this.getInstancePath() + " with width=" + regBytes + " at addr=" + nextAddress + ", ext=" + regProperties.isExternal()+ ", rep=" + regProperties.getRepCount());
 		   // if this reg isn't in an external decoder and misaligned, then align it
@@ -707,8 +707,6 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			   if (!ExtParameters.suppressAlignmentWarnings()) {
 				   if (isFirstReplicatedExternal) 
 					   Ordt.warnMessage("base address for external " + regBytes + "B register group " + regProperties.getInstancePath() + " shifted to be " + alignBytes + "B aligned.");
-				   else if (isFirstReplicatedInternal) 
-					   Ordt.warnMessage("base address for " + regBytes + "B register array " + regProperties.getInstancePath() + " shifted to be " + alignBytes + "B aligned.");
 				   else if (doNotShift)   
 					   Ordt.warnMessage("base address for " + regBytes + "B external register " + regProperties.getInstancePath() + " is not " + alignBytes + "B aligned.");
 				   else 
@@ -716,6 +714,12 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			   }
 			   // if an external and not root external, just display a warn message
 			   if (!doNotShift) updateNextAddressModulus(new RegNumber(alignBytes));  // adjust the address to align register					   
+		   }
+		   
+		   // issue warning for non aligned reg arrays
+		   boolean doReplicatedAlignCheck = ExtParameters.useJsAddressAlignment() && regProperties.isReplicated() && regProperties.isFirstRep() && !regProperties.isRootExternal(); 
+		   if (doReplicatedAlignCheck && !ExtParameters.suppressAlignmentWarnings() && !nextAddress.isModulus(arrayAlignBytes) && !regProperties.isExternalDecode()) {
+		      Ordt.warnMessage("base address for " + regProperties.getRepCount() + " x " + regBytes + "B register array " + regProperties.getInstancePath() + " is not " + arrayAlignBytes + "B aligned.");
 		   }
 
 		   // ----
@@ -1055,7 +1059,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		this.visitEachExternalRegister = visitEachExternalRegister;
 	}
 
-	/** get allowLocalMapExternals
+	/** returns true for this builder type if instances within cascaded maps will be processed as internals
 	 */
 	public boolean allowLocalMapInternals() {
 		return allowLocalMapInternals;

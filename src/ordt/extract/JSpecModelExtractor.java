@@ -991,21 +991,13 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 			if (isTypeDefInstance) {  // set as default if not an instance
 				//System.out.println("JSpecModelExtractor: saveJSpecParam, p=" + parm + ",  v=" + value + ",  num=" + lastResolvedNum); 
 				activeInstances.peek().setDefaultProperty("sw", swVal); // was setProperty(("sw", swVal, 0)
-				if (rVal != null) activeInstances.peek().setDefaultProperty(rVal, "true"); // was setDynamicProperty(
-				if (wVal != null) activeInstances.peek().setDefaultProperty(wVal, "true"); // was setDynamicProperty(
-				/*if (setHwWrite) {
-					activeInstances.peek().setProperty("hw", "rw", 0);
-					activeInstances.peek().setProperty("we", "true", 0);
-				}*/
+				if (rVal != null) activeInstances.peek().setDefaultProperty(rVal, "true"); 
+				if (wVal != null) activeInstances.peek().setDefaultProperty(wVal, "true");
 			}
 			else {
 				activeCompDefs.peek().setDefaultProperty("sw", swVal); 
 				if (rVal != null) activeCompDefs.peek().setDefaultProperty(rVal, "true");
 				if (wVal != null) activeCompDefs.peek().setDefaultProperty(wVal, "true");
-				/*if (setHwWrite) {
-					activeCompDefs.peek().setDefaultProperty("hw", "rw");
-					activeCompDefs.peek().setDefaultProperty("we", "true");
-				}*/
 			}
 		}
 		
