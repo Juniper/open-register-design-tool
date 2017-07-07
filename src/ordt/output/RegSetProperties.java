@@ -17,6 +17,10 @@ public class RegSetProperties extends AddressableInstanceProperties {
 	private int maxRegWidth = ExtParameters.getMinDataSize();  // maximum sized register found in this regset - default to min pio data width  
 	private RegNumber highAddress;  // highest valid address
 	private int childHash = 0; // hash of this regset's children
+	// jspec compatibility parameters
+	private String jspecMacroName;
+	private String jspecMacroMode;
+	private String jspecNamespace;
 
 	public RegSetProperties(ModInstance regSetInst) {
 		super(regSetInst);  // init instance, id, name, description text
@@ -43,6 +47,10 @@ public class RegSetProperties extends AddressableInstanceProperties {
 		//if (getId().equals("tx")) System.out.println("RegSetProperties extractProperties: " + getId() + "\n" + pList);
 		// set external decode only if a regset
 		if (pList.hasTrueProperty("external_decode")) setExternalDecode(true);
+		// set jspec pass-thru parameters
+		if (pList.hasProperty("js_macro_name")) setJspecMacroName(pList.getProperty("js_macro_name"));
+		if (pList.hasProperty("js_macro_mode")) setJspecMacroMode(pList.getProperty("js_macro_mode"));
+		if (pList.hasProperty("js_namespace")) setJspecNamespace(pList.getProperty("js_namespace"));
 	} 
     
 	/** extract a PropertyList of user defined parameters for this instance */
@@ -96,6 +104,30 @@ public class RegSetProperties extends AddressableInstanceProperties {
 		fullHigh.setNumFormat(NumFormat.Address);
 		fullHigh.add(getHighAddress());
 		return fullHigh;
+	}
+
+	public String getJspecMacroName() {
+		return jspecMacroName;
+	}
+
+	public void setJspecMacroName(String jspecMacroName) {
+		this.jspecMacroName = jspecMacroName;
+	}
+
+	public String getJspecMacroMode() {
+		return jspecMacroMode;
+	}
+
+	public void setJspecMacroMode(String jspecMacroMode) {
+		this.jspecMacroMode = jspecMacroMode;
+	}
+
+	public String getJspecNamespace() {
+		return jspecNamespace;
+	}
+
+	public void setJspecNamespace(String jspecNamespace) {
+		this.jspecNamespace = jspecNamespace;
 	}
 
 	@Override

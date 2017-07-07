@@ -88,6 +88,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		reservedWords.add("local");
 		reservedWords.add("packed");
 		reservedWords.add("priority");
+		reservedWords.add("ref");
 		reservedWords.add("reg");
 		reservedWords.add("repeat");
 		reservedWords.add("table");

@@ -35,6 +35,9 @@ public class DefinedProperties {
 		addProperty(newList, "repcount", DefinedPropertyType.NUMBER, "1", DefinedProperty.REGSET | DefinedProperty.REG, true, false); // hidden
 		// regset only properties
 		addProperty(newList, "external_decode", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.REGSET, false, false);
+		addProperty(newList, "js_macro_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
+		addProperty(newList, "js_macro_mode", DefinedPropertyType.STRING, "STANDARD", DefinedProperty.REGSET, false, false);
+		addProperty(newList, "js_namespace", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
 		// reg only properties
 		addProperty(newList, "category", DefinedPropertyType.STRING, "", DefinedProperty.REG, false, false);
 		addProperty(newList, "js_attributes", DefinedPropertyType.STRING, "false", DefinedProperty.REG, false, false);
@@ -169,13 +172,31 @@ public class DefinedProperties {
 
 	// -------
 	
-	/** update or add a new property to the specified set of defined properties */
+	/** update or add a new property to the specified set of defined properties 
+	 * 
+	 * @param propSet - HashMap of DefinedProperties that will be updated with the new property 
+	 * @param name - name of this property
+	 * @param type -type of this property (DefinedPropertyType)
+	 * @param defaultValue - string default value
+	 * @param usage - encoded component types where this property is allowed
+	 * @param hidden - true if this property is hidden and not referenced by user
+	 * @param userDefined - true if this property is user-defined and not in base set
+	 * */
 	private static void putProperty(HashMap<String, DefinedProperty> propSet, String name, DefinedPropertyType type, String defaultValue, int usage, boolean hidden, boolean userDefined) {
 		//System.out.println("DefinedProperties putProperty: name=" + name + ", type=" + type + ", default=" + defaultValue + ", usage=" + usage + ", hidden=" + hidden + ", userDefined=" + userDefined);
         propSet.put(name, new DefinedProperty(name, type, defaultValue, usage, hidden, userDefined));
 	}
 	
-	/** add a new property to the specified set of defined properties */
+	/** add a new property to the specified set of defined properties, issue error if a duplicate
+	 * 
+	 * @param propSet - HashMap of DefinedProperties that will be updated with the new property 
+	 * @param name - name of this property
+	 * @param type -type of this property (DefinedPropertyType)
+	 * @param defaultValue - string default value
+	 * @param usage - encoded component types where this property is allowed
+	 * @param hidden - true if this property is hidden and not referenced by user
+	 * @param userDefined - true if this property is user-defined and not in base set
+	 */
 	private static void addProperty(HashMap<String, DefinedProperty> propSet, String name, DefinedPropertyType type, String defaultValue, int usage, boolean hidden, boolean userDefined) {
         if (propSet.containsKey(name))
         	Ordt.errorMessage("invalid user-defined property name " + name + " specified");

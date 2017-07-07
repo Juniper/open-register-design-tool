@@ -364,6 +364,10 @@ property
   | 'sub_category'   // added
   | 'js_attributes'   // added
   | 'js_superset_check'   // added
+  | 'js_macro_name'   // added
+  | 'js_macro_mode'   // added
+  | 'js_namespace'   // added
+  
   | 'fieldstructwidth'  // added
 
   | 'rtl_coverage'   // added

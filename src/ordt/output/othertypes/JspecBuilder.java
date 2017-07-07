@@ -172,6 +172,8 @@ public class JspecBuilder extends OutputBuilder {
 		String tdefStr = ExtParameters.jspecRootRegsetIsInstanced() ? "" : "typedef ";
 		outputList.add(new OutputLine(indentLvl, tdefStr + "register_set " + mapId + " \"" + textName + "\" {"));
 		outputList.add(new OutputLine(indentLvl++, ""));	
+		// set js pass-thru info
+		buildJspecPassthruAssigns();
 		// start address is 0
 		outputList.add(new OutputLine(indentLvl, "address = 0x0;"));
 		// set default reg width
@@ -207,16 +209,12 @@ public class JspecBuilder extends OutputBuilder {
 		outputList.add(new OutputLine(indentLvl, "register_set " + id + " \"" + textName + "\" {"));
 		// set address using reltive offset from parent base
 		outputList.add(new OutputLine(++indentLvl, "address = " + regSetProperties.getRelativeBaseAddress() + ";"));
-		// if an external_decode regset, add root stmt  DEPRECATED
-		//if (regSetProperties.isExternalDecode() && ExtParameters.jspecExternalDecodeIsRoot())
-		//	outputList.add(new OutputLine(indentLvl, "root = true;"));
+		// set js pass-thru info
+		buildJspecPassthruAssigns();
 		// get repcount for this reg set
 		int repCount = regSetProperties.getExtractInstance().getRepCount();
 		if (repCount > 1) 
-			outputList.add(new OutputLine(indentLvl, "repeat = " + repCount + ";"));  // TODO - stride missing here??
-		// set js superset_check
-		if (regSetProperties.getJspecSupersetCheck() != null) 
-			outputList.add(new OutputLine(indentLvl, "superset_check = " + regSetProperties.getJspecSupersetCheck() + ";"));
+			outputList.add(new OutputLine(indentLvl, "repeat = " + repCount + ";"));
 		// add description for this reg set
 		if (textDescription != null) { 
 		   outputList.add(new OutputLine(indentLvl, "description = \"{"));
@@ -224,6 +222,18 @@ public class JspecBuilder extends OutputBuilder {
 		   outputList.add(new OutputLine(--indentLvl, "}\";"));
 	    }
 		outputList.add(new OutputLine(indentLvl, ""));	
+	}
+
+	/** create assigns for jspec-specific passthru properties */
+	private void buildJspecPassthruAssigns() {
+		if (regSetProperties.getJspecMacroName() != null) 
+			outputList.add(new OutputLine(indentLvl, "macro_name = \"" + regSetProperties.getJspecMacroName() + "\";"));
+		if (regSetProperties.getJspecMacroMode() != null) 
+			outputList.add(new OutputLine(indentLvl, "macro_mode = " + regSetProperties.getJspecMacroMode() + ";"));
+		if (regSetProperties.getJspecNamespace() != null) 
+			outputList.add(new OutputLine(indentLvl, "namespace = \"" + regSetProperties.getJspecNamespace() + "\";"));
+		if (regSetProperties.getJspecSupersetCheck() != null) 
+			outputList.add(new OutputLine(indentLvl, "superset_check = " + regSetProperties.getJspecSupersetCheck() + ";"));
 	}
 
 	/** build a jspec header for current register instance */ 
