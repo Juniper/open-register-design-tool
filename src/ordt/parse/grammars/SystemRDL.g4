@@ -29,6 +29,8 @@ Changes:
 - added uvmreg_prune register property
 - added fieldstruct component type
 - added use_struct, use_new_struct properties for systemverilog IO interface encaps
+- added js_macro_name, js_macro_mode, js_namespece parms
+- implemented_rdl_property define is moved to ExtParams
 */
 
 grammar SystemRDL;
@@ -252,138 +254,8 @@ concat_elem
   ;
 
 property
-  : 'name'
-  | 'desc'
-//| 'arbiter'
-  | 'rset'
-  | 'rclr'
-  | 'woclr'
-  | 'woset'
-
-  | 'we'
-  | 'wel'
-
-  | 'swwe'
-  | 'swwel'
-
-  | 'hwset'
-  | 'hwclr'
-
-  | 'swmod'
-  | 'swacc'
-
-  | 'sticky'
-  | 'stickybit'
-  | 'intr'
-
-  | 'anded'
-  | 'ored'
-  | 'xored'
-
-  | 'counter'
-  | 'overflow'
-
-//| 'sharedextbus'
-//| 'errextbus'
-
-  | 'reset'
-
-//| 'littleendian'
-//| 'bigendian'
-//| 'rsvdset'
-//| 'rsvdsetX'
-//| 'bridge'
-//| 'shared'
-//| 'msb0'
-//| 'lsb0'
-//| 'sync'
-//| 'async'
-  | 'cpuif_reset'
-  | 'field_reset'
-  | 'activehigh'
-  | 'activelow'
-  | 'singlepulse'
-  | 'underflow'
-
-  | 'incr'
-  | 'decr'
-
-  | 'incrwidth'
-  | 'decrwidth'
-
-  | 'incrvalue'
-  | 'decrvalue'
-
-  | 'saturate'
-  | 'incrsaturate'
-  | 'decrsaturate'
-
-  | 'threshold'
-  | 'incrthreshold'
-  | 'decrthreshold'
-
-  | 'dontcompare'
-  | 'donttest'
-//| 'internal'
-
-//| 'alignment'
-  | 'regwidth'
-  | 'fieldwidth'
-  | 'signalwidth'
-//| 'accesswidth'
-
-  | 'sw'
-  | 'hw'
-//| 'addressing'
-  | 'precedence'
-
-  | 'encode'
-  | 'resetsignal'
-//| 'clock'
-
-  | 'mask'
-  | 'enable'
-
-//| 'hwenable'
-//| 'hwmask'
-
-  | 'haltmask'
-  | 'haltenable'
-
-
-  | 'halt'
-
-  | 'next'
-
-  | 'nextposedge'   // added
-  | 'nextnegedge'   // added
-  | 'maskintrbits'   // added  
-  | 'satoutput'   // added
-
-  | 'category'   // added
-  | 'sub_category'   // added
-  | 'js_attributes'   // added
-  | 'js_superset_check'   // added
-  | 'js_macro_name'   // added
-  | 'js_macro_mode'   // added
-  | 'js_namespace'   // added
-  
-  | 'fieldstructwidth'  // added
-
-  | 'rtl_coverage'   // added
-
-  | 'uvmreg_is_mem'   // added
-  | 'uvmreg_prune'   // added
-  
-  | 'use_new_interface'   // added
-  | 'use_interface'   // added
-  | 'use_new_struct'   // added
-  | 'use_struct'   // added
-
-  | 'cppmod_prune'   // added
-
+  : implemented_rdl_property   // this is defined in ExtParms since annotation command needs it also
   | unimplemented_property  // added
-
   | PROPERTY  // {System.out.println("user defined property found!");}
   ;
 

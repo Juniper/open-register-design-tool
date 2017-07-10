@@ -213,11 +213,144 @@ ext_parm_defs
 // ------------ annotation_command
  annotation_command
    : ('set_reg_property' | 'set_field_property' | 'set_fieldset_property' | 'set_regset_property')
-     'default'? (ID | 'external') EQ STR  // external is a parms keyword, so special case ID
+     'default'? (ID | implemented_rdl_property) EQ STR  // external is a parms keyword, so special case ID
      ('instances' | 'components')
      STR
    ;
-   
+ 
+ // ------------ define all implemented rdl propertied here since they're needed for inline annotate
+ implemented_rdl_property
+  : 'name'
+  | 'desc'
+//| 'arbiter'
+  | 'rset'
+  | 'rclr'
+  | 'woclr'
+  | 'woset'
+
+  | 'we'
+  | 'wel'
+
+  | 'swwe'
+  | 'swwel'
+
+  | 'hwset'
+  | 'hwclr'
+
+  | 'swmod'
+  | 'swacc'
+
+  | 'sticky'
+  | 'stickybit'
+  | 'intr'
+
+  | 'anded'
+  | 'ored'
+  | 'xored'
+
+  | 'counter'
+  | 'overflow'
+
+//| 'sharedextbus'
+//| 'errextbus'
+
+  | 'reset'
+
+//| 'littleendian'
+//| 'bigendian'
+//| 'rsvdset'
+//| 'rsvdsetX'
+//| 'bridge'
+//| 'shared'
+//| 'msb0'
+//| 'lsb0'
+//| 'sync'
+//| 'async'
+  | 'cpuif_reset'
+  | 'field_reset'
+  | 'activehigh'
+  | 'activelow'
+  | 'singlepulse'
+  | 'underflow'
+
+  | 'incr'
+  | 'decr'
+
+  | 'incrwidth'
+  | 'decrwidth'
+
+  | 'incrvalue'
+  | 'decrvalue'
+
+  | 'saturate'
+  | 'incrsaturate'
+  | 'decrsaturate'
+
+  | 'threshold'
+  | 'incrthreshold'
+  | 'decrthreshold'
+
+  | 'dontcompare'
+  | 'donttest'
+//| 'internal'
+
+//| 'alignment'
+  | 'regwidth'
+  | 'fieldwidth'
+  | 'signalwidth'
+//| 'accesswidth'
+
+  | 'sw'
+  | 'hw'
+//| 'addressing'
+  | 'precedence'
+
+  | 'encode'
+  | 'resetsignal'
+//| 'clock'
+
+  | 'mask'
+  | 'enable'
+
+//| 'hwenable'
+//| 'hwmask'
+
+  | 'haltmask'
+  | 'haltenable'
+
+
+  | 'halt'
+
+  | 'next'
+
+  | 'nextposedge'   // added
+  | 'nextnegedge'   // added
+  | 'maskintrbits'   // added  
+  | 'satoutput'   // added
+
+  | 'category'   // added
+  | 'sub_category'   // added
+  | 'js_attributes'   // added
+  | 'js_superset_check'   // added
+  | 'js_macro_name'   // added
+  | 'js_macro_mode'   // added
+  | 'js_namespace'   // added
+  
+  | 'fieldstructwidth'  // added
+
+  | 'rtl_coverage'   // added
+
+  | 'uvmreg_is_mem'   // added
+  | 'uvmreg_prune'   // added
+  
+  | 'use_new_interface'   // added
+  | 'use_interface'   // added
+  | 'use_new_struct'   // added
+  | 'use_struct'   // added
+
+  | 'cppmod_prune'   // added
+  ;  
+  
 // ------------
    
 bool

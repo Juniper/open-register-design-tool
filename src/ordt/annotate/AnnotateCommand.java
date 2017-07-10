@@ -56,7 +56,8 @@ public class AnnotateCommand {
 	   if ("*".equals(currentElem) || modComponent.getId().equals(currentElem)) {
 		   pathElementMatched = true;
 		   // only process if target matches and last path or singleton
-		   boolean targetMatch = (commandTarget == null) || (commandTarget == modComponent.getCompType());
+		   boolean targetMatch = (commandTarget == null) || (commandTarget == modComponent.getCompType()) ||
+				   ((commandTarget == ModComponent.CompType.REGSET) && (ModComponent.CompType.ADDRMAP == modComponent.getCompType()));  // also check ADDRMAPs if looking for REGSET
 		   if (targetMatch && (isPathEnd(pathLevel) || isSingletonPath() || isDoubleStarLeaf(pathLevel))) {
 			   processComponent(modComponent);
 		   }   
@@ -79,7 +80,8 @@ public class AnnotateCommand {
 		   pathElementMatched = true;
 		   // only process if target matches and last path or singleton
 		   ModComponent comp = modInstance.getRegComp();
-		   boolean targetMatch = (commandTarget == null) || (commandTarget == comp.getCompType());
+		   boolean targetMatch = (commandTarget == null) || (commandTarget == comp.getCompType()) ||
+				   ((commandTarget == ModComponent.CompType.REGSET) && (ModComponent.CompType.ADDRMAP == comp.getCompType()));  // also check ADDRMAPs if looking for REGSET
 		   if (targetMatch && (isPathEnd(pathLevel) || isSingletonPath() || isDoubleStarLeaf(pathLevel))) {
 			   //System.out.println("AnnotateCommand processInstance: target=" + commandTarget + ", comp type=" + comp.getCompType());
 			   //System.out.println("AnnotateCommand processInstance: currentElem=" + currentElem + ", mod id=" + modInstance.getId());

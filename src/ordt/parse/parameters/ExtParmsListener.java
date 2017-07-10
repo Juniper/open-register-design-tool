@@ -228,6 +228,16 @@ public interface ExtParmsListener extends ParseTreeListener {
 	 */
 	void exitAnnotation_command(ExtParmsParser.Annotation_commandContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link ExtParmsParser#implemented_rdl_property}.
+	 * @param ctx the parse tree
+	 */
+	void enterImplemented_rdl_property(ExtParmsParser.Implemented_rdl_propertyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ExtParmsParser#implemented_rdl_property}.
+	 * @param ctx the parse tree
+	 */
+	void exitImplemented_rdl_property(ExtParmsParser.Implemented_rdl_propertyContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link ExtParmsParser#bool}.
 	 * @param ctx the parse tree
 	 */

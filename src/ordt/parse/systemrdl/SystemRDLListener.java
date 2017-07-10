@@ -628,6 +628,16 @@ public interface SystemRDLListener extends ParseTreeListener {
 	 */
 	void exitAnnotation_command(SystemRDLParser.Annotation_commandContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link SystemRDLParser#implemented_rdl_property}.
+	 * @param ctx the parse tree
+	 */
+	void enterImplemented_rdl_property(SystemRDLParser.Implemented_rdl_propertyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link SystemRDLParser#implemented_rdl_property}.
+	 * @param ctx the parse tree
+	 */
+	void exitImplemented_rdl_property(SystemRDLParser.Implemented_rdl_propertyContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link SystemRDLParser#bool}.
 	 * @param ctx the parse tree
 	 */

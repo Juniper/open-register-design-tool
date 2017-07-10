@@ -760,6 +760,18 @@ public class SystemRDLBaseListener implements SystemRDLListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterImplemented_rdl_property(SystemRDLParser.Implemented_rdl_propertyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitImplemented_rdl_property(SystemRDLParser.Implemented_rdl_propertyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterBool(SystemRDLParser.BoolContext ctx) { }
 	/**
 	 * {@inheritDoc}
