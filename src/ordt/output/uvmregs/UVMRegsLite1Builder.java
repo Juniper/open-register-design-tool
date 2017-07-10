@@ -363,7 +363,7 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 				", " + isRand + ", 1);"));		
 		
 		// remove reset for uninitialized field if db update is being skipped
-		if (fieldNeedsResetRemoval()) outputList.add(new OutputLine(indentLvl, "this.m_REG_FIELD.has_reset(.delete(1));"));
+		if (fieldNeedsResetRemoval()) outputList.add(new OutputLine(indentLvl, "void'(this.m_REG_FIELD.has_reset(.delete(1)));"));
 						
 		outputList.add(new OutputLine(--indentLvl, "endfunction: build"));
 	}

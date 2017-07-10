@@ -234,7 +234,8 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			if (!regProperties.isExternal() || visitExternalRegisters()) 
 				finishFieldSet();
 			// save min allowed offset prior to potting from the stack
-			Integer newMinOffset = getCurrentFieldSetOffset() + fieldSetProperties.getFieldSetWidth();
+			Integer currentFsOffset = getCurrentFieldSetOffset();
+			Integer newMinOffset = (currentFsOffset != null)? currentFsOffset + fieldSetProperties.getFieldSetWidth() : null;
 			// pop from fieldset stack and restore parent as current
 			fieldSetPropertyStack.pop();  // done, so pop from stack
 			if (fieldSetPropertyStack.isEmpty()) fieldSetProperties = null;
