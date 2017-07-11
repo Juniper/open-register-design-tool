@@ -51,8 +51,15 @@ public class AnnotateSetCommand extends AnnotateCommand {
 	@Override
 	public void processComponent(ModComponent modComponent) {
 		changeCount++; // bump the change count
-		if (isDefault()) modComponent.setDefaultProperty(property, value);  // set the specified property
-		else modComponent.setProperty(property, value, 0);  // set the specified property
+		// since annotate occurs after comp info is cascaded, set property on child instances
+		if (isDefault()) {
+			for (ModInstance inst: modComponent.getInstancesOf())
+				inst.setDefaultProperty(property, value);  // set the specified property
+		}
+		else {
+			for (ModInstance inst: modComponent.getInstancesOf())
+				inst.setProperty(property, value, 0);  // set the specified property
+		}
 		//System.out.println("AnnotateSetCommand processComponent: count=" + changeCount + ", " + getSignature());
 	}
 	   

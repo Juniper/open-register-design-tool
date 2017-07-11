@@ -95,10 +95,9 @@ annotate {
   //set_reg_property uvmreg_prune = "true" instances "cntl" // set parameter on all register instances named cntl
   //set_reg_property uvmreg_prune = "true" instances "base_map.eng1.**" // set parameter on all register instances under eng1 instance
   //set_reg_property uvmreg_prune = "true" instances "*.eng1.**" // set parameter on all register instances under eng1 instance 
-  //set_regset_property default uvmreg_prune = "true" instances "e1" // set parameter on all register instances under eng1 instance
-  
+  //set_regset_property default uvmreg_prune = "true" instances "e1" // set parameter on all register instances with name e1
   //set_regset_property default uvmreg_prune = "true" components "assist_engine_1" // set parameter on all register instances with component name assist_engine_1
-  set_reg_property uvmreg_prune = "true" components "*.assist_engine_1.**" // set parameter on all register instances with component path *.assist_engine_1.**  THIS DOESNT WORK!
+  set_reg_property uvmreg_prune = "true" components "*.assist_engine_1.**" // set parameter on all register instances with component path *.assist_engine_1.** 
   //set_fieldset_property use_new_interface = "true" instances "foo.blabla.*" // set parameter on all matching fieldsets
 }
 

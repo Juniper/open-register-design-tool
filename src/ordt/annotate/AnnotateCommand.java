@@ -93,7 +93,7 @@ public class AnnotateCommand {
    
    /** process instance - overridden by child command classes */
    public void processInstance(ModInstance modInstance) {
-		changeCount++; // bump the change count
+	   changeCount++; // bump the change count
    }
 
    // ------- private methods

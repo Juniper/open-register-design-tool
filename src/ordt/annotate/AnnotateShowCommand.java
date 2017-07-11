@@ -28,14 +28,14 @@ public class AnnotateShowCommand extends AnnotateCommand {
 		return "display: " + super.getSignature() + ", show component info with instances=" + showInstanceComponent;
 	}
 
-	/** process a set_property command on component */
+	/** process a show command on component */
 	@Override
 	public void processComponent(ModComponent modComponent) {
 		changeCount++; // bump the change count
 		modComponent.display();  // show the specified component info
 	}
 	   
-	/** process a set_property command on instance */
+	/** process a show command on instance */
 	@Override
 	public void processInstance(ModInstance modInstance) {
 		//System.out.println("AnnotateSetCommand processInstance: setting p=" + property + ", v=" + value + " in inst=" + modInstance.getId());
