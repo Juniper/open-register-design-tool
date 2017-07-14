@@ -105,6 +105,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initStringListParameter("process_component", new ArrayList<String>());
 		initBooleanParameter("resolve_reg_category", false); 
 		initBooleanParameter("restrict_defined_property_names", true); 
+		initBooleanParameter("default_rw_hw_access", false); 
 		
 		// ---- jspec input defaults
 		initStringListParameter("process_typedef", new ArrayList<String>());
@@ -571,6 +572,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getBooleanParameter("restrict_defined_property_names");
 	}
 	
+	public static boolean rdlDefaultRwHwAccess() {
+		return getBooleanParameter("default_rw_hw_access");
+	}
+		
 	// -------- js input getters
 
 	/** returns true if typedef names have been specified for processing */

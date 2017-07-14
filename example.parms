@@ -21,6 +21,8 @@ input rdl {
 	//process_component = "zt_fabio_map"   // process this component
     //process_component = "zt_fabio_switch_sopcf0"
     resolve_reg_category = true    // try to determine category from rdl properties if not specified
+    //restrict_defined_property_names = true  // user defined rdl properties should always start with 'p_'
+    //default_rw_hw_access = true  // default field hw access is rw rather than r
 }
 
 // systemverilog output parameters

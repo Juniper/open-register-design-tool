@@ -1,0 +1,89 @@
+/*  example MyDebugController.java - user-specific, so do not check into repo
+*/
+package ordt.extract;
+
+import ordt.annotate.AnnotateNullCommand;
+import ordt.annotate.AnnotateSetCommand;
+import ordt.annotate.AnnotateShowCommand;
+import ordt.extract.Ordt.OutputType;
+import ordt.extract.model.ModComponent.CompType;
+import ordt.parameters.ExtParameters;
+
+@SuppressWarnings("unused")
+public class MyDebugController extends DebugController {
+
+    /** return true if debug settings will be used */
+	public boolean isActive() {
+		return false;  // *** TOGGLE THIS TO ACTIVATE DEBUG ***
+	}
+
+	/** add annotations to the design model before output generation */
+	public void addAnnotations() {
+	    // use annotate show commands to view post-extract model elements
+		AnnotateShowCommand cmd = new AnnotateShowCommand(null, false, "*.*", true);  // show all second level instance/component info
+		ExtParameters.getAnnotations().add(cmd);
+		cmd = new AnnotateShowCommand(CompType.REGSET, true, "foo_regs", false);  // show info for regfile component named foo_regs
+		ExtParameters.getAnnotations().add(cmd);
+	}
+
+	/** override ordt input/output info */
+	public void setRunInfo() {
+		boolean debugUsesLocalOutput = false;
+    	String debugLocalBasePath = "/some_path/open-register-design-tool/";
+		String debugWorkBasePath = "/another_path/Documents/jrdl_work/";
+		String inputFile = null;
+		
+    	// set base path for debug
+    	String debugOutputBasePath = debugUsesLocalOutput ? debugLocalBasePath : debugWorkBasePath;
+    	
+        //inputFile = debugLocalBasePath + "rdl/generic_example.rdl";
+        //inputFile = debugLocalBasePath + "rdl/count_debug.rdl";
+        //inputFile = debugLocalBasePath + "rdl/intr_debug.rdl";
+        //inputFile = debugLocalBasePath + "rdl/reset_example.rdl";
+     	
+     	// optionally use a specific parm file
+    	//Ordt.addInputParmFile(debugWorkBasePath + "f1.parms");
+        //Ordt.addInputParmFile(debugWorkBasePath + "f2.parms");
+        
+    	// --- test list inputs
+		String testDirectory = debugLocalBasePath + "test/";
+    	//inputFile = testDirectory + "basic_tests/rdl_hello/test.rdl"; 
+    	//inputFile = testDirectory + "basic_tests/rdl_basic_01/test.rdl"; 
+    	//inputFile = testDirectory + "basic_tests/rdl_hier_01/test.rdl"; 
+    	//inputFile = testDirectory + "basic_tests/rdl_fieldstruct/test.rdl"; 
+ 		
+		Ordt.setInputFile(inputFile);
+    	
+    	// change outputs depending on input type 
+		if (inputFile.endsWith("js")) {
+    		Ordt.addOutputFile(OutputType.RDL, debugOutputBasePath + "output.rdl");        //JSPEC
+    	}
+    	else {
+    		Ordt.addOutputFile(OutputType.VERILOG, debugOutputBasePath + "output.v");  // RDL
+    		Ordt.addOutputFile(OutputType.VBENCH, debugOutputBasePath + "bench.v");  
+        	//Ordt.addOutputFile(OutputType.SVBENCH, debugOutputBasePath + "bench.sv");  
+        	//Ordt.addOutputFile(OutputType.SYSTEMVERILOG, debugOutputBasePath + "outdir3/doody3/");  //directory sv output
+
+    		Ordt.addOutputFile(OutputType.SYSTEMVERILOG, debugOutputBasePath + "output.sv"); // RDL
+    		Ordt.addOutputFile(OutputType.JSPEC, debugOutputBasePath + "output.js");         // RDL
+    	}
+    	Ordt.addOutputFile(OutputType.UVMREGS, debugOutputBasePath + "uvmregs.sv");      //BOTH
+    	Ordt.addOutputFile(OutputType.UVMREGSPKG, debugOutputBasePath + "uvmregspkg.sv");  
+    	Ordt.addOutputFile(OutputType.REGLIST, debugOutputBasePath + "output.reglist");  //BOTH
+    	Ordt.addOutputFile(OutputType.XML, debugOutputBasePath + "output.xml");  //BOTH
+    	Ordt.addOutputFile(OutputType.CPPMOD, debugOutputBasePath + "output_cpp");  //BOTH
+    	Ordt.addOutputFile(OutputType.JSON, debugOutputBasePath + "output.json");  //BOTH 
+    	Ordt.addOutputFile(OutputType.SVCHILDINFO, debugOutputBasePath + "output.svchild");  //BOTH 
+
+    	//outputFileNames.put(OutputType.SVBENCH, debugOutputBasePath + "test.sv");  
+		//outputFileNames.put(OutputType.RALF, debugOutputBasePath + "output.ralf");  
+    	Ordt.addOutputFile(OutputType.CPPDRVMOD, debugOutputBasePath + "output_cppdrv");  //BOTH
+		
+    	// override overlay files
+    	String overlayFile = inputFile.endsWith(".js")? inputFile.replace(".js", "_over.js") : inputFile.replace(".rdl", "_over.rdl");
+    	//Ordt.addOverlayFile(overlayFile, "v2");
+    	
+		// use default parameters file if none specified
+    	if (!Ordt.hasInputParmFile()) Ordt.addInputParmFile(debugLocalBasePath + "example.parms");
+	    }
+}

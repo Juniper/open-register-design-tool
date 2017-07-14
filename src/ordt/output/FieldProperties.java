@@ -15,6 +15,7 @@ import ordt.extract.model.ModIndexedInstance;
 import ordt.extract.model.ModInstance;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 
 /** class of properties needed for display of active field instance */
@@ -33,7 +34,7 @@ public class FieldProperties extends InstanceProperties {
 	private boolean isSwReadable = true;  // default to sw read/write, hw read
 	private boolean isSwWriteable = true;
 	private boolean isHwReadable = true;
-	private boolean isHwWriteable = false;
+	private boolean isHwWriteable = ExtParameters.rdlDefaultRwHwAccess();  
 	
 	private boolean hasSwWriteEnableH = false;
 	private boolean hasSwWriteEnableL = false;
@@ -704,12 +705,6 @@ public class FieldProperties extends InstanceProperties {
 	 */
 	public boolean isReadable() {
 		return isHwReadable || isSwReadable;
-	}
-	
-	/** true if a staging net is needed on input */
-	public boolean hasComplexInput() {
-		if (isSwWriteable() && isSwWriteable()) return true;   // both hw and sw writes
-		return false;
 	}
 
 	public boolean hasSwWriteEnableH() {

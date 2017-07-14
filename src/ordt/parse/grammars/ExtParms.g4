@@ -54,6 +54,7 @@ ext_parm_defs
    : 'process_component' EQ STR
    | 'resolve_reg_category' EQ bool
    | 'restrict_defined_property_names' EQ bool
+   | 'default_rw_hw_access' EQ bool
    ;
    
 // ------------ jspec_in_defs
