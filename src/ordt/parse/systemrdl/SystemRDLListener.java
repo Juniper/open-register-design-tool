@@ -608,6 +608,26 @@ public interface SystemRDLListener extends ParseTreeListener {
 	 */
 	void exitBench_out_parm_assign(SystemRDLParser.Bench_out_parm_assignContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link SystemRDLParser#xml_out_defs}.
+	 * @param ctx the parse tree
+	 */
+	void enterXml_out_defs(SystemRDLParser.Xml_out_defsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link SystemRDLParser#xml_out_defs}.
+	 * @param ctx the parse tree
+	 */
+	void exitXml_out_defs(SystemRDLParser.Xml_out_defsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link SystemRDLParser#xml_out_parm_assign}.
+	 * @param ctx the parse tree
+	 */
+	void enterXml_out_parm_assign(SystemRDLParser.Xml_out_parm_assignContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link SystemRDLParser#xml_out_parm_assign}.
+	 * @param ctx the parse tree
+	 */
+	void exitXml_out_parm_assign(SystemRDLParser.Xml_out_parm_assignContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link SystemRDLParser#model_annotation}.
 	 * @param ctx the parse tree
 	 */

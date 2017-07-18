@@ -256,6 +256,30 @@ public class ExtParmsBaseListener implements ExtParmsListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterXml_out_defs(ExtParmsParser.Xml_out_defsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitXml_out_defs(ExtParmsParser.Xml_out_defsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterXml_out_parm_assign(ExtParmsParser.Xml_out_parm_assignContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitXml_out_parm_assign(ExtParmsParser.Xml_out_parm_assignContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterModel_annotation(ExtParmsParser.Model_annotationContext ctx) { }
 	/**
 	 * {@inheritDoc}

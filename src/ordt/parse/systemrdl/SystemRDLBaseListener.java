@@ -736,6 +736,30 @@ public class SystemRDLBaseListener implements SystemRDLListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterXml_out_defs(SystemRDLParser.Xml_out_defsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitXml_out_defs(SystemRDLParser.Xml_out_defsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterXml_out_parm_assign(SystemRDLParser.Xml_out_parm_assignContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitXml_out_parm_assign(SystemRDLParser.Xml_out_parm_assignContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterModel_annotation(SystemRDLParser.Model_annotationContext ctx) { }
 	/**
 	 * {@inheritDoc}

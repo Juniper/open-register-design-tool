@@ -10,6 +10,7 @@ import java.util.List;
 import ordt.extract.Ordt;
 import ordt.extract.PropertyList;
 import ordt.extract.RegModelIntf;
+import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.output.FieldProperties;
@@ -51,7 +52,9 @@ public class XmlBuilder extends OutputBuilder {
 			textName = textName.substring(0, 255);
 		}
 		addXmlElement("shorttext", textName);
-		addXmlElement("access", getFieldAccessType(fieldProperties));
+		addXmlElement("access", getFieldAccessType());
+		if (fieldProperties.isSinglePulse()) addXmlElement("singlepulse", "");
+		if (ExtParameters.xmlIncludeFieldHwInfo()) addHwInfo();  // include field hw info
 		if (fieldProperties.getReset() != null) {
 			addXmlElement("reset", fieldProperties.getReset().toFormat(NumBase.Hex, NumFormat.Int)); // output reset as hex string
 		}
@@ -64,45 +67,22 @@ public class XmlBuilder extends OutputBuilder {
 		if (fieldProperties.isDontCompare()) 
 			addXmlElement("dontcompare", ""); 			
 		if (fieldProperties.isCounter()) 
-			addXmlElement("counter", "");
+			addCounterInfo();
 		if (fieldProperties.isInterrupt()) 
-			addXmlElement("intr", "");
+			addIntrInfo();
 		if (fieldProperties.hasSubCategory()) 
 			addXmlElement("subcatcode", String.valueOf(fieldProperties.getSubCategory().getValue()));  
 		if (fieldProperties.getTextDescription() != null) 
 			addXmlElement("longtext", wrapXmlText(fieldProperties.getTextDescription()));
 		// add infotext
-		String infoStr = "";
-		if (fieldProperties.isInterrupt()) {
-			RhsReference ref = null;
-			if (fieldProperties.hasRef(RhsRefType.NEXT)) ref = fieldProperties.getRef(RhsRefType.NEXT);
-			else if (fieldProperties.hasRef(RhsRefType.INTR)) ref = fieldProperties.getRef(RhsRefType.INTR);
-			if (ref != null) {
-				if (ref.hasDeRef("intr")) infoStr += "Interrupt merge field set by register " + ref.getInstancePath() + ".  ";
-				else infoStr += "Interrupt field set by " + ref.getResolvedFieldWildcardPath(fieldProperties) + ".  ";
-			}
-			if (fieldProperties.hasRef(RhsRefType.INTR_MASK)) infoStr += "Interrupt output masked by " + fieldProperties.getRef(RhsRefType.INTR_MASK).getResolvedFieldWildcardPath(fieldProperties) + ".  ";
-			else if (fieldProperties.hasRef(RhsRefType.INTR_ENABLE)) infoStr += "Interrupt output enabled by " + fieldProperties.getRef(RhsRefType.INTR_ENABLE).getResolvedFieldWildcardPath(fieldProperties) + ".  ";
-			if (fieldProperties.hasRef(RhsRefType.HALT_MASK)) infoStr += "Rdl halt output masked by " + fieldProperties.getRef(RhsRefType.HALT_MASK).getResolvedFieldWildcardPath(fieldProperties) + ".  ";
-			else if (fieldProperties.hasRef(RhsRefType.HALT_ENABLE)) infoStr += "Rdl halt output enabled by " + fieldProperties.getRef(RhsRefType.HALT_ENABLE).getResolvedFieldWildcardPath(fieldProperties) + ".  ";
-		} // intr
-		if (fieldProperties.isCounter()) {
-			if (fieldProperties.isIncrSatCounter()) infoStr += "Saturating counter.  ";
-			//else infoStr += "Rollover counter.  ";
-		}
+		String infoStr = ExtParameters.xmlIncludeFieldHwInfo()? "" : genInfoStr();  // omit infotext if hw info is being included
 		if (!infoStr.isEmpty()) addXmlElement("infotext", infoStr);
 		// if this instance has user defined properties, add them
 		addUserDefinedPropertyElements(fieldProperties);
 		
 		addXmlElementEnd("field");
-		/*
-		if (regProperties.getId().startsWith("features")) {
-			System.out.println("XmlBuilder addField: reg=" + regProperties.getId() + ", field=" + fieldProperties.getPrefixedId());
-			System.out.println("   hwChanges=" + fieldProperties.hwChangesValue() + ", counter=" + fieldProperties.isCounter() + ", intr=" + fieldProperties.isInterrupt());	
-			System.out.println("   isHwWriteable=" + fieldProperties.isHwWriteable() + ", hasWe=" + fieldProperties.hasWriteEnable() );	
-		}*/
 		// save the common access mode
-		String fieldAccess = getFieldAccessType(fieldProperties);
+		String fieldAccess = getFieldAccessType();
 		if (commonRegAccess == null) commonRegAccess = fieldAccess;
 		else if (!commonRegAccess.equals(fieldAccess)) commonRegAccess = "nope";
 	}
@@ -263,32 +243,187 @@ public class XmlBuilder extends OutputBuilder {
 		outputList.add(new OutputLine(indentLvl, "<" + name + ">" + content + "</" + name + ">")); 		
 	}
 
-	/** generate field access type string 
-	 * @param field */
-	private String getFieldAccessType(FieldProperties field) {
+	/** generate field sw access type string (uvm_regs encoding) */
+	private String getFieldAccessType() {
 		String accessMode = "RO";
 		// if read clear
-		if (field.isRclr()) {
-			if (field.isWoset()) accessMode = "W1SRC"; 
-			else if (field.isSwWriteable()) accessMode = "WRC";
+		if (fieldProperties.isRclr()) {
+			if (fieldProperties.isWoset()) accessMode = "W1SRC"; 
+			else if (fieldProperties.isSwWriteable()) accessMode = "WRC";
 		    else accessMode = "RC";
 		}
 		// if read set
-		else if (field.isRset()) {
-			if (field.isWoclr()) accessMode = "W1CRS"; 
-			else if (field.isSwWriteable()) accessMode = "WRS";
+		else if (fieldProperties.isRset()) {
+			if (fieldProperties.isWoclr()) accessMode = "W1CRS"; 
+			else if (fieldProperties.isSwWriteable()) accessMode = "WRS";
 		    else accessMode = "RS";
 		}
 		// no read set/clr
 		else {
-			if (field.isWoclr()) accessMode = "W1C";   
-			else if (field.isWoset()) accessMode = "W1S";
-			else if (field.isSwWriteable()) {
-				if (field.isSwReadable()) accessMode = "RW"; 
+			if (fieldProperties.isWoclr()) accessMode = "W1C";   
+			else if (fieldProperties.isWoset()) accessMode = "W1S";
+			else if (fieldProperties.isSwWriteable()) {
+				if (fieldProperties.isSwReadable()) accessMode = "RW"; 
 				else accessMode = "WO";
 			}
 		}
 		return accessMode;
+	}
+
+	/** generate hw info tags */
+	private void addHwInfo() {
+		addXmlElementStart("hwinfo");
+		addXmlElement("hwaccess", getFieldHwAccessType(fieldProperties));
+		if (fieldProperties.hasWriteEnableH()) addXmlElement("we", "");
+		else if (fieldProperties.hasWriteEnableL()) addXmlElement("wel", "");
+		if (fieldProperties.hasHwSet()) addXmlElement("hwset", "");
+		if (fieldProperties.hasHwClr()) addXmlElement("hwclr", "");
+		if (fieldProperties.hasSwMod()) addXmlElement("swmod", "");
+		if (fieldProperties.hasSwAcc()) addXmlElement("swacc", "");
+		if (fieldProperties.hasSwWriteEnableH()) addXmlElement("swwe", "");
+		else if (fieldProperties.hasSwWriteEnableL()) addXmlElement("swwel", "");
+		if (fieldProperties.isAnded()) addXmlElement("anded", "");
+		if (fieldProperties.isOred()) addXmlElement("ored", "");
+		if (fieldProperties.isXored()) addXmlElement("xored", "");
+		addXmlElementEnd("hwinfo");
+	}
+
+	/** return hw access type (rdl format) */
+	private String getFieldHwAccessType(FieldProperties field) {
+		String accessMode = "";
+		if (fieldProperties.isHwReadable()) accessMode += "r";
+		if (fieldProperties.isHwWriteable()) accessMode += "w";
+		if (accessMode.isEmpty()) accessMode += "na";
+		return accessMode;
+	}
+
+	/** generate informational string for counters/interrupts */
+	private String genInfoStr() {
+		String infoStr = "";
+		if (fieldProperties.isInterrupt()) {
+			RhsReference ref = null;
+			if (fieldProperties.hasRef(RhsRefType.NEXT)) ref = fieldProperties.getRef(RhsRefType.NEXT);
+			else if (fieldProperties.hasRef(RhsRefType.INTR)) ref = fieldProperties.getRef(RhsRefType.INTR);
+			if (ref != null) {
+				if (ref.hasDeRef("intr")) infoStr += "Interrupt merge field set by register " + ref.getInstancePath() + ".  ";
+				else infoStr += "Interrupt field set by " + ref.getResolvedFieldWildcardPath(fieldProperties) + ".  ";
+			}
+			if (fieldProperties.hasRef(RhsRefType.INTR_MASK)) infoStr += "Interrupt output masked by " + fieldProperties.getRef(RhsRefType.INTR_MASK).getResolvedFieldWildcardPath(fieldProperties) + ".  ";
+			else if (fieldProperties.hasRef(RhsRefType.INTR_ENABLE)) infoStr += "Interrupt output enabled by " + fieldProperties.getRef(RhsRefType.INTR_ENABLE).getResolvedFieldWildcardPath(fieldProperties) + ".  ";
+			if (fieldProperties.hasRef(RhsRefType.HALT_MASK)) infoStr += "Rdl halt output masked by " + fieldProperties.getRef(RhsRefType.HALT_MASK).getResolvedFieldWildcardPath(fieldProperties) + ".  ";
+			else if (fieldProperties.hasRef(RhsRefType.HALT_ENABLE)) infoStr += "Rdl halt output enabled by " + fieldProperties.getRef(RhsRefType.HALT_ENABLE).getResolvedFieldWildcardPath(fieldProperties) + ".  ";
+		} // intr
+		if (fieldProperties.isCounter()) {
+			if (fieldProperties.isIncrSatCounter()) infoStr += "Saturating counter.  ";
+			//else infoStr += "Rollover counter.  ";
+		}
+		return infoStr;
+	}
+
+	/** add interrupt info detail if include_field_hw_info is set */
+	private void addIntrInfo() {
+		if (!ExtParameters.xmlIncludeFieldHwInfo()) addXmlElement("intr", "");
+		else {
+			addXmlElementStart("intr");
+			addXmlElement("type", fieldProperties.getIntrType().name());
+			addXmlElement("stickytype", fieldProperties.getIntrStickyType().name());
+			if (fieldProperties.isMaskIntrBits()) addXmlElement("maskintrbits", "");
+			// add cascaded intr references
+			RhsReference ref = null;
+			if (fieldProperties.hasRef(RhsRefType.NEXT)) ref = fieldProperties.getRef(RhsRefType.NEXT);
+			else if (fieldProperties.hasRef(RhsRefType.INTR)) ref = fieldProperties.getRef(RhsRefType.INTR);
+			if (ref != null) {
+				if (ref.hasDeRef("intr")) addXmlElement("input", ref.getInstancePath());
+				else addXmlElement("input", ref.getResolvedFieldWildcardPath(fieldProperties));
+			}
+			if (fieldProperties.hasRef(RhsRefType.INTR_MASK)) addXmlElement("mask", fieldProperties.getRef(RhsRefType.INTR_MASK).getResolvedFieldWildcardPath(fieldProperties));
+			else if (fieldProperties.hasRef(RhsRefType.INTR_ENABLE)) addXmlElement("enable", fieldProperties.getRef(RhsRefType.INTR_ENABLE).getResolvedFieldWildcardPath(fieldProperties));
+            // halt info
+			if (fieldProperties.isHalt()) addXmlElement("halt", "");
+			if (fieldProperties.hasRef(RhsRefType.HALT_MASK)) addXmlElement("haltmask", fieldProperties.getRef(RhsRefType.HALT_MASK).getResolvedFieldWildcardPath(fieldProperties));
+			else if (fieldProperties.hasRef(RhsRefType.HALT_ENABLE)) addXmlElement("haltenable", fieldProperties.getRef(RhsRefType.HALT_ENABLE).getResolvedFieldWildcardPath(fieldProperties));
+			addXmlElementEnd("intr");
+		}
+	}
+
+	/** add counter info detail if include_field_hw_info is set */
+	private void addCounterInfo() {
+		if (!ExtParameters.xmlIncludeFieldHwInfo()) addXmlElement("counter", "");
+		else {
+			addXmlElementStart("counter");
+			String satVal = fieldProperties.hasSaturateOutputs()? "has_output" : "no_output";
+			   int fieldWidth = fieldProperties.getFieldWidth();
+			   int countWidth = fieldWidth + 1;  // add a bit for over/underflow
+			// add incr counter info
+			if (fieldProperties.isIncrCounter()) {
+				addXmlElementStart("incr");
+				if (fieldProperties.hasOverflow())  addXmlElement("overflow", satVal);
+				if (fieldProperties.isIncrSatCounter()) addXmlElement("saturate", satVal);
+				// add incr value 
+				if (fieldProperties.hasRef(RhsRefType.INCR_VALUE)) addXmlElement("incrvalue", "ref");
+				else { 
+					RegNumber regNum = fieldProperties.getIncrValue();
+					if (regNum!=null) {
+						regNum.setVectorLen(countWidth);
+						addXmlElement("incrvalue", regNum.toFormat(NumBase.Hex, NumFormat.Address));
+					}
+				}
+				// add saturate value 
+				if (fieldProperties.hasRef(RhsRefType.INCR_SAT_VALUE)) addXmlElement("satvalue", "ref");
+				else { 
+					RegNumber regNum = fieldProperties.getIncrSatValue();
+					if (regNum!=null) {
+						regNum.setVectorLen(countWidth);
+						addXmlElement("satvalue", regNum.toFormat(NumBase.Hex, NumFormat.Address));
+					}
+				}
+				// add threshold value 
+				if (fieldProperties.hasRef(RhsRefType.INCR_THOLD_VALUE)) addXmlElement("threshold", "ref");
+				else { 
+					RegNumber regNum = fieldProperties.getIncrTholdValue();
+					if (regNum!=null) {
+						regNum.setVectorLen(countWidth);
+						addXmlElement("threshold", regNum.toFormat(NumBase.Hex, NumFormat.Address));
+					}
+				}
+				addXmlElementEnd("incr");
+			}
+			// add decr counter info
+			if (fieldProperties.isDecrCounter()) {
+				addXmlElementStart("decr");
+				if (fieldProperties.hasUnderflow())  addXmlElement("underflow", satVal);
+				if (fieldProperties.isDecrSatCounter()) addXmlElement("saturate", satVal);
+				// add decr value 
+				if (fieldProperties.hasRef(RhsRefType.DECR_VALUE)) addXmlElement("decrvalue", "ref");
+				else { 
+					RegNumber regNum = fieldProperties.getDecrValue();
+					if (regNum!=null) {
+						regNum.setVectorLen(countWidth);
+						addXmlElement("decrvalue", regNum.toFormat(NumBase.Hex, NumFormat.Address));
+					}
+				}
+				// add saturate value 
+				if (fieldProperties.hasRef(RhsRefType.DECR_SAT_VALUE)) addXmlElement("satvalue", "ref");
+				else { 
+					RegNumber regNum = fieldProperties.getDecrSatValue();
+					if (regNum!=null) {
+						regNum.setVectorLen(countWidth);
+						addXmlElement("satvalue", regNum.toFormat(NumBase.Hex, NumFormat.Address));
+					}
+				}
+				// add threshold value 
+				if (fieldProperties.hasRef(RhsRefType.DECR_THOLD_VALUE)) addXmlElement("threshold", "ref");
+				else { 
+					RegNumber regNum = fieldProperties.getDecrTholdValue();
+					if (regNum!=null) {
+						regNum.setVectorLen(countWidth);
+						addXmlElement("threshold", regNum.toFormat(NumBase.Hex, NumFormat.Address));
+					}
+				}
+				addXmlElementEnd("decr");
+			}
+			addXmlElementEnd("counter");
+		}	
 	}
 
 	/** remove xml arrows and amp from a string */

@@ -88,6 +88,11 @@ output uvmregs {
 	uvm_model_parameters = "altModelRootType=Zt_fabio, altModelPackageFile=zt_class.svh, altModelPackage=zt_jspec::*"  // set misc model parameters
 }
 
+// xml output parameters
+output xml {
+	include_field_hw_info = true   // include info re field hw characteristics
+}
+
 // model annotation commands
 annotate {
   //set_reg_property cppmod_prune = "true" instances "foo.bar.*" // set parameter on all matching registers

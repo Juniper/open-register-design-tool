@@ -208,6 +208,26 @@ public interface ExtParmsListener extends ParseTreeListener {
 	 */
 	void exitBench_out_parm_assign(ExtParmsParser.Bench_out_parm_assignContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link ExtParmsParser#xml_out_defs}.
+	 * @param ctx the parse tree
+	 */
+	void enterXml_out_defs(ExtParmsParser.Xml_out_defsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ExtParmsParser#xml_out_defs}.
+	 * @param ctx the parse tree
+	 */
+	void exitXml_out_defs(ExtParmsParser.Xml_out_defsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ExtParmsParser#xml_out_parm_assign}.
+	 * @param ctx the parse tree
+	 */
+	void enterXml_out_parm_assign(ExtParmsParser.Xml_out_parm_assignContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ExtParmsParser#xml_out_parm_assign}.
+	 * @param ctx the parse tree
+	 */
+	void exitXml_out_parm_assign(ExtParmsParser.Xml_out_parm_assignContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link ExtParmsParser#model_annotation}.
 	 * @param ctx the parse tree
 	 */

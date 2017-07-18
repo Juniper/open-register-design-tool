@@ -19,6 +19,7 @@ ext_parm_defs
     | uvmregs_out_defs
     | reglist_out_defs
     | bench_out_defs
+    | xml_out_defs
  //   | cppmod_out_defs
     | model_annotation
     )*
@@ -185,6 +186,18 @@ ext_parm_defs
    | 'generate_external_regs' EQ bool 
    | 'only_output_dut_instances' EQ bool 
    | 'total_test_time' EQ NUM 
+   ;
+   
+// ------------ xml_out_defs
+ xml_out_defs
+   : 'output' 'xml'
+     LBRACE
+     (xml_out_parm_assign)+
+     RBRACE
+   ;  
+   
+ xml_out_parm_assign
+   : 'include_field_hw_info' EQ bool 
    ;
    
 /*   

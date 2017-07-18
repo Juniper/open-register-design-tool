@@ -165,6 +165,9 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("generate_external_regs", false); 
 		initBooleanParameter("only_output_dut_instances", false); 
 		initIntegerParameter("total_test_time", 5000);
+		
+		// ---- xml output defaults
+		initBooleanParameter("include_field_hw_info", false);
 	}
 	
 	static void initBooleanParameter(String name, Boolean value) {
@@ -345,6 +348,13 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	 * Assign bench output parameters
 	 */
 	@Override public void enterBench_out_parm_assign(@NotNull ExtParmsParser.Bench_out_parm_assignContext ctx) {
+		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
+	}
+	
+	/**
+	 * Assign xml output parameters
+	 */
+	@Override public void enterXml_out_parm_assign(ExtParmsParser.Xml_out_parm_assignContext ctx) {
 		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
 	}
 
@@ -827,7 +837,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static int benchTotalTestTime() {
 		return getIntegerParameter("total_test_time");
 	}
-
+	
+	public static Boolean xmlIncludeFieldHwInfo() {
+		return getBooleanParameter("include_field_hw_info");
+	}
+	
 	/**
 	 * @param args
 	 */
