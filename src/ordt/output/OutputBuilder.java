@@ -208,15 +208,11 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			   // set rep number of this iteration
 			   fieldSetProperties.setRepNum(rep);
 			   
+			   Integer parentFsOffset = getCurrentFieldSetOffset();  // get parent's offset in reg			   
+			   int newFsOffset = regProperties.addFieldSet(fieldSetProperties, parentFsOffset); // get relative fieldset position from reg
+			   fieldSetProperties.setOffset(newFsOffset);  // from actual reg add fs call so its always non-null
+			   
 			   fieldSetPropertyStack.push(fieldSetProperties);  // push active fieldset onto stack
-			   
-			   // initialize w/ relative offset from model instance if it exists 
-			   Integer modOffset = fieldSetProperties.getExtractInstance().getOffset();
-			   if (modOffset!=null) fieldSetProperties.setOffset(modOffset);
-			   
-			   // update current fieldset offset in active register definition
-			   Integer currentFsetOffset = getCurrentFieldSetOffset();  // get current offset in reg for this fieldset
-			   regProperties.setFieldSetOffsets(currentFsetOffset, currentFsetOffset); // offset and min valid are at same position
 			   
 			   // inhibit child builder field call if external and not visiting externals
 			   if (!regProperties.isExternal() || visitExternalRegisters()) 
@@ -233,15 +229,15 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			// inhibit child builder field call if external and not visiting externals
 			if (!regProperties.isExternal() || visitExternalRegisters()) 
 				finishFieldSet();
-			// save min allowed offset prior to potting from the stack
-			Integer currentFsOffset = getCurrentFieldSetOffset();
-			Integer newMinOffset = (currentFsOffset != null)? currentFsOffset + fieldSetProperties.getFieldSetWidth() : null;
+			// save min allowed offset prior to popping from the stack
+			Integer newMinOffset = getCurrentFieldSetOffset() + fieldSetProperties.getFieldSetWidth();
+
 			// pop from fieldset stack and restore parent as current
 			fieldSetPropertyStack.pop();  // done, so pop from stack
 			if (fieldSetPropertyStack.isEmpty()) fieldSetProperties = null;
 			else fieldSetProperties = fieldSetPropertyStack.peek();  // restore parent as active fieldset
 			// restore parent fieldset offset post pop
-			regProperties.setFieldSetOffsets(getCurrentFieldSetOffset(), newMinOffset); // minValidOffset must account for width of fieldset just completed
+			regProperties.restoreFieldSetOffsets(getCurrentFieldSetOffset(), newMinOffset);
 		}
 	}
 
@@ -948,20 +944,15 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 	// ----------------- fieldset stack methods
 
-	/** get the field offset for the current fieldset by adding offsets properties found on the stack 
-	 * this is used to update the offset used in regProperties when addField is called */
-	private Integer getCurrentFieldSetOffset() {
+	/** get the accumulated fieldset offset by adding offsets properties found on the stack 
+	 * this is used to update the offset used in regProperties when fields are added */
+	private int getCurrentFieldSetOffset() {
 		Integer offset = 0;
 		//System.out.println("-- OutputBuilder getCurrentFieldSetOffset: getting fs offset");
 		Iterator<FieldSetProperties> iter = fieldSetPropertyStack.iterator();
 		while (iter.hasNext()) {
 			FieldSetProperties inst = iter.next();
-			// if this fieldset has an offset then add it
-			Integer fsetLowIdx = inst.getOffset();
-			//System.out.println("   id=" + inst.getId() + ", offset=" + inst.getExtractInstance().getOffset() + ", lowIdx=" + fsetLowIdx);
-			//if ( ((fsetOffset==null) && (fsetLowIdx!=null)) || ((fsetOffset!=null) && (fsetOffset!=fsetLowIdx))) System.out.println("   *** offset!=lowIdx");
-			if (fsetLowIdx==null) return null;  //Ordt.errorExit("null fs offset found");
-			offset += fsetLowIdx;  // changed to use lowIdx
+			offset += inst.getOffset(); 
 		}
 		return offset;
 	}

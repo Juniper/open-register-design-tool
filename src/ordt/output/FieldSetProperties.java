@@ -83,13 +83,13 @@ public class FieldSetProperties extends InstanceProperties {
 		//System.out.println("FieldSetProperties setFieldSetWidth: " + fsetInst.getId() + ", fieldSetWidth=" + fieldSetWidth);
 	}
 
-	/** get relative bit offset of this fieldset
+	/** get relative bit offset of this fieldset in parent
 	 */
 	public Integer getOffset() {
 		return offset;
 	}
 	
-	/** set relative bit offset of this fieldset
+	/** set relative bit offset of this fieldset in parent
 	 */
 	public void setOffset(Integer offset) {
 		this.offset = offset;

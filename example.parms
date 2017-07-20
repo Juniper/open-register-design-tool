@@ -90,7 +90,7 @@ output uvmregs {
 
 // xml output parameters
 output xml {
-	include_field_hw_info = true   // include info re field hw characteristics
+	include_field_hw_info = true   // include field hw characteristics 
 }
 
 // model annotation commands
