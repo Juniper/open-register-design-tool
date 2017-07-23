@@ -167,7 +167,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initIntegerParameter("total_test_time", 5000);
 		
 		// ---- xml output defaults
-		initBooleanParameter("include_field_hw_info", false);
+		initBooleanParameter("include_field_hw_info", true);
 	}
 	
 	static void initBooleanParameter(String name, Boolean value) {

@@ -48,6 +48,11 @@ public class RhsReference {
    public boolean hasDeRef(String ref) {
 	   return hasDeRef() && deRef.equals(ref);
    }
+   
+   /** returns deref */
+   public String getDeRef() {
+	   return deRef;
+   }
 
    /** build a reference name based on current inst hierarchy and input string */  
    public  String getReferenceName(InstanceProperties instProperties, boolean getRelativePath) {

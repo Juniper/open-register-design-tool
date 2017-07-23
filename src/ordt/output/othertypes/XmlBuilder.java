@@ -74,9 +74,6 @@ public class XmlBuilder extends OutputBuilder {
 			addXmlElement("subcatcode", String.valueOf(fieldProperties.getSubCategory().getValue()));  
 		if (fieldProperties.getTextDescription() != null) 
 			addXmlElement("longtext", wrapXmlText(fieldProperties.getTextDescription()));
-		// add infotext
-		String infoStr = ExtParameters.xmlIncludeFieldHwInfo()? "" : genInfoStr();  // omit infotext if hw info is being included
-		if (!infoStr.isEmpty()) addXmlElement("infotext", infoStr);
 		// if this instance has user defined properties, add them
 		addUserDefinedPropertyElements(fieldProperties);
 		
@@ -285,6 +282,13 @@ public class XmlBuilder extends OutputBuilder {
 		if (fieldProperties.isAnded()) addXmlElement("anded", "");
 		if (fieldProperties.isOred()) addXmlElement("ored", "");
 		if (fieldProperties.isXored()) addXmlElement("xored", "");
+		if (fieldProperties.hasRef(RhsRefType.NEXT)) {
+			RhsReference ref = fieldProperties.getRef(RhsRefType.NEXT);
+			if (ref != null) {
+				String deRef = (ref.hasDeRef())? "(" + ref.getDeRef() + ")" : "";
+				addXmlElement("nextassign", ref.getResolvedFieldWildcardPath(fieldProperties) + deRef);
+			}
+		}
 		addXmlElementEnd("hwinfo");
 	}
 
@@ -298,6 +302,7 @@ public class XmlBuilder extends OutputBuilder {
 	}
 
 	/** generate informational string for counters/interrupts */
+	@SuppressWarnings("unused")
 	private String genInfoStr() {
 		String infoStr = "";
 		if (fieldProperties.isInterrupt()) {
@@ -357,7 +362,7 @@ public class XmlBuilder extends OutputBuilder {
 			// add incr counter info
 			if (fieldProperties.isIncrCounter()) {
 				addXmlElementStart("incr");
-				if (fieldProperties.hasOverflow())  addXmlElement("overflow", satVal);
+				if (fieldProperties.hasOverflow())  addXmlElement("overflow", "");
 				if (fieldProperties.isIncrSatCounter()) addXmlElement("saturate", satVal);
 				// add incr value 
 				if (fieldProperties.hasRef(RhsRefType.INCR_VALUE)) addXmlElement("incrvalue", "ref");
@@ -391,7 +396,7 @@ public class XmlBuilder extends OutputBuilder {
 			// add decr counter info
 			if (fieldProperties.isDecrCounter()) {
 				addXmlElementStart("decr");
-				if (fieldProperties.hasUnderflow())  addXmlElement("underflow", satVal);
+				if (fieldProperties.hasUnderflow())  addXmlElement("underflow", "");
 				if (fieldProperties.isDecrSatCounter()) addXmlElement("saturate", satVal);
 				// add decr value 
 				if (fieldProperties.hasRef(RhsRefType.DECR_VALUE)) addXmlElement("decrvalue", "ref");
