@@ -26,14 +26,15 @@ import ordt.output.systemverilog.io.SystemVerilogIOElement;
 import ordt.output.systemverilog.io.SystemVerilogIOSignal;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.parameters.ExtParameters;
+import ordt.parameters.ExtParameters.SVDecodeInterfaceTypes;
 
 public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	
     // define a new list to handle bench specific IO 
 	protected SystemVerilogIOSignalList benchSigList = new SystemVerilogIOSignalList("bench");   // signals specific to the bench
-	protected SystemVerilogIOSignalList bfmToDecoderSigList = new SystemVerilogIOSignalList("bfm - decode");   // signals specific to the bench
+	protected SystemVerilogIOSignalList primaryBfmToDecoderSigList = new SystemVerilogIOSignalList("primary bfm - decode");   // signals specific to the bench
 	// module defines  
-	protected SystemVerilogModule leafbfm = new SystemVerilogModule(this, PIO, defaultClk, getDefaultReset());  // leaf bfm
+	protected SystemVerilogModule primaryBfm = new SystemVerilogModule(this, PIO, defaultClk, getDefaultReset());  // primary pio interface bfm
 	protected SystemVerilogModule benchtop = new SystemVerilogModule(this, PIO|HW|DECODE|LOGIC, defaultClk, getDefaultReset());  // bench top module
 
 	public SystemVerilogTestBuilder(RegModelIntf model) {
@@ -72,20 +73,33 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		// add bench io list
 		benchtop.useIOList(benchSigList, null); 
 		
-		// write leaf bfm module and add bfm control signals to bench list
-		createLeafBfm();   
+		// write primary interface bfm module and add bfm control signals to bench list
+		createPrimaryBfm();   // TODO handle secondary bfm
 	
 		// add dut child modules 
 		addDutInstances(benchtop);
 		
-		// add leaf bfm instance with names remapped
+		// add primary bfm instance with names remapped
 		if (decoder.hasSecondaryInterface()) {
 			RemapRuleList rules = new RemapRuleList();
-			rules.addRule("^dec_leaf_.*$", RemapRuleType.ADD_PREFIX, "p1_");
-			rules.addRule("^leaf_dec_.*$", RemapRuleType.ADD_PREFIX, "p1_");
-			benchtop.addInstance(leafbfm, "leaf_bfm", rules);
+			if (ExtParameters.getSysVerRootDecoderInterface()==SVDecodeInterfaceTypes.PARALLEL) {
+				rules.addRule("^dec_pio_.*$", RemapRuleType.ADD_PREFIX, "p1_h2d_");  // parallel (note h2d/d2h reflects decoder cascaded output i/f direction, not root i/f)
+				rules.addRule("^pio_dec_.*$", RemapRuleType.ADD_PREFIX, "p1_d2h_");
+				benchtop.addInstance(primaryBfm, "parallel_bfm", rules);
+			}
+			else {
+				rules.addRule("^dec_leaf_.*$", RemapRuleType.ADD_PREFIX, "p1_");  // leaf 
+				rules.addRule("^leaf_dec_.*$", RemapRuleType.ADD_PREFIX, "p1_");
+				benchtop.addInstance(primaryBfm, "leaf_bfm", rules);
+			}
 		}
-		else benchtop.addInstance(leafbfm, "leaf_bfm");
+		else if (ExtParameters.getSysVerRootDecoderInterface()==SVDecodeInterfaceTypes.PARALLEL) {
+			RemapRuleList rules = new RemapRuleList();
+			rules.addRule("^dec_pio_.*$", RemapRuleType.ADD_PREFIX, "h2d_");  // parallel (note h2d/d2h reflects decoder cascaded output i/f direction, not root i/f)
+			rules.addRule("^pio_dec_.*$", RemapRuleType.ADD_PREFIX, "d2h_");
+			benchtop.addInstance(primaryBfm, "parallel_bfm", rules);  
+		}
+		else benchtop.addInstance(primaryBfm, "leaf_bfm");  // leaf
 		
 		// add all dut extern signals to the bench list
 		addDutIOs(benchtop);  
@@ -121,7 +135,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		
 		// write leaf bfm module and define interfacing signals
 		int indentLevel = 0;
-		leafbfm.write();   
+		primaryBfm.write();   
 		
 		// write the top module
 		benchtop.writeNullModuleBegin(indentLevel);
@@ -142,7 +156,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		benchtop.writeModuleEnd(indentLevel);	
 	}	
 
-    /** return a list of bench pio-decode inputs that should be defined as regs (secondary decoder inputs) */
+	/** return a list of bench pio-decode inputs that should be defined as regs (secondary decoder inputs) */
 	private List<SystemVerilogSignal> getPIOInputRegs() {
 		List<SystemVerilogSignal> outList = new ArrayList<SystemVerilogSignal>();
 		for (SystemVerilogSignal sig : benchtop.getSignalList(PIO, DECODE))
@@ -194,8 +208,6 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
         //
 	   	// --------------------------------- do some reads/writes
 	   	//
-		//String sizeStr = (getMaxWordBitSize() > 0) ? ", size" : "";   // TODO?
-		String sizeStr =  ", size" ; 
 
 		if (ExtParameters.hasTestCommands()) {
 			for (String cmdStr: ExtParameters.getTestCommands()) {
@@ -206,12 +218,12 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		}
 		else {
 			// do a 32b write     
-			benchtop.addStatement("write32(40'h0, 32'ha5a5a5a5, address, wr_data, type" + sizeStr + ", leaf_go);");
+			benchtop.addStatement("write32(40'h0, 32'ha5a5a5a5, address, wr_data, type, size, leaf_go);");
 		   	benchtop.addStatement("@ (posedge done)");
 		   	benchtop.addStatement("   leaf_go = #2 1'b0; ");
 		   	benchtop.addStatement("");
 			// do a 32b read     
-			benchtop.addStatement("read32(40'h0, address, wr_data, type" + sizeStr + ", leaf_go);");
+			benchtop.addStatement("read32(40'h0, address, wr_data, type, size, leaf_go);");
 		   	benchtop.addStatement("@ (posedge done)");
 		   	benchtop.addStatement("   leaf_go = #2 1'b0; ");
 		   	benchtop.addStatement("");			
@@ -246,7 +258,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	private enum cmdType {INVALID, READ, WRITE, WAIT, STMT};
 
 	/** test command inner class */
-	private class TestCommand {  // TODO
+	private class TestCommand {
 		
 		private cmdType cType = cmdType.INVALID; // command is invalid by default
 		private HashMap<String, Integer> ints= new HashMap<String, Integer>();
@@ -418,31 +430,27 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 
 	/** create a read task of the specified size */
 	private void addReadTask(int width) {
-		int dataSizeBits = (getMaxWordBitSize() <= 3) ? 3 : getMaxWordBitSize();
-
 	   	benchtop.addStatement("// " + width + "b read task");
 	   	benchtop.addStatement("task read" + width + ";");
 		benchtop.addStatement("  input " + SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "in_address;");
 		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "address;");
 		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, getMaxRegWidth()) + "wr_data;");  
 		benchtop.addStatement("  output [1:0] type;");
-		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, dataSizeBits) + "size;");  
+		benchtop.addStatement("  output [3:0] size;");
 		benchtop.addStatement("  output leaf_go;");
 	   	benchtop.addStatement("  begin");
 		benchtop.addStatement("    address = #1 in_address;");
 		benchtop.addStatement("    wr_data = 0;"); 
 		benchtop.addStatement("    type = 2'b10;");
-		benchtop.addStatement("    size = " + dataSizeBits + "'d" + ((width/ExtParameters.getMinDataSize()) - 1) + ";");
+		benchtop.addStatement("    size = 4'd" + ((width/ExtParameters.getMinDataSize()) - 1) + ";");
 		benchtop.addStatement("    leaf_go = 1'b1;");
 	   	benchtop.addStatement("  end");
 	   	benchtop.addStatement("endtask");
 	   	benchtop.addStatement("");		
 	}
 	
-	/** create a write task of the specified size */  //TODO
+	/** create a write task of the specified size */
 	private void addWriteTask(int width) {
-		int dataSizeBits = (getMaxWordBitSize() <= 3) ? 3 : getMaxWordBitSize();
-
 	   	benchtop.addStatement("// " + width + "b write task");
 	   	benchtop.addStatement("task write" + width + ";");
 		benchtop.addStatement("  input " + SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "in_address;");
@@ -450,127 +458,226 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "address;");
 		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, getMaxRegWidth()) + "wr_data;");  
 		benchtop.addStatement("  output [1:0] type;");
-		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, dataSizeBits) + "size;");  
+		benchtop.addStatement("  output [3:0] size;");
 		benchtop.addStatement("  output leaf_go;");
 	   	benchtop.addStatement("  begin");
 		benchtop.addStatement("    address = #1 in_address;");
 		benchtop.addStatement("    wr_data = 0;");  
 		benchtop.addStatement("    wr_data [" + (width - 1) + ":0] = in_wr_data;");  
 		benchtop.addStatement("    type = 0;");
-		benchtop.addStatement("    size = " + dataSizeBits + "'d" + ((width/ExtParameters.getMinDataSize()) - 1) + ";");
+		benchtop.addStatement("    size = 4'd" + ((width/ExtParameters.getMinDataSize()) - 1) + ";");
 		benchtop.addStatement("    leaf_go = 1'b1;");
 	   	benchtop.addStatement("  end");
 	   	benchtop.addStatement("endtask");
 	   	benchtop.addStatement("");	
 	}
 
-	/** create the leaf bfm module */   
-	private  void createLeafBfm() {
+	/** create the primary bfm module */   
+    private void createPrimaryBfm() {
+		// create parallel or leaf type bfm
+    	if (ExtParameters.getSysVerRootDecoderInterface()==SVDecodeInterfaceTypes.PARALLEL) createParallelBfm();
+    	else if (ExtParameters.getSysVerRootDecoderInterface()==SVDecodeInterfaceTypes.LEAF) createLeafBfm();
+    	else Ordt.errorExit("Testbench does not support " + ExtParameters.getSysVerRootDecoderInterface().name() + " root interface type.");
+	}
+
+	/** create the parallel bfm module */   
+	private void createParallelBfm() {
 		
 		// start the leaf bfm module
-		leafbfm.setName(getModuleName() + "_test_leaf_bfm");
+		primaryBfm.setName(getModuleName() + "_test_parallel_bfm");
 		
 		// add bfm control sigs to bench specific IO list
+		addCommonBfmIO();
+
+		// add bfm to decoder interface
+		if (getMapAddressWidth()>0) primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "pio_dec_address", 0, getMapAddressWidth());
+		primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "pio_dec_write_data", 0, getMaxRegWidth());
+		primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "pio_dec_read", 0, 1);
+		primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "pio_dec_write", 0, 1);
+		primaryBfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_pio_read_data", 0, getMaxRegWidth());
+		primaryBfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_pio_ack", 0, 1);
+		primaryBfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_pio_nack", 0, 1);
+		if (getMaxRegWordWidth() > 1) {
+			primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "pio_dec_trans_size", 0, getMaxWordBitSize());
+			primaryBfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_pio_trans_size", 0, getMaxWordBitSize());
+		}
+		
+		// associate IO lists with the bfm
+		primaryBfm.useIOList(benchSigList, HW);  // added sigs here will talk to bench 
+		primaryBfm.useIOList(primaryBfmToDecoderSigList, DECODE);  // using a local interface list here since instance name remapping might occur in bench
+		
+		// define all outputs as reg
+		List<SystemVerilogIOElement> outputs = primaryBfm.getOutputList();
+		for (SystemVerilogIOElement sig: outputs) {
+			if (!sig.isSignalSet()) primaryBfm.addVectorReg(sig.getName(), ((SystemVerilogIOSignal) sig).getLowIndex(), ((SystemVerilogIOSignal) sig).getSize());
+		}
+		// define internal regs
+		primaryBfm.addVectorReg("trans_size", 0, 5);
+
+		// init outputs from leaf bfm
+		primaryBfm.addStatement("initial begin");
+		for (SystemVerilogIOElement sig: outputs) {
+			if (!sig.isSignalSet()) primaryBfm.addStatement("  " + sig.getName() + " = 0;");
+		}
+	   	primaryBfm.addStatement("end");
+	   	primaryBfm.addStatement("");
+
+		// if go toggles, initiate transaction
+	   	primaryBfm.addStatement("always @(posedge leaf_go) begin");
+	   	// apply inputs on next clock cycle
+	   	primaryBfm.addStatement("  @(posedge CLK);");
+	   	primaryBfm.addStatement("    #1 active = 1'b1;");  // indicate transaction active
+	   	if (getMapAddressWidth()>0) primaryBfm.addStatement("    pio_dec_address = address" + SystemVerilogSignal.genRefArrayString(getAddressLowBit(), getMapAddressWidth()) + ";");  // FIXME
+	   	primaryBfm.addStatement("    pio_dec_write_data = wr_data;");
+	   	primaryBfm.addStatement("    pio_dec_read = type[1];");
+	   	primaryBfm.addStatement("    pio_dec_write = ~type[1];");
+	   	primaryBfm.addStatement("    trans_size = {1'b0, size} + 5'b1;");
+	   	if (getMaxWordBitSize()>0) primaryBfm.addStatement("    pio_dec_trans_size = size" + SystemVerilogSignal.genRefArrayString(0, getMaxWordBitSize()) + ";");
+		primaryBfm.addStatement("    if (type[1] == 1'b0) begin");			
+	   	primaryBfm.addStatement("      $display(\"%0d: initiating %d word write to address %x (data=%x)...\", $time, trans_size, address, wr_data);");
+	   	primaryBfm.addStatement("    end");
+		primaryBfm.addStatement("    else begin");			
+	   	primaryBfm.addStatement("      $display(\"%0d: initiating %d word read to address %x...\", $time, trans_size, address);");
+	   	primaryBfm.addStatement("    end");
+	   	primaryBfm.addStatement("");
+
+	   	// sample dut outputs on next clock cycle
+	   	primaryBfm.addStatement("  @(posedge CLK);");
+	   	primaryBfm.addStatement("    while (~dec_pio_ack & ~dec_pio_nack) begin");
+	   	primaryBfm.addStatement("       @(posedge CLK);");
+	   	primaryBfm.addStatement("    end");
+	   	primaryBfm.addStatement("");
+
+	   	// turn off valids and indicate done
+	   	primaryBfm.addStatement("  pio_dec_read = 1'b0;");
+	   	primaryBfm.addStatement("  pio_dec_write = 1'b0;");
+
+	   	primaryBfm.addStatement("  done = 1'b1;");  // indicate transaction done
+
+	   	primaryBfm.addStatement("  $display(\"  ack = %d\", dec_pio_ack);");
+	   	primaryBfm.addStatement("  $display(\"  nack = %d\", dec_pio_nack);");	   	
+	   	if (getMaxWordBitSize()>0) primaryBfm.addStatement("  $display(\"  return size = %x\", dec_pio_trans_size);");	   	
+	   	// if a read, display return info
+		primaryBfm.addStatement("  if (type[1] == 1'b1)");			
+	   	primaryBfm.addStatement("    $display(\"  read data = %x\", dec_pio_read_data);");
+
+	   	// indicate transaction is complete
+	   	primaryBfm.addStatement("  #1 active = 1'b0;");  
+	   	primaryBfm.addStatement("  #1 done = 1'b0;");  
+
+	   	primaryBfm.addStatement("end");
+	}
+
+	/** create the leaf bfm module */   
+	private  void createLeafBfm() {		
+		// start the leaf bfm module
+		primaryBfm.setName(getModuleName() + "_test_leaf_bfm");
+		
+		// add bfm control sigs to bench specific IO list
+		addCommonBfmIO();
+		
+		// add bfm to decoder interface
+		int dataSizeBits = (getMaxWordBitSize() <= 3) ? 3 : getMaxWordBitSize();  // leaf trans size is 3 or 4
+		primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_addr", 0, ExtParameters.getLeafAddressSize());
+		primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_wr_data", 0, getMaxRegWidth());
+		primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_valid", 0, 1);
+		primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_wr_dvld", 0, 1);
+		primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_cycle", 0, 2);
+		primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_wr_width", 0, dataSizeBits);
+		primaryBfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_rd_data", 0, getMaxRegWidth());
+		primaryBfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_ack", 0, 1);
+		primaryBfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_nack", 0, 1);
+		primaryBfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_accept", 0, 1);
+		primaryBfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_reject", 0, 1);
+		primaryBfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_retry_atomic", 0, 1);
+		primaryBfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_data_width", 0, dataSizeBits);
+		
+		// associate IO lists with the bfm
+		primaryBfm.useIOList(benchSigList, HW);  // added sigs here will talk to bench 
+		primaryBfm.useIOList(primaryBfmToDecoderSigList, DECODE);  // using a local interface list here since instance name remapping might occur in bench
+		
+		// define all outputs as reg
+		List<SystemVerilogIOElement> outputs = primaryBfm.getOutputList();
+		for (SystemVerilogIOElement sig: outputs) {
+			if (!sig.isSignalSet()) primaryBfm.addVectorReg(sig.getName(), ((SystemVerilogIOSignal) sig).getLowIndex(), ((SystemVerilogIOSignal) sig).getSize());
+		}
+		// define internal regs
+		primaryBfm.addVectorReg("trans_size", 0, 5);
+
+		// init outputs from leaf bfm
+		primaryBfm.addStatement("initial begin");
+		for (SystemVerilogIOElement sig: outputs) {
+			if (!sig.isSignalSet()) primaryBfm.addStatement("  " + sig.getName() + " = 0;");
+		}
+	   	primaryBfm.addStatement("end");
+	   	primaryBfm.addStatement("");
+
+		// if go toggles, initiate transaction
+	   	primaryBfm.addStatement("always @(posedge leaf_go) begin");
+	   	// apply inputs on next clock cycle
+	   	primaryBfm.addStatement("  @(posedge CLK);");
+	   	primaryBfm.addStatement("    #1 active = 1'b1;");  // indicate transaction active
+	   	primaryBfm.addStatement("    leaf_dec_addr = address;");
+	   	primaryBfm.addStatement("    leaf_dec_wr_data = wr_data;");
+	   	primaryBfm.addStatement("    leaf_dec_valid = 1'b1;");
+	   	primaryBfm.addStatement("    leaf_dec_wr_dvld = 1'b0;");
+	   	primaryBfm.addStatement("    leaf_dec_cycle = type;");	   	
+	   	primaryBfm.addStatement("    trans_size = {1'b0, size} + 5'b1;");
+   
+		primaryBfm.addStatement("    if (type[1] == 1'b0) begin");			
+	   	primaryBfm.addStatement("      leaf_dec_wr_width = size" + SystemVerilogSignal.genRefArrayString(0, dataSizeBits) + ";");
+	   	primaryBfm.addStatement("      $display(\"%0d: initiating %d word write to address %x (data=%x)...\", $time, trans_size, address, wr_data);");
+	   	primaryBfm.addStatement("    end");
+		primaryBfm.addStatement("    else begin");			
+	   	primaryBfm.addStatement("      leaf_dec_wr_width = 0;");  // set width during read to zero
+	   	primaryBfm.addStatement("      $display(\"%0d: initiating %d word read to address %x...\", $time, trans_size, address);");
+	   	primaryBfm.addStatement("    end");
+	   	primaryBfm.addStatement("");
+
+	   	// sample dut outputs on next clock cycle
+	   	primaryBfm.addStatement("  @(posedge CLK);");
+	   	primaryBfm.addStatement("    leaf_dec_valid = 1'b0;");  // drop valid after 1 cycle
+	   	primaryBfm.addStatement("    leaf_dec_wr_dvld <= ~type[1];");   // activate wr_valid later
+	   	primaryBfm.addStatement("    while (~dec_leaf_reject & ~dec_leaf_ack & ~dec_leaf_nack) begin");
+	   	primaryBfm.addStatement("       @(posedge CLK);");
+	   	primaryBfm.addStatement("       leaf_dec_wr_dvld = 1'b0;");  // wr valid removed after a cycle
+	   	primaryBfm.addStatement("    end");
+	   	primaryBfm.addStatement("");
+
+	   	// turn off valids and indicate done
+	   	primaryBfm.addStatement("  leaf_dec_valid = 1'b0;");
+	   	primaryBfm.addStatement("  leaf_dec_wr_dvld = 1'b0;");
+
+	   	primaryBfm.addStatement("  done = 1'b1;");  // indicate transaction done
+
+	   	primaryBfm.addStatement("  $display(\"  accept = %d\", dec_leaf_accept);");
+	   	primaryBfm.addStatement("  $display(\"  reject = %d\", dec_leaf_reject);");
+	   	primaryBfm.addStatement("  $display(\"  ack = %d\", dec_leaf_ack);");
+	   	primaryBfm.addStatement("  $display(\"  nack = %d\", dec_leaf_nack);");	   	
+		primaryBfm.addStatement("  $display(\"  return size = %x\", dec_leaf_data_width);");	   	
+	   	primaryBfm.addStatement("  $display(\"  retry = %d\", dec_leaf_retry_atomic);");	
+	   	// if a read, display return info
+		primaryBfm.addStatement("  if (type[1] == 1'b1)");			
+	   	primaryBfm.addStatement("    $display(\"  read data = %x\", dec_leaf_rd_data);");
+
+	   	// indicate transaction is complete
+	   	primaryBfm.addStatement("  #1 active = 1'b0;");  
+	   	primaryBfm.addStatement("  #1 done = 1'b0;");  
+
+	   	primaryBfm.addStatement("end");
+	}
+
+	/** add common bfm IO to signal list */
+	private void addCommonBfmIO() {
 		benchSigList.addSimpleVector(HW, PIO, "address", 0, ExtParameters.getLeafAddressSize());
 		benchSigList.addSimpleVector(HW, PIO, "wr_data", 0, getMaxRegWidth());
 		benchSigList.addSimpleVector(HW, PIO, "rd_data", 0, getMaxRegWidth());
 		benchSigList.addSimpleVector(HW, PIO, "type", 0,2);  
-		int dataSizeBits = (getMaxWordBitSize() <= 3) ? 3 : getMaxWordBitSize();
-		benchSigList.addSimpleVector(HW, PIO, "size", 0, dataSizeBits);
+		benchSigList.addSimpleVector(HW, PIO, "size", 0, 4);
 		benchSigList.addSimpleVector(HW, PIO, "leaf_go", 0, 1);
 		benchSigList.addSimpleScalar(HW, PIO, "CLK");
 		benchSigList.addSimpleScalar(PIO, HW, "active");
 		benchSigList.addSimpleScalar(PIO, HW,  "done");
-		
-		// add bfm to decoder interface
-		bfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_addr", 0, ExtParameters.getLeafAddressSize());
-		bfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_wr_data", 0, getMaxRegWidth());
-		bfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_valid", 0, 1);
-		bfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_wr_dvld", 0, 1);
-		bfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_cycle", 0, 2);
-		bfmToDecoderSigList.addSimpleVector(PIO, DECODE, "leaf_dec_wr_width", 0, dataSizeBits);
-		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_rd_data", 0, getMaxRegWidth());
-		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_ack", 0, 1);
-		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_nack", 0, 1);
-		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_accept", 0, 1);
-		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_reject", 0, 1);
-		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_retry_atomic", 0, 1);
-		bfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_leaf_data_width", 0, dataSizeBits);
-		
-		// associate IO lists with the bfm
-		leafbfm.useIOList(benchSigList, HW);  // added sigs here will talk to bench 
-		leafbfm.useIOList(bfmToDecoderSigList, DECODE);  // using a local interface list here since instance name remapping might occur in bench
-		
-		// define all outputs as reg
-		List<SystemVerilogIOElement> outputs = leafbfm.getOutputList();
-		for (SystemVerilogIOElement sig: outputs) {
-			if (!sig.isSignalSet()) leafbfm.addVectorReg(sig.getName(), ((SystemVerilogIOSignal) sig).getLowIndex(), ((SystemVerilogIOSignal) sig).getSize());
-		}
-		// define internal regs
-		leafbfm.addVectorReg("trans_size", 0, dataSizeBits);
-
-		// init outputs from leaf bfm
-		leafbfm.addStatement("initial begin");
-		for (SystemVerilogIOElement sig: outputs) {
-			if (!sig.isSignalSet()) leafbfm.addStatement("  " + sig.getName() + " = 0;");
-		}
-	   	leafbfm.addStatement("end");
-	   	leafbfm.addStatement("");
-
-		// if go toggles, initiate transaction
-	   	leafbfm.addStatement("always @(posedge leaf_go) begin");
-	   	// apply inputs on next clock cycle
-	   	leafbfm.addStatement("  @(posedge CLK);");
-	   	leafbfm.addStatement("    #1 active = 1'b1;");  // indicate transaction active
-	   	leafbfm.addStatement("    leaf_dec_addr = address;");
-	   	leafbfm.addStatement("    leaf_dec_wr_data = wr_data;");
-	   	leafbfm.addStatement("    leaf_dec_valid = 1'b1;");
-	   	leafbfm.addStatement("    leaf_dec_wr_dvld = 1'b0;");
-	   	leafbfm.addStatement("    leaf_dec_cycle = type;");	   	
-	   	leafbfm.addStatement("    trans_size = size + 1;");  // 1 to N
-	   	   
-		leafbfm.addStatement("    if (type[1] == 1'b0) begin");			
-	   	leafbfm.addStatement("      leaf_dec_wr_width = size;");  // 0 to N-1
-	   	leafbfm.addStatement("      $display(\"%0d: initiating %d word write to address %x (data=%x)...\", $time, trans_size, address, wr_data);");
-	   	leafbfm.addStatement("    end");
-		leafbfm.addStatement("    else begin");			
-	   	leafbfm.addStatement("      leaf_dec_wr_width = 0;");  // set width during read to zero
-	   	leafbfm.addStatement("      $display(\"%0d: initiating %d word read to address %x...\", $time, trans_size, address);");
-	   	leafbfm.addStatement("    end");
-	   	leafbfm.addStatement("");
-
-	   	// sample dut outputs on next clock cycle
-	   	leafbfm.addStatement("  @(posedge CLK);");
-	   	leafbfm.addStatement("    leaf_dec_valid = 1'b0;");  // drop valid after 1 cycle
-	   	leafbfm.addStatement("    leaf_dec_wr_dvld <= ~type[1];");   // activate wr_valid later
-	   	leafbfm.addStatement("    while (~dec_leaf_reject & ~dec_leaf_ack & ~dec_leaf_nack) begin");
-	   	leafbfm.addStatement("       @(posedge CLK);");
-	   	leafbfm.addStatement("       leaf_dec_wr_dvld = 1'b0;");  // wr valid removed after a cycle
-	   	leafbfm.addStatement("    end");
-	   	leafbfm.addStatement("");
-
-	   	// turn off valids and indicate done
-	   	leafbfm.addStatement("  leaf_dec_valid = 1'b0;");
-	   	leafbfm.addStatement("  leaf_dec_wr_dvld = 1'b0;");
-
-	   	leafbfm.addStatement("  done = 1'b1;");  // indicate transaction done
-
-	   	leafbfm.addStatement("  $display(\"  accept = %d\", dec_leaf_accept);");
-	   	leafbfm.addStatement("  $display(\"  reject = %d\", dec_leaf_reject);");
-	   	leafbfm.addStatement("  $display(\"  ack = %d\", dec_leaf_ack);");
-	   	leafbfm.addStatement("  $display(\"  nack = %d\", dec_leaf_nack);");	   	
-		leafbfm.addStatement("  $display(\"  return size = %x\", dec_leaf_data_width);");	   	
-	   	leafbfm.addStatement("  $display(\"  retry = %d\", dec_leaf_retry_atomic);");	
-	   	// if a read, display return info
-		leafbfm.addStatement("  if (type[1] == 1'b1)");			
-	   	leafbfm.addStatement("    $display(\"  read data = %x\", dec_leaf_rd_data);");
-
-	   	// indicate transaction is complete
-	   	leafbfm.addStatement("  #1 active = 1'b0;");  
-	   	leafbfm.addStatement("  #1 done = 1'b0;");  
-
-	   	leafbfm.addStatement("end");
-
 	}
 
 }
