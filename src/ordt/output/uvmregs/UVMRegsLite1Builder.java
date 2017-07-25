@@ -52,27 +52,29 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 		subcompDefList.addStatement(parentID, "rand " + uvmRegClassName + " " + regId + repStr + ";");
 		
 		// save register build statements
-		addRegToBuildList(parentID, regId);
+		addRegToBuildList(uvmRegClassName, parentID, regId);
 		//System.out.println("UVMBuild saveRegInfo: " + regProperties.getBaseName() + ", parent=" + parentID + ", rel addr=" + regProperties.getRelativeBaseAddress());
 	}
 
 	/** create block build statements adding current register - no hdl_path/rdl_tag/external/defined property setup */
 	@Override
-	protected void addRegToBuildList(String parentID, String regId) {
+	protected void addRegToBuildList(String uvmRegClassName, String parentID, String regId) {
 		String addr = "`UVM_REG_ADDR_WIDTH" + regProperties.getRelativeBaseAddress().toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
 		if (regProperties.isReplicated()) {
 			subcompBuildList.addStatement(parentID, "foreach (this." + regId + "[i]) begin");
-			subcompBuildList.addStatement(parentID, "  this." + regId + "[i] = new($psprintf(\"" + regProperties.getId() + " [%0d]\",i));");  
+			if (ExtParameters.uvmregsRegsUseFactory()) subcompBuildList.addStatement(parentID, "  this." + regId + "[i] = " + uvmRegClassName + "::type_id::create($psprintf(\"" + regId + " [%0d]\",i));");
+			else subcompBuildList.addStatement(parentID, "  this." + regId + "[i] = new($psprintf(\"" + regProperties.getId() + " [%0d]\",i));");  
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i].configure(this, null, \"\");");  
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i].build();");
 			subcompBuildList.addStatement(parentID, "  this.default_map.add_reg(this." + regId + "[i], " + addr + "+i*" + getRegAddrIncr() + ", \"" + getRegAccessType() + "\", 0);");						
 			subcompBuildList.addStatement(parentID, "end");
 		}
 		else {
-  		   subcompBuildList.addStatement(parentID, "this." + regId + " = new(\"" + regProperties.getId() + "\");");  
-		   subcompBuildList.addStatement(parentID, "this." + regId + ".configure(this, null, \"\");"); 
-		   subcompBuildList.addStatement(parentID, "this." + regId + ".build();");
-		   subcompBuildList.addStatement(parentID, "this.default_map.add_reg(this." + regId + ", " + addr + ", \"" + getRegAccessType() + "\", 0);");			
+			if (ExtParameters.uvmregsRegsUseFactory()) subcompBuildList.addStatement(parentID, "this." + regId + " = " + uvmRegClassName + "::type_id::create(\"" + regId + "\");");
+			else subcompBuildList.addStatement(parentID, "this." + regId + " = new(\"" + regProperties.getId() + "\");");  
+			subcompBuildList.addStatement(parentID, "this." + regId + ".configure(this, null, \"\");"); 
+			subcompBuildList.addStatement(parentID, "this." + regId + ".build();");
+			subcompBuildList.addStatement(parentID, "this.default_map.add_reg(this." + regId + ", " + addr + ", \"" + getRegAccessType() + "\", 0);");			
 		}	
 	}
 
@@ -142,16 +144,16 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 		// save register build statements
 		if (!hasInstanceNameOverride && regSetProperties.isReplicated()) {  
 			subcompBuildList.addStatement(parentID, "foreach (this." + escapedBlockId + "[i]) begin");
-			//subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i] = " + uvmBlockClassName + "::type_id::create($psprintf(\"" + blockId + " [%0d]\",i),, get_full_name());");
-			subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i] = " + "new($psprintf(\"" + blockId + " [%0d]\",i));");
+			if (ExtParameters.uvmregsRegsUseFactory()) subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i] = " + uvmBlockClassName + "::type_id::create($psprintf(\"" + blockId + " [%0d]\",i),, get_full_name());");
+			else subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i] = " + "new($psprintf(\"" + blockId + " [%0d]\",i));");
 			subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].configure(this, \"\");");  
 			subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].build();");
 			subcompBuildList.addStatement(parentID, "  this.default_map.add_submap(this." + escapedBlockId + "[i].default_map, " + addrStr + "+i*" + getRegSetAddrIncrString() + ");");						
 			subcompBuildList.addStatement(parentID, "end");
 		}
 		else {
-		   //subcompBuildList.addStatement(parentID, "this." + escapedBlockId + " = " + uvmBlockClassName + "::type_id::create(\"" + blockId + "\",, get_full_name());");
-		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + " = " + "new(\"" + blockId + "\");");
+			if (ExtParameters.uvmregsRegsUseFactory()) subcompBuildList.addStatement(parentID, "this." + escapedBlockId + " = " + uvmBlockClassName + "::type_id::create(\"" + blockId + "\",, get_full_name());");
+			else subcompBuildList.addStatement(parentID, "this." + escapedBlockId + " = " + "new(\"" + blockId + "\");");
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".configure(this, \"\");"); 
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".build();");
 		   subcompBuildList.addStatement(parentID, "this.default_map.add_submap(this." + escapedBlockId + ".default_map, " + addrStr + ");");			
@@ -195,6 +197,7 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 						
 		// close out the register definition
 		outputList.add(new OutputLine(indentLvl, ""));	
+		if (ExtParameters.uvmregsRegsUseFactory()) outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmRegClassName + ")"));
 		outputList.add(new OutputLine(--indentLvl, "endclass : " + uvmRegClassName));
 	}
 
@@ -257,7 +260,7 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 		
 		// close out the class definition
 		outputList.add(new OutputLine(indentLvl, ""));	
-		//outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmBlockClassName + ")"));
+		if (ExtParameters.uvmregsRegsUseFactory()) outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmBlockClassName + ")"));
 		outputList.add(new OutputLine(--indentLvl, "endclass : " + uvmBlockClassName));
 	}
 
@@ -285,7 +288,7 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 		
 		// close out the class definition
 		outputList.add(new OutputLine(indentLvl, ""));	
-		//outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmBlockClassName + ")"));
+		if (ExtParameters.uvmregsRegsUseFactory()) outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmBlockClassName + ")"));
 		outputList.add(new OutputLine(--indentLvl, "endclass : " + uvmBlockClassName));
 	}
 
@@ -312,7 +315,7 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 		
 		// close out the class definition
 		outputList.add(new OutputLine(indentLvl, ""));	
-		//outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmBlockClassName + ")"));
+		if (ExtParameters.uvmregsRegsUseFactory()) outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmBlockClassName + ")"));
 		outputList.add(new OutputLine(--indentLvl, "endclass : " + uvmBlockClassName));
 	}
 

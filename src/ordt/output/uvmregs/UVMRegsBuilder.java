@@ -280,7 +280,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		// save register coverage statements
 		if (ExtParameters.uvmregsIncludeAddressCoverage()) addRegToAddrCoverageList(parentID, regId, false);  // false = not in a uvm_mem wrapper
 		// save register build statements
-		addRegToBuildList(parentID, regId);
+		addRegToBuildList(uvmRegClassName, parentID, regId);
 		//if (regProperties.isAlias()) System.out.println("UVMRegsNuilder: alias reg hdl using " + regProperties.getAliasedId() + " not " + regProperties.getId());
 		// if an alias register build a cbs class and register callback   
 		if (regProperties.isAlias()) {  // also need isAliased()   // just load alias/aliased register structure by block here
@@ -315,13 +315,14 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** create block build statements adding current register */
-	protected void addRegToBuildList(String parentID, String regId) {
+	protected void addRegToBuildList(String uvmRegClassName, String parentID, String regId) {
 		// set hdl path component
 		String hdlPath = regProperties.isAlias() ? regProperties.getAliasedId() : regProperties.getId();
 		String addr = "`UVM_REG_ADDR_WIDTH" + regProperties.getRelativeBaseAddress().toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
 		if (regProperties.isReplicated()) {
 			subcompBuildList.addStatement(parentID, "foreach (this." + regId + "[i]) begin");
-			subcompBuildList.addStatement(parentID, "  this." + regId + "[i] = new($psprintf(\"" + regProperties.getId() + " [%0d]\",i));");  
+			if (ExtParameters.uvmregsRegsUseFactory()) subcompBuildList.addStatement(parentID, "  this." + regId + "[i] = " + uvmRegClassName + "::type_id::create($psprintf(\"" + regId + " [%0d]\",i));");
+			else subcompBuildList.addStatement(parentID, "  this." + regId + "[i] = new($psprintf(\"" + regProperties.getId() + " [%0d]\",i));");  
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i].configure(this, null, \"\");");  
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i].set_rdl_tag($psprintf(\"" + hdlPath + "_%0d_\",i));");
 			if (regProperties.isExternal()) 
@@ -334,7 +335,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 			subcompBuildList.addStatement(parentID, "end");
 		}
 		else {
-  		   subcompBuildList.addStatement(parentID, "this." + regId + " = new(\"" + regProperties.getId() + "\");");  
+		   if (ExtParameters.uvmregsRegsUseFactory()) subcompBuildList.addStatement(parentID, "this." + regId + " = " + uvmRegClassName + "::type_id::create(\"" + regId + "\");");
+		   else subcompBuildList.addStatement(parentID, "this." + regId + " = new(\"" + regProperties.getId() + "\");");  
 		   subcompBuildList.addStatement(parentID, "this." + regId + ".configure(this, null, \"\");"); 
 		   subcompBuildList.addStatement(parentID, "this." + regId + ".set_rdl_tag(\"" + hdlPath + "_\");");
 		   if (regProperties.isExternal()) 
@@ -547,6 +549,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 				
 		// close out the register definition
 		outputList.add(new OutputLine(indentLvl, ""));	
+		if (ExtParameters.uvmregsRegsUseFactory()) outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(" + uvmRegClassName + ")"));
 		outputList.add(new OutputLine(--indentLvl, "endclass : " + uvmRegClassName));
 	}
 
