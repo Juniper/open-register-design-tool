@@ -52,6 +52,8 @@ output systemverilog {
 	reuse_iwrap_structures = true    // reuse similar interface/struct definitions in iwrap
 	optimize_parallel_externals = true    // eliminate nack/size/r/w io where possible in parallel external intfs
 	use_async_resets = true          // registers will use asynchronous reset
+    nack_partial_writes = true     // issue nack for writes of size less than target
+    write_enable_size = 0          // size of data affected by each write enable in bits
 }
 
 // jspec output parameters
@@ -86,6 +88,7 @@ output uvmregs {
 	//skip_no_reset_db_update = false   // bypass uvm_resource_db update for fields with no reset
 	//uvm_model_mode = translate1   // set uvm model type (heavy | lite1 | translate1)
 	uvm_model_parameters = "altModelRootType=Zt_fabio, altModelPackageFile=zt_class.svh, altModelPackage=zt_jspec::*"  // set misc model parameters
+    regs_use_factory = true   // registers will be created by and registered with the factory
 }
 
 // xml output parameters

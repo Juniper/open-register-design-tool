@@ -137,6 +137,8 @@ ext_parm_defs
    | 'reuse_iwrap_structures' EQ bool
    | 'optimize_parallel_externals' EQ bool
    | 'use_async_resets' EQ bool
+   | 'nack_partial_writes' EQ bool
+   | 'write_enable_size' EQ NUM
    ;
       
 // ------------ uvmregs_out_defs
@@ -156,6 +158,7 @@ ext_parm_defs
    | 'skip_no_reset_db_update' EQ bool
    | 'uvm_model_mode' EQ ('heavy' | 'lite1' | 'translate1') 
    | 'uvm_model_parameters' EQ STR 
+   | 'regs_use_factory' EQ bool
    ;   
    
 // ------------ reglist_out_defs

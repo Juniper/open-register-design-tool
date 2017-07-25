@@ -198,14 +198,25 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
         // pio output reg assignments
 		this.addResetAssign("pio ack/nack", builder.getDefaultReset(), pioInterfaceAckName + " <= #1 1'b0;");  // reset for ack
 		this.addResetAssign("pio ack/nack", builder.getDefaultReset(), pioInterfaceNackName + " <= #1 1'b0;");  // reset for nack 
-		this.addRegAssign("pio ack/nack",  pioInterfaceAckName + " <= #1 " + pioInterfaceAckName + " ? 1'b0 : " + pioInterfaceAckNextName + ";");  // return ack		   
+		this.addRegAssign("pio ack/nack",  pioInterfaceAckName + " <= #1 " + pioInterfaceAckName + " ? 1'b0 : " + pioInterfaceAckNextName + ";");  // return ack
 		this.addRegAssign("pio ack/nack",  pioInterfaceNackName + " <= #1 " + pioInterfaceNackName + " ? 1'b0 : " + pioInterfaceNackNextName + ";");  // return nack		   
 		
 		this.addScalarReg("pio_internal_ack");    // set in decoder case	statement	   
 		this.addScalarReg("pio_internal_nack");  
 		this.addCombinAssign("pio ack/nack", "pio_internal_nack = (pio_read_active | pio_write_active) & ~pio_internal_ack & ~external_transaction_active;");  // internal nack  
-		this.addCombinAssign("pio ack/nack",  pioInterfaceAckNextName + " = (pio_internal_ack | (pio_external_ack_next & external_transaction_active));");  // return ack	   
-		this.addCombinAssign("pio ack/nack",  pioInterfaceNackNextName + " = (pio_internal_nack | (pio_external_nack_next & external_transaction_active));");  // return nack		   
+		// TODO - if nack on partials specified, convert an ack with invalid size to a nack
+		if (ExtParameters.sysVerNackPartialWrites() && (builder.getMaxRegWordWidth() > 1)) {
+			this.addScalarReg("pio_partial_write");  
+			this.addScalarReg("pio_partial_write_nack");  
+			this.addCombinAssign("pio ack/nack",  "pio_partial_write = pio_write_active && (reg_width > " + pioInterfaceTransactionSizeName + ");");   
+			this.addCombinAssign("pio ack/nack",  "pio_partial_write_nack = pio_partial_write && (pio_internal_ack | (pio_external_ack_next & external_transaction_active));");  // return ack	   
+			this.addCombinAssign("pio ack/nack",  pioInterfaceAckNextName + " = !pio_partial_write && (pio_internal_ack | (pio_external_ack_next & external_transaction_active));");  // return ack	   
+			this.addCombinAssign("pio ack/nack",  pioInterfaceNackNextName + " = (pio_partial_write_nack | pio_internal_nack | (pio_external_nack_next & external_transaction_active));");  // return nack		   
+		}
+		else {
+			this.addCombinAssign("pio ack/nack",  pioInterfaceAckNextName + " = (pio_internal_ack | (pio_external_ack_next & external_transaction_active));");  // return ack	   
+			this.addCombinAssign("pio ack/nack",  pioInterfaceNackNextName + " = (pio_internal_nack | (pio_external_nack_next & external_transaction_active));");  // return nack		   
+		}
 		
 		this.addScalarReg("pio_external_ack");    // set in decoder case	statement via ios from hw		   
 		this.addScalarReg("pio_external_nack");    		   

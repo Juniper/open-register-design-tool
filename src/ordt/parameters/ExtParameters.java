@@ -134,6 +134,8 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("reuse_iwrap_structures", false); 
 		initBooleanParameter("optimize_parallel_externals", false); 
 		initBooleanParameter("use_async_resets", false); 
+		initBooleanParameter("nack_partial_writes", false); 
+		initIntegerParameter("write_enable_size", 0); 	
 		
 		// ---- rdl output defaults
 		initBooleanParameter("root_component_is_instanced", true); 
@@ -159,6 +161,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("skip_no_reset_db_update", true); 
 		uvmModelMode = UVMModelModes.HEAVY; 
 		initStringMapParameter("uvm_model_parameters", new HashMap<String, String>()); 
+		initBooleanParameter("regs_use_factory", true); 
 		
 		// ---- bench output defaults
 		initStringListParameter("add_test_command", new ArrayList<String>());
@@ -713,6 +716,14 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getBooleanParameter("use_async_resets");
 	}
 	
+	public static Boolean sysVerNackPartialWrites() {
+		return getBooleanParameter("nack_partial_writes");
+	}
+	
+	public static int sysVerWriteEnableSize() {
+		return getIntegerParameter("write_enable_size");
+	}
+	
 	// bench parameter getters
 
 	public static Boolean sysVerGenerateExternalRegs() {
@@ -801,7 +812,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static Boolean uvmregsSkipNoResetDbUpdate() {
 		return getBooleanParameter("skip_no_reset_db_update");
 	}
-
+	
+	public static Boolean uvmregsRegsUseFactory() {
+		return getBooleanParameter("regs_use_factory");
+	}
+	
 	public static int uvmregsMaxRegCoverageBins() {
 		return getIntegerParameter("max_reg_coverage_bins");
 	}
