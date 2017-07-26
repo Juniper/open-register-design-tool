@@ -30,6 +30,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	// intermediate versions are derived from these
 	protected final String pioInterfaceAddressName = "pio_dec_address";
 	protected final String pioInterfaceWriteDataName = "pio_dec_write_data";
+	protected final String pioInterfaceWriteEnableName = "pio_dec_write_enable";
 	protected final String pioInterfaceTransactionSizeName = "pio_dec_trans_size";
 	protected final String pioInterfaceRetTransactionSizeName = "dec_pio_trans_size";
 	protected final String pioInterfaceWeName = "pio_dec_write";
@@ -169,6 +170,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (mapHasMultipleAddresses()) this.addRegAssign("pio i/f",  "pio_dec_address_d1 <= #1   " + pioInterfaceAddressName + ";");  // capture address if new transaction		   
 		this.addRegAssign("pio i/f",  "pio_dec_write_data_d1 <= #1  " + pioInterfaceWriteDataName + ";"); // capture write data if new transaction
 		
+		// if write enables are specified, then capture
+		if (hasWriteEnables()) {
+			if ( (ExtParameters.getMinDataSize() < ExtParameters.sysVerWriteEnableSize()) ||
+					((ExtParameters.getMinDataSize() % ExtParameters.sysVerWriteEnableSize()) != 0) ) 
+				Ordt.errorExit("Invalid write enable size (" + ExtParameters.sysVerWriteEnableSize() + ") specified - must be a factor of min_data_size (" + ExtParameters.getMinDataSize() + ")");
+			this.addVectorReg("pio_dec_write_enable_d1", 0, getWriteEnableWidth());  // input write enable capture register 
+			this.addRegAssign("pio i/f",  "pio_dec_write_enable_d1 <= #1  " + pioInterfaceWriteEnableName + ";"); // capture write enable if new transaction
+		}
+		
 		// if max transaction is larger than min, add transaction size signals 
 		if (builder.getMaxRegWordWidth() > 1) {
 			// register trans size input
@@ -204,7 +214,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarReg("pio_internal_ack");    // set in decoder case	statement	   
 		this.addScalarReg("pio_internal_nack");  
 		this.addCombinAssign("pio ack/nack", "pio_internal_nack = (pio_read_active | pio_write_active) & ~pio_internal_ack & ~external_transaction_active;");  // internal nack  
-		// TODO - if nack on partials specified, convert an ack with invalid size to a nack
+		// if nack on partials specified, convert an ack with invalid size to a nack
 		if (ExtParameters.sysVerNackPartialWrites() && (builder.getMaxRegWordWidth() > 1)) {
 			this.addScalarReg("pio_partial_write");  
 			this.addScalarReg("pio_partial_write_nack");  
@@ -245,11 +255,23 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarReg("external_transaction_active");    		   
 	}
 
+	/** return true if write enables are specified */
+	public static boolean hasWriteEnables() {
+		return (ExtParameters.sysVerWriteEnableSize()>0);
+	}
+
+	/** return width of write enble vector */  
+	public int getWriteEnableWidth() {
+		if (!hasWriteEnables()) return 0;
+		return builder.getMaxRegWidth() / ExtParameters.sysVerWriteEnableSize();
+	}
+
 	/** generate request arb logic between to proc interfaces */
 	private void genInterfaceArbiter() {
 		// set p1 internal interface names
 		String p1AddressName = getSigName(true, this.pioInterfaceAddressName);
 		String p1WriteDataName = getSigName(true, this.pioInterfaceWriteDataName);
+		String p1WriteEnableName = getSigName(true, this.pioInterfaceWriteEnableName);
 		String p1TransactionSizeName = getSigName(true, this.pioInterfaceTransactionSizeName);
 		String p1RetTransactionSizeName = getSigName(true, this.pioInterfaceRetTransactionSizeName);
 		String p1WeName = getSigName(true, this.pioInterfaceWeName);
@@ -263,6 +285,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// set p2 internal interface names
 		String p2AddressName = getSigName(false, this.pioInterfaceAddressName);
 		String p2WriteDataName = getSigName(false, this.pioInterfaceWriteDataName);
+		String p2WriteEnableName = getSigName(false, this.pioInterfaceWriteEnableName);
 		String p2TransactionSizeName = getSigName(false, this.pioInterfaceTransactionSizeName);
 		String p2RetTransactionSizeName = getSigName(false, this.pioInterfaceRetTransactionSizeName);
 		String p2WeName = getSigName(false, this.pioInterfaceWeName);
@@ -293,7 +316,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorReg(pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
 		if (builder.getMaxRegWordWidth() > 1) this.addVectorReg(pioInterfaceTransactionSizeName, 0, builder.getMaxWordBitSize());  //  internal transaction size
 		this.addScalarWire(pioInterfaceReName);  //  read enable to be used internally 
-		this.addScalarWire(pioInterfaceWeName);  //  write enable be used internally 
+		this.addScalarWire(pioInterfaceWeName);  //  write enable be used internally 	
+		// if write enables are specified, then capture
+		if (hasWriteEnables()) this.addVectorReg(pioInterfaceWriteEnableName, 0, getWriteEnableWidth()); 
 		
 		// set sm signal names that will be set in sm 
 		String arbiterReName = "arb_" + pioInterfaceReName;
@@ -495,17 +520,16 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		groupName = "interface arbiter input select";  
 		// default to p1 interface
 		// by default, address, date and transaction size are from primary interface
-		if (mapHasMultipleAddresses()) 
-			this.addCombinAssign(groupName,  pioInterfaceAddressName + " = " + p1AddressName + ";");
+		if (mapHasMultipleAddresses()) this.addCombinAssign(groupName,  pioInterfaceAddressName + " = " + p1AddressName + ";");
 	    this.addCombinAssign(groupName,  pioInterfaceWriteDataName + " = " + p1WriteDataName + ";");
-	    if (builder.getMaxRegWordWidth() > 1) 
-	    	this.addCombinAssign(groupName,  pioInterfaceTransactionSizeName + " = " + p1TransactionSizeName + ";");
+	    if (hasWriteEnables()) this.addCombinAssign(groupName,  pioInterfaceWriteEnableName + " = " + p1WriteEnableName + ";");
+	    if (builder.getMaxRegWordWidth() > 1) this.addCombinAssign(groupName,  pioInterfaceTransactionSizeName + " = " + p1TransactionSizeName + ";");
+	    
 		this.addCombinAssign(groupName, "if (" + arbStateName + " == " + P2_ACTIVE + ") begin");  
-		if (mapHasMultipleAddresses()) 
-			this.addCombinAssign(groupName, "  " + pioInterfaceAddressName + " = " + p2AddressName + ";");
+		if (mapHasMultipleAddresses()) this.addCombinAssign(groupName, "  " + pioInterfaceAddressName + " = " + p2AddressName + ";");
 	    this.addCombinAssign(groupName,  "  " + pioInterfaceWriteDataName + " = " + p2WriteDataName + ";");
-	    if (builder.getMaxRegWordWidth() > 1) 
-	    	this.addCombinAssign(groupName,  "  " + pioInterfaceTransactionSizeName + " = " + p2TransactionSizeName + ";");
+	    if (hasWriteEnables()) this.addCombinAssign(groupName,  "  " + pioInterfaceWriteEnableName + " = " + p2WriteEnableName + ";");
+	    if (builder.getMaxRegWordWidth() > 1) this.addCombinAssign(groupName,  "  " + pioInterfaceTransactionSizeName + " = " + p2TransactionSizeName + ";");
 		this.addCombinAssign(groupName, "end"); 
 				
 		// assign responses back to interfaces
@@ -527,6 +551,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
 		String pioInterfaceWriteDataName = getSigName(isPrimary, this.pioInterfaceWriteDataName);
+		String pioInterfaceWriteEnableName = getSigName(isPrimary, this.pioInterfaceWriteEnableName);
 		String pioInterfaceTransactionSizeName = getSigName(isPrimary, this.pioInterfaceTransactionSizeName);
 		String pioInterfaceRetTransactionSizeName = getSigName(isPrimary, this.pioInterfaceRetTransactionSizeName);
 		String pioInterfaceWeName = getSigName(isPrimary, this.pioInterfaceWeName);
@@ -536,18 +561,20 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String pioInterfaceNackName = getSigName(isPrimary, this.pioInterfaceNackName);
 		String arbiterAtomicName = getSigName(isPrimary, this.arbiterAtomicName);
 		// set IO names
-		String ioAddressName = getSigName(isPrimary, "d2h_" + this.pioInterfaceAddressName);  // address
-		String ioWriteDataName = getSigName(isPrimary, "d2h_" + this.pioInterfaceWriteDataName);  // write data
-		String ioTransactionSizeName = getSigName(isPrimary, "d2h_" + this.pioInterfaceTransactionSizeName);  // transaction size
-		String ioRetTransactionSizeName = getSigName(isPrimary, "h2d_" + this.pioInterfaceRetTransactionSizeName);  // return transaction size
-		String ioWeName = getSigName(isPrimary, "d2h_" + this.pioInterfaceWeName);  // write indication
-		String ioReName = getSigName(isPrimary, "d2h_" + this.pioInterfaceReName);  // read indication
-		String ioReadDataName = getSigName(isPrimary, "h2d_" + this.pioInterfaceReadDataName);  // read data
-		String ioAckName = getSigName(isPrimary, "h2d_" + this.pioInterfaceAckName);  // ack indication
-		String ioNackName = getSigName(isPrimary, "h2d_" + this.pioInterfaceNackName);  // nack indication
-		if (topRegProperties != null) {  // if root, just use simple name
+		String ioAddressName = getSigName(isPrimary, "h2d_" + this.pioInterfaceAddressName);  // address
+		String ioWriteDataName = getSigName(isPrimary, "h2d_" + this.pioInterfaceWriteDataName);  // write data
+		String ioWriteEnableName = getSigName(isPrimary, "h2d_" + this.pioInterfaceWriteEnableName);  // write enable
+		String ioTransactionSizeName = getSigName(isPrimary, "h2d_" + this.pioInterfaceTransactionSizeName);  // transaction size
+		String ioRetTransactionSizeName = getSigName(isPrimary, "d2h_" + this.pioInterfaceRetTransactionSizeName);  // return transaction size
+		String ioWeName = getSigName(isPrimary, "h2d_" + this.pioInterfaceWeName);  // write indication
+		String ioReName = getSigName(isPrimary, "h2d_" + this.pioInterfaceReName);  // read indication
+		String ioReadDataName = getSigName(isPrimary, "d2h_" + this.pioInterfaceReadDataName);  // read data
+		String ioAckName = getSigName(isPrimary, "d2h_" + this.pioInterfaceAckName);  // ack indication
+		String ioNackName = getSigName(isPrimary, "d2h_" + this.pioInterfaceNackName);  // nack indication
+		if (topRegProperties != null) {  // if not root, match names of parent driving IO
 			ioAddressName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_ADDR));  // address
 			ioWriteDataName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_DATA));  // write data
+			ioWriteEnableName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_ENABLE));  // write enable
 			ioTransactionSizeName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_SIZE));  // transaction size
 			ioRetTransactionSizeName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.H2D_RETSIZE));  // return transaction size
 		    ioWeName = getSigName(isPrimary, topRegProperties.getFullSignalName(DefSignalType.D2H_WE));  // write indication
@@ -560,6 +587,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// generate name-base IO names
 		if (mapHasMultipleAddresses()) this.addSimpleVectorFrom(SystemVerilogBuilder.PIO, ioAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  // address
 		this.addSimpleVectorFrom(SystemVerilogBuilder.PIO, ioWriteDataName, 0, builder.getMaxRegWidth());  // write data
+		if (hasWriteEnables()) this.addSimpleVectorFrom(SystemVerilogBuilder.PIO, ioWriteEnableName, 0, getWriteEnableWidth());  // write enable
 		// if max transaction for this addrmap is larger than 1, add transaction size signals
 		if (builder.getMaxRegWordWidth() > 1) {
 		   this.addSimpleVectorFrom(SystemVerilogBuilder.PIO, ioTransactionSizeName, 0, builder.getMaxWordBitSize());  // transaction size
@@ -575,6 +603,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// define internal interface inputs
 		if (mapHasMultipleAddresses()) this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  //  address to be used internally 
 		this.addVectorWire(pioInterfaceWriteDataName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
+		if (hasWriteEnables()) this.addVectorWire(pioInterfaceWriteEnableName, 0, getWriteEnableWidth());  //  wr enable to be used internally 
 		if (builder.getMaxRegWordWidth() > 1) this.addVectorWire(pioInterfaceTransactionSizeName, 0, builder.getMaxWordBitSize());  //  internal transaction size
 		this.addScalarWire(pioInterfaceReName);  //  read enable to be used internally 
 		this.addScalarWire(pioInterfaceWeName);  //  write enable be used internally 
@@ -587,7 +616,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// assign input IOs to internal interface
 		if (mapHasMultipleAddresses()) this.addWireAssign(pioInterfaceAddressName + " = " + ioAddressName + ";");   
-		this.addWireAssign(pioInterfaceWriteDataName + " = " + ioWriteDataName + ";");		
+		this.addWireAssign(pioInterfaceWriteDataName + " = " + ioWriteDataName + ";");
+		if (hasWriteEnables()) this.addWireAssign(pioInterfaceWriteEnableName + " = " + ioWriteEnableName + ";");
 		if (builder.getMaxRegWordWidth() > 1) this.addWireAssign(pioInterfaceTransactionSizeName + " = " + ioTransactionSizeName + ";");
 		// generate re/we assigns - use delayed versions if this is a single primary
 		assignReadWriteRequests(ioReName, ioWeName, pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());
@@ -608,6 +638,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
 		String pioInterfaceWriteDataName = getSigName(isPrimary, this.pioInterfaceWriteDataName);
+		String pioInterfaceWriteEnableName = getSigName(isPrimary, this.pioInterfaceWriteEnableName);
 		String pioInterfaceTransactionSizeName = getSigName(isPrimary, this.pioInterfaceTransactionSizeName);
 		//String pioInterfaceRetTransactionSizeName = getSigName(isPrimary, this.pioInterfaceRetTransactionSizeName);
 		String pioInterfaceWeName = getSigName(isPrimary, this.pioInterfaceWeName);
@@ -757,6 +788,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarReg(pioInterfaceWeName);  //  write enable be used internally 
 		this.addScalarReg(arbiterAtomicName);
 		if (useTransactionSize) this.addVectorReg(pioInterfaceTransactionSizeName, 0, regWordBits);
+		
+		// tie off enables
+		if (hasWriteEnables()) {
+			Ordt.warnMessage("Assist engine decoder interface will not generate write data enables.");
+			this.addVectorWire(pioInterfaceWriteEnableName, 0, getWriteEnableWidth()); 
+			this.addWireAssign(pioInterfaceWriteEnableName + " = " + SystemVerilogBuilder.getHexOnesString(getWriteEnableWidth()) + ";");
+		}
 		
 		// define error outputs
 		this.addScalarReg(e1NackErrorName);
@@ -1176,6 +1214,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
 		String pioInterfaceWriteDataName = getSigName(isPrimary, this.pioInterfaceWriteDataName);
+		String pioInterfaceWriteEnableName = getSigName(isPrimary, this.pioInterfaceWriteEnableName);
 		String pioInterfaceTransactionSizeName = getSigName(isPrimary, this.pioInterfaceTransactionSizeName);
 		String pioInterfaceRetTransactionSizeName = getSigName(isPrimary, this.pioInterfaceRetTransactionSizeName);
 		String pioInterfaceWeName = getSigName(isPrimary, this.pioInterfaceWeName);
@@ -1212,6 +1251,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (mapHasMultipleAddresses()) this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), builder.getMapAddressWidth());  //  address to be used internally 
 		this.addScalarWire(pioInterfaceReName);  //  read enable to be used internally 
 		this.addScalarWire(pioInterfaceWeName);  //  write enable be used internally 
+		
+		// tie off enables
+		if (hasWriteEnables()) {
+			Ordt.warnMessage("Leaf decoder interface will not generate write data enables.");
+			this.addVectorWire(pioInterfaceWriteEnableName, 0, getWriteEnableWidth()); 
+			this.addWireAssign(pioInterfaceWriteEnableName + " = " + SystemVerilogBuilder.getHexOnesString(getWriteEnableWidth()) + ";");
+		}
 		
 		// disable atomic request to arbiter
 		if (hasSecondaryInterface()) {
@@ -1391,6 +1437,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
 		String pioInterfaceWriteDataName = getSigName(isPrimary, this.pioInterfaceWriteDataName);
+		String pioInterfaceWriteEnableName = getSigName(isPrimary, this.pioInterfaceWriteEnableName);
 		String pioInterfaceTransactionSizeName = getSigName(isPrimary, this.pioInterfaceTransactionSizeName);
 		String pioInterfaceRetTransactionSizeName = getSigName(isPrimary, this.pioInterfaceRetTransactionSizeName);
 		String pioInterfaceWeName = getSigName(isPrimary, this.pioInterfaceWeName);
@@ -1426,6 +1473,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int transactionsInWord = ExtParameters.getMinDataSize()/8;
 		boolean multiTransactionWord = (transactionsInWord>1);
 		if (!multiTransactionWord) Ordt.errorExit("Serial8 interface type does not support 8b max width regions.  Use parallel interface instead.");
+		
+		// tie off enables
+		if (hasWriteEnables()) {
+			Ordt.warnMessage("Serial8 decoder interface will not generate write data enables.");
+			this.addVectorWire(pioInterfaceWriteEnableName, 0, getWriteEnableWidth()); 
+			this.addWireAssign(pioInterfaceWriteEnableName + " = " + SystemVerilogBuilder.getHexOnesString(getWriteEnableWidth()) + ";");
+		}
 		
 		// create module IOs
 		//  inputs
@@ -1718,6 +1772,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
 		String pioInterfaceWriteDataName = getSigName(isPrimary, this.pioInterfaceWriteDataName);
+		String pioInterfaceWriteEnableName = getSigName(isPrimary, this.pioInterfaceWriteEnableName);
 		String pioInterfaceTransactionSizeName = getSigName(isPrimary, this.pioInterfaceTransactionSizeName);
 		String pioInterfaceRetTransactionSizeName = getSigName(isPrimary, this.pioInterfaceRetTransactionSizeName);
 		String pioInterfaceWeName = getSigName(isPrimary, this.pioInterfaceWeName);
@@ -1763,6 +1818,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// check for valid ring width
 		int transactionsInWord = ExtParameters.getMinDataSize()/ringWidth;
 		if (ringWidth > ExtParameters.getMinDataSize()) Ordt.errorExit(ringWidth + "b ring interface type does not support min data size less than " + ringWidth + "b.");
+		
+		// tie off enables
+		if (hasWriteEnables()) {
+			Ordt.warnMessage("Ring decoder interface will not generate write data enables.");
+			this.addVectorWire(pioInterfaceWriteEnableName, 0, getWriteEnableWidth()); 
+			this.addWireAssign(pioInterfaceWriteEnableName + " = " + SystemVerilogBuilder.getHexOnesString(getWriteEnableWidth()) + ";");
+		}
 		
 		// create module IOs		
 		//  inputs
@@ -2236,7 +2298,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// generate re/we assigns - use delayed versions if this is a single primary
 		assignReadWriteRequests(ringpioInterfaceReName, ringpioInterfaceWeName, pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());
 	}
-	
+
 	/** generate address accumulate and match detect assigns 
 	 * 
 	 * @param groupName - lable for comb assigns

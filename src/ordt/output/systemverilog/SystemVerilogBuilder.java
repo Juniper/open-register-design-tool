@@ -492,6 +492,16 @@ public class SystemVerilogBuilder extends OutputBuilder {
 
 	// ------------
 	
+	/** return a verilog hex string representing N bits of value 1 */
+	public static String getHexOnesString(int nbits) {
+		RegNumber num = new RegNumber(1 << nbits);
+		num.subtract(1);
+		num.setVectorLen(nbits);
+		return num.toFormat(NumBase.Hex, NumFormat.Verilog);
+	}
+
+	// ------------
+	
 	/** returns true if this builder is generating rtl for test use only */
 	public boolean isTestBuilder() {
 		return isTestBuilder;

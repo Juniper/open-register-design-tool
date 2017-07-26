@@ -83,8 +83,8 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		if (decoder.hasSecondaryInterface()) {
 			RemapRuleList rules = new RemapRuleList();
 			if (ExtParameters.getSysVerRootDecoderInterface()==SVDecodeInterfaceTypes.PARALLEL) {
-				rules.addRule("^dec_pio_.*$", RemapRuleType.ADD_PREFIX, "p1_h2d_");  // parallel (note h2d/d2h reflects decoder cascaded output i/f direction, not root i/f)
-				rules.addRule("^pio_dec_.*$", RemapRuleType.ADD_PREFIX, "p1_d2h_");
+				rules.addRule("^dec_pio_.*$", RemapRuleType.ADD_PREFIX, "p1_d2h_");  // parallel (note h2d/d2h reflects decoder cascaded output i/f direction, not root i/f)
+				rules.addRule("^pio_dec_.*$", RemapRuleType.ADD_PREFIX, "p1_h2d_");
 				benchtop.addInstance(primaryBfm, "parallel_bfm", rules);
 			}
 			else {
@@ -95,8 +95,8 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		}
 		else if (ExtParameters.getSysVerRootDecoderInterface()==SVDecodeInterfaceTypes.PARALLEL) {
 			RemapRuleList rules = new RemapRuleList();
-			rules.addRule("^dec_pio_.*$", RemapRuleType.ADD_PREFIX, "h2d_");  // parallel (note h2d/d2h reflects decoder cascaded output i/f direction, not root i/f)
-			rules.addRule("^pio_dec_.*$", RemapRuleType.ADD_PREFIX, "d2h_");
+			rules.addRule("^dec_pio_.*$", RemapRuleType.ADD_PREFIX, "d2h_");  // parallel (note h2d/d2h reflects decoder cascaded output i/f direction, not root i/f)
+			rules.addRule("^pio_dec_.*$", RemapRuleType.ADD_PREFIX, "h2d_");
 			benchtop.addInstance(primaryBfm, "parallel_bfm", rules);  
 		}
 		else benchtop.addInstance(primaryBfm, "leaf_bfm");  // leaf
@@ -195,6 +195,8 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	   	// init bfm control sigs 
 		benchtop.addStatement("  address = 0;");
 		benchtop.addStatement("  wr_data = 0;");
+		benchtop.addStatement("  wr_enable = 0;");
+		benchtop.addStatement("  rd_compare = 0;");
 		benchtop.addStatement("  rd_data = 0;");
 		benchtop.addStatement("  type = 0;");
 		benchtop.addStatement("  size = 0;");
@@ -209,6 +211,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	   	// --------------------------------- do some reads/writes
 	   	//
 
+	   	// add test commands
 		if (ExtParameters.hasTestCommands()) {
 			for (String cmdStr: ExtParameters.getTestCommands()) {
 				TestCommand cmd = new TestCommand(cmdStr);
@@ -216,37 +219,20 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 				//System.out.println(cmdStr);	
 			}
 		}
+		// if no commands, just issue a read and a write at 0x0
 		else {
 			// do a 32b write     
-			benchtop.addStatement("write32(40'h0, 32'ha5a5a5a5, address, wr_data, type, size, leaf_go);");
+			benchtop.addStatement("write32(40'h0, 32'ha5a5a5a5, 0, address, wr_data, wr_enable, rd_compare, rd_data, type, size, leaf_go);");
 		   	benchtop.addStatement("@ (posedge done)");
 		   	benchtop.addStatement("   leaf_go = #2 1'b0; ");
 		   	benchtop.addStatement("");
 			// do a 32b read     
-			benchtop.addStatement("read32(40'h0, address, wr_data, type, size, leaf_go);");
+			benchtop.addStatement("read32(40'h0, 0, 0, address, wr_data, wr_enable, rd_compare, rd_data, type, size, leaf_go);");
 		   	benchtop.addStatement("@ (posedge done)");
 		   	benchtop.addStatement("   leaf_go = #2 1'b0; ");
 		   	benchtop.addStatement("");			
 		}
 		
-		// write and read the regs in the base decoder 
-		/*
-		for (RegProperties reg: decoder.getDecodeList()) {
-			if (!reg.isExternal()) {
-				// do a read     
-				benchtop.addStatement("read" + reg.getRegWidth() + "(40" + reg.getBaseAddress().toFormat(NumBase.Hex, NumFormat.NoLengthVerilog)+ ", address, wr_data, type" + sizeStr + ", leaf_go);");
-			   	benchtop.addStatement("@ (posedge done)");
-			   	benchtop.addStatement("   leaf_go = #2 1'b0; ");
-			   	benchtop.addStatement("");*/
-			   	/*
-				// do a write     
-				benchtop.addStatement("write" + reg.getRegWidth() + "(40'h2000, 32'ha5a5a5a5, address, wr_data, type" + sizeStr + ", leaf_go);");
-			   	benchtop.addStatement("@ (posedge done)");
-			   	benchtop.addStatement("   leaf_go = #2 1'b0; ");
-			   	benchtop.addStatement("");
-			   	*/	/*
-			}
-		} */
         // --------------
 	   	
 	   	benchtop.addStatement("end");
@@ -268,10 +254,10 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		TestCommand(String cmdStr) {
 			
 			// check for read and write form commands
-			Pattern chkPat = Pattern.compile("^(write|read)\\s+(\\d+)\\s+(0x\\w+)(\\s+(0x\\w+))?");
+			Pattern chkPat = Pattern.compile("^(write|read)\\s+(\\d+)\\s+(0x\\w+)(\\s+(0x\\w+))?(\\s+(0x\\w+))?");
 			Matcher m = chkPat.matcher(cmdStr);
 			if (m.matches()) {
-				RegNumber address, data = null;
+				RegNumber address, data = null, enable = null;
 				cType = "read".equals(m.group(1))? cmdType.READ : cmdType.WRITE;
 				ints.put("size", Integer.valueOf(m.group(2)));  // save r/w size
 				address = new RegNumber(m.group(3));
@@ -279,12 +265,21 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 				address.setNumFormat(NumFormat.Verilog);
 				address.setVectorLen(ExtParameters.getLeafAddressSize());
 				rnums.put("address", address);  // save r/w address
+				// get write or compare data
 				if (m.groupCount() > 4) {
 					data = new RegNumber(m.group(5));
 					data.setNumBase(NumBase.Hex);
 					data.setNumFormat(NumFormat.Verilog);
 					data.setVectorLen(ints.get("size"));
-					rnums.put("data", data);  // save r/w data
+					if ((data != null) && data.isDefined()) rnums.put("data", data);  // save r/w data
+				}
+				// get write enable
+				if (m.groupCount() > 6) {
+					enable = new RegNumber(m.group(7));
+					enable.setNumBase(NumBase.Hex);
+					enable.setNumFormat(NumFormat.Verilog);
+					enable.setVectorLen(decoder.getWriteEnableWidth());
+					if ((enable != null) && enable.isDefined()) rnums.put("enable", enable);  // save enable data
 				}
 				if ((ints.get("size") == null) || (!address.isDefined()) || 
 						(isWrite() && ((data == null) || !data.isDefined()))) cType = cmdType.INVALID;
@@ -314,14 +309,20 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 			}
 			
 			//System.out.println(this);
-			if (!isValid()) Ordt.warnMessage("invalid test commad found: " + cmdStr);
+			if (!isValid()) Ordt.warnMessage("invalid test command found: " + cmdStr);
 		}
 
 		public void addStatements() {
 			if (isRead() || isWrite()) {
-				String typeStr = isRead()? "read" : "write";  
-				String dataStr = isRead()? "" : ", " + rnums.get("data");
-				benchtop.addStatement(typeStr + ints.get("size") + "(" + rnums.get("address") + dataStr + ", address, wr_data, type, size, leaf_go);");
+				String typeStr = isRead()? "read" : "write"; 
+				// call using write data and enable if a write, otherwise compare info if a read
+				String dataStr="";
+				if (isWrite()) dataStr = ", " + rnums.get("data") + ", " + (rnums.containsKey("enable")? rnums.get("enable") : getHexOnesString(decoder.getWriteEnableWidth()));
+				else if (rnums.containsKey("data")) dataStr = ", 1'b1, " + rnums.get("data");  // read with compare
+				else dataStr = ", 1'b0, " + ints.get("size") + "'h0";  // read w/o compare
+				System.out.println("SystemVerilogTestBuilder addStatements: " + typeStr + ints.get("size") + ", rnams=" + rnums);
+				benchtop.addStatement(typeStr + ints.get("size") + "(" + rnums.get("address") + dataStr +   // task inputs
+						", address, wr_data, wr_enable, rd_compare, rd_data, type, size, leaf_go);");  // task outputs
 			   	benchtop.addStatement("@ (posedge done)");
 			   	benchtop.addStatement("   leaf_go = #2 1'b0;");
 			   	benchtop.addStatement("");				
@@ -433,14 +434,24 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	   	benchtop.addStatement("// " + width + "b read task");
 	   	benchtop.addStatement("task read" + width + ";");
 		benchtop.addStatement("  input " + SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "in_address;");
+		benchtop.addStatement("  input in_rd_compare;");  
+		benchtop.addStatement("  input " + SystemVerilogSignal.genDefArrayString(0, width) + "in_rd_data;");  
+		// outputs
 		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "address;");
 		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, getMaxRegWidth()) + "wr_data;");  
+		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, decoder.getWriteEnableWidth()) + "wr_enable;");  
+		benchtop.addStatement("  output rd_compare;");
+		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, getMaxRegWidth()) + "rd_data;");  
 		benchtop.addStatement("  output [1:0] type;");
 		benchtop.addStatement("  output [3:0] size;");
 		benchtop.addStatement("  output leaf_go;");
 	   	benchtop.addStatement("  begin");
 		benchtop.addStatement("    address = #1 in_address;");
 		benchtop.addStatement("    wr_data = 0;"); 
+		benchtop.addStatement("    wr_enable = 0;");  
+		benchtop.addStatement("    rd_compare = in_rd_compare;");  
+		benchtop.addStatement("    rd_data = 0;");  
+		benchtop.addStatement("    rd_data [" + (width - 1) + ":0] = in_rd_data;");  
 		benchtop.addStatement("    type = 2'b10;");
 		benchtop.addStatement("    size = 4'd" + ((width/ExtParameters.getMinDataSize()) - 1) + ";");
 		benchtop.addStatement("    leaf_go = 1'b1;");
@@ -455,15 +466,24 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	   	benchtop.addStatement("task write" + width + ";");
 		benchtop.addStatement("  input " + SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "in_address;");
 		benchtop.addStatement("  input " + SystemVerilogSignal.genDefArrayString(0, width) + "in_wr_data;");  
+		benchtop.addStatement("  input " + SystemVerilogSignal.genDefArrayString(0, decoder.getWriteEnableWidth()) + "in_wr_enable;"); 
+		// outputs
 		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, ExtParameters.getLeafAddressSize()) + "address;");
 		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, getMaxRegWidth()) + "wr_data;");  
+		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, decoder.getWriteEnableWidth()) + "wr_enable;");  
+		benchtop.addStatement("  output rd_compare;");
+		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, getMaxRegWidth()) + "rd_data;");  
 		benchtop.addStatement("  output [1:0] type;");
 		benchtop.addStatement("  output [3:0] size;");
 		benchtop.addStatement("  output leaf_go;");
+		//
 	   	benchtop.addStatement("  begin");
 		benchtop.addStatement("    address = #1 in_address;");
 		benchtop.addStatement("    wr_data = 0;");  
 		benchtop.addStatement("    wr_data [" + (width - 1) + ":0] = in_wr_data;");  
+		benchtop.addStatement("    wr_enable = in_wr_enable;");  
+		benchtop.addStatement("    rd_compare = 0;");  
+		benchtop.addStatement("    rd_data = 0;");  
 		benchtop.addStatement("    type = 0;");
 		benchtop.addStatement("    size = 4'd" + ((width/ExtParameters.getMinDataSize()) - 1) + ";");
 		benchtop.addStatement("    leaf_go = 1'b1;");
@@ -492,6 +512,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		// add bfm to decoder interface
 		if (getMapAddressWidth()>0) primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "pio_dec_address", 0, getMapAddressWidth());
 		primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "pio_dec_write_data", 0, getMaxRegWidth());
+		if (SystemVerilogDecodeModule.hasWriteEnables()) primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "pio_dec_write_enable", 0, decoder.getWriteEnableWidth());
 		primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "pio_dec_read", 0, 1);
 		primaryBfmToDecoderSigList.addSimpleVector(PIO, DECODE, "pio_dec_write", 0, 1);
 		primaryBfmToDecoderSigList.addSimpleVector(DECODE, PIO, "dec_pio_read_data", 0, getMaxRegWidth());
@@ -529,6 +550,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	   	primaryBfm.addStatement("    #1 active = 1'b1;");  // indicate transaction active
 	   	if (getMapAddressWidth()>0) primaryBfm.addStatement("    pio_dec_address = address" + SystemVerilogSignal.genRefArrayString(getAddressLowBit(), getMapAddressWidth()) + ";");  // FIXME
 	   	primaryBfm.addStatement("    pio_dec_write_data = wr_data;");
+	   	if (SystemVerilogDecodeModule.hasWriteEnables()) primaryBfm.addStatement("    pio_dec_write_enable = wr_enable;");
 	   	primaryBfm.addStatement("    pio_dec_read = type[1];");
 	   	primaryBfm.addStatement("    pio_dec_write = ~type[1];");
 	   	primaryBfm.addStatement("    trans_size = {1'b0, size} + 5'b1;");
@@ -558,8 +580,13 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	   	primaryBfm.addStatement("  $display(\"  nack = %d\", dec_pio_nack);");	   	
 	   	if (getMaxWordBitSize()>0) primaryBfm.addStatement("  $display(\"  return size = %x\", dec_pio_trans_size);");	   	
 	   	// if a read, display return info
-		primaryBfm.addStatement("  if (type[1] == 1'b1)");			
+		primaryBfm.addStatement("  if (type[1] == 1'b1) begin");			
 	   	primaryBfm.addStatement("    $display(\"  read data = %x\", dec_pio_read_data);");
+		primaryBfm.addStatement("    if (rd_compare) begin");			
+		primaryBfm.addStatement("      if (dec_pio_read_data !== rd_data) $display(\"  read compare FAILED - expected %x\", rd_data);");	
+		primaryBfm.addStatement("      else $display(\"  read compare OK - expected %x\", rd_data);");	
+	   	primaryBfm.addStatement("    end");
+	   	primaryBfm.addStatement("  end");
 
 	   	// indicate transaction is complete
 	   	primaryBfm.addStatement("  #1 active = 1'b0;");  
@@ -657,8 +684,13 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		primaryBfm.addStatement("  $display(\"  return size = %x\", dec_leaf_data_width);");	   	
 	   	primaryBfm.addStatement("  $display(\"  retry = %d\", dec_leaf_retry_atomic);");	
 	   	// if a read, display return info
-		primaryBfm.addStatement("  if (type[1] == 1'b1)");			
+		primaryBfm.addStatement("  if (type[1] == 1'b1) begin");			
 	   	primaryBfm.addStatement("    $display(\"  read data = %x\", dec_leaf_rd_data);");
+		primaryBfm.addStatement("    if (rd_compare) begin");			
+		primaryBfm.addStatement("      if (dec_leaf_rd_data !== rd_data) $display(\"  read compare FAILED - expected %x\", rd_data);");	
+		primaryBfm.addStatement("      else $display(\"  read compare OK - expected %x\", rd_data);");	
+	   	primaryBfm.addStatement("    end");
+	   	primaryBfm.addStatement("  end");
 
 	   	// indicate transaction is complete
 	   	primaryBfm.addStatement("  #1 active = 1'b0;");  
@@ -671,6 +703,8 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	private void addCommonBfmIO() {
 		benchSigList.addSimpleVector(HW, PIO, "address", 0, ExtParameters.getLeafAddressSize());
 		benchSigList.addSimpleVector(HW, PIO, "wr_data", 0, getMaxRegWidth());
+		benchSigList.addSimpleVector(HW, PIO, "wr_enable", 0, decoder.getWriteEnableWidth());
+		benchSigList.addSimpleScalar(HW, PIO, "rd_compare");
 		benchSigList.addSimpleVector(HW, PIO, "rd_data", 0, getMaxRegWidth());
 		benchSigList.addSimpleVector(HW, PIO, "type", 0,2);  
 		benchSigList.addSimpleVector(HW, PIO, "size", 0, 4);
