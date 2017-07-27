@@ -161,7 +161,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("skip_no_reset_db_update", true); 
 		uvmModelMode = UVMModelModes.HEAVY; 
 		initStringMapParameter("uvm_model_parameters", new HashMap<String, String>()); 
-		initBooleanParameter("regs_use_factory", true); 
+		initBooleanParameter("regs_use_factory", false); 
 		
 		// ---- bench output defaults
 		initStringListParameter("add_test_command", new ArrayList<String>());

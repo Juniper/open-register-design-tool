@@ -88,7 +88,7 @@ output uvmregs {
 	//skip_no_reset_db_update = false   // bypass uvm_resource_db update for fields with no reset
 	//uvm_model_mode = translate1   // set uvm model type (heavy | lite1 | translate1)
 	//uvm_model_parameters = "altModelRootType=Zt_fabio, altModelPackageFile=zt_class.svh, altModelPackage=zt_jspec::*"  // set misc model parameters
-    regs_use_factory = true   // registers will be created by and registered with the factory
+    //regs_use_factory = true   // registers will be created by and registered with the factory
 }
 
 // xml output parameters

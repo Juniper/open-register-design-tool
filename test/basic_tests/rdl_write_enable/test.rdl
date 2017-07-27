@@ -1,0 +1,57 @@
+// parallel interface write enable example
+//
+// parameter defines for this example
+//
+<PARMS>
+output systemverilog {
+    root_decoder_interface = parallel      // parallel | leaf | serial8 | ring8 | ring16 | ring32
+    nack_partial_writes = true     // issue nack for writes of size less than target
+    write_enable_size = 4          // size of data affected by each write enable in bits
+	generate_child_addrmaps = true   // generate child address maps
+}
+output bench {
+    // base reg access
+	add_test_command = "read 32 0x0 0x55"  // read intr_reg, verify init value
+	add_test_command = "read 32 0x4"  // read log_reg
+	add_test_command = "write 32 0x0 0x000001aa 0x2"  // write w/ enable second nibble from lsb
+	add_test_command = "read 32 0x0 0xa5"  // read intr_reg, verify a5
+	// wide reg access
+	add_test_command = "write 64 0x8 0xffffffff_ffffffff"
+	add_test_command = "read 64 0x8"
+	add_test_command = "write 64 0x8 0xffffffff_ffffffff 0xc000"  // write w/ upper 2 nibbles enabled 
+	add_test_command = "read 64 0x8  0xff000000_0000000"
+	add_test_command = "write 32 0x8 0x0"  // nack on partial write?
+	add_test_command = "read 32 0x8"
+	// access cascaded decoder w/ reduced width
+	add_test_command = "read 32 0x104"
+	add_test_command = "write 32 0x104 0xffffffff 0x55"  // write w/ alternate nibbles enabled
+	add_test_command = "read 32 0x104 0x0f0f0f0f"
+}
+</PARMS>
+
+addrmap {
+        default reset=0;
+		reg {
+		   field {sw=rw; hw=r; counter; hwset; hwclr; swwel;} count_fld[8] = 8'h55;
+		   field {sw=rw; intr; } intr1;
+		   field {sw=rw; intr;} intr2;
+		} intr_reg;
+		
+		reg{
+		   field {sw=rw;hw=w;}  log_err[8] =8'h4;
+		   field {sw=r;hw=w;}  log_value[8] =8'h0;		   
+		} log_reg;		
+		
+		reg {
+		   regwidth=64;
+		   field{sw=rw; hw=na;} field64[64];
+		} bigreg;
+		
+		addrmap {
+		   reg {
+		      field{sw=rw; hw=na;} field32[32];
+		   } array_reg[8];
+		} childmap_32b @0x100;
+} foo;
+
+
