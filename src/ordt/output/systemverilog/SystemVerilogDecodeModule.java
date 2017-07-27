@@ -172,10 +172,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// if write enables are specified, then capture
 		if (hasWriteEnables()) {
-			if ( (ExtParameters.getMinDataSize() < ExtParameters.sysVerWriteEnableSize()) ||
+			if ( (ExtParameters.getMinDataSize() <= ExtParameters.sysVerWriteEnableSize()) ||
 					((ExtParameters.getMinDataSize() % ExtParameters.sysVerWriteEnableSize()) != 0) ) 
 				Ordt.errorExit("Invalid write enable size (" + ExtParameters.sysVerWriteEnableSize() + ") specified - must be a factor of min_data_size (" + ExtParameters.getMinDataSize() + ")");
-			this.addVectorReg("pio_dec_write_enable_d1", 0, getWriteEnableWidth());  // input write enable capture register 
+			this.addVectorReg("pio_dec_write_enable_d1", 0, getWriteEnableWidth());  // input write enable capture register (max width)
+			this.addVectorReg("pio_dec_write_enable_full", 0, builder.getMaxRegWidth());  // expanded enable vector for internals
 			this.addRegAssign("pio i/f",  "pio_dec_write_enable_d1 <= #1  " + pioInterfaceWriteEnableName + ";"); // capture write enable if new transaction
 		}
 		
@@ -2388,6 +2389,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	/** class containing common signal names, etc for an external interface */
 	private class ExternalInterfaceInfo  {
 		public String decodeToHwName;   // write data                   
+		public String decodeToHwEnableName;   // write enable                   
 		public String decodeToHwWeName; // we
 		public String decodeToHwReName; //  re
 		public String hwToDecodeName; //  read data
@@ -2402,6 +2404,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		/** extract external interface info from instance properties */
 		public ExternalInterfaceInfo(AddressableInstanceProperties addrInstProperties) {
 			   this.decodeToHwName = addrInstProperties.getFullSignalName(DefSignalType.D2H_DATA) + "_ex";   // write data                   
+			   this.decodeToHwEnableName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ENABLE) + "_ex";   // write enable                   
 			   this.decodeToHwWeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_WE) + "_ex"; //  we
 			   this.decodeToHwReName = addrInstProperties.getFullSignalName(DefSignalType.D2H_RE) + "_ex"; //  re
 			   this.hwToDecodeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_DATA) + "_ex"; //  read data
@@ -2426,6 +2429,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// create verilog names used internally in decoder block (ack, nack, rdata pass thru to decoder as is)
 		String intDecodeToHwName = addrInstProperties.getFullSignalName(DefSignalType.D2H_DATA) + "_next";   // write data                   
+		String intDecodeToHwEnableName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ENABLE) + "_next";   // write enable                   
 		String intDecodeToHwWeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_WE) + "_next"; // we
 		String intDecodeToHwReName = addrInstProperties.getFullSignalName(DefSignalType.D2H_RE) + "_next"; // re
 		String intDecodeToHwAddrName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ADDR) + "_next"; // address
@@ -2433,12 +2437,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String intHwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE) + "_d1";  // size of return read transaction in words
 
 		// register the outputs and assign output reg values
-		this.addVectorReg(extIf.decodeToHwName, 0, addrInstProperties.getMaxRegWidth());  
+		this.addVectorReg(extIf.decodeToHwName, 0, addrInstProperties.getMaxRegWidth());
+		if (hasWriteEnables()) this.addVectorReg(extIf.decodeToHwEnableName, 0, addrInstProperties.getWriteEnableWidth());
 		this.addScalarReg(extIf.decodeToHwWeName);  
 		this.addScalarReg(extIf.decodeToHwReName);  
 
 		// add next signal assignments also
 		this.addVectorReg(intDecodeToHwName, 0, addrInstProperties.getMaxRegWidth());  
+		if (hasWriteEnables()) this.addVectorReg(intDecodeToHwEnableName, 0, addrInstProperties.getWriteEnableWidth());
 		this.addScalarReg(intDecodeToHwWeName);  
 		this.addScalarReg(intDecodeToHwReName);  
 		// reset output signals
@@ -2447,6 +2453,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		String ackInhibitStr = "~" + extIf.hwToDecodeAckName + " & ~" + extIf.hwToDecodeNackName;
 		this.addRegAssign("external i/f",  extIf.decodeToHwName + " <= #1  " + intDecodeToHwName + ";");  // assign next to flop
+		if (hasWriteEnables()) this.addRegAssign("external i/f",  extIf.decodeToHwEnableName + " <= #1  " + intDecodeToHwEnableName + ";");  // assign next to flop
 		this.addRegAssign("external i/f",  extIf.decodeToHwWeName + " <= #1  " + intDecodeToHwWeName + " & " + ackInhibitStr  + ";");  // assign next to flop
 		this.addRegAssign("external i/f",  extIf.decodeToHwReName + " <= #1  " + intDecodeToHwReName + " & " + ackInhibitStr  + ";");  // assign next to flop
 
@@ -2481,6 +2488,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// define external signal names
 		String decodeToHwName = addrInstProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
+		String decodeToHwEnableName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ENABLE);   // write enable                   
 		String decodeToHwWeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_WE); //  we
 		String decodeToHwReName = addrInstProperties.getFullSignalName(DefSignalType.D2H_RE); //  re
 		String hwToDecodeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_DATA); //  read data
@@ -2496,10 +2504,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// if not optimized interface or writeable then add write external data/wr outputs
 		if (!useAckStateMachine || addrInstProperties.isSwWriteable()) {
 			this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwName, 0, addrInstProperties.getMaxRegWidth());    // add write data to decode to hw signal list 
+			if (hasWriteEnables()) this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwEnableName, 0, addrInstProperties.getWriteEnableWidth());    // add write data to decode to hw signal list 
 			this.addSimpleScalarTo(SystemVerilogBuilder.HW, decodeToHwWeName);
 			if (!useAckStateMachine) this.addWireAssign(decodeToHwWeName + " = " + extIf.decodeToHwWeName +  ";");
 			else this.addScalarReg(decodeToHwWeName); 
 			this.addWireAssign(decodeToHwName + " = " + extIf.decodeToHwName +  ";");
+			if (hasWriteEnables()) this.addWireAssign(decodeToHwEnableName + " = " + extIf.decodeToHwEnableName +  ";");    // add write enable to decode to hw signal list 
 		}
 		
 		// if not optimized interface or readable then add read external data/rd io
@@ -2922,6 +2932,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String decodeToSrRdName = "d2sr_" + addrInstProperties.getBaseName() + "_rd";                      
 		String decodeToSrWrName = "d2sr_" + addrInstProperties.getBaseName() + "_wr";                      
 		String decodeToSrWrDataName = "d2sr_" + addrInstProperties.getBaseName() + "_wr_data";                      
+		String decodeToSrWrEnableName = "d2sr_" + addrInstProperties.getBaseName() + "_wr_enable";                      
 		String decodeToSrAddrName = "d2sr_" + addrInstProperties.getBaseName() + "_addr"; 
 		
 		String srToDecodeAck = "sr2d_" + addrInstProperties.getBaseName() + "_ack";                      
@@ -2937,6 +2948,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addSimpleScalarTo(SystemVerilogBuilder.HW, decodeToSrRdName);  // read pulse    
 		this.addSimpleScalarTo(SystemVerilogBuilder.HW, decodeToSrWrName);  // write pulse  
 		this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToSrWrDataName, 0, addrInstProperties.getMaxRegWidth());    // write data  
+		if (hasWriteEnables()) this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToSrWrEnableName, 0, addrInstProperties.getWriteEnableWidth());    // write data  
 		this.addScalarReg(decodeToSrRdName);
 		this.addScalarReg(decodeToSrWrName);
 
@@ -2954,6 +2966,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// assign wr_data and addr outputs
 		this.addWireAssign(decodeToSrWrDataName + " = " + extIf.decodeToHwName +  ";");
+		if (hasWriteEnables()) this.addWireAssign(decodeToSrWrEnableName + " = " + extIf.decodeToHwEnableName +  ";");
 		this.addWireAssign(decodeToSrAddrName + " = " + extIf.decodeToHwAddrName + SystemVerilogSignal.genRefArrayString(regWordBits + addrInstProperties.getExtLowBit(), srAddrBits) + ";");
 
 		// generate valid_size by comparing decodeToHwTransactionSizeName value with regWordWidth - 1
@@ -2990,8 +3003,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String groupName = addrInstProperties.getBaseName() + " sr i/f";
 		generateAckNackMachine(srStateName, groupName, true,
 				extIf.decodeToHwReName, extIf.decodeToHwWeName, srValidAddrName, srValidAddrName, srValidSizeName, srToDecodeAck, srToDecodeNack, 
-				decodeToSrRdName, decodeToSrWrName, extIf.hwToDecodeAckName, extIf.hwToDecodeNackName);
-		
+				decodeToSrRdName, decodeToSrWrName, extIf.hwToDecodeAckName, extIf.hwToDecodeNackName);		
 	}
 
 	/** generate state machine to generate acks/nacks internally based on transaction size, address being accessed.  
@@ -3831,6 +3843,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			writeStmt(indentLevel, "reg_width = " + builder.getMaxWordBitSize() + "'d0;");  // default to size 0
 		}
 
+		// if write enables, generate a full width enable vector
+		if (hasWriteEnables()) {
+			writeStmt(indentLevel, "pio_dec_write_enable_full = " + builder.getMaxRegWidth() + "'d0;");  // default to all bits disabled 
+			for (int idx=0; idx<getWriteEnableWidth(); idx++) {
+				int enSize = ExtParameters.sysVerWriteEnableSize();
+				writeStmt(indentLevel, "if (pio_dec_write_enable_d1[" + idx + "]) pio_dec_write_enable_full" + SystemVerilogSignal.genRefArrayString(idx * enSize, enSize) + " = " + SystemVerilogBuilder.getHexOnesString(enSize) + ";");
+			}
+		}
 		// set decoder defaults by iterating through reglist  
 		Iterator<AddressableInstanceProperties> it = decoderList.iterator();   
 		writeStmt(indentLevel, "");
@@ -3841,6 +3861,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			if (elem.isExternal()) {
 				// generate reg write data assignment
 				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_DATA) + "_next = pio_dec_write_data_d1" + SystemVerilogSignal.genRefArrayString(0, elem.getMaxRegWidth()) + ";"); // regardless of transaction size assign based on regsize
+				if (hasWriteEnables()) writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_ENABLE) + "_next = pio_dec_write_enable_d1" + SystemVerilogSignal.genRefArrayString(0, elem.getWriteEnableWidth()) + ";");
 				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_WE) + "_next = 1'b0;");  // we defaults to 0
 				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_RE) + "_next = 1'b0;");  // we defaults to 0
 				// if an address is required then add it 
@@ -3857,6 +3878,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2L_DATA) + " = pio_dec_write_data_d1 " + SystemVerilogSignal.genRefArrayString(0, elem.getMaxRegWidth()) +";");  // regardless of transaction size assign based on regsize
 				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2L_WE) + " = 1'b0;");  // we defaults to 0
 				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2L_RE) + " = 1'b0;");  // re defaults to 0
+				// construct full width enable vector for internals  TODO - build full vector above and reference here
+				if (hasWriteEnables()) writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2L_ENABLE) + " = pio_dec_write_enable_full " + SystemVerilogSignal.genRefArrayString(0, elem.getMaxRegWidth()) +";");
+				
 			}
 		}	
 

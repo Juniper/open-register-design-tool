@@ -190,7 +190,12 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 	
     /** return the max register width within this addressable instance */
 	public abstract int getMaxRegWidth();
-	
+
+    /** return the write enable width of this addressable instance */
+	public int getWriteEnableWidth() {
+		return getMaxRegWidth()/ExtParameters.sysVerWriteEnableSize();
+	}
+
 	/** get max register width within this addressable instance in bytes */
 	public int getMaxRegByteWidth() {
 		return getMaxRegWidth()/8;

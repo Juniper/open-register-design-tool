@@ -315,7 +315,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		public void addStatements() {
 			if (isRead() || isWrite()) {
 				String typeStr = isRead()? "read" : "write"; 
-				// call using write data and enable if a write, otherwise compare info if a read
+				// call using write data and enable if a write, otherwise compare info if a read  //TODO - fix for 0 enable vec width
 				String dataStr="";
 				if (isWrite()) dataStr = ", " + rnums.get("data") + ", " + (rnums.containsKey("enable")? rnums.get("enable") : getHexOnesString(decoder.getWriteEnableWidth()));
 				else if (rnums.containsKey("data")) dataStr = ", 1'b1, " + rnums.get("data");  // read with compare

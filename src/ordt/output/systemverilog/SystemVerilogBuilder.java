@@ -315,6 +315,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   
 		   // add to verilog structure lists
 		   intSigList.addSimpleVector(DefSignalType.D2L_DATA, regProperties.getBaseName(), 0, regProperties.getRegWidth());    // add write data to decode to logic signal list 
+		   if (SystemVerilogDecodeModule.hasWriteEnables()) intSigList.addSimpleVector(DefSignalType.D2L_ENABLE, regProperties.getBaseName(), 0, regProperties.getRegWidth());    // add write enable to decode to logic signal list 
 		   intSigList.addSimpleScalar(DefSignalType.D2L_WE, regProperties.getBaseName());    // add we to decode to logic signal list 
 		   intSigList.addSimpleScalar(DefSignalType.D2L_RE, regProperties.getBaseName());    // add re to decode to logic signal list 
 		   intSigList.addSimpleVector(DefSignalType.L2D_DATA, regProperties.getBaseName(), 0, regProperties.getRegWidth());    // add read data to logic to decode signal list 
@@ -350,6 +351,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   else  logic.addCombinAssign(regProperties.getBaseName() + " (pio read data)", tempAssignList);   // fields use all bits in this register 
 		   
 		   decoder.addVectorReg(regProperties.getFullSignalName(DefSignalType.D2L_DATA), 0, regProperties.getRegWidth());  // make decode outputs regs
+		   if (SystemVerilogDecodeModule.hasWriteEnables()) decoder.addVectorReg(regProperties.getFullSignalName(DefSignalType.D2L_ENABLE), 0, regProperties.getRegWidth());
 		   decoder.addScalarReg(regProperties.getFullSignalName(DefSignalType.D2L_WE)); // add we and re output defs
 		   decoder.addScalarReg(regProperties.getFullSignalName(DefSignalType.D2L_RE)); 
 		   
@@ -491,7 +493,12 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	}
 
 	// ------------
-	
+
+	/** return true if write enables are specified */
+	public static boolean hasWriteEnables() {
+		return (ExtParameters.sysVerWriteEnableSize()>0);
+	}
+
 	/** return a verilog hex string representing N bits of value 1 */
 	public static String getHexOnesString(int nbits) {
 		RegNumber num = new RegNumber(1 << nbits);

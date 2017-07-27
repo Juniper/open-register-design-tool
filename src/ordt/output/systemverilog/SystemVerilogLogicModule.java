@@ -280,6 +280,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		   if (nextNameOverride != null) fieldRegisterNextName = nextNameOverride;
 		   
 		   String decodeToLogicDataName = regProperties.getFullSignalName(DefSignalType.D2L_DATA);  // write data from decoder
+		   String decodeToLogicEnableName = regProperties.getFullSignalName(DefSignalType.D2L_ENABLE);  // write enable from decoder
 		   String decodeToLogicWeName = regProperties.getFullSignalName(DefSignalType.D2L_WE);  // write enable from decoder
 		   String decodeToLogicReName = regProperties.getFullSignalName(DefSignalType.D2L_RE);  // read enable from decoder
 		   
@@ -294,18 +295,25 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			   swWeStr = " & ~" + hwToLogicSwWelName;				   
 		   }
 		   
+		   // build write data string qualified by enables
+		   String woEnabledDataString = (!SystemVerilogBuilder.hasWriteEnables())? decodeToLogicDataName + fieldArrayString :
+			   "(" + decodeToLogicDataName + fieldArrayString + " & " + decodeToLogicEnableName + fieldArrayString + ")";
+		   
 		   // if a sw write one to clr/set
 		   if (fieldProperties.isWoset()) {
 			   addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicWeName + swWeStr + ") " + fieldRegisterNextName + " = (" + 
-					   fieldRegisterNextName + " | " + decodeToLogicDataName + fieldArrayString + ");");				   
+					   fieldRegisterNextName + " | " + woEnabledDataString + ");");				   
 		   }
 		   else if (fieldProperties.isWoclr()) {
 			   addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicWeName + swWeStr + ") " + fieldRegisterNextName + " = (" + 
-					   fieldRegisterNextName + " & ~" + decodeToLogicDataName + fieldArrayString + ");");				   
+					   fieldRegisterNextName + " & ~" + woEnabledDataString + ");");				   
 		   }
 		   // if a sw write is alowed 
-		   else if (fieldProperties.isSwWriteable()) {
-			   addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicWeName + swWeStr + ") " + fieldRegisterNextName + " = " + regProperties.getFullSignalName(DefSignalType.D2L_DATA) + fieldArrayString + ";");				   
+		   else if (fieldProperties.isSwWriteable()) {		   
+			   // build write data string qualified by enables
+			   String fullEnabledDataString = (!SystemVerilogBuilder.hasWriteEnables())? decodeToLogicDataName + fieldArrayString :
+				   "(" + woEnabledDataString + " | (" + fieldRegisterNextName + " & ~" + decodeToLogicEnableName + fieldArrayString + "))";
+			   addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicWeName + swWeStr + ") " + fieldRegisterNextName + " = " + fullEnabledDataString + ";");				   
 		   }
 			   			   
 		   // if a sw read set

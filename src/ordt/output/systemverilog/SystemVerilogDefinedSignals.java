@@ -12,7 +12,7 @@ public class SystemVerilogDefinedSignals {
 		L2H_DATA, L2H_SWACC, L2H_SWMOD, L2H_OVERFLOW, L2H_UNDERFLOW, L2H_INCRSAT, L2H_DECRSAT, L2H_INCRTHOLD, L2H_DECRTHOLD, L2H_ANDED, L2H_ORED, L2H_XORED, 
 		H2L_WEL, H2L_WE, H2L_HWSET, H2L_HWCLR, H2L_SWWEL, H2L_SWWE, H2L_INTR, H2L_DATA, H2L_INCR, H2L_DECR, H2L_INCRVALUE, H2L_DECRVALUE, 
 		PREVINTR, CNTR_NEXT, INTR_CLEAR, INTR_DLY,
-		D2L_DATA, L2D_DATA, D2L_WE, D2L_RE, 
+		D2L_DATA, L2D_DATA, D2L_WE, D2L_RE, D2L_ENABLE,
 		D2H_ADDR, D2H_DATA, D2H_SIZE, D2H_WE, D2H_RE, D2H_ENABLE,
 		H2D_RETSIZE, H2D_DATA, H2D_ACK, H2D_NACK, 
 		L2H_INTR, L2H_HALT, 
@@ -78,6 +78,7 @@ public class SystemVerilogDefinedSignals {
 		newList.put(DefSignalType.INTR_DLY, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, NONE, NONE, "intr_", "delay"));
 		
 		newList.put(DefSignalType.D2L_DATA, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, DECODE, LOGIC, "d2l_", "w"));
+		newList.put(DefSignalType.D2L_ENABLE, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, DECODE, LOGIC, "d2l_", "w_enable"));
 		newList.put(DefSignalType.L2D_DATA, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, LOGIC, DECODE, "l2d_", "r"));
 		newList.put(DefSignalType.D2L_WE, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, DECODE, LOGIC, "d2l_", "we"));
 		newList.put(DefSignalType.D2L_RE, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, DECODE, LOGIC, "d2l_", "re"));
