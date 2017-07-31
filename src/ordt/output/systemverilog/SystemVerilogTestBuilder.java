@@ -321,7 +321,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 					rnums.containsKey("enable")? rnums.get("enable") : getHexOnesString(decoder.getWriteEnableWidth()));
 				else if (rnums.containsKey("data")) dataStr = ", 1'b1, " + rnums.get("data");  // read with compare
 				else dataStr = ", 1'b0, " + ints.get("size") + "'h0";  // read w/o compare
-				System.out.println("SystemVerilogTestBuilder addStatements: " + typeStr + ints.get("size") + ", rnams=" + rnums);
+				//System.out.println("SystemVerilogTestBuilder addStatements: " + typeStr + ints.get("size") + ", rnams=" + rnums);
 				benchtop.addStatement(typeStr + ints.get("size") + "(" + rnums.get("address") + dataStr +   // task inputs
 						", address, wr_data, wr_enable, rd_compare, rd_data, type, size, leaf_go);");  // task outputs
 			   	benchtop.addStatement("@ (posedge done)");
