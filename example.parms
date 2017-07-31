@@ -75,7 +75,7 @@ output reglist {
 	display_external_regs = true       // include external regs in output?
 	show_reg_type = true              // show int/ext type for each reg?
 	//match_instance = "sopf_ints"           // show only regs with matching instance names
-	//show_fields = true                // show field info for each reg
+	show_fields = true                // show field info for each reg
 }
 
 // uvmregs output parameters

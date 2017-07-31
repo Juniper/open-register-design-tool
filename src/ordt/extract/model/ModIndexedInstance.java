@@ -3,6 +3,7 @@
  */
 package ordt.extract.model;
 
+import ordt.extract.Ordt;
 import ordt.parameters.Utils;
 
 /** class of indexed model component instances (fieldset, field, signal) */
@@ -48,6 +49,7 @@ public class ModIndexedInstance extends ModInstance {
 	 *  @param width the width to set
 	 */
 	public void setWidth(Integer width) {
+		if (width<=0) Ordt.errorExit("Invalid width/bit range specified in instance " + getId());
 		this.width = width;
 	}
 

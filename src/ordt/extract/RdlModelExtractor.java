@@ -1057,8 +1057,6 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 					activeInst.setOffset(null);  						
 				}
 				//System.out.println("RdlModelExtractor extractInstanceAddressInfo: getWidth=" + ((ModIndexedInstance) activeInstance).getWidth() + ", getOffset=" + ((ModIndexedInstance) activeInstance).getOffset());
-
-
 			}
 		}
 		
