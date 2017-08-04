@@ -590,6 +590,8 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		   if (regMapInst.hasProperty("js_macro_name")) regSetProperties.setJspecMacroName(regMapInst.getProperty("js_macro_name"));
 		   if (regMapInst.hasProperty("js_macro_mode")) regSetProperties.setJspecMacroMode(regMapInst.getProperty("js_macro_mode"));
 		   if (regMapInst.hasProperty("js_namespace")) regSetProperties.setJspecNamespace(regMapInst.getProperty("js_namespace"));
+		   if (regMapInst.hasProperty("js_typedef_name")) regSetProperties.setJspecTypedefName(regMapInst.getProperty("js_typedef_name"));
+		   if (regMapInst.hasProperty("js_instance_name")) regSetProperties.setJspecInstanceName(regMapInst.getProperty("js_instance_name"));
 		   if (regMapInst.hasProperty("js_superset_check")) regSetProperties.setJspecSupersetCheck(regMapInst.getProperty("js_superset_check"));
 		   // if instance has an id then use it for modulename
 		   if (regMapInst.getId() != null) setAddressMapName(regMapInst.getId());  

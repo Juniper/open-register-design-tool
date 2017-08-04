@@ -38,6 +38,8 @@ public class DefinedProperties {
 		addProperty(newList, "js_macro_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
 		addProperty(newList, "js_macro_mode", DefinedPropertyType.STRING, "STANDARD", DefinedProperty.REGSET, false, false);
 		addProperty(newList, "js_namespace", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
+		addProperty(newList, "js_typedef_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
+		addProperty(newList, "js_instance_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
 		// reg only properties
 		addProperty(newList, "category", DefinedPropertyType.STRING, "", DefinedProperty.REG, false, false);
 		addProperty(newList, "js_attributes", DefinedPropertyType.STRING, "false", DefinedProperty.REG, false, false);

@@ -159,7 +159,7 @@ public class JspecBuilder extends OutputBuilder {
 
 	/** process root address map */
 	@Override
-	public void addRegMap() {  // TODO params in root addr map not included because regSetProperties is null !! FIXME
+	public void addRegMap() {
 		// create text name and description if null
 		String mapId = getAddressMapName();
 		
@@ -169,8 +169,8 @@ public class JspecBuilder extends OutputBuilder {
 		
 		// if root not to be instanced, make this a typedef
 		//System.out.println("JSpecBuilder addRegMap: rootInst=" + ExtParameters.jspecRootRegsetIsInstanced());
-		String tdefStr = ExtParameters.jspecRootRegsetIsInstanced() ? "" : "typedef ";
-		outputList.add(new OutputLine(indentLvl, tdefStr + "register_set " + mapId + " \"" + textName + "\" {"));
+		String tdefStr = rootHasTypedef()? "typedef " : "";
+		outputList.add(new OutputLine(indentLvl, tdefStr + "register_set " + getRootDefName() + " \"" + textName + "\" {"));
 		outputList.add(new OutputLine(indentLvl++, ""));	
 		// set js pass-thru info
 		buildJspecPassthruAssigns();
@@ -186,6 +186,7 @@ public class JspecBuilder extends OutputBuilder {
 	    }
 	}
 
+	//ExtParameters.jspecRootRegsetIsInstanced()
 	/** finish root address map  */
 	@Override
 	public  void finishRegMap() {	
@@ -194,9 +195,40 @@ public class JspecBuilder extends OutputBuilder {
 		// close out the register set definition
 		outputList.add(new OutputLine(--indentLvl, "};"));
 		outputList.add(new OutputLine(indentLvl, ""));	
+		// if a typedef is defined and instantiation is specified, add the instance
+		if (rootHasTypedef() && ExtParameters.jspecRootRegsetIsInstanced()) {
+			String textName = regSetProperties.getTextName();
+			if (textName == null) textName = " ";
+			outputList.add(new OutputLine(indentLvl++, getRootDefName() + " " + getRootInstanceName() + " \"" + textName + "\" param {"));
+			outputList.add(new OutputLine(indentLvl, "address = 0x0;"));
+			outputList.add(new OutputLine(--indentLvl, "};"));
+			outputList.add(new OutputLine(indentLvl, ""));				
+		}
 	}
 
     //---------------------------- jspec gen methods ----------------------------------------
+	
+	/** return name used in the root definition - could be typedef or anonymous instance */
+	private String getRootDefName() {
+		//System.out.println("JspecBuilder getRootDefName: typedef  isNull=" + (regSetProperties.getJspecTypedefName()==null) + ", isEmpty=" + ((regSetProperties.getJspecTypedefName()==null)? "" : regSetProperties.getJspecTypedefName().isEmpty()));
+		//System.out.println("JspecBuilder getRootDefName: instance isNull=" + (regSetProperties.getJspecInstanceName()==null) + ", isEmpty=" + ((regSetProperties.getJspecInstanceName()==null)? "" : regSetProperties.getJspecInstanceName().isEmpty()));
+		if (regSetProperties.getJspecTypedefName()!=null) return regSetProperties.getJspecTypedefName();  // use typedef name override
+		if (!ExtParameters.jspecRootRegsetIsInstanced()) return getAddressMapName();  // else use addrmap name as typedef
+		if (regSetProperties.getJspecInstanceName()!=null) return regSetProperties.getJspecInstanceName();  // use instance name override
+		return getAddressMapName();   // else anonymous instance
+	}
+
+	/** return true if root regset hill have a defined typedef */
+    private boolean rootHasTypedef() {
+		//System.out.println("JspecBuilder rootHasTypedef: typedef  isNull=" + (regSetProperties.getJspecTypedefName()==null) + ", isEmpty=" + ((regSetProperties.getJspecTypedefName()==null)? "" : regSetProperties.getJspecTypedefName().isEmpty()));
+		//System.out.println("JspecBuilder rootHasTypedef: jspecRootRegsetIsInstanced=" + ExtParameters.jspecRootRegsetIsInstanced());
+		return (regSetProperties.getJspecTypedefName()!=null) || !ExtParameters.jspecRootRegsetIsInstanced();
+	}
+
+    /** return instance name used in (non-anonymous) instance */
+	private String getRootInstanceName() {
+		return (regSetProperties.getJspecInstanceName()!=null)? regSetProperties.getJspecInstanceName() : getAddressMapName();
+	}
 
 	/** build a jspec header for current register set instance */ 
 	private void buildRegSetHeader() {

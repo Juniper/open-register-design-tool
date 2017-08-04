@@ -352,6 +352,8 @@ ext_parm_defs
   | 'js_macro_name'   // added
   | 'js_macro_mode'   // added
   | 'js_namespace'   // added
+  | 'js_typedef_name'   // added
+  | 'js_instance_name'   // added
   
   | 'fieldstructwidth'  // added
 

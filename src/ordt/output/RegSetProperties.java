@@ -21,6 +21,8 @@ public class RegSetProperties extends AddressableInstanceProperties {
 	private String jspecMacroName;
 	private String jspecMacroMode;
 	private String jspecNamespace;
+	private String jspecTypedefName;
+	private String jspecInstanceName;
 
 	public RegSetProperties(ModInstance regSetInst) {
 		super(regSetInst);  // init instance, id, name, description text
@@ -51,6 +53,8 @@ public class RegSetProperties extends AddressableInstanceProperties {
 		if (pList.hasProperty("js_macro_name")) setJspecMacroName(pList.getProperty("js_macro_name"));
 		if (pList.hasProperty("js_macro_mode")) setJspecMacroMode(pList.getProperty("js_macro_mode"));
 		if (pList.hasProperty("js_namespace")) setJspecNamespace(pList.getProperty("js_namespace"));
+		if (pList.hasProperty("js_typedef_name")) setJspecTypedefName(pList.getProperty("js_typedef_name"));
+		if (pList.hasProperty("js_instance_name")) setJspecInstanceName(pList.getProperty("js_instance_name"));
 	} 
     
 	/** extract a PropertyList of user defined parameters for this instance */
@@ -128,6 +132,22 @@ public class RegSetProperties extends AddressableInstanceProperties {
 
 	public void setJspecNamespace(String jspecNamespace) {
 		this.jspecNamespace = jspecNamespace;
+	}
+
+	public String getJspecTypedefName() {
+		return jspecTypedefName;
+	}
+
+	public void setJspecTypedefName(String jspecTypedefName) {
+		this.jspecTypedefName = jspecTypedefName;
+	}
+
+	public String getJspecInstanceName() {
+		return jspecInstanceName;
+	}
+	
+	public void setJspecInstanceName(String jspecInstanceName) {
+		this.jspecInstanceName = jspecInstanceName;
 	}
 
 	@Override
