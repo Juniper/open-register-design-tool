@@ -31,7 +31,7 @@ import ordt.parameters.ExtParameters.UVMModelModes;
 
 public class Ordt {
 
-	private static String version = "170731.01"; 
+	private static String version = "170804.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -352,8 +352,8 @@ public class Ordt {
     	System.out.println("       <filename> will be created containing UVM register classes"); 
     	System.out.println("   -uvmregspkg <filename>");
     	System.out.println("       <filename> will be created containing package of ordt extended UVM classes"); 
-    	//System.out.println("   -vbench <filename>");
-    	//System.out.println("       <filename> will be created containing a basic verilog testbench"); 
+    	System.out.println("   -vbench <filename>");
+    	System.out.println("       <filename> will be created containing a basic verilog testbench"); 
     	//System.out.println("   -verilog <filename>");
     	//System.out.println("       <filename> will be created containing verilog output");
     	System.out.println("   -xml <filename>");

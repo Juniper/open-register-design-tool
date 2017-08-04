@@ -56,7 +56,7 @@ addrmap l2_map {
     
     base_regs base_regs;
     external base_regs ext_base_regs @0x1000;
-    external(SERIAL8_D1) l3_map l3_child @0x2000;
+    external(SERIAL8 dly=1) l3_map l3_child @0x2000;
 };
 
 // define level 1 addrmap - base regs, ext region, and p2p child
@@ -65,10 +65,10 @@ addrmap l1_map {
     
     base_regs base_regs;
     external base_regs ext_base_regs @0x10000;
-    external(RING16_D2) l2_map l2_r16_child @0x20000;
-    external(SERIAL8_D1) l2_map l2_s8_child @0x30000;
+    external(RING16 dly=2) l2_map l2_r16_child @0x20000;
+    external(SERIAL8 dly=1) l2_map l2_s8_child @0x30000;
     external(DEFAULT) l2_map l2_dflt_child @0x40000;
-    external(SERIAL8_D1) singleton_rf singleton_rf_s8 @0x50000;
-    external(RING16_D1) singleton_rf singleton_rf_r16 @0x60000;
+    external(SERIAL8 dly=1) singleton_rf singleton_rf_s8 @0x50000;
+    external(RING16 dly=1) singleton_rf singleton_rf_r16 @0x60000;
     external(DEFAULT) singleton_rf singleton_rf_dflt @0x70000;
 } base_map;
