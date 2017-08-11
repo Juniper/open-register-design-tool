@@ -3,6 +3,9 @@
  */
 package ordt.output;
 
+import java.util.HashMap;
+
+import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
@@ -21,7 +24,13 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 	protected int extAddressWidth = 0;   // width of word address range for this group
 	protected int extLowBit = 0;  // low bit in external address range
 	
-	private boolean externalDecode = false;   // inst declared as external decode
+    // external/map type
+	public enum ExtType { INTERNAL, PARALLEL, EXTERNAL_DECODE, BBV5, SRAM, SERIAL8, RING }
+	private ExternalType externalType = new ExternalType(ExtType.INTERNAL);   // external interface type (init to internal)
+	private boolean rootExternal = false;   // is instance root instance of an external reg set (in root builder map)
+	private boolean addressMap = false;   // is an external address map
+	private boolean localExternal = false;   // is instance external in its local address map 
+	private boolean localRootExternal = false;   // is instance root external in its local address map 
 	
 	// register properties - will be true if any field has corresponding access
 	private boolean isSwReadable = false; 
@@ -29,16 +38,20 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 	
 	public AddressableInstanceProperties(ModInstance extractInstance) {
 		super(extractInstance);
+		// set external status at object create (special case since it is used in model generateOutput and builder pushInstance)
+		if (extractInstance.hasProperty("external"))  setExternalTypeFromString(extractInstance.getProperty("external"));
 	}
 
 	public AddressableInstanceProperties(AddressableInstanceProperties oldInstance) {
 		super(oldInstance);
 		// set AddressableInstanceProperty info
+		setExternalType(oldInstance.getExternalType());  
+		setRootExternal(oldInstance.isRootExternal());  
+		setAddressMap(oldInstance.isAddressMap());  
 		setRelativeBaseAddress(oldInstance.getRelativeBaseAddress());  
 		setBaseAddress(oldInstance.getBaseAddress());  
 		setExtAddressWidth(oldInstance.getExtAddressWidth());  
 		setExtLowBit(oldInstance.getExtLowBit());  
-		setExternalDecode(oldInstance.isExternalDecode());  
 	}
 	
 	/** display info AddressableInstanceProperties info */
@@ -49,7 +62,9 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 		System.out.println("   relative base address=" + this.getRelativeBaseAddress());  		
 		System.out.println("   ext addr width=" + this.getExtAddressWidth());  		
 		System.out.println("   ext addr low bit=" + this.getExtLowBit());  		
-		System.out.println("   external decode=" + this.isExternalDecode());  		
+		System.out.println("   external=" + this.externalType);  
+		System.out.println("   root external=" + this.isRootExternal());  
+		System.out.println("   is address map=" + this.isAddressMap());  		
 	}
 
 	/** get baseAddress
@@ -142,20 +157,173 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 		return (ModAddressableInstance) extractInstance;
 	}
 
+	/** return true if this instance is an addrmap
+	 */
+	public boolean isAddressMap() {
+		return addressMap;
+	}
+
+	/** mark this instance as an addrmap
+	 */
+	public void setAddressMap(boolean addressMap) {
+		this.addressMap = addressMap;
+	}
+
+	// -------- external/addrmap methods
+	
+	/** get externalType
+	 *  @return the externalType
+	 */
+	public ExternalType getExternalType() {
+		return externalType;
+	}
+
+	/** set externalType
+	 *  @param externalType the externalType to set
+	 */
+	public void setExternalType(ExternalType externalType) {
+		this.externalType = externalType;
+	}
+	
+	/* return true is instance externalType matches specified value */
+	public boolean hasExternalType(ExtType eType) {
+		return (externalType.getType() == eType);
+	}
+
+	/** get external
+	 *  @return the external
+	 */
+	public boolean isExternal() {
+		return ((externalType != null) && externalType.isExternal());
+	}
+
+	/** set this instance as internal  */
+	public void setInternal() {
+		this.externalType = new ExternalType(ExtType.INTERNAL);  // internal
+	}
+
+	/** set external type for this instance from a string (null indicates internal) */
+	public void setExternalTypeFromString(String externalStr) {
+		if (externalStr == null) this.externalType = new ExternalType(ExtType.INTERNAL);  // internal
+		else if ("DEFAULT".equals(externalStr)) this.externalType = new ExternalType(ExtType.PARALLEL);
+		else if (externalStr.startsWith("PARALLEL")) {
+			this.externalType = new ExternalType(ExtType.PARALLEL);  
+			if (externalStr.contains("opt=")) {
+				String optMode = externalStr.substring(externalStr.indexOf('=')+1);
+				switch (optMode) {
+				case "YES" : this.externalType.addParm("optimize", 1);  break;
+				case "NO" :  this.externalType.addParm("no_optimize", 1);  break;
+				case "KEEP_NACK" : this.externalType.addParm("keep_nack", 1);  break;
+				}
+			}
+		}
+		else if ("EXTERNAL_DECODE".equals(externalStr)) this.externalType = new ExternalType(ExtType.EXTERNAL_DECODE);
+		else if ("BBV5_8".equals(externalStr)) {
+			this.externalType = new ExternalType(ExtType.BBV5);
+			this.externalType.addParm("width", 8);
+		}
+		else if ("BBV5_16".equals(externalStr)) {
+			this.externalType = new ExternalType(ExtType.BBV5);
+			this.externalType.addParm("width", 16);
+		}
+		else if ("SRAM".equals(externalStr)) this.externalType = new ExternalType(ExtType.SRAM);
+		else if (externalStr.startsWith("SERIAL8")) {
+			int delay=0;  // default delay
+			String modStr = externalStr.replace("_D", "dly="); // replace old parameter form
+			if (modStr.contains("dly=")) delay = Integer.valueOf(modStr.substring(modStr.indexOf('=')+1));
+			this.externalType = new ExternalType(ExtType.SERIAL8);
+			this.externalType.addParm("delay", delay);
+		}
+		else if (externalStr.startsWith("RING")) {
+			int delay=0;  // default delay
+			int width=16;  // default width
+			String modStr = externalStr.replace("_D", "dly="); // replace old parameter form
+			if (modStr.contains("dly=")) delay = Integer.valueOf(modStr.substring(modStr.indexOf('=')+1));
+			if (modStr.contains("RING8")) width = 8;
+			else if (modStr.contains("RING32")) width = 32;
+			this.externalType = new ExternalType(ExtType.RING);
+			this.externalType.addParm("width", width);
+			this.externalType.addParm("delay", delay);
+		}
+		else Ordt.errorExit("Invalid external interface type (" + externalStr + ") detected in instance " + getId());
+		//System.out.println("InstanceProperties setExternal: input=" + externalStr + ", new val=" + this.externalType + ", inst=" + getId());
+	}
+
+	/** ExternalType class carrying parameters */
+	public class ExternalType {
+		private ExtType type = ExtType.INTERNAL;
+		private HashMap<String, Integer> parms = new HashMap<String, Integer>();
+		// constructors
+		public ExternalType(ExtType type) {
+			this.type = type;
+		}
+		// type getters setters
+		public ExtType getType() {
+			return type;
+		}
+		public boolean isExternal() {
+			return (type != ExtType.INTERNAL);
+		}
+		public boolean isExternalDecode() {
+			return (type == ExtType.EXTERNAL_DECODE);
+		}
+		public void setType(ExtType type) {
+			this.type = type;
+		}
+		// parm getters/setters
+		public Integer getParm(String parm) {
+			return parms.get(parm);
+		}
+		public boolean hasParm(String parm) {
+			return parms.containsKey(parm);
+		}
+		public void addParm(String parm, Integer value) {
+			parms.put(parm,  value);
+		}
+		@Override
+		public String toString() {
+			return type.toString() + parms;
+		}
+	}
+	
+	/** get rootExternal (set by stack push into outputBuilder)
+	 *  @return the rootExternal
+	 */
+	public boolean isRootExternal() {
+		return rootExternal;
+	}
+
+	/** set rootExternal
+	 *  @param rootExternal the rootExternal to set
+	 */
+	public void setRootExternal(boolean rootExternal) {
+		this.rootExternal = rootExternal;
+	}
+
 	/** get externalDecode
 	 *  @return the externalDecode
 	 */
 	public boolean isExternalDecode() {
-		return externalDecode;
+		return externalType.isExternalDecode();
+	}
+	
+	public boolean isLocalExternal() {
+		return localExternal;
 	}
 
-	/** set externalDecode
-	 *  @param externalDecode the externalDecode to set
-	 */
-	public void setExternalDecode(boolean externalDecode) {
-		//System.out.println("AddressableInstanceProperties setExternalDecode: " + externalDecode);
-		this.externalDecode = externalDecode;
+	public void setLocalExternal(boolean localExternal) {
+		this.localExternal = localExternal;
 	}
+
+	public boolean isLocalRootExternal() {
+		return localRootExternal;
+	}
+
+	public void setLocalRootExternal(boolean localRootExternal) {
+		this.localRootExternal = localRootExternal;
+	}
+
+	// ------------
 
 	/** get isSwReadable (valid after fields processed)
 	 *  @return the isSwReadable
@@ -216,10 +384,15 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 		return  " [" + (getMaxRegWidth() - 1) + ":0] ";
 	}
 
+	/** hashcode/equals overrides 
+	 * - ignores externalType in compare
+	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = super.hashCode();
+		result = prime * result + (addressMap ? 1231 : 1237);
+		result = prime * result + (rootExternal ? 1231 : 1237);
 		result = prime * result + (isSwReadable ? 1231 : 1237);
 		result = prime * result + (isSwWriteable ? 1231 : 1237);
 		return result;
@@ -234,6 +407,10 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 		if (getClass() != obj.getClass())
 			return false;
 		AddressableInstanceProperties other = (AddressableInstanceProperties) obj;
+		if (addressMap != other.addressMap)
+			return false;
+		if (rootExternal != other.rootExternal)
+			return false;
 		if (isSwReadable != other.isSwReadable)
 			return false;
 		if (isSwWriteable != other.isSwWriteable)

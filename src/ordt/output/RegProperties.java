@@ -84,10 +84,8 @@ public class RegProperties extends AddressableInstanceProperties {
 			//System.out.println("RegProperties: creating properties for aliased register, id=" + regInst.getId() + ", aliasedId=" + regInst.getProperty("aliasedId") );
 			setAliasedId(extractInstance.getProperty("aliasedId"));
 		}
-		// set external decode 
-		if (pList.hasTrueProperty("external_decode")) setExternalDecode(true);
-		// otherwise check register width
-		else checkRegWidth();
+		// check register width
+		if (!isExternalDecode()) checkRegWidth();  // ext decode is set in super
 		
 		// now extract from the combined instance properties
 		// extract boolean test properties

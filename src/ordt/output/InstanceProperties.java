@@ -20,11 +20,6 @@ import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 public class InstanceProperties {
 	private String  id = "";           // current instance id (contains rep count suffix)
 	private String instancePath = "";      // instance path
-	//private boolean external = false;   // is instance set declared as external
-	public enum ExtType { INTERNAL, PARALLEL, EXTERNAL_DECODE, BBV5, SRAM, SERIAL8, RING }
-	private ExternalType externalType = new ExternalType(ExtType.INTERNAL);   // external interface type (init to internal)
-	private boolean rootExternal = false;   // is instance root instance of an external reg set
-	private boolean addressMap = false;   // is an external address map
 	
 	private String textName;  // text name of this instance
 	private String textDescription;  // text description of this instance
@@ -50,8 +45,6 @@ public class InstanceProperties {
 		instDefaultProperties = loadInstDefaultProperties();  // set default prop list
 		//instDefaultProperties.updateProperties(getDefaultProperties());  // get default properties from extractInstance parent component
 		//if (!instDefaultProperties.isEmpty()) System.out.println("--- InstanceProperties constructor:" + getId() + "\n" + instDefaultProperties);
-		// set external status at object create (special case since it is used in model generateOutput and builder pushInstance)
-		if (extractInstance.hasProperty("external"))  setExternal(extractInstance.getProperty("external"));
 	}
 	
 	/** get default properties from extractInstance component and parent component
@@ -65,10 +58,6 @@ public class InstanceProperties {
 		PropertyList pList = new PropertyList();
 		if (parent != null) pList.updateProperties(parent.getDefaultProperties());  
 		if (comp != null) pList.updateProperties(comp.getDefaultProperties());  
-		// since external default is assigned to an instance, add to default inst properties
-		if (extractInstance.hasTrueProperty("external_decode")) {
-			pList.setProperty("external_decode", "true");
-		}
 		return pList;		
 	}
 
@@ -76,9 +65,6 @@ public class InstanceProperties {
 		this.extractInstance = oldInstance.getExtractInstance();
 		setId(oldInstance.getId());  
 		setInstancePath(oldInstance.getInstancePath());  
-		setExternalType(oldInstance.getExternalType());  
-		setRootExternal(oldInstance.isRootExternal());  
-		setAddressMap(oldInstance.isAddressMap());  
 		setTextName(oldInstance.getTextName());  
 		setTextDescription(oldInstance.getTextDescription());  
 		setJspecSupersetCheck(oldInstance.getJspecSupersetCheck());  
@@ -96,9 +82,6 @@ public class InstanceProperties {
 	public void display() {
 		System.out.println("InstanceProperty, id=" + this.getId());  
 		System.out.println("   path=" + this.getInstancePath());  
-		System.out.println("   external=" + this.externalType);  
-		System.out.println("   root external=" + this.isRootExternal());  
-		System.out.println("   is address map=" + this.isAddressMap());  		
 		System.out.println("   name=" + this.getTextName());  
 		System.out.println("   description=" + this.getTextDescription());  
 		System.out.println("   js_superset_check=" + this.getJspecSupersetCheck());  
@@ -173,149 +156,6 @@ public class InstanceProperties {
 	public String getIndexedId() {
 		if (!isReplicated()) return getId();
 		return getNoRepId() + "[" + getRepNum() + "]";
-	}
-
-	/** get externalType
-	 *  @return the externalType
-	 */
-	public ExternalType getExternalType() {
-		return externalType;
-	}
-
-	/** set externalType
-	 *  @param externalType the externalType to set
-	 */
-	public void setExternalType(ExternalType externalType) {
-		this.externalType = externalType;
-	}
-	
-	/* return true is instance externalType matches specified value */
-	public boolean hasExternalType(ExtType eType) {
-		return (externalType.getType() == eType);
-	}
-
-	/** get external
-	 *  @return the external
-	 */
-	public boolean isExternal() {
-		return ((externalType != null) && externalType.isExternal());
-	}
-
-	/** set this instance as internal  */
-	public void setInternal() {
-		this.externalType = new ExternalType(ExtType.INTERNAL);  // internal
-	}
-
-	/** set external type for this instance from a string (null for internal) */
-	public void setExternal(String externalStr) {
-		if (externalStr == null) this.externalType = new ExternalType(ExtType.INTERNAL);  // internal
-		else if ("DEFAULT".equals(externalStr)) this.externalType = new ExternalType(ExtType.PARALLEL);
-		else if (externalStr.startsWith("PARALLEL")) {
-			this.externalType = new ExternalType(ExtType.PARALLEL);  
-			if (externalStr.contains("opt=")) {
-				String optMode = externalStr.substring(externalStr.indexOf('=')+1);
-				switch (optMode) {
-				case "YES" : this.externalType.addParm("optimize", 1);  break;
-				case "NO" :  this.externalType.addParm("no_optimize", 1);  break;
-				case "KEEP_NACK" : this.externalType.addParm("keep_nack", 1);  break;
-				}
-			}
-		}
-		else if ("EXTERNAL_DECODE".equals(externalStr)) this.externalType = new ExternalType(ExtType.EXTERNAL_DECODE);
-		else if ("BBV5_8".equals(externalStr)) {
-			this.externalType = new ExternalType(ExtType.BBV5);
-			this.externalType.addParm("width", 8);
-		}
-		else if ("BBV5_16".equals(externalStr)) {
-			this.externalType = new ExternalType(ExtType.BBV5);
-			this.externalType.addParm("width", 16);
-		}
-		else if ("SRAM".equals(externalStr)) this.externalType = new ExternalType(ExtType.SRAM);
-		else if (externalStr.startsWith("SERIAL8")) {
-			int delay=0;  // default delay
-			String modStr = externalStr.replace("_D", "dly="); // replace old parameter form
-			if (modStr.contains("dly=")) delay = Integer.valueOf(modStr.substring(modStr.indexOf('=')+1));
-			this.externalType = new ExternalType(ExtType.SERIAL8);
-			this.externalType.addParm("delay", delay);
-		}
-		else if (externalStr.startsWith("RING")) {
-			int delay=0;  // default delay
-			int width=16;  // default width
-			String modStr = externalStr.replace("_D", "dly="); // replace old parameter form
-			if (modStr.contains("dly=")) delay = Integer.valueOf(modStr.substring(modStr.indexOf('=')+1));
-			if (modStr.contains("RING8")) width = 8;
-			else if (modStr.contains("RING32")) width = 32;
-			this.externalType = new ExternalType(ExtType.RING);
-			this.externalType.addParm("width", width);
-			this.externalType.addParm("delay", delay);
-		}
-		else Ordt.errorExit("Invalid external interface type (" + externalStr + ") detected in instance " + getId());
-		//System.out.println("InstanceProperties setExternal: input=" + externalStr + ", new val=" + this.externalType + ", inst=" + getId());
-	}
-
-	/** ExternalType class carrying parameters */
-	public class ExternalType {
-		private ExtType type = ExtType.INTERNAL;
-		private HashMap<String, Integer> parms = new HashMap<String, Integer>();
-		// constructors
-		public ExternalType(ExtType type) {
-			this.type = type;
-		}
-		// type getters setters
-		public ExtType getType() {
-			return type;
-		}
-		public boolean isExternal() {
-			return (type != ExtType.INTERNAL);
-		}
-		public void setType(ExtType type) {
-			this.type = type;
-		}
-		// parm getters/setters
-		public Integer getParm(String parm) {
-			return parms.get(parm);
-		}
-		public boolean hasParm(String parm) {
-			return parms.containsKey(parm);
-		}
-		public void addParm(String parm, Integer value) {
-			parms.put(parm,  value);
-		}
-		@Override
-		public String toString() {
-			return type.toString() + parms;
-		}
-	}
-	
-	/** get rootExternal (set by stack push into outputBuilder)
-	 *  @return the rootExternal
-	 */
-	public boolean isRootExternal() {
-		return rootExternal;
-	}
-
-	/** set rootExternal
-	 *  @param rootExternal the rootExternal to set
-	 */
-	public void setRootExternal(boolean rootExternal) {
-		this.rootExternal = rootExternal;
-	}
-
-	/** return true if this instance is an addrmap
-	 */
-	public boolean isAddressMap() {
-		return addressMap;
-	}
-
-	/** mark this instance as an addrmap
-	 */
-	public void setAddressMap(boolean addressMap) {
-		this.addressMap = addressMap;
-	}
-
-	/** returns true if this instance is external within the local map (ie, external and not an addrmap) */  
-	public boolean isLocalMapExternal(boolean allowLocalMapInternals) {
-		return isExternal() && !(isAddressMap() && allowLocalMapInternals);
 	}
 
 	/** get total replication count
@@ -648,7 +488,6 @@ public class InstanceProperties {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + (addressMap ? 1231 : 1237);
 		result = prime * result + (dontCompare ? 1231 : 1237);
 		result = prime * result + (dontTest ? 1231 : 1237);
 		result = prime * result + ((extInterfaceName == null) ? 0 : extInterfaceName.hashCode());
@@ -656,7 +495,6 @@ public class InstanceProperties {
 		result = prime * result + ((instDefaultProperties == null) ? 0 : instDefaultProperties.hashCode());
 		result = prime * result + ((jspecSupersetCheck == null) ? 0 : jspecSupersetCheck.hashCode());
 		result = prime * result + extractInstance.getRepCount();
-		result = prime * result + (rootExternal ? 1231 : 1237);
 		result = prime * result + ((textName == null) ? 0 : textName.hashCode());
 		result = prime * result + (useInterface ? 1231 : 1237);
 		result = prime * result + (useStruct ? 1231 : 1237);
@@ -673,8 +511,6 @@ public class InstanceProperties {
 		if (getClass() != obj.getClass())
 			return false;
 		InstanceProperties other = (InstanceProperties) obj;
-		if (addressMap != other.addressMap)
-			return false;
 		if (dontCompare != other.dontCompare)
 			return false;
 		if (dontTest != other.dontTest)
@@ -700,8 +536,6 @@ public class InstanceProperties {
 		} else if (!jspecSupersetCheck.equals(other.jspecSupersetCheck))
 			return false;
 		if (extractInstance.getRepCount() != other.extractInstance.getRepCount())
-			return false;
-		if (rootExternal != other.rootExternal)
 			return false;
 		if (textName == null) {
 			if (other.textName != null)

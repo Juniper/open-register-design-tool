@@ -34,12 +34,12 @@ public class DefinedProperties {
 		addProperty(newList, "external", DefinedPropertyType.SPECIAL, null, DefinedProperty.REGSET | DefinedProperty.REG, false, false);
 		addProperty(newList, "repcount", DefinedPropertyType.NUMBER, "1", DefinedProperty.REGSET | DefinedProperty.REG, true, false); // hidden
 		// regset only properties
-		addProperty(newList, "external_decode", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.REGSET, false, false);
 		addProperty(newList, "js_macro_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
 		addProperty(newList, "js_macro_mode", DefinedPropertyType.STRING, "STANDARD", DefinedProperty.REGSET, false, false);
 		addProperty(newList, "js_namespace", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
 		addProperty(newList, "js_typedef_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
 		addProperty(newList, "js_instance_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
+		addProperty(newList, "js_instance_repeat", DefinedPropertyType.NUMBER, "1", DefinedProperty.REGSET, false, false);
 		// reg only properties
 		addProperty(newList, "category", DefinedPropertyType.STRING, "", DefinedProperty.REG, false, false);
 		addProperty(newList, "js_attributes", DefinedPropertyType.STRING, "false", DefinedProperty.REG, false, false);

@@ -190,7 +190,6 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 		String firstToken = ctx.getChild(0).getText();
         if ("external_decode".equals(firstToken)) {     // save the external tag (use in component_inst_elem)
         	savedParms.setProperty("external", "EXTERNAL_DECODE");  // external_decode is handled as external special case
-        	savedParms.setProperty("external_decode", "true");  
         }
         else if (firstToken.startsWith("external")) {     // save the external tag (use in component_inst_elem)
         	// if a special ext type is specified use it
@@ -546,7 +545,6 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 		String secondToken = ctx.getChild(1).getText();
         if ("external_decode".equals(firstToken)) {    // save the internal tag and component id
         	savedParms.setProperty("external", "EXTERNAL_DECODE");  // external_decode is handled as external special case
-        	savedParms.setProperty("external_decode", "true");  
         	savedParms.setProperty("compId", secondToken);
         }
         else if (firstToken.startsWith("external")) {    // save the external tag and component id

@@ -32,7 +32,6 @@ public class RegListBuilder extends OutputBuilder {  // TODO handle alias fields
 	    setVisitEachRegSet(true);   // gen code for each reg set
 	    setVisitExternalRegisters(ExtParameters.reglistDisplayExternalRegs());  //visit externals also?
 	    setVisitEachExternalRegister(true);	    // treat external regs exactly as internals
-	    setAllowLocalMapInternals(true);  // cascaded addrmaps will result in local non-ext regions   
 		model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
 	}
 	

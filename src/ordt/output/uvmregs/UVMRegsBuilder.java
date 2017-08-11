@@ -68,7 +68,6 @@ public class UVMRegsBuilder extends OutputBuilder {
 	    setVisitEachRegSet(false);   // only need to call once for replicated reg set groups
 	    setVisitExternalRegisters(true);  // we will visit externals 
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
-	    setAllowLocalMapInternals(true);  // cascaded addrmaps will result in local non-ext regions   
 	    model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
     }
 
@@ -325,7 +324,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 			else subcompBuildList.addStatement(parentID, "  this." + regId + "[i] = new($psprintf(\"" + regProperties.getId() + " [%0d]\",i));");  
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i].configure(this, null, \"\");");  
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i].set_rdl_tag($psprintf(\"" + hdlPath + "_%0d_\",i));");
-			if (regProperties.isExternal()) 
+			if (regProperties.isLocalExternal()) 
 				subcompBuildList.addStatement(parentID, "  this." + regId + "[i].set_external(1);");
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i]" + getUvmRegTestModeString());  
 			// add any user defined properties
@@ -339,7 +338,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		   else subcompBuildList.addStatement(parentID, "this." + regId + " = new(\"" + regProperties.getId() + "\");");  
 		   subcompBuildList.addStatement(parentID, "this." + regId + ".configure(this, null, \"\");"); 
 		   subcompBuildList.addStatement(parentID, "this." + regId + ".set_rdl_tag(\"" + hdlPath + "_\");");
-		   if (regProperties.isExternal()) 
+		   if (regProperties.isLocalExternal()) 
 			   subcompBuildList.addStatement(parentID, "this." + regId + ".set_external(1);");
 		   subcompBuildList.addStatement(parentID, "this." + regId + getUvmRegTestModeString());  
 			// add any user defined properties
@@ -977,7 +976,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		} // while
 		
 		// add backdoor path to generated rtl
-		if (!regProperties.isExternal()) buildRegHdlPaths();
+		if (!regProperties.isLocalExternal()) buildRegHdlPaths();
 				
 		outputList.add(new OutputLine(--indentLvl, "endfunction: build"));
 	}

@@ -26,7 +26,7 @@ import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalSet;
-import ordt.output.InstanceProperties.ExtType;
+import ordt.output.AddressableInstanceProperties.ExtType;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 import ordt.parameters.ExtParameters.SVDecodeInterfaceTypes;
@@ -92,7 +92,6 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	    setVisitEachRegSet(true);   // gen code for each reg set
 	    setVisitExternalRegisters(false);  // do not visit externals - only ext root will be visited
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
-	    setAllowLocalMapInternals(false);  // cascaded addrmaps will not result in local non-ext regions   
 		setLegacyVerilog(false);  // rtl uses systemverilog constructs
 		initIOLists(null);  // setup IO lists for logic, decode, and top modules
 		decoder.setPrimaryInterfaceType(ExtParameters.getSysVerRootDecoderInterface()); // set root pio interface type from specified params
@@ -107,7 +106,6 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	    setVisitEachRegSet(true);   // gen code for each reg set
 	    setVisitExternalRegisters(false);  // do not visit externals - only ext root will be visited
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
-	    setAllowLocalMapInternals(false);  // cascaded addrmaps will not result in local non-ext regions   
 		setLegacyVerilog(SystemVerilogBuilder.isLegacyVerilog());  // cascade state for systemverilog construct gen
 		initIOLists(parentBuilder);  // setup IO lists for logic, decode, and top modules
 	    // inherit name prefixes from parent
@@ -191,7 +189,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	/** pull over and update current regset and stacks */
 	private void updateRegSetState(SystemVerilogBuilder parentBuilder) {
 	    this.regSetProperties = parentBuilder.regSetProperties;  // this is a ref so all stack info changes - restore external when done?
-	    this.regSetProperties.setExternal(null); // no longer external now that we're in child addrmap
+	    this.regSetProperties.setExternalTypeFromString(null); // no longer external now that we're in child addrmap
 	    this.regSetProperties.setRootExternal(false);
 	    this.instancePropertyStack.addAll(parentBuilder.instancePropertyStack);
 	    this.regSetPropertyStack.addAll(parentBuilder.regSetPropertyStack);
@@ -223,8 +221,8 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			}			
 		}
 		
-		// add user signal to hashmap of defined signals for the active logic module
-		if (!signalProperties.isExternal()) logic.addUserDefinedSignal(signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), signalProperties);
+		// add user signal to hashmap of defined signals for the active logic module  // TODO - create currentInstIsLocalExternal??
+		if (!activeInstanceIsExternal()) logic.addUserDefinedSignal(signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL), signalProperties);
 		//System.out.println("SystemVerilogBuilder addSignal: signal=" + signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL) + ", low=" + signalProperties.getLowIndex() + ", size=" + signalProperties.getSignalWidth() + ", builder=" + getBuilderID() + ", ext=" + signalProperties.isExternal());
 		
 		// if signal is lhs of assignment then add to logic assign/logic lists/output, else add it as an input.
@@ -569,7 +567,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			usesInterfaces = true;
 			// set signal set type
 			DefSignalType sType = null;
-			if (properties.isExternal()) sType = properties.useInterface()? DefSignalType.DH_INTERFACE : DefSignalType.DH_STRUCT;
+			if (activeInstanceIsExternal()) sType = properties.useInterface()? DefSignalType.DH_INTERFACE : DefSignalType.DH_STRUCT;
 			else sType = properties.useInterface()? DefSignalType.LH_INTERFACE : DefSignalType.LH_STRUCT;
 			// save component Id if it's not anonymous
 			String compId = properties.getExtractInstance().getRegComp().getId();

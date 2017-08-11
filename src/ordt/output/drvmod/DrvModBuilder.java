@@ -35,7 +35,6 @@ public abstract class DrvModBuilder extends OutputBuilder {
 	    setVisitEachRegSet(false);   // only need to call once for replicated reg set groups
 	    setVisitExternalRegisters(true);  // we will visit externals 
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
-	    setAllowLocalMapInternals(true);  // cascaded addrmaps will result in local non-ext regions   
 	    setSupportsOverlays(true);	    // support overlay files
 	    DrvModBaseInstance.setBuilder(this);  // save this builder in overlay model
 	    model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root

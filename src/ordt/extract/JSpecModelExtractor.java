@@ -902,11 +902,9 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 			if ("true".equals(value.toLowerCase()) && ExtParameters.jspecRootIsExternalDecode()) {
 				if (isTypeDefInstance) {
 					activeInstances.peek().setProperty("external", "EXTERNAL_DECODE", 0);
-					activeInstances.peek().setProperty("external_decode", "true", 0);
 				}
 				else {
 					activeCompDefs.peek().setDefaultProperty("external", "EXTERNAL_DECODE"); 
-					activeCompDefs.peek().setDefaultProperty("external_decode", "true"); 
 					//System.out.println("JSpecModelExtractor: saveJSpecParam, p=" + parm + ",  v=" + value); 
 				}
 			}

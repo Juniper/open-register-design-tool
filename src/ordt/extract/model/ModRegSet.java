@@ -135,16 +135,13 @@ public class ModRegSet extends ModComponent {
 				//System.out.println("--- ModRegSet.generateOutput: non-root address map or regfile, null instance=" + callingInst.getId() + ", rep=" + rep);
 
 				regSetProperties = new RegSetProperties(callingInst);  // extract basic properties
-				// treat sub-level addr maps as an external reg set
+				outputBuilder.setExternalInstanceProperties(regSetProperties, isAddressMap());  // set external inst properties
+				// set addr map
 				if (isAddressMap()) {
 					//System.out.println("ModRegSet generateOutput: addrmap instance=" + regSetProperties.getId() + ", ext type=" + regSetProperties.getExternalType());
 					regSetProperties.setAddressMap(true);  // mark this as an address map
-					if (!regSetProperties.isExternal()) {
-						regSetProperties.setExternal("DEFAULT");  // address map is treated as external reg set					
-						//System.out.println("ModRegSet generateOutput: setting DEFAULT external on address map, callinginstance=" + callingInst.getId() + ", rep=" + rep);
-					}
 				}
-				// use rep number in regset name if output is visiting each
+				// else use rep number in regset name if output is visiting each
 				else if (outputBuilder.visitEachRegSet() && (outputBuilder.visitExternalRegisters() || !regSetProperties.isExternal())) 
 					regSetProperties.setId(regSetProperties.getId() + getRepSuffix(rep, repCount)); // update name based on rep #  
 				

@@ -9,7 +9,7 @@ import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
-import ordt.output.InstanceProperties.ExtType;
+import ordt.output.AddressableInstanceProperties.ExtType;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.OutputBuilder;
 import ordt.output.RegSetProperties;
@@ -29,7 +29,6 @@ public class SystemVerilogChildInfoBuilder extends OutputBuilder {
 	    setVisitEachRegSet(true);   // gen code for each reg set
 	    setVisitExternalRegisters(true);  //visit externals also?
 	    setVisitEachExternalRegister(false);	    // treat external regs exactly as internals
-	    setAllowLocalMapInternals(true);  // cascaded addrmaps will result in local non-ext regions   
 		model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
 	}
 	

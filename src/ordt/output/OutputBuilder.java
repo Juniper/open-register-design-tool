@@ -55,7 +55,6 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	private boolean visitEachRegSet = true;  // should each regset in a replicated group be visited
 	private boolean visitExternalRegisters = false;  // should any register group/regset in an external group be visited
 	private boolean visitEachExternalRegister = false;  // should each register in an external group be visited (treated as internal)
-	private boolean allowLocalMapInternals = true;  // if true, address map instances encountered in builder will have local non-external regions
 	private boolean supportsOverlays = false;  // if true, builder supports processing of overlay models
 
 	private RegNumber externalBaseAddress;  // starting address of current external reg group
@@ -75,6 +74,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	protected  FieldSetProperties fieldSetProperties;  // output-relevant active field properties  
 	protected Stack<FieldSetProperties> fieldSetPropertyStack = new Stack<FieldSetProperties>();  // field sets are nested so store stack
 	protected  RegProperties regProperties;  // output-relevant active register properties  
+	protected boolean regIsActive = false;  // indicator that regProperties is currently active
 	protected Stack<RegSetProperties> regSetPropertyStack = new Stack<RegSetProperties>();  // reg sets are nested so store stack
 	protected  RegSetProperties regSetProperties;  // output-relevant active register set properties  
 	private  RegSetProperties rootMapProperties;  // properties of root address map (separate from regSetProperties since root map is handled differently wrt rs stack) 
@@ -252,6 +252,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
       */
 	public  void addRegister(RegProperties rProperties, int rep) {  
 		if (rProperties != null) {
+			regIsActive = true;
 		   //System.out.println("OutputBuilder " + getBuilderID() + " addRegister, path=" + getInstancePath() + ", id=" + rProperties.getId() + ", addr=" + rProperties.getExtractInstance().getAddress());
 
 		   // extract properties from instance/component
@@ -293,6 +294,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			    regSetProperties.updateChildHash(regProperties.hashCode()); // add this reg's hashcode to parent
 				finishRegister();   
 			}
+			regIsActive = false;
 		}
 		//else System.out.println("OutputBuilder finishRegister: null regProperties");
 	}
@@ -304,6 +306,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	 * @param rProperties - extracted register properties */
 	public  void addExternalRegisters(RegProperties rProperties) {  
 		if (rProperties != null) {
+		   regIsActive = true;  // regProperties is valid
 		   //System.out.println("OutputBuilder: addExternalRegisters, path=" + getInstancePath() + ", id=" + rProperties.getId());
 
 		   // extract properties from instance/component
@@ -345,12 +348,14 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			    regSetProperties.updateChildHash(regProperties.hashCode()); // add this reg's hashcode to parent
 				finishRegister();   // only first rset rep here (only one call for all reg reps)
 			}
+			regIsActive = false;
 		}
 	}
 
 	/** add a set of external registers to this output 
 	 * @param newRegProperties - if non-null (is ext regset, not reg), this will be set as external and used as static regProperties for output gen */
 	public void addRootExternalRegisters(RegProperties newRegProperties) { 
+		regIsActive = true;  // regProperties is valid
 		int reservedRange = updateRootExternalRegProperties(newRegProperties, false);
 
 		addRootExternalRegisters();  // note getExternalRegBytes() is usable by child
@@ -360,6 +365,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		newNext.add(new RegNumber(reservedRange * getMinRegByteWidth()));
 		setNextAddress(newNext);   
 		//System.out.println("addRootExternalRegisters   base=" + getExternalBaseAddress() + ", next=" + getNextAddress() + ", delta=" + extSize);
+		regIsActive = false;
 	}
 
 	/** add a register for a particular output  - concrete since most builders do not use. 
@@ -385,7 +391,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		// if new regProperties, then init 
 		if (newRegProperties != null) {
 			if (!newRegProperties.isExternal()) {
-				newRegProperties.setExternal("DEFAULT");  // insure external is set
+				newRegProperties.setExternalTypeFromString("DEFAULT");  // insure external is set
 				//System.out.println("OutputBuilder addRootExternalRegisters: setting DEFAULT external for path=" + getInstancePath() +", orig ext=" + newRegProperties.getExternalType());
 			}
 			//System.out.println("OutputBuilder updateRootExternalRegProperties: updating base addr for path=" + getInstancePath() + ", old base=" + newRegProperties.getBaseAddress() + ", new base=" + getExternalBaseAddress() + ", rs base=" + regSetProperties.getBaseAddress());
@@ -590,9 +596,11 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		   if (regMapInst.hasProperty("js_macro_name")) regSetProperties.setJspecMacroName(regMapInst.getProperty("js_macro_name"));
 		   if (regMapInst.hasProperty("js_macro_mode")) regSetProperties.setJspecMacroMode(regMapInst.getProperty("js_macro_mode"));
 		   if (regMapInst.hasProperty("js_namespace")) regSetProperties.setJspecNamespace(regMapInst.getProperty("js_namespace"));
+		   if (regMapInst.hasProperty("js_superset_check")) regSetProperties.setJspecSupersetCheck(regMapInst.getProperty("js_superset_check"));
+		   // get jspec root instance/typedef control parameters
 		   if (regMapInst.hasProperty("js_typedef_name")) regSetProperties.setJspecTypedefName(regMapInst.getProperty("js_typedef_name"));
 		   if (regMapInst.hasProperty("js_instance_name")) regSetProperties.setJspecInstanceName(regMapInst.getProperty("js_instance_name"));
-		   if (regMapInst.hasProperty("js_superset_check")) regSetProperties.setJspecSupersetCheck(regMapInst.getProperty("js_superset_check"));
+		   if (regMapInst.hasProperty("js_instance_repeat")) regSetProperties.setJspecInstanceRepeat(regMapInst.getIntegerProperty("js_instance_repeat"));
 		   // if instance has an id then use it for modulename
 		   if (regMapInst.getId() != null) setAddressMapName(regMapInst.getId());  
 		   // only base addrmap instance is first
@@ -620,6 +628,13 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 
 	//---------------------------- end of add/finish methods  ----------------------------------------
+	
+	/** returns true if active AddressableInstance is external */
+	protected boolean activeInstanceIsExternal() { // TODO - may need to explicity set reg vs regset to handle rootExtRegs case, signal case needs autoselect tho
+		if (regIsActive) return regProperties.isExternal();
+		if (!regSetPropertyStack.isEmpty()) return regSetPropertyStack.peek().isExternal();
+		return false;  // neither reg or regset is external
+	}
 	
 	/** update reg properties now that fields are captured
 	 * 
@@ -789,26 +804,6 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			l3_bregs = "base_regs".equals(inst.getId()) && (!inst.isExternal());
 		}*/
 
-		// need to set external early so rootExternal can be determined
-		if (inst.hasDefaultProperty("external")) {
-			inst.setExternal(inst.getDefaultProperty("external"));
-			//System.out.println("OutputBuilder " + getBuilderID() + ": pushInstance, setting external type for inst=" + inst.getId() + " via default to " + inst.getExternalType());
-		}
-		
-		// if added instance is external and no others on stack then mark as root
-		if ((instancePropertyStack.isEmpty() || !instancePropertyStack.peek().isExternal()) && inst.isExternal()) {
-			inst.setRootExternal(true);
-			//System.out.println("OutputBuilder " + getBuilderID() + ": pushInstance, setting external root for inst=" + inst.getId() + " and pushing onto stack");
-			//instancePropertyStack.peek().display();  
-		}
-		// if parent is external, this instance is external (regs are already set, but not regsets)
-		if (!instancePropertyStack.isEmpty()) {
-			if (instancePropertyStack.peek().isLocalMapExternal(allowLocalMapInternals())) {  // FIXME - never fires after addrmap since these are not ext in child builders!
-				inst.setExternalType(instancePropertyStack.peek().getExternalType());
-				//if (getBuilderID() == targetBuilder) System.out.println("OutputBuilder " + getBuilderID() + ": pushInstance, setting external type for inst=" + inst.getId() + " to " + inst.getExternalType() + " based on parent");
-			}
-			//if (instancePropertyStack.peek().isExternalDecode()) inst.setExternal(true);
-		}
 		// if stack isn't empty get parent instance default properties
 		if (!instancePropertyStack.isEmpty()) inst.updateDefaultProperties(instancePropertyStack.peek().getInstDefaultProperties());
 		// push this instance onto the stack
@@ -873,6 +868,61 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	}
 
 	// ----------------- regset stack methods
+	
+	/** set external state of a newly created AddressableInstance prior to builder push/add
+	 * @param inst - instance that will be modified based on properties and parent instance state
+	 * @param isAddressMap - true if component being instanced is an addrmap
+	 */
+	public  void setExternalInstanceProperties(AddressableInstanceProperties inst, boolean isAddressMap) {
+
+		// -- set external type and local external indicator as appropriate (AddressableInstance constructor already extracts extractInstance value) 
+		
+		// if model inst already has an external property assign, then use it
+		if (inst.isExternal()) {
+			//System.out.println("OutputBuilder " + getBuilderID() + ": setExternalInstanceProperties, already set external type for inst=" + inst.getId() + " to " + inst.getExternalType());
+			inst.setLocalExternal(!isAddressMap);  // also set local extern if not an addrmap
+		}
+		// else if instance has a default external property assigned then use it (eg, js will set external default for large replicated typedefs)
+		else if (inst.hasDefaultProperty("external")) {
+			inst.setExternalTypeFromString(inst.getDefaultProperty("external"));
+			inst.setLocalExternal(!isAddressMap);  // also set local extern if not an addrmap
+			//System.out.println("OutputBuilder " + getBuilderID() + ": setExternalInstanceProperties, setting external type for inst=" + inst.getId() + " via default to " + inst.getExternalType());
+		}
+		// else if parent is external, this instance is external 
+		else if (!regSetPropertyStack.isEmpty()) {
+			// cascade external type to child
+			if (regSetPropertyStack.peek().isExternal())
+				inst.setExternalType(regSetPropertyStack.peek().getExternalType());
+			// cascade local external state to child
+			if (regSetPropertyStack.peek().isLocalExternal())
+				inst.setLocalExternal(!isAddressMap);
+		}
+		
+		// treat addr maps w/ no explicit external type assigned as a default external reg set
+		if (isAddressMap && (!inst.isExternal())) {
+				inst.setExternalTypeFromString("DEFAULT");  // address map is treated as external reg set	
+		}
+		
+		//if (inst.isExternal() && !inst.isLocalExternal())
+		//	Ordt.errorMessage("OutputBuilder " + getBuilderID() + ": setExternalInstanceProperties, found local internal type for inst=" + inst.getId() + " : " + inst.getExternalType());
+		
+		// -- now determine if instance is root external
+		
+		// if added instance is external and parent isnt then mark as root
+		if ((regSetPropertyStack.isEmpty() || !regSetPropertyStack.peek().isExternal()) && inst.isExternal()) {
+			inst.setRootExternal(true);
+			//System.out.println("OutputBuilder " + getBuilderID() + ": setExternalInstanceProperties, setting external root for inst=" + inst.getId());
+		}
+		
+		// if added instance is local external and parent isnt then mark as root
+		if ((regSetPropertyStack.isEmpty() || !regSetPropertyStack.peek().isLocalExternal()) && inst.isLocalExternal()) {
+			inst.setLocalRootExternal(true);
+			//System.out.println("OutputBuilder " + getBuilderID() + ": setExternalInstanceProperties, setting local external root for inst=" + inst.getId());
+		}	
+		
+		//if (!inst.isRootExternal() && inst.isLocalRootExternal())
+		//	Ordt.errorMessage("OutputBuilder " + getBuilderID() + ": setExternalInstanceProperties, found local root external type for inst=" + inst.getId() + " : " + inst.getExternalType());
+	}
 	
 	/** return number of addressmaps in current hierarchy
 	 */
@@ -1056,18 +1106,6 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	 */
 	public void setVisitEachExternalRegister(boolean visitEachExternalRegister) {
 		this.visitEachExternalRegister = visitEachExternalRegister;
-	}
-
-	/** returns true for this builder type if instances within cascaded maps will be processed as internals
-	 */
-	public boolean allowLocalMapInternals() {
-		return allowLocalMapInternals;
-	}
-
-	/** set allowLocalMapExternals
-	 */
-	public void setAllowLocalMapInternals(boolean allowLocalMapInternals) {
-		this.allowLocalMapInternals = allowLocalMapInternals;
 	}
 
 	public boolean supportsOverlays() {

@@ -11,7 +11,6 @@ import ordt.extract.RegNumber;
 import ordt.extract.Ordt.InputType;
 import ordt.output.OutputBuilder;
 import ordt.output.RegProperties;
-import ordt.output.RegSetProperties;
 import ordt.parameters.ExtParameters;
 
 /** register class extracted from definition lang */
@@ -107,30 +106,18 @@ public class ModRegister extends ModComponent  {
 		if (callingInst == null) return;
 
 		// get replication count
-		int repCount = callingInst.getRepCount(); // get non-null repCount 
-		
+		int repCount = callingInst.getRepCount(); // get non-null repCount 	
 		//System.out.println("ModRegister generateOutput: id=" + callingInst.getId() + ", reps=" + repCount);
-
-     	RegSetProperties rsProps = outputBuilder.getRegSetProperties();
-     	boolean regIsExternal = callingInst.hasProperty("external") || ((rsProps != null) && rsProps.isLocalMapExternal(outputBuilder.allowLocalMapInternals()));  
-     	
-     	//if (regIsExternal && rsProps.isAddressMap())
-     	//System.out.println("ModRegister generateOutput: register instance=" + callingInst.getId() + ",  regIsExternal=" + regIsExternal + ", rs id=" + rsProps.getId() + ", rs addrmap=" + rsProps.isAddressMap() + ", rs isLocalMapExternal=" + rsProps.isLocalMapExternal(outputBuilder.allowLocalMapInternals()) + ", bid=" + outputBuilder.getBuilderID());
-     	
-	    // if an extern register, call once per replicated set
-		if (regIsExternal && !outputBuilder.visitEachExternalRegister()) {
+		
+		RegProperties regProperties = new RegProperties(callingInst, outputBuilder.fieldOffsetsFromZero());  // extract basic properties
+		outputBuilder.setExternalInstanceProperties(regProperties, false);  // set external inst properties
+     	     	
+	    // if an external register, call once per replicated set
+		if (regProperties.isExternal() && !outputBuilder.visitEachExternalRegister()) {
 			//Boolean rsIsExt = (rsProps == null) ? null : rsProps.isExternal();
 			//System.out.println("Register: generateOutput, register instance=" + callingInst.getId() + " is external, parent ext=" + rsIsExt + ", reps=" + repCount);
 			
-			RegProperties regProperties = new RegProperties(callingInst, outputBuilder.fieldOffsetsFromZero());  // extract basic properties
-			// cascade external type from instance or regset
-			if (callingInst.hasProperty("external")) regProperties.setExternal(callingInst.getProperty("external"));  
-			else if ((rsProps != null) && rsProps.isLocalMapExternal(outputBuilder.allowLocalMapInternals())) regProperties.setExternalType(rsProps.getExternalType());
-			else {
-				regProperties.setExternal("DEFAULT");
-				//System.out.println("ModRegister generateOutput, register instance=" + regProperties.getId() + " set to DEFAULT external");
-			}
-			outputBuilder.pushInstance(regProperties);  // push instance and set isRootExternal
+			outputBuilder.pushInstance(regProperties);  // push instance to builder stack
 			//System.out.println("ModRegister generateOutput: register instance=" + regProperties.getId() + " post push, ext=" + regProperties.isLocalMapExternal() + ", root=" + regProperties.isRootExternal());
 			// add external registers to output structures  
 			outputBuilder.addExternalRegisters(regProperties);     // <----- note that all inst properties are extracted here
@@ -155,20 +142,15 @@ public class ModRegister extends ModComponent  {
 		// otherwise loop through each instance
 		else {
 			// check for invalid internal reps
-			if ((repCount > ExtParameters.getMaxInternalRegReps()) && !regIsExternal) Ordt.errorExit("Register replication exceeded max for internal register, instance=" + callingInst.getId() + ", reps=" + repCount);
+			if ((repCount > ExtParameters.getMaxInternalRegReps()) && !regProperties.isExternal()) Ordt.errorExit("Register replication exceeded max for internal register, instance=" + callingInst.getId() + ", reps=" + repCount);
 			//else Ordt.infoMessage("generateVerilog: register replication for internal register, instance=" + callingInst.getId() + ", reps=" + repCount);
 				
 			// call once per replicated register
 		    for (int rep=0; rep<repCount; rep++) {
 				
-				RegProperties regProperties = new RegProperties(callingInst, outputBuilder.fieldOffsetsFromZero());  // extract basic properties
-				// cascade external type from instance or regset (compunents of regIsExternal)
-				if (callingInst.hasProperty("external")) regProperties.setExternal(callingInst.getProperty("external"));  
-				else if ((rsProps != null) && rsProps.isLocalMapExternal(outputBuilder.allowLocalMapInternals())) regProperties.setExternalType(rsProps.getExternalType());
-				//regProperties.setExternal(regIsExternal);  // set external here to cascade from external parent
-				//System.out.println("ModRegister generate: register instance=" + regProperties.getId() + ",  is external=" + regProperties.getExternalType());  
-
+				regProperties = new RegProperties(callingInst, outputBuilder.fieldOffsetsFromZero());  // extract basic properties
 				if (outputBuilder.visitEachReg()) regProperties.setId(regProperties.getId() + getRepSuffix(rep, repCount)); // update name based on rep #
+				outputBuilder.setExternalInstanceProperties(regProperties, false);  // set external inst properties 
 				outputBuilder.pushInstance(regProperties);
 				
 				outputBuilder.addRegister(regProperties, rep);   // add register to verilog output structures  <----- note that all inst properties are extracted here 

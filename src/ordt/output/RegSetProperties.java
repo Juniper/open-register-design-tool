@@ -23,6 +23,7 @@ public class RegSetProperties extends AddressableInstanceProperties {
 	private String jspecNamespace;
 	private String jspecTypedefName;
 	private String jspecInstanceName;
+	private Integer jspecInstanceRepeat;
 
 	public RegSetProperties(ModInstance regSetInst) {
 		super(regSetInst);  // init instance, id, name, description text
@@ -47,16 +48,15 @@ public class RegSetProperties extends AddressableInstanceProperties {
 	public void extractProperties(PropertyList pList) {
 		super.extractProperties(pList);  // extract common parameters
 		//if (getId().equals("tx")) System.out.println("RegSetProperties extractProperties: " + getId() + "\n" + pList);
-		// set external decode only if a regset
-		if (pList.hasTrueProperty("external_decode")) setExternalDecode(true);
 		// set jspec pass-thru parameters
 		if (pList.hasProperty("js_macro_name")) setJspecMacroName(pList.getProperty("js_macro_name"));
 		if (pList.hasProperty("js_macro_mode")) setJspecMacroMode(pList.getProperty("js_macro_mode"));
 		if (pList.hasProperty("js_namespace")) setJspecNamespace(pList.getProperty("js_namespace"));
 		if (pList.hasProperty("js_typedef_name")) setJspecTypedefName(pList.getProperty("js_typedef_name"));
 		if (pList.hasProperty("js_instance_name")) setJspecInstanceName(pList.getProperty("js_instance_name"));
+		if (pList.hasProperty("js_instance_repeat")) setJspecInstanceRepeat(pList.getIntegerProperty("js_instance_repeat"));
 	} 
-    
+
 	/** extract a PropertyList of user defined parameters for this instance */
     @Override
 	protected void extractUserDefinedProperties(PropertyList pList) {
@@ -148,6 +148,14 @@ public class RegSetProperties extends AddressableInstanceProperties {
 	
 	public void setJspecInstanceName(String jspecInstanceName) {
 		this.jspecInstanceName = jspecInstanceName;
+	}
+
+	public Integer getJspecInstanceRepeat() {
+		return jspecInstanceRepeat;
+	}
+   
+	public void setJspecInstanceRepeat(Integer jspecInstanceRepeat) {
+		this.jspecInstanceRepeat = jspecInstanceRepeat;
 	}
 
 	@Override

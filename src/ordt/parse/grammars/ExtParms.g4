@@ -347,6 +347,7 @@ ext_parm_defs
 
   | 'category'   // added
   | 'sub_category'   // added
+  
   | 'js_attributes'   // added
   | 'js_superset_check'   // added
   | 'js_macro_name'   // added
@@ -354,6 +355,7 @@ ext_parm_defs
   | 'js_namespace'   // added
   | 'js_typedef_name'   // added
   | 'js_instance_name'   // added
+  | 'js_instance_repeat'   // added
   
   | 'fieldstructwidth'  // added
 
