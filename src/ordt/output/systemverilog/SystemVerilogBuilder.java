@@ -72,7 +72,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	// module defines  
 	protected SystemVerilogDecodeModule decoder = new SystemVerilogDecodeModule(this, DECODE, decodeClk);
 	protected SystemVerilogLogicModule logic = new SystemVerilogLogicModule(this, LOGIC, logicClk);
-	protected SystemVerilogModule top = new SystemVerilogModule(this, DECODE|LOGIC, defaultClk, getDefaultReset());
+	protected SystemVerilogModule top = new SystemVerilogModule(this, 0, defaultClk, getDefaultReset());  // TODO was DECODE|LOGIC
 	
 	private  List<String> tempAssignList = new ArrayList<String>();    // temp list of assign statements for current register (used in finishReg)
 
@@ -433,6 +433,8 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	/** add a register map for a particular output */
 	@Override
 	public  void addRegMap() {
+		// set names, etc of generated modules
+		initModuleInfo();
 	}
 
 	/** finish a register map for a particular output */
@@ -449,8 +451,8 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		decoder.genPioInterfaces(topRegProperties);
 		// load list of clock, reset IOs   
 		loadCntlSigList();
-		// set names, etc of generated modules before write (so child classes can use in write override)
-		initModuleInfo();
+		// create wire defines in top level module
+		initTopModuleDefines();
 	}
 
 	//---------------------------- add/finish support methods ----------------------------------------
@@ -544,20 +546,23 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		//System.out.println("SystemVerilogBuilder initModuleInfo: moduleName=" + getModuleName() );
 		// init decoder 
 		decoder.setName(getModuleName() + "_jrdl_decode");
-		decoder.setAddBaseAddrParameter(addBaseAddressParameter());
-		
+		decoder.setAddBaseAddrParameter(addBaseAddressParameter());		
 		// init logic 
-		logic.setName(getModuleName() + "_jrdl_logic");
-		
+		logic.setName(getModuleName() + "_jrdl_logic");		
 		// init top
 		top.setName(getModuleName() + "_pio");  // set name
 		top.setAddBaseAddrParameter(addBaseAddressParameter());
-		// wire define stmts for signals between decoder and logic
-		top.addWireDefs(intSigList.getSignalList(DECODE, LOGIC));
-		top.addWireDefs(intSigList.getSignalList(LOGIC, DECODE));
 		// add decode and logic modules
 		top.addInstance(decoder, "pio_decode");
 		top.addInstance(logic, "pio_logic");
+	}
+	
+	/** initialize top module wire defines at end of builder extract */
+	private void initTopModuleDefines() {
+		//System.out.println("SystemVerilogBuilder initTopModuleDefines: moduleName=" + getModuleName() );
+		// wire define stmts for signals between decoder and logic
+		top.addWireDefs(intSigList.getSignalList(DECODE, LOGIC));
+		top.addWireDefs(intSigList.getSignalList(LOGIC, DECODE));
 	}
 	
 	/** add IO hierarchy level */
@@ -985,7 +990,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	/** write out the interface wrapper */
 	protected  void writeInterfaceWrapper() {		
 		// create wrapper module
-		SystemVerilogModule intfWrapper = new SystemVerilogModule(this, LOGIC|DECODE, defaultClk, getDefaultReset());
+		SystemVerilogModule intfWrapper = new SystemVerilogModule(this, 0, defaultClk, getDefaultReset());  // TODO - was LOGIC|DECODE
 		intfWrapper.setName(getModuleName() + "_pio_iwrap");
 		intfWrapper.setAddBaseAddrParameter(addBaseAddressParameter());
 		intfWrapper.setUseInterfaces(true);  // wrapper will have interfaces in io

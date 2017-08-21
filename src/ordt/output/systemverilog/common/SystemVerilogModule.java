@@ -24,10 +24,10 @@ public class SystemVerilogModule {
 	
 	protected OutputWriterIntf writer;
 	protected String name;  // module name
-	protected Integer insideLocs; // ORed value of (binary) locations inside this module
+	private Integer terminalInsideLocs; // ORed value of (binary) locations that terminate at top level of this module
 	protected boolean useInterfaces = false;  // will interfaces be used in module io
 	protected boolean addBaseAddrParameter  = false;	// will base addr parm be created in module io
-	protected List<Instance> instanceList = new ArrayList<Instance>();  // list of child instances
+	protected List<SystemVerilogInstance> instanceList = new ArrayList<SystemVerilogInstance>();  // list of child instances
 	
 	protected List<SystemVerilogIOSignalList> ioList = new ArrayList<SystemVerilogIOSignalList>();  // list of IO lists in this module
 	protected HashMap<Integer, SystemVerilogIOSignalList> ioHash = new HashMap<Integer, SystemVerilogIOSignalList>();  // set of writable IO lists in this module
@@ -49,7 +49,7 @@ public class SystemVerilogModule {
 	 */
 	public SystemVerilogModule(OutputWriterIntf writer, int insideLocs, String defaultClkName, String coverageResetName) {
 		this.writer = writer;  // save reference to calling writer
-		this.insideLocs = insideLocs;  // locations inside this module
+		setTerminalInsideLocs(insideLocs);  // locations inside this module
 		registers = new SystemVerilogRegisters(writer, defaultClkName);
 		wireDefList = new SystemVerilogSignalList();
 		regDefList = new SystemVerilogSignalList();
@@ -88,6 +88,28 @@ public class SystemVerilogModule {
 
 	public void setAddBaseAddrParameter(boolean addBaseAddrParameter) {
 		this.addBaseAddrParameter = addBaseAddrParameter;
+	}
+
+	/** return encoded integer of locations that terminate at top level of current module */
+	protected Integer getTerminalInsideLocs() {
+		System.out.println("SystemVerilogModule getTerminalInsideLocs: name=" + getName() + ", insideLocs=" + terminalInsideLocs);
+		return terminalInsideLocs;
+	}
+
+	/** return encoded integer of all locations inside this module and its children */
+	protected Integer getInsideLocs() {
+		Integer myInsideLocs = terminalInsideLocs;
+		for(SystemVerilogInstance inst: instanceList) {
+			//System.out.println("SystemVerilogModule getInsideLocs: child=" + inst.getName() + " of " + inst.getMod().getName() /*+ ", insideLocs=" + inst.getMod().getInsideLocs() */);
+			myInsideLocs = myInsideLocs | inst.getMod().getInsideLocs();
+		}
+		//if (terminalInsideLocs==0) System.out.println("SystemVerilogModule getInsideLocs: name=" + getName() + ", insideLocs=" + myInsideLocs + ", terminalInsideLocs=" + terminalInsideLocs + ", children=" + instanceList.size());
+		return myInsideLocs;
+	}
+
+	protected void setTerminalInsideLocs(Integer terminalInsideLocs) {
+		this.terminalInsideLocs = terminalInsideLocs;
+		//System.out.println("SystemVerilogModule setTerminalInsideLocs: name=" + getName() + ", insideLocs=" + terminalInsideLocs + ", children=" + instanceList.size());
 	}
 
 	public void setUseInterfaces(boolean useInterfaces) {
@@ -244,15 +266,15 @@ public class SystemVerilogModule {
 	/** return inputs for this module (signal sets are included) */ 
 	public List<SystemVerilogIOElement> getInputList() {
 		SystemVerilogIOSignalList fullList = getFullIOSignalList();	// start with the full list
-		return useInterfaces ? fullList.getDescendentIOElementList(null, insideLocs, false) :
-			                     fullList.getIOElementList(null, insideLocs);
+		return useInterfaces ? fullList.getDescendentIOElementList(null, getInsideLocs(), false) :
+			                     fullList.getIOElementList(null, getInsideLocs());
 	}
 	
 	/** return inputs for this module (signal sets are not included) */ 
 	public List<SystemVerilogIOElement> getOutputList() {
 		SystemVerilogIOSignalList fullList = getFullIOSignalList();	// start with the full list
-		return useInterfaces ? fullList.getDescendentIOElementList(insideLocs, null, true) : 
-                                 fullList.getIOElementList(insideLocs, null);
+		return useInterfaces ? fullList.getDescendentIOElementList(getInsideLocs(), null, true) : 
+                                 fullList.getIOElementList(getInsideLocs(), null);
 	}
 	
 	/** return inputs for this module */ 
@@ -363,14 +385,14 @@ public class SystemVerilogModule {
 	public void addSimpleVectorTo(Integer to, String name, int lowIndex, int size) {
 		SystemVerilogIOSignalList sigList = ioHash.get(to);  // get the siglist
 		if (sigList == null) return;
-		sigList.addSimpleVector(insideLocs, to, name, lowIndex, size); 
+		sigList.addSimpleVector(getInsideLocs(), to, name, lowIndex, size); 
 	}
 
 	/** add a new simple vector IO signal from the specified external location list */
 	public void addSimpleVectorFrom(Integer from, String name, int lowIndex, int size) {
 		SystemVerilogIOSignalList sigList = ioHash.get(from);  // get the siglist
 		if (sigList == null) return;
-		if (addDefinedSignal(name)) sigList.addSimpleVector(from, insideLocs, name, lowIndex, size); 
+		if (addDefinedSignal(name)) sigList.addSimpleVector(from, getInsideLocs(), name, lowIndex, size); 
 	}
 	
 	// hierarchical IO adds
@@ -389,14 +411,14 @@ public class SystemVerilogModule {
 	public void addVectorTo(Integer to, String prefix, String name, int lowIndex, int size) {
 		SystemVerilogIOSignalList sigList = ioHash.get(to);  // get the siglist
 		if (sigList == null) return;
-		sigList.addVector(insideLocs, to, prefix, name, lowIndex, size);
+		sigList.addVector(getInsideLocs(), to, prefix, name, lowIndex, size);
 	}
 	
 	/** add a new vector IO signal from the specified external location list */
 	public void addVectorFrom(Integer from, String prefix, String name, int lowIndex, int size) {
 		SystemVerilogIOSignalList sigList = ioHash.get(from);  // get the siglist
 		if (sigList == null) return;
-		sigList.addVector(from, insideLocs, prefix, name, lowIndex, size);
+		sigList.addVector(from, getInsideLocs(), prefix, name, lowIndex, size);
 	}
 	
 	/** push IO hierarchy to active stack in specified list
@@ -424,50 +446,15 @@ public class SystemVerilogModule {
 	// ------------------- child instance methods/classes  -----------------------
 
 	public void addInstance(SystemVerilogModule mod, String name) {
-		instanceList.add(new Instance(mod, name));
+		instanceList.add(new SystemVerilogInstance(mod, name));
+		//System.out.println("SystemVerilogModule addInstance: adding instance " + name + " of " + mod.getName() + " to " + getName() + ", child #=" + instanceList.size());
 	}
 	
-	public void addInstance(SystemVerilogModule mod, String name, RemapRuleList rules) {
-		instanceList.add(new Instance(mod, name, rules));
+	public void addInstance(SystemVerilogModule mod, String name, RemapRuleList rules) {  // TODO - move to SystemVerilogInstance and store terminalInsideLocs there??
+		instanceList.add(new SystemVerilogInstance(mod, name, rules));
+		//System.out.println("SystemVerilogModule addInstance: adding rules instance " + name + " of " + mod.getName() + " to " + getName() + ", child #=" + instanceList.size());
 	}
-	
-	/** sv module instance class */
-	private class Instance {
-		private SystemVerilogModule mod;
-		private String name;
-		private RemapRuleList rules = null;
 		
-		public Instance(SystemVerilogModule mod, String name) {
-			this.mod=mod;
-			this.name=name;
-		}
-
-		public Instance(SystemVerilogModule mod, String name, RemapRuleList rules) {
-			this.mod=mod;
-			this.name=name;
-			this.rules=rules;
-			//System.out.println("SystemVerilogModule addInstance: mod=" + mod.getName() + ", name=" + name);
-		}
-
-		public SystemVerilogModule getMod() {
-			return mod;
-		}
-		public String getName() {
-			return name;
-		}
-		
-		/** add a rule to the list - first in list is highest match priority */
-		public boolean hasRemapRules() {
-			return rules != null;
-		}
-		
-		/** return the first resulting name of a match */
-		public String getRemappedSignal(String oldName) {
-			return hasRemapRules()? rules.getNewName(oldName) : oldName;
-		}
-		
-	}
-	
 	// ------------------- output write methods  -----------------------
 
 	/** write module stmt */
@@ -569,14 +556,14 @@ public class SystemVerilogModule {
 
 	/** write each child instance in this module */
 	public void writeChildInstances(int indentLevel) {
-		for (Instance inst : instanceList) {
+		for (SystemVerilogInstance inst : instanceList) {
 			//System.out.println("SystemVerilogModule writeChildInstances: inst=" + inst.getName());
 			inst.getMod().writeInstance(indentLevel, inst);
 		}		
 	}
 
 	/** write an instance of this module */
-	public void writeInstance(int indentLevel, Instance inst) {
+	public void writeInstance(int indentLevel, SystemVerilogInstance inst) {
 		List<SystemVerilogIOElement> childList = this.getInputOutputList();
 		if (childList.isEmpty()) return;
 	    String baseAddrStr = this.addBaseAddrParameter() ? " #(BASE_ADDR) " : " ";
