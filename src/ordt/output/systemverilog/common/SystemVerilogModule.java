@@ -11,6 +11,8 @@ import java.util.List;
 
 import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
+import ordt.extract.RegNumber.NumBase;
+import ordt.extract.RegNumber.NumFormat;
 import ordt.output.OutputWriterIntf;
 import ordt.output.systemverilog.io.SystemVerilogIOElement;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
@@ -26,7 +28,8 @@ public class SystemVerilogModule {
 	protected String name;  // module name
 	private Integer terminalInsideLocs; // ORed value of (binary) locations that terminate at top level of this module
 	protected boolean useInterfaces = false;  // will interfaces be used in module io
-	protected boolean addBaseAddrParameter  = false;	// will base addr parm be created in module io
+	protected List<SystemVerilogParameter> parameterList = new ArrayList<SystemVerilogParameter>(); // list of parameters for this module TODO - add boolean to control parameter passing from child to parent
+	
 	protected List<SystemVerilogInstance> instanceList = new ArrayList<SystemVerilogInstance>();  // list of child instances
 	
 	protected List<SystemVerilogIOSignalList> ioList = new ArrayList<SystemVerilogIOSignalList>();  // list of IO lists in this module
@@ -44,7 +47,8 @@ public class SystemVerilogModule {
 	static boolean isLegacyVerilog = false;
 	    
 	/** create a module
-	 * @param insideLocs - ORed Integer of locations in this module 
+	 * @param writer - OutputWriterIntf to be used for output generation 
+	 * @param insideLocs - ORed Integer of locations in top level in this module 
 	 * @param defaultClkName - default clock name used for generated registers
 	 */
 	public SystemVerilogModule(OutputWriterIntf writer, int insideLocs, String defaultClkName, String coverageResetName) {
@@ -82,27 +86,24 @@ public class SystemVerilogModule {
 		return useInterfaces;
 	}
 
-	public boolean addBaseAddrParameter() {
-		return addBaseAddrParameter;
-	}
-
-	public void setAddBaseAddrParameter(boolean addBaseAddrParameter) {
-		this.addBaseAddrParameter = addBaseAddrParameter;
-	}
-
 	/** return encoded integer of locations that terminate at top level of current module */
 	protected Integer getTerminalInsideLocs() {
-		System.out.println("SystemVerilogModule getTerminalInsideLocs: name=" + getName() + ", insideLocs=" + terminalInsideLocs);
 		return terminalInsideLocs;
+	}
+
+	/** return encoded integer of all locations in this module's children */
+	protected Integer getChildLocs() {
+		Integer childLocs = 0;
+		for(SystemVerilogInstance inst: instanceList) {
+			//System.out.println("SystemVerilogModule getChildLocs: child=" + inst.getName() + " of " + inst.getMod().getName() /*+ ", insideLocs=" + inst.getMod().getInsideLocs() */);
+			childLocs = childLocs | inst.getMod().getInsideLocs();
+		}
+		return childLocs;
 	}
 
 	/** return encoded integer of all locations inside this module and its children */
 	protected Integer getInsideLocs() {
-		Integer myInsideLocs = terminalInsideLocs;
-		for(SystemVerilogInstance inst: instanceList) {
-			//System.out.println("SystemVerilogModule getInsideLocs: child=" + inst.getName() + " of " + inst.getMod().getName() /*+ ", insideLocs=" + inst.getMod().getInsideLocs() */);
-			myInsideLocs = myInsideLocs | inst.getMod().getInsideLocs();
-		}
+		Integer myInsideLocs = terminalInsideLocs | getChildLocs();
 		//if (terminalInsideLocs==0) System.out.println("SystemVerilogModule getInsideLocs: name=" + getName() + ", insideLocs=" + myInsideLocs + ", terminalInsideLocs=" + terminalInsideLocs + ", children=" + instanceList.size());
 		return myInsideLocs;
 	}
@@ -240,7 +241,52 @@ public class SystemVerilogModule {
 	public void addCoverPoint(String group, String name, String signal, String condition) {
 		coverGroups.addCoverPoint(group, name, signal, condition);
 	}
+	// ------------------- parameter classes/methods  -----------------------
 	
+	// nested parameter class
+	private class SystemVerilogParameter {
+		private String name;
+		private String defaultValue;
+		
+		private SystemVerilogParameter(String name, String defaultValue) {
+			super();
+			this.name = name;
+			this.defaultValue = defaultValue;
+		}
+		
+		/** return define string for this parameter */
+		public String toString() {
+			String defaultStr = (defaultValue != null)? " = " + defaultValue : "";
+			return "parameter " + name + defaultStr + ";";
+		}
+		
+		/** return the name of this parameter */
+		public String getName() {
+			return name;
+		}
+	}
+
+	/** add a parameter to this module
+	 * 
+	 * @param name - parameter name
+	 * @param defaultValue - default value of this parameter or null if none
+	 */
+	public void addParameter(String name, String defaultValue) {
+		parameterList.add(new SystemVerilogParameter(name, defaultValue));
+	}
+
+	/** return parameter instance string for this module (assumes parms are passed up to parent level) */
+	private String getParameterInstanceString() {
+		String retStr = (!parameterList.isEmpty())? "#(" : "";
+		Iterator<SystemVerilogParameter> iter = parameterList.iterator();
+		while(iter.hasNext()) {
+			String parmName = iter.next().getName();
+			String suffix = iter.hasNext()? ", " : ") ";
+			retStr += parmName + suffix;
+		}
+		return retStr;
+	}
+
 	// ------------------- IO methods  -----------------------
 
 	/** add an IO list to be used by this module
@@ -450,7 +496,7 @@ public class SystemVerilogModule {
 		//System.out.println("SystemVerilogModule addInstance: adding instance " + name + " of " + mod.getName() + " to " + getName() + ", child #=" + instanceList.size());
 	}
 	
-	public void addInstance(SystemVerilogModule mod, String name, RemapRuleList rules) {  // TODO - move to SystemVerilogInstance and store terminalInsideLocs there??
+	public void addInstance(SystemVerilogModule mod, String name, RemapRuleList rules) {
 		instanceList.add(new SystemVerilogInstance(mod, name, rules));
 		//System.out.println("SystemVerilogModule addInstance: adding rules instance " + name + " of " + mod.getName() + " to " + getName() + ", child #=" + instanceList.size());
 	}
@@ -539,15 +585,10 @@ public class SystemVerilogModule {
 		// if legacy format, add the parm list
 		if (!useInterfaces) writer.writeStmts(0, getLegacyIOStrList()); // legacy vlog io format
 		
-		// add base addr param if specified TODO - replace this w/ a generic parameter list
-		if (addBaseAddrParameter) {
-			RegNumber baseAddr = new RegNumber(ExtParameters.getPrimaryBaseAddress());
-			baseAddr.setNumBase(RegNumber.NumBase.Hex);
-			baseAddr.setNumFormat(RegNumber.NumFormat.Verilog);
-			baseAddr.setVectorLen(ExtParameters.getLeafAddressSize());
-		    writer.writeStmt(indentLevel, "");
-		    writer.writeStmt(indentLevel, "parameter BASE_ADDR = " + baseAddr + ";");
-		}
+		// add parameter defines if specified
+		if (!parameterList.isEmpty()) writer.writeStmt(indentLevel, "");
+		for (SystemVerilogParameter parm: parameterList) writer.writeStmt(indentLevel, parm.toString());
+
 		// write IO definitions
 		if (useInterfaces) writer.writeStmts(indentLevel+1, getIODefStrList());   // sv format
 		else writer.writeStmts(0, getLegacyIODefStrList());  // legacy vlog io format
@@ -566,9 +607,8 @@ public class SystemVerilogModule {
 	public void writeInstance(int indentLevel, SystemVerilogInstance inst) {
 		List<SystemVerilogIOElement> childList = this.getInputOutputList();
 		if (childList.isEmpty()) return;
-	    String baseAddrStr = this.addBaseAddrParameter() ? " #(BASE_ADDR) " : " ";
 	    if (isLegacyVerilog || inst.hasRemapRules()) {
-			writer.writeStmt(indentLevel++, this.getName() + baseAddrStr + inst.getName() + " (");   // more elements so use comma
+			writer.writeStmt(indentLevel++, this.getName() + " " + getParameterInstanceString() + inst.getName() + " (");   // more elements so use comma
 			Iterator<SystemVerilogIOElement> it = childList.iterator();
 			Boolean anotherElement = it.hasNext();
 			while (anotherElement) {
@@ -584,7 +624,7 @@ public class SystemVerilogModule {
 			}		   		    	
 	    }
 	    else {
-			writer.writeStmt(indentLevel++, this.getName() + baseAddrStr + inst.getName() + " ( .* );");   // more elements so use comma	    	
+			writer.writeStmt(indentLevel++, this.getName() + " " + getParameterInstanceString() + inst.getName() + " ( .* );");   // more elements so use comma	    	
 	    }
 		writer.writeStmt(indentLevel--, "");   
 	}

@@ -546,12 +546,12 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		//System.out.println("SystemVerilogBuilder initModuleInfo: moduleName=" + getModuleName() );
 		// init decoder 
 		decoder.setName(getModuleName() + "_jrdl_decode");
-		decoder.setAddBaseAddrParameter(addBaseAddressParameter());		
+		if (addBaseAddressParameter()) setAddBaseAddrParameter(decoder);		
 		// init logic 
 		logic.setName(getModuleName() + "_jrdl_logic");		
 		// init top
 		top.setName(getModuleName() + "_pio");  // set name
-		top.setAddBaseAddrParameter(addBaseAddressParameter());
+		if (addBaseAddressParameter()) setAddBaseAddrParameter(top);
 		// add decode and logic modules
 		top.addInstance(decoder, "pio_decode");
 		top.addInstance(logic, "pio_logic");
@@ -588,6 +588,14 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	private void endIOHierarchy(InstanceProperties properties) {
 			//System.out.println("*** Popping interface:" + properties.getBaseName());
 			hwSigList.popIOSignalSet();
+	}
+
+	/** add BASE_ADDR parameter to a module */
+	private void setAddBaseAddrParameter(SystemVerilogModule mod) {
+		// set default baseaddr for this module
+		RegNumber baseAddr = new RegNumber(ExtParameters.getPrimaryBaseAddress());
+		baseAddr.setVectorLen(ExtParameters.getLeafAddressSize());
+		mod.addParameter("BASE_ADDR", baseAddr.toFormat(NumBase.Hex, NumFormat.Verilog));
 	}
 		
 	//---------------------------- inner classes ----------------------------------------
@@ -990,9 +998,9 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	/** write out the interface wrapper */
 	protected  void writeInterfaceWrapper() {		
 		// create wrapper module
-		SystemVerilogModule intfWrapper = new SystemVerilogModule(this, 0, defaultClk, getDefaultReset());  // TODO - was LOGIC|DECODE
+		SystemVerilogModule intfWrapper = new SystemVerilogModule(this, 0, defaultClk, getDefaultReset());
 		intfWrapper.setName(getModuleName() + "_pio_iwrap");
-		intfWrapper.setAddBaseAddrParameter(addBaseAddressParameter());
+		if (addBaseAddressParameter()) setAddBaseAddrParameter(intfWrapper);
 		intfWrapper.setUseInterfaces(true);  // wrapper will have interfaces in io
 		// add io lists
 		intfWrapper.useIOList(cntlSigList, null);

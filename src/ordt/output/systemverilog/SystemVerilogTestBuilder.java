@@ -549,7 +549,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	   	// apply inputs on next clock cycle
 	   	primaryBfm.addStatement("  @(posedge CLK);");
 	   	primaryBfm.addStatement("    #1 active = 1'b1;");  // indicate transaction active
-	   	if (getMapAddressWidth()>0) primaryBfm.addStatement("    pio_dec_address = address" + SystemVerilogSignal.genRefArrayString(getAddressLowBit(), getMapAddressWidth()) + ";");  // FIXME
+	   	if (getMapAddressWidth()>0) primaryBfm.addStatement("    pio_dec_address = address" + SystemVerilogSignal.genRefArrayString(getAddressLowBit(), getMapAddressWidth()) + ";");
 	   	primaryBfm.addStatement("    pio_dec_write_data = wr_data;");
 	   	if (SystemVerilogDecodeModule.hasWriteEnables()) primaryBfm.addStatement("    pio_dec_write_enable = wr_enable;");
 	   	primaryBfm.addStatement("    pio_dec_read = type[1];");
