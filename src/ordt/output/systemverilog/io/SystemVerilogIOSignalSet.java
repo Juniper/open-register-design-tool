@@ -3,6 +3,9 @@ package ordt.output.systemverilog.io;
 import java.util.ArrayList;
 import java.util.List;
 
+import ordt.output.systemverilog.common.RemapRuleList;
+import ordt.output.systemverilog.common.SystemVerilogWrapModule.WrapperSignalMap;
+
 public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	enum SignalSetType {SIGNALSET, INTERFACE, STRUCT}
 	protected SignalSetType signalSetType = SignalSetType.SIGNALSET;
@@ -70,6 +73,11 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	protected void addSignalSet(SystemVerilogIOSignalSet newSigSet) {
 		childList.add(newSigSet);  // add set to signal list 
 		//System.out.println("  SystemVerilogIOSignalSet addSignalSet: new intf=" + newSigSet.getName() + " to " + getName());
+	}
+	
+	/** add a child element to this signalset */
+	protected void addElement(SystemVerilogIOElement elem) {
+		childList.add(elem);  // add set to signal list 
 	}
 
 	// ----------- methods to be overriden by child classes
@@ -224,7 +232,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 
 	// ------ string output methods
 	
-	/** return a list of assignment strings for this signalset - recursively builds names top down * 
+	/** return a list of assignment strings for this signalset - recursively builds names top down * TODO - replace
 	 * @param insideLocations - only assigns to/from this location will be returned
 	 * @param sigsOnInside - true if signals are used inside insideLocations, hierarchy outside
 	 * @param pathPrefix - prefix from ancestor levels that will be used to create child name
@@ -275,6 +283,58 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		}
 		//System.out.println("  SystemVerilogIOSignalSet getIOSignalList: output size=" + outList.size());
 		return outList;
+	}
+	
+	/** add matching leaf elements of this SystemVerilogSignalSet to a wrapper signal map as sources. - recursively builds names top down * 
+	 * @param sigMap - WrapperSignalMap that will be modified
+	 * @param rules - set of remapping rules that will be used each signal 
+	 * @param useHierSignalNames - if true, hierarchical names will be set for encapsulated signals
+	 * @param pathPrefix - prefix from ancestor levels that will be used to create child name (recursion parameter)
+	 * @param hierPathPrefix - hierarchical path prefix from ancestor levels that will be used to create hier child name (recursion parameter)
+	 * @param validEncap - if true, any matching elements in this signalset should be added, otherwise only those encapsulated in a non-virtual set (recursion parameter)
+	 * @param foundFirstNonVirtual - if true, first non-virtual element in hierarchy was already found, so no name prefix in hier (recursion parameter)
+	 */
+	public void loadWrapperMapSources(WrapperSignalMap sigMap, RemapRuleList rules, boolean useHierSignalNames, 
+			String pathPrefix, String hierPathPrefix, boolean validEncap, boolean foundFirstNonVirtual) {
+		//System.out.println("SystemVerilogIOSignalSet getNonVirtualAssignStrings: hierPathPrefix=" + hierPathPrefix);
+		String prefix = getFullName(pathPrefix, false);  // add current name to prefix
+		String suffixChar = hasNoName()? "" : "_";
+		String hierSuffixChar = hasNoName()? "" : isVirtual()? "_" : ".";
+		String newHierPrefix = getFullName(hierPathPrefix, !(isVirtual() || foundFirstNonVirtual));  // first non-virtual sets the prefix
+	    // process each rep of this elem
+		for (int idx=0; idx<getReps(); idx++) {
+			// build hier and non-hier name prefixes
+			String repSuffix = isReplicated()? "_" + idx : ""; 
+			String fullPrefix = prefix + repSuffix + suffixChar;
+			String hierRepSuffix = (isReplicated() && !isVirtual())? "[" + idx + "]" : repSuffix;
+			String fullHierPrefix = newHierPrefix + hierRepSuffix + hierSuffixChar;
+			boolean newValidEncap = validEncap || !isVirtual();  // mark encap as valid if not set already
+			boolean newFoundFirstNonVirtual = foundFirstNonVirtual || !isVirtual();  // mark first non-virtual if not set already
+			for (SystemVerilogIOElement ioElem : childList) {
+				boolean validLeaf = !(ioElem.isVirtual() || ioElem.isSignalSet() || !newValidEncap); 
+				// if this is leaf element then return it
+				if (validLeaf) {
+					String rootName = ioElem.getFullName(fullPrefix, true);  // non-hierarchical name will be root
+					String hierName = ioElem.getFullName(fullHierPrefix, false); // hierarchical name for this root
+					Integer elemFrom = ioElem.getFrom();
+					Integer elemTo = ioElem.getTo();
+					// check this element against rule set, return non-null source signal name if a match
+					String signalName = useHierSignalNames? rules.getRemappedName(rootName, hierName, elemFrom, elemTo, true):
+						rules.getRemappedName(rootName, null, elemFrom, elemTo, true);
+					// if a match then add to mappings
+					if (signalName!=null) {
+						Integer elemLowIndex = ((SystemVerilogIOSignal) ioElem).getLowIndex();
+						Integer elemSize = ((SystemVerilogIOSignal) ioElem).getSize();
+						sigMap.addSource(rootName, signalName, elemLowIndex, elemSize);
+					}
+				}		
+				// otherwise if a signalset, make recursive call 
+				else if (ioElem.isSignalSet()) {
+					((SystemVerilogIOSignalSet) ioElem).loadWrapperMapSources(sigMap, rules, useHierSignalNames,
+							fullPrefix, fullHierPrefix, newValidEncap, newFoundFirstNonVirtual);
+				}
+			}
+		}
 	}
 	
 	// hashCode/Equals overrides - type is omitted. rep compare on children

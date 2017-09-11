@@ -26,6 +26,11 @@ public abstract class SystemVerilogIOElement {
 		return ((this.from & loc) > 0);
 	}
 
+	/** get from location(s) for this io element */
+	public Integer getFrom() {
+		return from;
+	}
+
 	/** set from location(s) for this io element */
 	public void setFrom(Integer from) {
 		this.from = from;
@@ -35,6 +40,11 @@ public abstract class SystemVerilogIOElement {
 	public Boolean isTo(Integer loc) {
 		if ((loc == null) || (this.to == null)) return true;
 		return ((this.to & loc) > 0);
+	}
+
+	/** get to location(s) for this io element */
+	public Integer getTo() {
+		return to;
 	}
 
 	/** set to location(s) for this io element */
@@ -164,6 +174,6 @@ public abstract class SystemVerilogIOElement {
 
 	protected boolean equals(Object obj, boolean includeReps) {
 		return equals(obj);  // ignore includeReps option by default
-	}  
+	}
 	
 }

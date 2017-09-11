@@ -24,6 +24,10 @@ public class SystemVerilogInstance {
 	public String getName() {
 		return name;
 	}
+
+	public void setRemapRules(RemapRuleList rules) {
+		this.rules=rules;		
+	}
 	
 	/** add a rule to the list - first in list is highest match priority */
 	public boolean hasRemapRules() {
@@ -31,8 +35,9 @@ public class SystemVerilogInstance {
 	}
 	
 	/** return the first resulting name of a match */
-	public String getRemappedSignal(String oldName) {
-		return hasRemapRules()? rules.getNewName(oldName) : oldName;
+	public String getRemappedSignal(String oldName, Integer sigFrom, Integer sigTo) {
+		return hasRemapRules()? rules.getRemappedName(oldName, sigFrom, sigTo) : oldName;
 	}
+
 
 }

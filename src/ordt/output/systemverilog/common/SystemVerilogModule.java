@@ -10,19 +10,15 @@ import java.util.Iterator;
 import java.util.List;
 
 import ordt.extract.Ordt;
-import ordt.extract.RegNumber;
-import ordt.extract.RegNumber.NumBase;
-import ordt.extract.RegNumber.NumFormat;
 import ordt.output.OutputWriterIntf;
 import ordt.output.systemverilog.io.SystemVerilogIOElement;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalSet;
-import ordt.parameters.ExtParameters;
 
 /** system verilog module generation class
  *  
  * */
-public class SystemVerilogModule {
+public class SystemVerilogModule {  // TODO - maintain counts of each child module here
 	
 	protected OutputWriterIntf writer;
 	protected String name;  // module name
@@ -30,7 +26,9 @@ public class SystemVerilogModule {
 	protected boolean useInterfaces = false;  // will interfaces be used in module io
 	protected List<SystemVerilogParameter> parameterList = new ArrayList<SystemVerilogParameter>(); // list of parameters for this module TODO - add boolean to control parameter passing from child to parent
 	
+	
 	protected List<SystemVerilogInstance> instanceList = new ArrayList<SystemVerilogInstance>();  // list of child instances
+	protected HashMap<String, Integer> childModuleCounts = new HashMap<String, Integer>(); // maintain count of instances by module name
 	
 	protected List<SystemVerilogIOSignalList> ioList = new ArrayList<SystemVerilogIOSignalList>();  // list of IO lists in this module
 	protected HashMap<Integer, SystemVerilogIOSignalList> ioHash = new HashMap<Integer, SystemVerilogIOSignalList>();  // set of writable IO lists in this module
@@ -48,7 +46,7 @@ public class SystemVerilogModule {
 	    
 	/** create a module
 	 * @param writer - OutputWriterIntf to be used for output generation 
-	 * @param insideLocs - ORed Integer of locations in top level in this module 
+	 * @param insideLocs - ORed Integer of locations in top level in this module (not including children) 
 	 * @param defaultClkName - default clock name used for generated registers
 	 */
 	public SystemVerilogModule(OutputWriterIntf writer, int insideLocs, String defaultClkName, String coverageResetName) {
@@ -111,6 +109,11 @@ public class SystemVerilogModule {
 	protected void setTerminalInsideLocs(Integer terminalInsideLocs) {
 		this.terminalInsideLocs = terminalInsideLocs;
 		//System.out.println("SystemVerilogModule setTerminalInsideLocs: name=" + getName() + ", insideLocs=" + terminalInsideLocs + ", children=" + instanceList.size());
+	}
+
+	/** return encoded integer of all locations outside this module and its children */
+	public Integer getOutsideLocs() {
+		return ~getInsideLocs();
 	}
 
 	public void setUseInterfaces(boolean useInterfaces) {
@@ -491,14 +494,35 @@ public class SystemVerilogModule {
 
 	// ------------------- child instance methods/classes  -----------------------
 
-	public void addInstance(SystemVerilogModule mod, String name) {
-		instanceList.add(new SystemVerilogInstance(mod, name));
+	public SystemVerilogInstance addInstance(SystemVerilogModule mod, String name) {
+		return addInstance(mod, name, null);
 		//System.out.println("SystemVerilogModule addInstance: adding instance " + name + " of " + mod.getName() + " to " + getName() + ", child #=" + instanceList.size());
 	}
 	
-	public void addInstance(SystemVerilogModule mod, String name, RemapRuleList rules) {
-		instanceList.add(new SystemVerilogInstance(mod, name, rules));
+	public SystemVerilogInstance addInstance(SystemVerilogModule mod, String name, RemapRuleList rules) {
+        SystemVerilogInstance newInst = (rules==null)? new SystemVerilogInstance(mod, name) :
+        	new SystemVerilogInstance(mod, name, rules);
+		// add the instance 
+		instanceList.add(newInst);
+		// update count by module
+		String modName=mod.getName();
+		if (!childModuleCounts.containsKey(modName))
+			childModuleCounts.put(modName, 1);  // add new module
+		else
+			childModuleCounts.put(modName, childModuleCounts.get(modName) + 1);  // bump module count
 		//System.out.println("SystemVerilogModule addInstance: adding rules instance " + name + " of " + mod.getName() + " to " + getName() + ", child #=" + instanceList.size());
+        return newInst;
+	}
+	
+	/** return the number of child modules having specified name */
+	public int getChildModuleCount(String modName) {
+		if (!childModuleCounts.containsKey(modName)) return 0;
+		else return childModuleCounts.get(modName);
+	}
+	
+	/** return true if more than one child modules having specified name */
+	public boolean childModuleHasMultipleInstances(String modName) {
+		return getChildModuleCount(modName) > 1;
 	}
 		
 	// ------------------- output write methods  -----------------------
@@ -610,17 +634,11 @@ public class SystemVerilogModule {
 	    if (isLegacyVerilog || inst.hasRemapRules()) {
 			writer.writeStmt(indentLevel++, this.getName() + " " + getParameterInstanceString() + inst.getName() + " (");   // more elements so use comma
 			Iterator<SystemVerilogIOElement> it = childList.iterator();
-			Boolean anotherElement = it.hasNext();
-			while (anotherElement) {
+			while (it.hasNext()) {
 				SystemVerilogIOElement elem = it.next();
-				if (it.hasNext()) {
-					writer.writeStmt(indentLevel, "." + elem.getFullName() + "(" + inst.getRemappedSignal(elem.getFullName()) + "),");   // more elements so use comma
-					anotherElement = true;
-				}
-				else {
-					anotherElement = false;
-					writer.writeStmt(indentLevel, "." + elem.getFullName() + "(" + inst.getRemappedSignal(elem.getFullName()) + ") );");   // no more elements so close
-				}
+				String suffix = it.hasNext()? ")," : ") );";
+				String remappedSignal = inst.getRemappedSignal(elem.getFullName(), elem.getFrom(), elem.getTo());
+				writer.writeStmt(indentLevel, "." + elem.getFullName() + "(" + remappedSignal + suffix); 
 			}		   		    	
 	    }
 	    else {

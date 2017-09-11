@@ -1,13 +1,16 @@
 package ordt.output.systemverilog.io;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 
 import ordt.output.systemverilog.SystemVerilogDefinedSignals;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.common.RemapRuleList;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
+import ordt.output.systemverilog.common.SystemVerilogWrapModule.WrapperSignalMap;
 
 
 /** this is the main class used to hold IO lists for building sv modules.
@@ -20,6 +23,23 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	public SystemVerilogIOSignalList(String listName) {
 		super(null, null, 1);  // IOsignalList has no tag, no name and one rep
 		this.listName = listName;
+	}
+
+	/** return a copy of this IOSignalList, optionally w/ elements matching specified from/to and not in a unique name list
+	 * 
+	 * @param from - if non-null, only elements from this location will be copied
+	 * @param to - if non-null, only elements to this location will be copied
+	 * @param uniqueList - if non-null, only elements with names not in the set will be copied
+	 * @return new SystemVerilogIOList
+	 */
+	public SystemVerilogIOSignalList copyIOSignalList (Integer from, Integer to, HashSet<String> uniqueList) {
+		SystemVerilogIOSignalList retList = new SystemVerilogIOSignalList(listName);
+		for (SystemVerilogIOElement elem: childList) {
+			boolean uniqueOK = (uniqueList==null) || !uniqueList.contains(elem.getFullName());
+			if (elem.isFrom(from) && elem.isTo(to) && uniqueOK) retList.addElement(elem);
+			if (uniqueList!=null) uniqueList.add(elem.getFullName());
+		}
+		return retList;
 	}
 
 	public String getListName() {
@@ -246,7 +266,8 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		return outList;
 	}
 	
-	/** return a list of strings assigning interface children to corresponding simple IO signal */   
+	/** return a list of strings assigning interface children to corresponding simple IO signal. TODO - replace
+	 *  this is root call of a recursive walk of the signal set hierarchy */   
 	public List<String> getNonVirtualAssignStrings(int insideLocations) {
 		List<String> outList = new ArrayList<String>();
 		for (SystemVerilogIOElement ioElem: childList) {
@@ -258,6 +279,12 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 			}
 		}
 		return outList;
+	}
+	
+	/** add matching leaf elements of this SystemVerilogSignalList to a wrapper signal map as sources.  TODO
+	 *  this is root call of a recursive walk of the signal set hierarchy */   
+	public void loadWrapperMapSources(WrapperSignalMap sigMap, RemapRuleList rules, boolean useHierSignalNames) {
+		this.loadWrapperMapSources(sigMap, rules, useHierSignalNames, null, null, false, false);  // recursive call
 	}
 	
     public static void main (String[] args) {
