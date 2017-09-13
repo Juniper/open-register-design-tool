@@ -219,18 +219,17 @@ public abstract class ModBaseComponent {
 	}
 
 	@Override
-	// NOTE: currently used for uvm class reuse
+	// NOTE: currently used for uvm class reuse - id is omitted
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((defaultProperties == null) ? 0 : defaultProperties.hashCode());
-		// id hash is moved to child classes
 		result = prime * result + ((properties == null) ? 0 : properties.hashCode());
 		return result;
 	}
 
 	@Override
-	// NOTE: currently used for uvm class reuse
+	// NOTE: currently used for uvm class reuse - id is omitted
 	public boolean equals(Object obj) {
 		//System.out.println("ModBaseComponent equals: entering " + id);
 		if (this == obj)
@@ -245,7 +244,6 @@ public abstract class ModBaseComponent {
 				return false;
 		} else if (!defaultProperties.equals(other.defaultProperties))
 			return false;
-		// id compare is moved to child classes
 		if (properties == null) {
 			if (other.properties != null)
 				return false;

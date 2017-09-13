@@ -630,7 +630,6 @@ public abstract class ModComponent extends ModBaseComponent {
 	public int hashCode() {
 		final int prime = 31;
 		int result = super.hashCode();
-		if (!id.startsWith("aNON")) result = prime * result + ((id == null) ? 0 : id.hashCode());  // add id to hash if non anonymous
 		result = prime * result + ((alignedSize == null) ? 0 : alignedSize.hashCode());
 		//result = prime * result + ((childComponents == null) ? 0 : childComponents.hashCode());
 		result = prime * result + ((getChildInstances() == null) ? 0 : getChildInstances().hashCode());
@@ -651,11 +650,6 @@ public abstract class ModComponent extends ModBaseComponent {
 		if (getClass() != obj.getClass())
 			return false;
 		ModComponent other = (ModComponent) obj;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.startsWith("aNON") && !id.equals(other.id))  // no match for anon components
-			return false;
 		if (alignedSize == null) {
 			if (other.alignedSize != null)
 				return false;

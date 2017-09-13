@@ -1017,7 +1017,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 
 		intfWrapper.write();  // write the wrapper using interfaces	
 		
-		writeInterfaceWrapperAlt();  // FIXME - test
+		//writeInterfaceWrapperAlt();  // FIXME - test
 	}
 
 	/** TODO write out the interface wrapper */

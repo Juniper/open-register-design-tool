@@ -291,7 +291,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			//System.out.println("OutputBuilder finishRegister: " + regProperties.getInstancePath() + ", visit each reg=" + visitEachReg() + ", isFirstRep=" + regProperties.isFirstRep() + ", firstRegSetRep=" + firstRegSetRep());
 			if (visitEachReg() || (regProperties.isFirstRep() && firstRegSetRep())) {
 			    updateFinishRegProperties(regProperties);  // update regprops post field processing
-			    regSetProperties.updateChildHash(regProperties.hashCode()); // add this reg's hashcode to parent
+			    regSetProperties.updateChildHash(regProperties.hashCode(true)); // add this reg's hashcode to parent including id
 				finishRegister();   
 			}
 			regIsActive = false;
@@ -345,7 +345,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		    updateFinishRegProperties(regProperties);  // update regprops post field processing
 			// only visit once if specified by this output type
 			if (visitExternalRegisters() && firstRegSetRep()) {
-			    regSetProperties.updateChildHash(regProperties.hashCode()); // add this reg's hashcode to parent
+			    regSetProperties.updateChildHash(regProperties.hashCode(true)); // add this reg's hashcode to parent including id
 				finishRegister();   // only first rset rep here (only one call for all reg reps)
 			}
 			regIsActive = false;
@@ -572,7 +572,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 		if (regSetPropertyStack.isEmpty()) { regSetProperties = rootMapProperties;} 
 		else {
-			regSetPropertyStack.peek().updateChildHash(regSetProperties.hashCode()); // add popped regset's hashcode to parent
+			regSetPropertyStack.peek().updateChildHash(regSetProperties.hashCode(true)); // add popped regset's hashcode to parent including id
 			regSetProperties = regSetPropertyStack.peek();
 		}
 	}

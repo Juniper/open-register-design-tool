@@ -157,18 +157,16 @@ public class UVMRegsBuilder extends OutputBuilder {
 			// otherwise model as a register
 			else {
 				String uvmRegClassName = getUVMRegID();  // generate class name based on current register
-				//if ("reg_secaes_protect_in_databuf_ecc_regs_in_databuf_prot_intr_status".equals(uvmRegClassName))
-				//	   System.out.println("UVMRegsBuilder finishRegister: reg=" + uvmRegClassName + ", hash=" + regProperties.hashCode() + ", fieldHash=" + regProperties.getFieldHash());
-				//if ("reg_secaes_protect_cfgmem_ecc_regs_cfgmem_prot_intr_status".equals(uvmRegClassName))
-				//	   System.out.println("UVMRegsBuilder finishRegister: reg=" + uvmRegClassName + ", hash=" + regProperties.hashCode() + ", fieldHash=" + regProperties.getFieldHash());
-				//regClassCount++;
 				// if class reuse is specified, store new class names and reuse repeats
 				boolean createNewRegClass = true;
 				if (ExtParameters.uvmregsReuseUvmClasses()) {
+					/*System.out.println("UVMRegsBuilder finishRegister: reg " + regProperties.getInstancePath() + " with class name=" + uvmRegClassName + ", hash=" + regProperties.hashCode() + ", containsKey=" + uniqueRegClasses.containsKey(regProperties));
+					for(RegProperties reg: uniqueRegClasses.keySet()) {
+						System.out.println("    unique reg " + reg.getInstancePath()  + ", hash=" + reg.hashCode()  + ", equals=" + regProperties.equals(reg));
+					}*/
 					if (!uniqueRegClasses.containsKey(regProperties)) uniqueRegClasses.put(regProperties, uvmRegClassName);
 					else {
-						//if ("reg_secaes_protect_in_databuf_ecc_regs_in_databuf_prot_intr_status".equals(uvmRegClassName))
-						//   System.out.println("UVMRegsBuilder finishRegister: reg=" + uvmRegClassName + " is a copy of reg=" + uniqueRegClasses.get(regProperties));
+						//System.out.println("UVMRegsBuilder finishRegister: reg=" + uvmRegClassName + " is a copy of reg=" + uniqueRegClasses.get(regProperties));
 						uvmRegClassName = uniqueRegClasses.get(regProperties);  // use existing reg class
 						createNewRegClass = false;
 					}

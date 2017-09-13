@@ -482,16 +482,17 @@ public class InstanceProperties {
 
 	/** hashcode/equals overrides 
 	 * - ignores instancePath, extractInstance, externalType, repNum, textDescription in compare
+	 * - optionally includes id
 	 * - adds extractInstance.getRepCount() to compare
+	 * - only addressableInstanceProperties should use this
 	 */
-	@Override
-	public int hashCode() {
+	public int hashCode(boolean includeId) {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (dontCompare ? 1231 : 1237);
 		result = prime * result + (dontTest ? 1231 : 1237);
 		result = prime * result + ((extInterfaceName == null) ? 0 : extInterfaceName.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());  // TODO - need to skip ID check
+		if (includeId) result = prime * result + ((id == null) ? 0 : id.hashCode());  // TODO - need to skip ID check
 		result = prime * result + ((instDefaultProperties == null) ? 0 : instDefaultProperties.hashCode());
 		result = prime * result + ((jspecSupersetCheck == null) ? 0 : jspecSupersetCheck.hashCode());
 		result = prime * result + extractInstance.getRepCount();
@@ -502,9 +503,18 @@ public class InstanceProperties {
 		//System.out.println("instance hashCode for id=" + id + " is " + result);
 		return result;
 	}
-
+	
+	/** hashcode/equals overrides 
+	 * - ignores instancePath, extractInstance, externalType, repNum, textDescription in compare
+	 * - includes id, so field/fieldsets/signals use id in hash by default / regs/regsets do not and will override
+	 * - adds extractInstance.getRepCount() to compare
+	 */
 	@Override
-	public boolean equals(Object obj) {
+	public int hashCode() {
+		return hashCode(true);
+	}
+
+	public boolean equals(Object obj, boolean includeId) {
 		if (this == obj)
 			return true;
 		if (obj == null)
@@ -521,11 +531,13 @@ public class InstanceProperties {
 				return false;
 		} else if (!extInterfaceName.equals(other.extInterfaceName))
 			return false;
-		if (id == null) {
-			if (other.id != null)
+		if (includeId) {
+			if (id == null) {
+				if (other.id != null)
+					return false;
+			} else if (!id.equals(other.id))
 				return false;
-		} else if (!id.equals(other.id))
-			return false;
+		}
 		if (instDefaultProperties == null) {
 			if (other.instDefaultProperties != null)
 				return false;
@@ -553,6 +565,11 @@ public class InstanceProperties {
 		} else if (!userDefinedProperties.equals(other.userDefinedProperties))
 			return false;
 		return true;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return equals(obj, true);  // id is included by default
 	}
 
 }

@@ -386,23 +386,33 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 
 	/** hashcode/equals overrides 
 	 * - ignores externalType in compare
+	 * - optionally includes id in super so reg/regset childs can support both
 	 */
 	@Override
-	public int hashCode() {
+	public int hashCode(boolean includeId) {
 		final int prime = 31;
-		int result = super.hashCode();
+		int result = super.hashCode(includeId);
 		result = prime * result + (addressMap ? 1231 : 1237);
 		result = prime * result + (rootExternal ? 1231 : 1237);
 		result = prime * result + (isSwReadable ? 1231 : 1237);
 		result = prime * result + (isSwWriteable ? 1231 : 1237);
 		return result;
 	}
+	
+	/** hashcode/equals overrides 
+	 * - regs/regsets should not be calling default
+	 */
+	@Override
+	public int hashCode() {
+		Ordt.errorExit("AddressableInstanceProperty hash is being called directly for id=" + getId());
+		return hashCode(false);
+	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(Object obj, boolean includeId) {
 		if (this == obj)
 			return true;
-		if (!super.equals(obj))
+		if (!super.equals(obj, includeId))
 			return false;
 		if (getClass() != obj.getClass())
 			return false;

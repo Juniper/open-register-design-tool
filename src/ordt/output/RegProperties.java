@@ -495,12 +495,14 @@ public class RegProperties extends AddressableInstanceProperties {
 
 	/** hashcode/equals overrides 
 	 * - ignores cppModPrune, uvmRegPrune, filledBits, availableBits, fieldSetOffset in compare
-	 * - adds extractInstance.getAddressIncrement(), fieldHash to compare  // TODO - add field hash
+	 * - adds extractInstance.getAddressIncrement(), fieldHash to compare
+	 * - field hash is updated in outputbuilder
+	 * - optionally includes id in super 
 	 */
 	@Override
-	public int hashCode() {
+	public int hashCode(boolean includeId) {
 		final int prime = 31;
-		int result = super.hashCode();
+		int result = super.hashCode(includeId);
 		result = prime * result + ((aliasedId == null) ? 0 : aliasedId.hashCode());
 		result = prime * result + ((category == null) ? 0 : category.hashCode());
 		result = prime * result + ((fieldCount == null) ? 0 : fieldCount.hashCode());
@@ -516,13 +518,25 @@ public class RegProperties extends AddressableInstanceProperties {
 		//System.out.println("reg hashCode for id=" + getId() + " is " + result);
 		return result;
 	}
+	
+	/** hashcode/equals overrides 
+	 * - field hash is updated in outputbuilder
+	 * - by default, id is not included in parent reg hash (used for uvmregs output class reuse) 
+	 */
+	@Override
+	public int hashCode() {
+		//System.out.println("reg hashCode for id=" + getId() + " is " + hashCode(false));
+		return hashCode(false);
+	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(Object obj, boolean includeId) {
 		if (this == obj)
 			return true;
-		if (!super.equals(obj))
+		if (!super.equals(obj, includeId)) {
+			//System.out.println("RegProperties equals: equals fail in super for id=" + getId() + " vs " + ((RegProperties) obj).getId());
 			return false;
+		}
 		if (getClass() != obj.getClass())
 			return false;
 		RegProperties other = (RegProperties) obj;
@@ -561,13 +575,15 @@ public class RegProperties extends AddressableInstanceProperties {
 				return false;
 		} else if (!regWidth.equals(other.regWidth))
 			return false;
-	    if (fieldHash != other.fieldHash)
-		    return false;
+	    if (fieldHash != other.fieldHash){
+			//System.out.println("RegProperties equals: equals fail in field hash for id=" + getId() + " vs " + ((RegProperties) obj).getId());
+			return false;
+		}
 		if (getExtractInstance().getRegComp() == null) {  // use model component compare if fieldhash is equal
 			if (other.getExtractInstance().getRegComp() != null)
 				return false;
 		} else if (!getExtractInstance().getRegComp().equals(other.getExtractInstance().getRegComp())) {
-			//System.out.println("RegProperties equals() fail for this=" + getInstancePath() + ", other=" + other.getInstancePath());
+			System.out.println("RegProperties equals fail in extractInstance.getRegComp() for this=" + getInstancePath() + ", other=" + other.getInstancePath());
 			return false;
 		}
 		if (getExtractInstance().getAddressIncrement() == null) {
@@ -576,6 +592,11 @@ public class RegProperties extends AddressableInstanceProperties {
 		} else if (!getExtractInstance().getAddressIncrement().equals(other.getExtractInstance().getAddressIncrement()))
 			return false;
 		return true;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return equals(obj, false);  // id is not included by default
 	}
 
 }
