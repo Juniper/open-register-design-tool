@@ -53,6 +53,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 	/** add a register or external interface to the decoder */ 
 	public void addToDecode(AddressableInstanceProperties instProperties) {
+		if ((instProperties.getRepCount() > ExtParameters.sysVerMaxInternalRegReps()) && !instProperties.isExternal()) 
+			Ordt.errorExit("Replication count (" + instProperties.getRepCount() + ") exceeded max for internal register " + instProperties.getInstancePath() + ".  Set max_internal_reg_reps to override.");
+
 		decoderList.add(instProperties);
 		//if (regProperties.isExternal()) System.out.println("SystemVerilogDecoder addToDecode: adding ext " + regProperties.getInstancePath() + " at base=" + regProperties.getBaseAddress());
 	}

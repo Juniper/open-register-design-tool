@@ -139,6 +139,7 @@ ext_parm_defs
    | 'use_async_resets' EQ bool
    | 'nack_partial_writes' EQ bool
    | 'write_enable_size' EQ NUM
+   | 'max_internal_reg_reps' EQ NUM
    ;
       
 // ------------ uvmregs_out_defs

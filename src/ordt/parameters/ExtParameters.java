@@ -52,7 +52,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	private static SVChildInfoModes sysVerChildInfoMode;  
 	private static UVMModelModes uvmModelMode;  
 
-	private static int maxInternalRegReps = 4096;  // max internal reg reps allowed (not set externally)
+	private static int defaultMaxInternalRegReps = 4096;  // max internal reg reps allowed
 	
 	// list of model annotation commands
 	private static List<AnnotateCommand> annotations = new ArrayList<AnnotateCommand>();
@@ -111,7 +111,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initStringListParameter("process_typedef", new ArrayList<String>());
 		initBooleanParameter("root_regset_is_addrmap", false); 
 		initBooleanParameter("root_is_external_decode", true); 
-		initIntegerParameter("external_replication_threshold", getMaxInternalRegReps()); 	
+		initIntegerParameter("external_replication_threshold", defaultMaxInternalRegReps); 	
 		
 		// ---- systemverilog output defaults
 		initIntegerParameter("leaf_address_size", 40); 	
@@ -136,6 +136,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("use_async_resets", false); 
 		initBooleanParameter("nack_partial_writes", false); 
 		initIntegerParameter("write_enable_size", 0); 	
+		initIntegerParameter("max_internal_reg_reps", defaultMaxInternalRegReps); 	
 		
 		// ---- rdl output defaults
 		initBooleanParameter("root_component_is_instanced", true); 
@@ -468,11 +469,6 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	}
 
 	// ----------------------------------- getters ------------------------------------------
-
-	/* return max allowed internal register replications */
-	public static int getMaxInternalRegReps() {
-		return maxInternalRegReps;
-	}
 	
 	public static List<AnnotateCommand> getAnnotations() {
 		return annotations;
@@ -722,6 +718,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	
 	public static int sysVerWriteEnableSize() {
 		return getIntegerParameter("write_enable_size");
+	}
+
+	/* return max allowed internal register replications */
+	public static int sysVerMaxInternalRegReps() {
+		return getIntegerParameter("max_internal_reg_reps");
 	}
 	
 	// bench parameter getters
