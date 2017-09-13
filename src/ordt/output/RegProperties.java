@@ -513,6 +513,7 @@ public class RegProperties extends AddressableInstanceProperties {
 		result = prime * result + ((regWidth == null) ? 0 : regWidth.hashCode());
 		result = prime * result + fieldHash;
 		result = prime * result + ((getExtractInstance().getAddressIncrement() == null) ? 0 : getExtractInstance().getAddressIncrement().hashCode());
+		//System.out.println("reg hashCode for id=" + getId() + " is " + result);
 		return result;
 	}
 

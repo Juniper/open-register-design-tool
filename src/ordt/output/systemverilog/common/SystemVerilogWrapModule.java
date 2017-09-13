@@ -7,11 +7,9 @@ import java.util.List;
 
 import ordt.extract.Ordt;
 import ordt.output.OutputWriterIntf;
+import ordt.output.systemverilog.SystemVerilogBuilder;
 import ordt.output.systemverilog.common.RemapRuleList.RemapRuleType;
-import ordt.output.systemverilog.common.SystemVerilogWrapModule.WrapperSignalMap;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
-import ordt.parameters.ExtParameters;
-import ordt.parameters.ExtParameters.SVDecodeInterfaceTypes;
 
 public class SystemVerilogWrapModule extends SystemVerilogModule {
 
@@ -34,11 +32,11 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 	/** add an instance to wrap module.
 	 * check for duplicate child modules and set remap rules for child IO */
 	public SystemVerilogInstance addInstance(SystemVerilogModule mod, String name) {
-		// TODO - dup modules are OK, but need to check for dup signal sources and exit
+		// TODO dup child modules not fully supported
 		if (childModuleHasMultipleInstances(mod.getName())) Ordt.warnMessage("Wrapper modules with multiple children of same type may cause generation issues.");
-        // add new instance
-		SystemVerilogInstance newInst = super.addInstance(mod, name);
-		// add child using remap info
+        // add new instance w/o rules for now
+		SystemVerilogInstance newInst = super.addInstance(mod, name, null);
+		// add child using remap rule to add name prefix 
 		RemapRuleList rules = getChildRemapRuleList(newInst);
 		newInst.setRemapRules(rules);
 		//System.out.println("SystemVerilogWrapModule addInstance: adding instance " + name + " of " + mod.getName() + " to " + getName() + ", child #=" + instanceList.size());
@@ -49,7 +47,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 	 * note that instance remap rules are disabled in wrap, which uses a set remapping scheme */
 	@Override
 	public SystemVerilogInstance addInstance(SystemVerilogModule mod, String name, RemapRuleList rules) {
-		Ordt.warnMessage("Remap rules applied to child instance " + name + " of " + mod.getName() + "will be ignored in wrap module " + getName());
+		Ordt.warnMessage("Remap rules applied to child instance " + name + " of " + mod.getName() + " will be ignored in wrap module " + getName());
 		return addInstance(mod, name);
 	}
 	
@@ -59,7 +57,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 	 */
 	private RemapRuleList getChildRemapRuleList(SystemVerilogInstance newInst) {
 		// add instance name prefix to uniquify signals
-		String prefix = "inst_" + newInst.getName() + "_"; 
+		String prefix = getPrefixedInstanceSignalName(newInst.getName()); 
 		RemapRuleList rules = new RemapRuleList();
 		// prefix all child inputs/outputs
 		Integer insideLocs = newInst.getMod().getInsideLocs();
@@ -78,48 +76,108 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		private int srcSize;  // size in bits of source 
 		private SystemVerilogSignal dest;  // destination signal and vector info
 		private WrapperRemapType type = WrapperRemapType.ASSIGN;  // remap type
+
+		private WrapperRemapDestination(int srcLowIndex, int srcSize, SystemVerilogSignal dest, WrapperRemapType type) {
+			this.srcLowIndex = srcLowIndex;
+			this.srcSize = srcSize;
+			this.dest = dest;
+			this.type = type;
+		}
+		
+        @Override
+		public String toString() {
+			return "source " + ((srcSize>1)? SystemVerilogBuilder.genRefArrayString(srcLowIndex, srcSize) : "") + " -> " + dest + ", type=" + type;
+		}
 	}
 	
 	private class WrapperRemapInstance {
-		private SystemVerilogSignal source;  // source signal and vector info
+		private SystemVerilogSignal source;  // source signal name
+		private boolean isValidSource = true;  // indication that source is valid - false indicates destination(s) with no matching source
+		private boolean isInput = false;  // indication that source is an external input
 		private List<WrapperRemapDestination> dests = new ArrayList<WrapperRemapDestination>();
 		
-		public WrapperRemapInstance(String signalName, Integer lowIndex, Integer size) {
+		public WrapperRemapInstance(String signalName, Integer lowIndex, Integer size, boolean isValidSource, boolean isInput) {
 			this.source = new SystemVerilogSignal(signalName, lowIndex, size);
+			this.isValidSource = isValidSource;
+			this.isInput = isInput;
 		}
+
+		public void addDestination(String signalName, Integer lowIndex, Integer size, boolean isOutput) {
+			SystemVerilogSignal newDest = new SystemVerilogSignal(signalName, lowIndex, size);
+			dests.add(new WrapperRemapDestination(lowIndex, size, newDest, WrapperRemapType.ASSIGN));  // TODO - use same lowIndex/size and assign mode only for now
+		}
+		
+		@Override
+		public String toString() {
+        	String retStr = source + ", isValidSource=" + isValidSource + ", isInput=" + isInput;
+        	for (WrapperRemapDestination dest: dests)
+    			retStr += "\n   " + dest;
+			return retStr;
+		}
+
 	}
 	
 	/** mapping of wrapper source signals to destinations */
 	public class WrapperSignalMap {
 		private LinkedHashMap<String, WrapperRemapInstance> mappings = new LinkedHashMap<String, WrapperRemapInstance>();
 
-		/** add a source signal to the mapping */
-		public void addSource(String rootName, String signalName, Integer lowIndex, Integer size) {
+		/** add a source signal to the mapping
+		 * @param rootName - root signal name used for matching source/destination maps
+		 * @param signalName - source signal name that will drive this node
+		 * @param lowIndex - low bit index of source signal
+		 * @param size - size in bits of this source signal
+		 * @param isInput - if true, source signal will be tagged as an external input
+		 */
+		public void addSource(String rootName, String signalName, Integer lowIndex, Integer size, boolean isInput) {
 			if (mappings.containsKey(rootName)) Ordt.errorExit("Wrapper module found multiple source signals named " + rootName);
-			mappings.put(rootName, new WrapperRemapInstance(signalName, lowIndex, size));			
+			mappings.put(rootName, new WrapperRemapInstance(signalName, lowIndex, size, true, isInput));	// add a valid source		
+		}
+
+		/** add a destination signal to the mapping
+		 * @param rootName - root signal name used for matching source/destination maps
+		 * @param signalName - destination signal name 
+		 * @param lowIndex - low bit index of destination signal
+		 * @param size - size in bits of this destination signal
+		 * @param isOutput - if true, destination signal will be tagged as an external output
+		 */
+		public void addDestination(String rootName, String signalName, Integer lowIndex, Integer size, boolean isOutput) {
+			// if this destination has no source, add it and tag as invalid
+			if (!mappings.containsKey(rootName)) {
+				Ordt.errorMessage("Wrapper module did not find a source for destination signal " + rootName);
+				mappings.put(rootName, new WrapperRemapInstance(rootName, lowIndex, size, false, false));	// add an invalid source		
+			}
+			// now add a destination
+			mappings.get(rootName).addDestination(signalName, lowIndex, size, isOutput);	// add a destination		
+		}
+		
+		public void display() {
+        	for (String root: mappings.keySet())
+    			System.out.println("root=" + root + ", map=" + mappings.get(root));
 		}
 	}
 	
 	// ------------------- wrapper IO/signal generation  -----------------------
 	
-    /** geneate IOs, signals, and assignments for this wrap module */
+    /** generate IOs, signals, and assignments for this wrap module.  Must be called after child instances are added */
 	public void generateWrapperInfo() {  
 		generateIOListFromChildren();  // gen wrapper IO list
+		inheritChildParameters();  // use child parameters
 		// create signal mappings
 		setIOsourceSignals(useInterfaces);
 		setChildSourceSignals();
-		setIODestinationSignals();
+		setIODestinationSignals(useInterfaces);
 		setChildDestinationSignals();
 		// TODO create wire/reg degs and assigns for mapping
+		
+		wrapMappings.display();  // TODO
 	}
 	
 	// TODO add alternate mode to use a specified IO list rather than child extracted IO
 	
     /** set the external IO lists for this module using unique child IO */
 	private void generateIOListFromChildren() {  
-		SystemVerilogIOSignalList inputList = new SystemVerilogIOSignalList("inputs");  // external inputs
-		SystemVerilogIOSignalList outputList = new SystemVerilogIOSignalList("outputs");  // external outputs
-		HashSet<String> uniqueSignalNames = new HashSet<String>();  // maintain list of unique child IO signal names
+		SystemVerilogIOSignalList newList = new SystemVerilogIOSignalList("IO");  // external IO
+		HashSet<String> uniqueIONames = new HashSet<String>();  // maintain list of unique child IO signal names
 		HashSet<String> uniqueModules = new HashSet<String>();  // maintain list of unique child module names
 		Integer outsideLocs = getOutsideLocs(); // get outside locations for this module
 		for (SystemVerilogInstance inst: instanceList) {
@@ -128,19 +186,17 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			if (!uniqueModules.contains(modName)) {
 				uniqueModules.add(modName);
 				SystemVerilogIOSignalList fullList = inst.getMod().getFullIOSignalList(); // extract full list from this child
+				//fullList.display();
+				// build remap rule for all external inputs
+				RemapRuleList rules = new RemapRuleList();
 				Integer insideLocs = inst.getMod().getInsideLocs();  // get this child's internal locations
-				inputList.addList(fullList.copyIOSignalList(outsideLocs, insideLocs, uniqueSignalNames));  // get unique child inputs
-				outputList.addList(fullList.copyIOSignalList(insideLocs, outsideLocs, uniqueSignalNames));  // get unique child outputs
+				rules.addRule(outsideLocs, insideLocs, RemapRuleType.SAME, ""); // input rule
+				rules.addRule(insideLocs, outsideLocs, RemapRuleType.SAME, ""); // output rule
+				newList.addList(new SystemVerilogIOSignalList(fullList, rules, uniqueIONames));  // get unique child IOs
 			}
 		}
         // add these child IOs to this modules IO list
-		useIOList(inputList, null);
-		useIOList(outputList, null);
-	}
-	
-	/** inherit parameters from children */
-	public void inheritChildParameters() {
-		// TODO - either add parms to IO, set parms, or use default values / move this to mod super class
+		useIOList(newList, null);
 	}
 	
 	/** load wrapMappings w/ source signals from external inputs */
@@ -150,9 +206,9 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		// build remap rule for all external inputs
 		RemapRuleList rules = new RemapRuleList();
 		rules.addRule(outsideLocs, insideLocs, RemapRuleType.SAME, "");
-		// load wrapMappings - call on IOList - 
+		// load wrapMappings with sources from IO inputs 
 		SystemVerilogIOSignalList fullIOList = getFullIOSignalList(); // use full IO list as there could be encapsulated IO
-		fullIOList.loadWrapperMapSources(wrapMappings, rules, useHierSignalNames);
+		fullIOList.loadWrapperMapSources(wrapMappings, rules, useHierSignalNames, true);
 	}
 	
 	/** load wrapMappings w/ source signals from child outputs */
@@ -162,22 +218,43 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			SystemVerilogIOSignalList fullList = inst.getMod().getFullIOSignalList(); // extract full list from this child
 			Integer insideLocs = inst.getMod().getInsideLocs();  // get this child's internal locations
 			Integer outsideLocs = inst.getMod().getOutsideLocs();  // get this child's internal locations
-			// build remap rule for all external inputs
+			// build remap rule for all child outputs
 			RemapRuleList rules = new RemapRuleList();
-			rules.addRule(outsideLocs, insideLocs, RemapRuleType.ADD_PREFIX, "inst_" + inst.getName());
+			rules.addRule(insideLocs, outsideLocs, RemapRuleType.ADD_PREFIX, getPrefixedInstanceSignalName(inst.getName()));
 			// load wrapMappings  
-			fullList.loadWrapperMapSources(wrapMappings, rules, false);
+			fullList.loadWrapperMapSources(wrapMappings, rules, false, false);
 		}
 	}
 	
+	private static String getPrefixedInstanceSignalName(String baseName) {
+		return "inst_" + baseName + "_";
+	}
+
 	/** load wrapMappings w/ destination signals to external IO list (outputs) */
-	private void setIODestinationSignals() {
-		// TODO load wrapMappings
+	private void setIODestinationSignals(boolean useHierSignalNames) {
+		Integer insideLocs = getInsideLocs(); // get inside locations for this module  
+		Integer outsideLocs = getOutsideLocs(); // get outside locations for this module
+		// build remap rule for all external outputs
+		RemapRuleList rules = new RemapRuleList();
+		rules.addRule(insideLocs, outsideLocs, RemapRuleType.SAME, "");
+		// load wrapMappings with destinations from IO outputs 
+		SystemVerilogIOSignalList fullIOList = getFullIOSignalList(); // use full IO list as there could be encapsulated IO
+		fullIOList.loadWrapperMapDestinations(wrapMappings, rules, useHierSignalNames, true);
 	}
 	
 	/** load wrapMappings w/ destination signals to child IO list (inputs) */
 	private void setChildDestinationSignals() {
-		// TODO load wrapMappings
+		for (SystemVerilogInstance inst: instanceList) {
+			// if module is new, process it
+			SystemVerilogIOSignalList fullList = inst.getMod().getFullIOSignalList(); // extract full list from this child
+			Integer insideLocs = inst.getMod().getInsideLocs();  // get this child's internal locations
+			Integer outsideLocs = inst.getMod().getOutsideLocs();  // get this child's internal locations
+			// build remap rule for all child inputs
+			RemapRuleList rules = new RemapRuleList();
+			rules.addRule(outsideLocs, insideLocs, RemapRuleType.ADD_PREFIX, getPrefixedInstanceSignalName(inst.getName()));
+			// load wrapMappings  
+			fullList.loadWrapperMapDestinations(wrapMappings, rules, false, false);
+		}
 	}
 		
 	// TODO generate wires

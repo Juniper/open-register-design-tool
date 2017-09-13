@@ -78,9 +78,14 @@ public class RemapRuleList {
 			// test for location match
 			if (!isLocationMatch(sigFrom, sigTo)) return null;
 			// test for a matching pattern
-			Pattern p = Pattern.compile(pattern);
-			Matcher m = p.matcher(oldName);
-			if ((pattern==null) || m.matches()) {
+			boolean isMatch = true;  // set match to true assuming null pattern
+			Matcher matcher = null;
+			if (pattern!=null) {
+				Pattern p = Pattern.compile(pattern);
+				matcher = p.matcher(oldName);
+				isMatch = matcher.matches();
+			}
+			if (isMatch) {
 				String baseName = (altBaseName != null)? altBaseName : oldName;
 				switch (remapType) {
 				case SAME: return baseName;
@@ -89,9 +94,9 @@ public class RemapRuleList {
 				case DIRECT_MAP: return opStr;
 				case REGEX_GROUPS:
 					String newName = opStr;
-					if (pattern==null) return opStr;
-					for (int gidx=1; gidx<=m.groupCount(); gidx++)
-						newName = newName.replaceFirst("%" + gidx, m.group(gidx));
+					if (pattern==null) return opStr;  // no pattern matching if no pattern
+					for (int gidx=1; gidx<=matcher.groupCount(); gidx++)
+						newName = newName.replaceFirst("%" + gidx, matcher.group(gidx));
 					return newName;
 				}
 			}
@@ -106,8 +111,8 @@ public class RemapRuleList {
 		 */
 		private boolean isLocationMatch(Integer sigFrom, Integer sigTo) {
 			// perform matched based on to/from if specified
-			boolean fromMatch = (from==null) || ((sigFrom!=null) && ((sigFrom&from) > 0)); // if rule has from/to only match if non-null sig from/to
-			boolean toMatch = (to==null) || ((sigTo!=null) && ((sigTo&to) > 0));
+			boolean fromMatch = (from==null) || ((sigFrom!=null) && ((sigFrom&from) != 0)); // if rule has from/to only match if non-null sig from/to
+			boolean toMatch = (to==null) || ((sigTo!=null) && ((sigTo&to) != 0));
 			return fromMatch && toMatch;
 		}
 

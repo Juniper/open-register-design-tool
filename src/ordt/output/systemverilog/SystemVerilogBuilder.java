@@ -24,6 +24,7 @@ import ordt.output.RhsReference;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
+import ordt.output.systemverilog.common.SystemVerilogWrapModule;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalSet;
 import ordt.output.AddressableInstanceProperties.ExtType;
@@ -1014,7 +1015,23 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		intfWrapper.addWireDefs(wrapperIOList.getEncapsulatedSignalList(LOGIC|DECODE));
 		intfWrapper.addWireAssigns(wrapperIOList.getNonVirtualAssignStrings(LOGIC|DECODE));  // sig to intf assigns
 
-		intfWrapper.write();  // write the wrapper using interfaces			
+		intfWrapper.write();  // write the wrapper using interfaces	
+		
+		writeInterfaceWrapperAlt();  // FIXME - test
+	}
+
+	/** TODO write out the interface wrapper */
+	protected  void writeInterfaceWrapperAlt() {		
+		// create wrapper module
+		SystemVerilogWrapModule intfWrapper = new SystemVerilogWrapModule(this, 0, defaultClk, getDefaultReset());
+		intfWrapper.setName(getModuleName() + "_pio_iwrap_alt");
+		intfWrapper.setUseInterfaces(false); 
+		// add pio_top instance
+		intfWrapper.addInstance(top, "pio");
+        // create wrapper
+		intfWrapper.generateWrapperInfo();
+        // write wrapper module
+		intfWrapper.write();			
 	}
 
 	// ------------------ testbench support methods

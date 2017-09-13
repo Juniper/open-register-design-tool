@@ -491,7 +491,7 @@ public class InstanceProperties {
 		result = prime * result + (dontCompare ? 1231 : 1237);
 		result = prime * result + (dontTest ? 1231 : 1237);
 		result = prime * result + ((extInterfaceName == null) ? 0 : extInterfaceName.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());  // TODO - need to skip ID check
 		result = prime * result + ((instDefaultProperties == null) ? 0 : instDefaultProperties.hashCode());
 		result = prime * result + ((jspecSupersetCheck == null) ? 0 : jspecSupersetCheck.hashCode());
 		result = prime * result + extractInstance.getRepCount();
@@ -499,6 +499,7 @@ public class InstanceProperties {
 		result = prime * result + (useInterface ? 1231 : 1237);
 		result = prime * result + (useStruct ? 1231 : 1237);
 		result = prime * result + ((userDefinedProperties == null) ? 0 : userDefinedProperties.hashCode());
+		//System.out.println("instance hashCode for id=" + id + " is " + result);
 		return result;
 	}
 

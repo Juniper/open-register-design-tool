@@ -1,10 +1,12 @@
 package ordt.output.systemverilog.io;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import ordt.output.systemverilog.common.RemapRuleList;
 import ordt.output.systemverilog.common.SystemVerilogWrapModule.WrapperSignalMap;
+import ordt.parameters.Utils;
 
 public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	enum SignalSetType {SIGNALSET, INTERFACE, STRUCT}
@@ -18,6 +20,44 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		this.tagPrefix = tagPrefix;
 		this.reps = reps; 
 		//if (reps>1) System.out.println("SystemVerilogIOSignalSet: reps=" + reps + ", tagPrefix=" + tagPrefix + ", name=" + name);
+	}
+
+	/** copy an IOSignalSet w/ hierarchy, keeping elements matching specified rules and not in a unique name list.
+	 * virtual elements will be added w/o rule matching  
+	 * 
+	 * @param origSet - IOSignalSet be copied
+	 * @param rules - RemapRuleList to be applied for matching
+	 * @param uniqueList - if non-null, only elements with names not in the set will be copied
+	 * @param namePrefix - string prefix from ancestors that is used for hier name creation (recursion parameter)
+	 */
+	public SystemVerilogIOSignalSet(SystemVerilogIOSignalSet origSet, RemapRuleList rules, HashSet<String> uniqueList, String namePrefix) {
+		this.name = origSet.getName();
+		this.tagPrefix = origSet.getTagPrefix();
+		this.reps = origSet.getReps(); 
+		this.from = origSet.getFrom(); 
+		this.to = origSet.getTo(); 
+		// set thru this IOSignalSet's children and keep matches
+		for (SystemVerilogIOElement elem: origSet.getChildList()) {
+			String childName = (namePrefix==null)? elem.getName() : namePrefix + "." + elem.getName();
+			boolean uniqueOK = (uniqueList==null) || !uniqueList.contains(childName);  // uniqueness match
+			String newChildName = rules.getRemappedName(childName, null, elem.getFrom(), elem.getTo(), true); // test for rules match
+			boolean rulesMatch = newChildName != null; // rules match
+			// if virtual, add this set w/o checking rules
+			if (elem.isVirtual() && uniqueOK) { 
+				childList.add(new SystemVerilogIOSignalSet((SystemVerilogIOSignalSet) elem, rules, uniqueList, childName));
+				if (uniqueList!=null) uniqueList.add(childName);
+			}
+			// if non-virtual, add if a rule match
+			else if (elem.isSignalSet() && rulesMatch && uniqueOK) {
+				childList.add(new SystemVerilogIOSignalSet((SystemVerilogIOSignalSet) elem, rules, uniqueList, childName));
+				if (uniqueList!=null) uniqueList.add(childName);
+			}
+			// if a signal, add if a rule match
+			else if (!elem.isSignalSet() && rulesMatch && uniqueOK) {
+				childList.add(elem);
+				if (uniqueList!=null) uniqueList.add(childName);
+			}
+		}
 	}
 
 	/** returns true if this element is a set */
@@ -141,13 +181,13 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	 * @param pathPrefix - prefix from ancestor levels that will be used to create child name
 	 * @param addTagPrefix - if true, defined signal prefixes will be added to names
 	 * @param stopOnNonVirtualSets - if true, recursion stops when a non-virtual signalset is hit (eg an interface)
-	 * @param validEncap - if true, any matching elements in this signalset should be added, otherwise only those encapsulated in a non-virtual set
-	 * @param omitCurrentName - if true, the name of the root set will not be appended to the prefix
+	 * @param validEncap - if true, any matching elements in this signalset should be added, otherwise only those encapsulated in a non-virtual set (recursion parameter)
+	 * @param omitCurrentName - if true, the name of the root set will not be appended to the prefix (recursion parameter)
 	 * @param skipSets - if true, do not return any signalsets in output list
-	 * @param singleParentRep - if true, only the first rep in the first call will be processed, all reps in recursive child calls are processed
+	 * @param singleParentRep - if true, only the first rep in the first call will be processed, all reps in recursive child calls are processed (recursion parameter)
 	 * @return - list of SystemVerilogIOElement
 	 */
-	public List<SystemVerilogIOElement> getIOElementList(Integer fromLoc, Integer toLoc, String pathPrefix, boolean addTagPrefix, 
+	public List<SystemVerilogIOElement> getFlatIOElementList(Integer fromLoc, Integer toLoc, String pathPrefix, boolean addTagPrefix, 
 			boolean stopOnNonVirtualSets, boolean validEncap, boolean omitCurrentName, boolean skipSets, boolean singleParentRep) {
 		List<SystemVerilogIOElement> outList = new ArrayList<SystemVerilogIOElement>();
 		//System.out.println("SystemVerilogIOSignalSet getIOElementList: from=" + fromLoc + ", to=" + toLoc + ", pPrefix=" + pathPrefix + ", addTagPrefix=" + addTagPrefix + ", stopOnNonVirtualSets=" + stopOnNonVirtualSets + ", validEncap=" + validEncap + ", omitCurrentName=" + omitCurrentName);
@@ -170,12 +210,12 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 				}		
 				// otherwise if a signalset, make recursive call 
 				else if (ioElem.isSignalSet()) {
-					List<SystemVerilogIOElement> newList = ((SystemVerilogIOSignalSet) ioElem).getIOElementList(fromLoc, toLoc, fullPrefix, addTagPrefix, stopOnNonVirtualSets, newValidEncap, false, skipSets, false);
+					List<SystemVerilogIOElement> newList = ((SystemVerilogIOSignalSet) ioElem).getFlatIOElementList(fromLoc, toLoc, fullPrefix, addTagPrefix, stopOnNonVirtualSets, newValidEncap, false, skipSets, false);
 					outList.addAll(newList);
 				}
 			}
 		}
-		//System.out.println("  SystemVerilogIOSignalSet getIOSignalList: output size=" + outList.size());
+		//System.out.println("  SystemVerilogIOSignalSet getIOElementList: output size=" + outList.size());
 		return outList;
 	}
 
@@ -186,7 +226,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	 * @param skipSets - if true, do not return any signalsets in output list
 	 */
 	public List<SystemVerilogIOElement> getDescendentIOElementList(Integer fromLoc, Integer toLoc, boolean skipSets) {
-		List<SystemVerilogIOElement> outList = getIOElementList(fromLoc, toLoc, null, true, true, true, false, skipSets, false);
+		List<SystemVerilogIOElement> outList = getFlatIOElementList(fromLoc, toLoc, null, true, true, true, false, skipSets, false);
 		//System.out.println("SystemVerilogIOSignalSet getDescendentIOElementList: name=" + getName() + ", from=" + fromLoc + ", to=" + toLoc);
 		//for (SystemVerilogIOElement elem : outList) System.out.println("  type=" + elem.getType() + ", name=" + elem.getName());
 		return outList;
@@ -196,7 +236,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	 *  Assumes no pathPrefix and addTagPrefix=false. Called in Non-virtual signalset instance string generation
 	 */
 	public List<SystemVerilogIOElement> getLocalDescendentIOElementList() {
-		List<SystemVerilogIOElement> outList = getIOElementList(null, null, null, false, true, true, true, false, true); // omitCurrentName=true, singleParentRep=true
+		List<SystemVerilogIOElement> outList = getFlatIOElementList(null, null, null, false, true, true, true, false, true); // omitCurrentName=true, singleParentRep=true
 		return outList;
 	}
 	
@@ -207,7 +247,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	 * @return - list of SystemVerilogIOSignal
 	 */
 	public List<SystemVerilogIOElement> getEncapsulatedIOElementList(Integer fromLoc, Integer toLoc) {
-		return getIOElementList(fromLoc, toLoc, null, true, false, false, false, false, false);
+		return getFlatIOElementList(fromLoc, toLoc, null, true, false, false, false, false, false);
 	}
 
  
@@ -232,7 +272,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 
 	// ------ string output methods
 	
-	/** return a list of assignment strings for this signalset - recursively builds names top down * TODO - replace
+	/** return a list of assignment strings for this signalset - recursively builds names top down * TODO - replace this w/ loadWrapperMapSources wrap flow
 	 * @param insideLocations - only assigns to/from this location will be returned
 	 * @param sigsOnInside - true if signals are used inside insideLocations, hierarchy outside
 	 * @param pathPrefix - prefix from ancestor levels that will be used to create child name
@@ -285,18 +325,19 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		return outList;
 	}
 	
-	/** add matching leaf elements of this SystemVerilogSignalSet to a wrapper signal map as sources. - recursively builds names top down * 
+	/** add matching leaf elements of this SystemVerilogSignalSet to a wrapper signal map as sources or destinations. - recursively builds names top down * 
 	 * @param sigMap - WrapperSignalMap that will be modified
 	 * @param rules - set of remapping rules that will be used each signal 
 	 * @param useHierSignalNames - if true, hierarchical names will be set for encapsulated signals
+	 * @param addSources - if true, matching list elements will be added as sources, otherwise they will be added as destinations
+	 * @param isIO - if true, sources added will be tagged as input ports, destinations will be tagged as output ports
 	 * @param pathPrefix - prefix from ancestor levels that will be used to create child name (recursion parameter)
 	 * @param hierPathPrefix - hierarchical path prefix from ancestor levels that will be used to create hier child name (recursion parameter)
-	 * @param validEncap - if true, any matching elements in this signalset should be added, otherwise only those encapsulated in a non-virtual set (recursion parameter)
 	 * @param foundFirstNonVirtual - if true, first non-virtual element in hierarchy was already found, so no name prefix in hier (recursion parameter)
 	 */
-	public void loadWrapperMapSources(WrapperSignalMap sigMap, RemapRuleList rules, boolean useHierSignalNames, 
-			String pathPrefix, String hierPathPrefix, boolean validEncap, boolean foundFirstNonVirtual) {
-		//System.out.println("SystemVerilogIOSignalSet getNonVirtualAssignStrings: hierPathPrefix=" + hierPathPrefix);
+	public void loadWrapperMapInfo(WrapperSignalMap sigMap, RemapRuleList rules, boolean useHierSignalNames, 
+			boolean addSources, boolean isIO, String pathPrefix, String hierPathPrefix, boolean foundFirstNonVirtual) {
+		//System.out.println("SystemVerilogIOSignalSet loadWrapperMapSources: useHierSignalNames=" + useHierSignalNames);
 		String prefix = getFullName(pathPrefix, false);  // add current name to prefix
 		String suffixChar = hasNoName()? "" : "_";
 		String hierSuffixChar = hasNoName()? "" : isVirtual()? "_" : ".";
@@ -308,12 +349,10 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 			String fullPrefix = prefix + repSuffix + suffixChar;
 			String hierRepSuffix = (isReplicated() && !isVirtual())? "[" + idx + "]" : repSuffix;
 			String fullHierPrefix = newHierPrefix + hierRepSuffix + hierSuffixChar;
-			boolean newValidEncap = validEncap || !isVirtual();  // mark encap as valid if not set already
 			boolean newFoundFirstNonVirtual = foundFirstNonVirtual || !isVirtual();  // mark first non-virtual if not set already
 			for (SystemVerilogIOElement ioElem : childList) {
-				boolean validLeaf = !(ioElem.isVirtual() || ioElem.isSignalSet() || !newValidEncap); 
 				// if this is leaf element then return it
-				if (validLeaf) {
+				if (!ioElem.isSignalSet()) {
 					String rootName = ioElem.getFullName(fullPrefix, true);  // non-hierarchical name will be root
 					String hierName = ioElem.getFullName(fullHierPrefix, false); // hierarchical name for this root
 					Integer elemFrom = ioElem.getFrom();
@@ -325,16 +364,23 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 					if (signalName!=null) {
 						Integer elemLowIndex = ((SystemVerilogIOSignal) ioElem).getLowIndex();
 						Integer elemSize = ((SystemVerilogIOSignal) ioElem).getSize();
-						sigMap.addSource(rootName, signalName, elemLowIndex, elemSize);
+						if (addSources) sigMap.addSource(rootName, signalName, elemLowIndex, elemSize, isIO);  // add signals as sources in map
+						else sigMap.addDestination(rootName, signalName, elemLowIndex, elemSize, isIO);  // add signals as destinations in map
 					}
 				}		
 				// otherwise if a signalset, make recursive call 
-				else if (ioElem.isSignalSet()) {
-					((SystemVerilogIOSignalSet) ioElem).loadWrapperMapSources(sigMap, rules, useHierSignalNames,
-							fullPrefix, fullHierPrefix, newValidEncap, newFoundFirstNonVirtual);
+				else  {
+					((SystemVerilogIOSignalSet) ioElem).loadWrapperMapInfo(sigMap, rules, useHierSignalNames, addSources, isIO,
+							fullPrefix, fullHierPrefix, newFoundFirstNonVirtual);
 				}
 			}
 		}
+	}
+
+    @Override
+	public void display(int indentLvl) {
+		System.out.println(Utils.repeat(' ', indentLvl*4) + "SystemVerilogIOSignalSet: name=" + name  + ", from=" + from + ", to=" + to + ", tagPrefix=" + tagPrefix+ ", reps=" + reps + ", signalSetType=" + signalSetType + ", childList size=" + childList.size() + ", ext type=" + type + ", hasExtType=" + hasExtType);
+	    for (SystemVerilogIOElement child : childList) child.display(indentLvl+1);				
 	}
 	
 	// hashCode/Equals overrides - type is omitted. rep compare on children

@@ -1,6 +1,7 @@
 package ordt.output.systemverilog.io;
 
 import ordt.output.systemverilog.common.SystemVerilogSignal;
+import ordt.parameters.Utils;
 
 public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 	protected int lowIndex;
@@ -63,6 +64,11 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 		String newTagPrefix = addTagPrefix? tagPrefix : "";
         //System.out.println("SystemVerilogIOSignal getFullNameIOElement: addTagPrefix=" + addTagPrefix + ", newTagPrefix=" + newTagPrefix + ", pathPrefix=" + pathPrefix);
 		return new SystemVerilogIOSignal(from, to, newTagPrefix, pathPrefix + name, lowIndex, size);
+	}
+
+    @Override
+	public void display(int indentLvl) {
+		System.out.println(Utils.repeat(' ', indentLvl*4) + "SystemVerilogIOSignal: name=" + name + ", tagPrefix=" + tagPrefix+ ", reps=" + reps + ", lowIndex=" + lowIndex + ", size=" + size + ", from=" + from + ", to=" + to);
 	}
 
 	// hashCode/Equals overrides - super.name and super.reps are added to match

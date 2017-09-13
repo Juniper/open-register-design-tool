@@ -18,13 +18,13 @@ import ordt.output.systemverilog.io.SystemVerilogIOSignalSet;
 /** system verilog module generation class
  *  
  * */
-public class SystemVerilogModule {  // TODO - maintain counts of each child module here
+public class SystemVerilogModule {
 	
 	protected OutputWriterIntf writer;
 	protected String name;  // module name
 	private Integer terminalInsideLocs; // ORed value of (binary) locations that terminate at top level of this module
 	protected boolean useInterfaces = false;  // will interfaces be used in module io
-	protected List<SystemVerilogParameter> parameterList = new ArrayList<SystemVerilogParameter>(); // list of parameters for this module TODO - add boolean to control parameter passing from child to parent
+	protected List<SystemVerilogParameter> parameterList = new ArrayList<SystemVerilogParameter>(); // list of parameters for this module
 	
 	
 	protected List<SystemVerilogInstance> instanceList = new ArrayList<SystemVerilogInstance>();  // list of child instances
@@ -278,6 +278,10 @@ public class SystemVerilogModule {  // TODO - maintain counts of each child modu
 		parameterList.add(new SystemVerilogParameter(name, defaultValue));
 	}
 
+	protected List<SystemVerilogParameter> getParameterList() {
+		return parameterList;
+	}
+
 	/** return parameter instance string for this module (assumes parms are passed up to parent level) */
 	private String getParameterInstanceString() {
 		String retStr = (!parameterList.isEmpty())? "#(" : "";
@@ -288,6 +292,20 @@ public class SystemVerilogModule {  // TODO - maintain counts of each child modu
 			retStr += parmName + suffix;
 		}
 		return retStr;
+	}
+	
+	/** inherit unique parameters from this module's children */
+	public void inheritChildParameters() {
+		HashSet<String> uniqueParms = new HashSet<String>(); 
+		// add unique child parameters to this module
+		for (SystemVerilogInstance inst: instanceList) {
+			for (SystemVerilogParameter parm: inst.getMod().getParameterList()) {
+				if (!uniqueParms.contains(parm.getName())) {
+					uniqueParms.add(parm.getName());  // save parameter in unique list
+					parameterList.add(parm); // add parm to the list
+				}
+			}
+		}
 	}
 
 	// ------------------- IO methods  -----------------------
@@ -316,14 +334,14 @@ public class SystemVerilogModule {  // TODO - maintain counts of each child modu
 	public List<SystemVerilogIOElement> getInputList() {
 		SystemVerilogIOSignalList fullList = getFullIOSignalList();	// start with the full list
 		return useInterfaces ? fullList.getDescendentIOElementList(null, getInsideLocs(), false) :
-			                     fullList.getIOElementList(null, getInsideLocs());
+			                     fullList.getIOElementList(getOutsideLocs(), getInsideLocs());
 	}
 	
 	/** return inputs for this module (signal sets are not included) */ 
 	public List<SystemVerilogIOElement> getOutputList() {
 		SystemVerilogIOSignalList fullList = getFullIOSignalList();	// start with the full list
 		return useInterfaces ? fullList.getDescendentIOElementList(getInsideLocs(), null, true) : 
-                                 fullList.getIOElementList(getInsideLocs(), null);
+                                 fullList.getIOElementList(getInsideLocs(), getOutsideLocs());
 	}
 	
 	/** return inputs for this module */ 
@@ -399,7 +417,6 @@ public class SystemVerilogModule {  // TODO - maintain counts of each child modu
 		List<String> outList = new ArrayList<String>();
 		List<SystemVerilogIOElement> inputList = getInputList();
 		List<SystemVerilogIOElement> outputList = getOutputList();
-		outList.add("");
 		outList.add("  //------- inputs");
 		// generate input def list
 		Iterator<SystemVerilogIOElement> it = inputList.iterator();
@@ -407,14 +424,15 @@ public class SystemVerilogModule {  // TODO - maintain counts of each child modu
 			SystemVerilogIOElement elem = it.next();
 			if (!elem.isSignalSet())   outList.add("  " + elem.getIODefString(true, "input   ") + ";");
 		}		   	
-		// generate output def list
 		outList.add("");
+		// generate output def list
 		outList.add("  //------- outputs");
 		it = outputList.iterator();
 		while (it.hasNext()) {
 			SystemVerilogIOElement elem = it.next();
 			if (!elem.isSignalSet())   outList.add("  " + elem.getIODefString(true, "output   ") + ";");
 		}		   	
+		outList.add("");
 		return outList;
 	}
 	
@@ -603,20 +621,25 @@ public class SystemVerilogModule {  // TODO - maintain counts of each child modu
 	/** write write IO definitions for this module
 	 * @param indentLevel
 	 * @param showInterfaces - if true include interfaces in output, else output encapsulated logic signals
-	 * @param addBaseAddressParameter
 	 */
 	public void writeIOs(int indentLevel) {
-		// if legacy format, add the parm list
-		if (!useInterfaces) writer.writeStmts(0, getLegacyIOStrList()); // legacy vlog io format
+		// add the IO list
+		if (useInterfaces) writer.writeStmts(indentLevel+1, getIODefStrList());   // sv format
+		else writer.writeStmts(0, getLegacyIOStrList()); // legacy vlog io format
+		writer.writeStmt(0, "");
+
+		// write IO definitions - legacy form
+		if (!useInterfaces) {
+			writer.writeStmts(0, getLegacyIODefStrList());  // legacy vlog io format
+			writer.writeStmt(0, "");
+		}
 		
 		// add parameter defines if specified
-		if (!parameterList.isEmpty()) writer.writeStmt(indentLevel, "");
-		for (SystemVerilogParameter parm: parameterList) writer.writeStmt(indentLevel, parm.toString());
-
-		// write IO definitions
-		if (useInterfaces) writer.writeStmts(indentLevel+1, getIODefStrList());   // sv format
-		else writer.writeStmts(0, getLegacyIODefStrList());  // legacy vlog io format
-		writer.writeStmt(0, "");
+		if (!parameterList.isEmpty()) {
+			writer.writeStmt(indentLevel, "//------- parameters");
+			for (SystemVerilogParameter parm: parameterList) writer.writeStmt(indentLevel, parm.toString());
+			writer.writeStmt(0, "");
+		}
 	}
 
 	/** write each child instance in this module */

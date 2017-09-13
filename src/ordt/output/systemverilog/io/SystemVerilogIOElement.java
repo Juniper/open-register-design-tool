@@ -23,7 +23,7 @@ public abstract class SystemVerilogIOElement {
 	/** return true if location specified is in from locations for this io element */
 	public Boolean isFrom(Integer loc) {
 		if ((loc == null) || (this.from == null)) return true;
-		return ((this.from & loc) > 0);
+		return ((this.from & loc) != 0);
 	}
 
 	/** get from location(s) for this io element */
@@ -39,7 +39,7 @@ public abstract class SystemVerilogIOElement {
     /** return true if location specified is in to locations for this io element */
 	public Boolean isTo(Integer loc) {
 		if ((loc == null) || (this.to == null)) return true;
-		return ((this.to & loc) > 0);
+		return ((this.to & loc) != 0);
 	}
 
 	/** get to location(s) for this io element */
@@ -129,6 +129,8 @@ public abstract class SystemVerilogIOElement {
 
 	/** return a simple IOSignal with full generated name for this element */
 	public abstract SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix);
+
+	public abstract void display(int indentLvl);
 
 	// hashCode/Equals overrides - name, reps omitted in match
 	@Override

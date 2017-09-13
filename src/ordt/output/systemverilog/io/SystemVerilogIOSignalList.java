@@ -25,21 +25,16 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		this.listName = listName;
 	}
 
-	/** return a copy of this IOSignalList, optionally w/ elements matching specified from/to and not in a unique name list
+	/** copy an IOSignalList, keeping elements matching specified rules and not in a unique name list.
+	 * virtual elements will be added w/o rule matching  
 	 * 
-	 * @param from - if non-null, only elements from this location will be copied
-	 * @param to - if non-null, only elements to this location will be copied
+	 * @param origList - IOSignalList be copied
+	 * @param rules - RemapRuleList to be applied for matching
 	 * @param uniqueList - if non-null, only elements with names not in the set will be copied
-	 * @return new SystemVerilogIOList
 	 */
-	public SystemVerilogIOSignalList copyIOSignalList (Integer from, Integer to, HashSet<String> uniqueList) {
-		SystemVerilogIOSignalList retList = new SystemVerilogIOSignalList(listName);
-		for (SystemVerilogIOElement elem: childList) {
-			boolean uniqueOK = (uniqueList==null) || !uniqueList.contains(elem.getFullName());
-			if (elem.isFrom(from) && elem.isTo(to) && uniqueOK) retList.addElement(elem);
-			if (uniqueList!=null) uniqueList.add(elem.getFullName());
-		}
-		return retList;
+	public SystemVerilogIOSignalList(SystemVerilogIOSignalList origList, RemapRuleList rules, HashSet<String> uniqueList) {
+		super(origList, rules, uniqueList, null);
+		this.listName = origList.listName;
 	}
 
 	public String getListName() {
@@ -232,7 +227,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	 * @return - list of SystemVerilogIOSignal
 	 */
 	public List<SystemVerilogIOElement> getIOElementList(Integer fromLoc, Integer toLoc) {
-		return getIOElementList(fromLoc, toLoc, null, true, false, true, false, false, false);
+		return getFlatIOElementList(fromLoc, toLoc, null, true, false, true, false, false, false);
 	}
 	
 	/** return a flat list of simple SystemVerilogSignal with full generated names for this signalset. 
@@ -281,10 +276,32 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		return outList;
 	}
 	
-	/** add matching leaf elements of this SystemVerilogSignalList to a wrapper signal map as sources.  TODO
-	 *  this is root call of a recursive walk of the signal set hierarchy */   
-	public void loadWrapperMapSources(WrapperSignalMap sigMap, RemapRuleList rules, boolean useHierSignalNames) {
-		this.loadWrapperMapSources(sigMap, rules, useHierSignalNames, null, null, false, false);  // recursive call
+	/** add matching leaf elements of this SystemVerilogSignalList to a wrapper signal map as sources.
+	 *  this is root call of a recursive walk of the signal set hierarchy 
+	 * @param sigMap - WrapperSignalMap that will be modified
+	 * @param rules - set of remapping rules that will be used to match signals 
+	 * @param useHierSignalNames - if true, hierarchical names will be set for encapsulated signals
+	 * @param isInput - if true, sources added will be tagged as input ports
+	 */   
+	public void loadWrapperMapSources(WrapperSignalMap sigMap, RemapRuleList rules, boolean useHierSignalNames, boolean isInput) {
+		this.loadWrapperMapInfo(sigMap, rules, useHierSignalNames, true, isInput, null, null, false);  // recursive call
+	}
+
+	/** add matching leaf elements of this SystemVerilogSignalList to a wrapper signal map as destinations.
+	 *  this is root call of a recursive walk of the signal set hierarchy 
+	 * @param sigMap - WrapperSignalMap that will be modified
+	 * @param rules - set of remapping rules that will be used to match signals 
+	 * @param useHierSignalNames - if true, hierarchical names will be set for encapsulated signals
+	 * @param isOutput - if true, destinations added will be tagged as output ports
+	 */   
+	public void loadWrapperMapDestinations(WrapperSignalMap sigMap, RemapRuleList rules,
+			boolean useHierSignalNames, boolean isOutput) {
+		this.loadWrapperMapInfo(sigMap, rules, useHierSignalNames, false, isOutput, null, null, false);  // recursive call
+	}
+
+	public void display() {
+		System.out.println("SystemVerilogIOSignalList: " + listName + ", activeSetStack depth=" + activeSetStack.size());
+		super.display(0);
 	}
 	
     public static void main (String[] args) {
