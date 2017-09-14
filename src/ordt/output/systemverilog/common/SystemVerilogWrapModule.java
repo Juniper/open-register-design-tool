@@ -77,14 +77,30 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		private SystemVerilogSignal dest;  // destination signal and vector info
 		private WrapperRemapType type = WrapperRemapType.ASSIGN;  // remap type
 
-		private WrapperRemapDestination(int srcLowIndex, int srcSize, SystemVerilogSignal dest, WrapperRemapType type) {
+		private WrapperRemapDestination(int srcLowIndex, int srcSize, SystemVerilogSignal dest, WrapperRemapType type) {  // TODO change type to dest map rules?
 			this.srcLowIndex = srcLowIndex;
 			this.srcSize = srcSize;
 			this.dest = dest;
 			this.type = type;
 		}
 		
-        @Override
+        protected int getSrcLowIndex() {
+			return srcLowIndex;
+		}
+
+		protected int getSrcSize() {
+			return srcSize;
+		}
+
+		protected SystemVerilogSignal getDest() {
+			return dest;
+		}
+
+		protected WrapperRemapType getType() {
+			return type;
+		}
+
+		@Override
 		public String toString() {
 			return "source " + ((srcSize>1)? SystemVerilogBuilder.genRefArrayString(srcLowIndex, srcSize) : "") + " -> " + dest + ", type=" + type;
 		}
@@ -102,6 +118,22 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			this.isInput = isInput;
 		}
 
+		protected SystemVerilogSignal getSource() {
+			return source;
+		}
+
+		protected boolean isValidSource() {
+			return isValidSource;
+		}
+
+		protected boolean isInput() {
+			return isInput;
+		}
+
+		protected List<WrapperRemapDestination> getDests() {
+			return dests;
+		}
+
 		public void addDestination(String signalName, Integer lowIndex, Integer size, boolean isOutput) {
 			SystemVerilogSignal newDest = new SystemVerilogSignal(signalName, lowIndex, size);
 			dests.add(new WrapperRemapDestination(lowIndex, size, newDest, WrapperRemapType.ASSIGN));  // TODO - use same lowIndex/size and assign mode only for now
@@ -114,7 +146,6 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
     			retStr += "\n   " + dest;
 			return retStr;
 		}
-
 	}
 	
 	/** mapping of wrapper source signals to destinations */
@@ -154,6 +185,28 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
         	for (String root: mappings.keySet())
     			System.out.println("root=" + root + ", map=" + mappings.get(root));
 		}
+
+		/** generate wire, register defines and specified mapping statements */
+		public void generateMapOutput() {
+			// loop through map sources
+        	for (String root: mappings.keySet()) {
+        		WrapperRemapInstance wrapInst = mappings.get(root);
+        		// add non-input sources to wire def list
+        		SystemVerilogSignal src = wrapInst.getSource();
+        		if (wrapInst.isValidSource() && !wrapInst.isInput()) {
+        			wireDefList.addVector(src.getName(), src.getLowIndex(), src.getSize());
+        		}
+        		// add all destinations to wire list
+    			for (WrapperRemapDestination remapDest: wrapInst.getDests()) {
+    				// TODO - should check src sizes and remap type here
+    				SystemVerilogSignal dst = remapDest.getDest();
+    				if (wrapInst.isValidSource()) {
+        				wireDefList.addVector(dst.getName(), dst.getLowIndex(), dst.getSize());
+        				wireAssignList.add(dst.getName() + " = " + src.getName() + ";");
+    				}
+    			}
+		    }
+		}
 	}
 	
 	// ------------------- wrapper IO/signal generation  -----------------------
@@ -167,9 +220,10 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		setChildSourceSignals();
 		setIODestinationSignals(useInterfaces);
 		setChildDestinationSignals();
-		// TODO create wire/reg degs and assigns for mapping
+		// create wire/reg defs and assigns for mapping
+		wrapMappings.generateMapOutput();
 		
-		wrapMappings.display();  // TODO
+		//wrapMappings.display();  // TODO
 	}
 	
 	// TODO add alternate mode to use a specified IO list rather than child extracted IO
@@ -256,11 +310,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			fullList.loadWrapperMapDestinations(wrapMappings, rules, false, false);
 		}
 	}
-		
-	// TODO generate wires
-	// TODO generate regs
-	// TODO generate assignments
-	
+			
 	/** FIXME - this is from SystemVerilogBuilder - write out the interface wrapper
 	protected  void writeInterfaceWrapper() {		
 		// create wrapper module

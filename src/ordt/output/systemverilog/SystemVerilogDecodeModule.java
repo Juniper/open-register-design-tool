@@ -2359,15 +2359,26 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				this.addScalarReg(cgateDelayedReName + dly);  //  delayed read active
 				this.addScalarReg(cgateDelayedWeName + dly);  //  delayed write active
 				this.addResetAssign("clock gate delay", builder.getDefaultReset(), cgateDelayedReName + dly + " <= #1  1'b0;");  
-				this.addResetAssign("clock gate delay", builder.getDefaultReset(), cgateDelayedWeName + dly + " <= #1  1'b0;");  
+				this.addResetAssign("clock gate delay", builder.getDefaultReset(), cgateDelayedWeName + dly + " <= #1  1'b0;");
+				// first delay just picks up input requests, even if final stage
 				if (dly == 1) {
 					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= #1 " + readReqIn + ";");
-					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= #1 " + writeReqIn + ";");
+					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= #1 " + writeReqIn + ";"); 
 				}
+				// other delay stages must turn off if request falls
+				else {
+					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= #1 " +
+                            "(" + cgateDelayedReName + (dly - 1) + " & !" + cgateDelayedReName + dly + ") | " +  // turn on a cycle after previous stage
+                            "(" + cgateDelayedReName + dly + " & !(" + cgateDelayedReName + "1 & !(" + readReqIn + ")));"); // off on falling base req
+					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= #1 " + 
+                            "(" + cgateDelayedWeName + (dly - 1) + " & !" + cgateDelayedWeName + dly + ") | " +  // turn on a cycle after previous stage
+                            "(" + cgateDelayedWeName + dly + " & !(" + cgateDelayedWeName + "1 & !(" + writeReqIn + ")));"); // off on falling base req
+				}
+				/* otherwise stage is just delayed previous 
 				else {
 					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= #1 " + cgateDelayedReName + (dly - 1) + ";");
 					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= #1 " + cgateDelayedWeName + (dly - 1) + ";");
-				}
+				}*/
 			}
 			
 			// create gate enable output on first delay
@@ -2376,8 +2387,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addWireAssign("gclk_enable" + suffix + " = " + cgateDelayedReName + "1 | " + cgateDelayedWeName + "1;");
 			
 			// assign the delayed read/write requests		
-			this.addWireAssign(readReqOut + " = " + readReqIn + "&" + cgateDelayedReName + maxDelay + ";"); 
-			this.addWireAssign(writeReqOut + " = " + writeReqIn + "&" + cgateDelayedWeName + maxDelay + ";");
+			this.addWireAssign(readReqOut + " = " + readReqIn + " & " + cgateDelayedReName + maxDelay + ";"); 
+			this.addWireAssign(writeReqOut + " = " + writeReqIn + " & " + cgateDelayedWeName + maxDelay + ";");
 			
 		}
 		// otherwise just generate request signals with no delay
