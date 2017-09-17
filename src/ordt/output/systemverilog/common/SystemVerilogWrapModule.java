@@ -1,13 +1,13 @@
 package ordt.output.systemverilog.common;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 
 import ordt.extract.Ordt;
 import ordt.output.OutputWriterIntf;
-import ordt.output.systemverilog.SystemVerilogBuilder;
 import ordt.output.systemverilog.common.RemapRuleList.RemapRuleType;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 
@@ -32,7 +32,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 	/** add an instance to wrap module.
 	 * check for duplicate child modules and set remap rules for child IO */
 	public SystemVerilogInstance addInstance(SystemVerilogModule mod, String name) {
-		// TODO dup child modules not fully supported
+		// dup child modules not fully supported
 		if (childModuleHasMultipleInstances(mod.getName())) Ordt.warnMessage("Wrapper modules with multiple children of same type may cause generation issues.");
         // add new instance w/o rules for now
 		SystemVerilogInstance newInst = super.addInstance(mod, name, null);
@@ -69,43 +69,50 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 	
 	// ------------------- remap instance nested classes  -----------------------
 	
-	protected enum WrapperRemapType { ASSIGN, FLOPS, ASYNC }
+	protected enum WrapperRemapType { ASSIGN, FLOPS, ASYNC_LEVEL, ASYNC_DATA } // flops(num_stages), async_level(aclk), async_data(aclk, valid_sig, num_data) <-- need to group
+
+	/** default remap transform (simple assign) */
+	private class WrapperRemapXform {
+		WrapperRemapType type = WrapperRemapType.ASSIGN;
+		public WrapperRemapType getType() {
+			return type;
+		}
+	}
 	
 	private class WrapperRemapDestination {
-		private int srcLowIndex;  // low index in source
-		private int srcSize;  // size in bits of source 
+		private int srcLowIndex;  // low index in source (source size is dest.size)
 		private SystemVerilogSignal dest;  // destination signal and vector info
-		private WrapperRemapType type = WrapperRemapType.ASSIGN;  // remap type
+		private WrapperRemapXform xform;  // remap transform
 
-		private WrapperRemapDestination(int srcLowIndex, int srcSize, SystemVerilogSignal dest, WrapperRemapType type) {  // TODO change type to dest map rules?
+		private WrapperRemapDestination(int srcLowIndex, SystemVerilogSignal dest, WrapperRemapXform xform) { 
 			this.srcLowIndex = srcLowIndex;
-			this.srcSize = srcSize;
 			this.dest = dest;
-			this.type = type;
+			this.xform = xform;
 		}
 		
-        protected int getSrcLowIndex() {
+        public int getSrcLowIndex() {
 			return srcLowIndex;
 		}
 
-		protected int getSrcSize() {
-			return srcSize;
-		}
-
-		protected SystemVerilogSignal getDest() {
+        public SystemVerilogSignal getDest() {
 			return dest;
 		}
 
-		protected WrapperRemapType getType() {
-			return type;
+        public WrapperRemapXform getXform() {
+			return xform;
+		}
+
+		public void setXform(WrapperRemapXform xform) {
+			this.xform = xform;
 		}
 
 		@Override
 		public String toString() {
-			return "source " + ((srcSize>1)? SystemVerilogBuilder.genRefArrayString(srcLowIndex, srcSize) : "") + " -> " + dest + ", type=" + type;
+			return "  -> " + dest + ", type=" + xform.getType();
 		}
 	}
 	
+	/** a mapping from source signal to its destinations */
 	private class WrapperRemapInstance {
 		private SystemVerilogSignal source;  // source signal name
 		private boolean isValidSource = true;  // indication that source is valid - false indicates destination(s) with no matching source
@@ -136,7 +143,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 
 		public void addDestination(String signalName, Integer lowIndex, Integer size, boolean isOutput) {
 			SystemVerilogSignal newDest = new SystemVerilogSignal(signalName, lowIndex, size);
-			dests.add(new WrapperRemapDestination(lowIndex, size, newDest, WrapperRemapType.ASSIGN));  // TODO - use same lowIndex/size and assign mode only for now
+			dests.add(new WrapperRemapDestination(lowIndex, newDest, new WrapperRemapXform())); 
 		}
 		
 		@Override
@@ -148,7 +155,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		}
 	}
 	
-	/** mapping of wrapper source signals to destinations */
+	/** mapping of all wrapper source signals to destinations */
 	public class WrapperSignalMap {
 		private LinkedHashMap<String, WrapperRemapInstance> mappings = new LinkedHashMap<String, WrapperRemapInstance>();
 
@@ -194,17 +201,32 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
         		// add non-input sources to wire def list
         		SystemVerilogSignal src = wrapInst.getSource();
         		if (wrapInst.isValidSource() && !wrapInst.isInput()) {
-        			wireDefList.addVector(src.getName(), src.getLowIndex(), src.getSize());
+        			wireDefList.addVector(src.getName(), src.getLowIndex(), src.getSize()); // add the source define
         		}
         		// add all destinations to wire list
     			for (WrapperRemapDestination remapDest: wrapInst.getDests()) {
     				// TODO - should check src sizes and remap type here
     				SystemVerilogSignal dst = remapDest.getDest();
     				if (wrapInst.isValidSource()) {
-        				wireDefList.addVector(dst.getName(), dst.getLowIndex(), dst.getSize());
-        				wireAssignList.add(dst.getName() + " = " + src.getName() + ";");
+        				wireDefList.addVector(dst.getName(), dst.getLowIndex(), dst.getSize());  // add the destination define
+        				wireAssignList.add(dst.getName() + " = " + src.getName() + ";");  // add the assignment
     				}
     			}
+		    }
+		}
+		
+		/** update remap transforms for certain signals */
+		public void setRemapTransforms(HashMap<String, WrapperRemapXform> xformMap) {  // TODO - transform should be on from/to pair vs root
+			// loop through map sources
+        	for (String root: mappings.keySet()) {
+        		if (xformMap.containsKey(root)) {
+            		WrapperRemapInstance wrapInst = mappings.get(root);
+            		// set same xform on all destinations for this source
+        			for (WrapperRemapDestination remapDest: wrapInst.getDests()) {
+        				remapDest.setXform(xformMap.get(root));
+        			}
+
+        		}
 		    }
 		}
 	}
