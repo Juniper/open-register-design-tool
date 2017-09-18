@@ -116,7 +116,7 @@ public class FieldProperties extends InstanceProperties {
 
 	// rhs references
 	public enum RhsRefType {
-		RESET_SIGNAL, NEXT, WE, SW_WE, HW_SET, HW_CLR,   
+		RESET_SIGNAL, RESET_VALUE, NEXT, WE, SW_WE, HW_SET, HW_CLR,   
 		INTR, INTR_ENABLE, INTR_MASK, 
 		HALT_ENABLE, HALT_MASK, 
 		INCR, INCR_SAT_VALUE, INCR_THOLD_VALUE, INCR_VALUE,
@@ -158,9 +158,9 @@ public class FieldProperties extends InstanceProperties {
 					regNum.setVectorLen(getFieldWidth());
 				}
 				//else System.out.println("fieldProperties: reset vector length=" + regNum.getVectorLen() + ", r=" + pList.getProperty("reset"));
-
 				setReset(regNum);   // assignment of value
 			}
+			else setRef(RhsRefType.RESET_VALUE, pList.getProperty("reset"), pList.getDepth("reset"));  // assignment by reference
 		}
 		
 		// set resetsignal to default if not specified
@@ -489,19 +489,19 @@ public class FieldProperties extends InstanceProperties {
 		setUserDefinedProperties(pList, DefinedProperties.userFieldPropertySet);
 	}
 
-	/** get reset
-	 *  @return the reset
-	 */
+	/** get reset value */
 	public RegNumber getReset() {
 		return reset;
 	}
 
-	/** set reset
-	 *  @param reset the reset to set
-	 */
+	/** set reset value	 */
 	public void setReset(RegNumber reset) {
-		//if ("0x0".equals(reset)) this.reset = "0";
 		this.reset = reset;
+	}
+
+	/** returns true if field has a reset value defined */
+	public boolean hasReset() {
+		return ((getReset() != null) || hasRef(RhsRefType.RESET_VALUE));
 	}
 	
 	/** returns true if at least one subcategory is set */

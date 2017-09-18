@@ -533,13 +533,12 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		else cntlSigList.addSimpleScalar(HW, LOGIC|DECODE, decodeClk);
 		
 		// defined resets to input list 
-		if (logicReset != null)
-			cntlSigList.addSimpleScalar(HW, DECODE, defaultReset);  // logic module has its own reset so add separate decode module reset
+		if (logicReset != null) {
+			cntlSigList.addSimpleScalar(HW, DECODE, defaultReset);  // only decoder gets default reset
+			cntlSigList.addSimpleScalar(HW, LOGIC, logicReset);  // logic module has its own reset 
+		}
 		else
 			cntlSigList.addSimpleScalar(HW, DECODE|LOGIC, defaultReset);  // else a common reset
-		// add non-default logic resets
-		for (String reset :logic.getRegisters().getResets().keySet())
-			if (!reset.equals(defaultReset)) cntlSigList.addSimpleScalar(HW, LOGIC, reset);
 	}
 	
 	/** initialize module info at end of builder extract */

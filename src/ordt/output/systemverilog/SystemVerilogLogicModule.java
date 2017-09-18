@@ -108,11 +108,9 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			   else {
 				   //System.out.println("SystemVerilogBuilder genFieldWriteStmts constant field, id=" + fieldProperties.getPrefixedId() + 
 				   //	   ", writeable=" + fieldProperties.isHwWriteable() + ", intr=" + fieldProperties.isInterrupt() + ", changes val=" + fieldProperties.hwChangesValue());
-				   if (fieldProperties.getReset() != null ) {
+				   if (fieldProperties.hasReset()) {
 					   addVectorWire(fieldRegisterName, 0, fieldProperties.getFieldWidth());  // add field to wire define list
-					   RegNumber resetValue = new RegNumber(fieldProperties.getReset());  // output reset in verilog format
-					   resetValue.setNumFormat(RegNumber.NumFormat.Verilog);
-					   addWireAssign(fieldRegisterName + " = " + resetValue + ";");
+					   addWireAssign(fieldRegisterName + " = " + getResetValueString() + ";");
 				   }
 				   else Ordt.errorMessage("invalid field constant - no reset value for non-writable field " + fieldProperties.getInstancePath());
 			   }
@@ -126,7 +124,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		   addVectorReg(fieldRegisterName, 0, fieldProperties.getFieldWidth());  // add field registers to define list
 		   addVectorReg(fieldRegisterNextName, 0, fieldProperties.getFieldWidth());  // we'll be using next value since complex assign
 		   // generate flop reset stmts
-		   if (fieldProperties.getReset() != null ) {
+		   if (fieldProperties.hasReset()) {
 			   String resetSignalName = builder.getDefaultReset();
 			   boolean resetSignalActiveLow = builder.getDefaultResetActiveLow();
 			   if (builder.getLogicReset() != null) {
@@ -136,11 +134,11 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			   else if (fieldProperties.hasRef(RhsRefType.RESET_SIGNAL)) {
 				   resetSignalActiveLow = false;  // user defined resets are active high 
 				   resetSignalName = resolveRhsExpression(RhsRefType.RESET_SIGNAL);
+				   if (!(definedSignals.contains(resetSignalName) || userDefinedSignals.containsKey(resetSignalName)))
+					   Ordt.errorMessage("reset signal " + resetSignalName + " for field " + fieldProperties.getInstancePath() + " has not been defined");
 			   }
 			   addReset(resetSignalName, resetSignalActiveLow);
-			   RegNumber resetValue = new RegNumber(fieldProperties.getReset());  // output reset in verilog format
-			   resetValue.setNumFormat(RegNumber.NumFormat.Verilog);
-			   addResetAssign(regProperties.getBaseName(), resetSignalName, fieldRegisterName + " <= #1 " + resetValue + ";");  // ff reset assigns			   
+			   addResetAssign(regProperties.getBaseName(), resetSignalName, fieldRegisterName + " <= #1 " + getResetValueString() + ";");  // ff reset assigns			   
 		   }
 		   else if (!ExtParameters.sysVerSuppressNoResetWarnings()) Ordt.warnMessage("field " + fieldProperties.getInstancePath() + " has no reset defined");
 		   
@@ -620,6 +618,20 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		
 	}
 
+	/** create reset value string */
+	private String getResetValueString() {
+		String resetValueString = null;
+		if (fieldProperties.getReset() != null) {  // if reset value specified
+			RegNumber resetValue = new RegNumber(fieldProperties.getReset());  
+			resetValue.setNumFormat(RegNumber.NumFormat.Verilog);  // output reset in verilog format
+			resetValueString = resetValue.toString();
+		}
+		else if (fieldProperties.hasRef(RhsRefType.RESET_VALUE)) {  // if a reset reference is specified
+			resetValueString = resolveRhsExpression(RhsRefType.RESET_VALUE);
+		}
+		return resetValueString;
+	}
+
 	/** create count increment string */
 	private String getCountIncrValueString(int countWidth) {
 		String incrValueString = "0";
@@ -640,6 +652,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		}
 		return incrValueString;
 	}
+	
 	
 	/** create count decrement string */
 	private String getCountDecrValueString(int countWidth) {
