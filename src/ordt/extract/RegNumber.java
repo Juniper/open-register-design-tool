@@ -588,56 +588,6 @@ public class RegNumber implements Comparable<RegNumber> {
 	}
 
 
-    public static void main (String[] args) {
-    	//BigInteger bigint = new BigInteger("0"); bigint.bitLength();
-    	//RegNumber val = new RegNumber("0x28");
-    	//RegNumber val = new RegNumber("8'h28");
-    	//RegNumber val = new RegNumber(Long.MAX_VALUE);
-    	//RegNumber sub = new RegNumber("2'h1");
-    	//System.out.println("val=" + val + ", sub=" + sub);
-    	//val.setSubVector(sub, 0);
-    	
-    	//RegNumber mod = new RegNumber("0x4");
-    	//val.roundUpToModulus(mod);
-    	//System.out.println("val=" + val + ", sub=" + val.getSubVector(2, 4));
-    	//System.out.println("max=" + Long.MAX_VALUE);
-    	//System.out.println("val=" + val);
-    	
-    	/*RegNumber val = new RegNumber("0x28");
-    	System.out.println("val=" + val + ", getHighestBit=" + val.getHighestBit()+ ", BI bitLength=" + val.getValue().bitLength());
-    	val = new RegNumber(Long.MAX_VALUE);
-    	System.out.println("val=" + val + ", getHighestBit=" + val.getHighestBit()+ ", BI bitLength=" + val.getValue().bitLength());
-    	val = new RegNumber("2'h1");
-    	System.out.println("val=" + val + ", getHighestBit=" + val.getHighestBit()+ ", BI bitLength=" + val.getValue().bitLength());
-    	val = new RegNumber("0");
-    	System.out.println("val=" + val + ", getHighestBit=" + val.getHighestBit()+ ", BI bitLength=" + val.getValue().bitLength());
-    	*/
-    	//RegNumber val = new RegNumber("NULL");
-    	//System.out.println("val=" + val + ", isDefined=" + val.isDefined());
-    	//String [] expr = {"1", "+", "2"};
-    	//String [] expr = {"1", "+", "0xf"};
-    	//String [] expr = {"1"};
-    	//String [] expr = {"11", "-", "2", "*", "0x2", "-", "3" };
-    	
-    	//String [] expr = {"11", "-", "2", "-", "0x2", "-", "5" };
-    	//String [] expr = {"11", "-", "2", "-", "0x2", "-", "5" };
-    	String [] expr = {"(", "1", "+", "2", ")", "|", "0x1"};
-    	RegNumber val = new RegNumber(expr);
-    	System.out.println("expression resolved to " + val);
-    	/*
-    	for (int i=0; i<100; i++) {
-    	  RegNumber val = new RegNumber(i);
-    	  System.out.println("val=" + val + ", m1hibit=" + val.getMinusOneHighestBit() + ", next_pow_2=" + val.getNextHighestPowerOf2());
-    	}*/
-    	//RegNumber nextpow2 = new RegNumber(String.valueOf(Math.pow(2, (val.getHighestBit()+1))));
-    	//System.out.println("val=" + val + ", next_pow_2=" + val.getNextHighestPowerOf2());
-    	//Integer i;
-    	//BigInteger big; // = new BigInteger(i);
-    	//big.
-
-
-    }
-
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -674,5 +624,54 @@ public class RegNumber implements Comparable<RegNumber> {
 			return false;
 		return true;
 	}
+
+    public static void main (String[] args) {
+    	//BigInteger bigint = new BigInteger("0"); bigint.bitLength();
+    	//RegNumber val = new RegNumber("0x28");
+    	//RegNumber val = new RegNumber("8'h28");
+    	//RegNumber val = new RegNumber(Long.MAX_VALUE);
+    	//RegNumber sub = new RegNumber("2'h1");
+    	//System.out.println("val=" + val + ", sub=" + sub);
+    	//val.setSubVector(sub, 0);
+    	
+    	//RegNumber mod = new RegNumber("0x4");
+    	//val.roundUpToModulus(mod);
+    	//System.out.println("val=" + val + ", sub=" + val.getSubVector(2, 4));
+    	//System.out.println("max=" + Long.MAX_VALUE);
+    	//System.out.println("val=" + val);
+    	
+    	/*RegNumber val = new RegNumber("0x28");
+    	System.out.println("val=" + val + ", getHighestBit=" + val.getHighestBit()+ ", BI bitLength=" + val.getValue().bitLength());
+    	val = new RegNumber(Long.MAX_VALUE);
+    	System.out.println("val=" + val + ", getHighestBit=" + val.getHighestBit()+ ", BI bitLength=" + val.getValue().bitLength());
+    	val = new RegNumber("2'h1");
+    	System.out.println("val=" + val + ", getHighestBit=" + val.getHighestBit()+ ", BI bitLength=" + val.getValue().bitLength());
+    	val = new RegNumber("0");
+    	System.out.println("val=" + val + ", getHighestBit=" + val.getHighestBit()+ ", BI bitLength=" + val.getValue().bitLength());
+    	*/
+    	RegNumber val = new RegNumber("na");
+    	System.out.println("val is null=" + (val == null) + ", isDefined=" + ((val == null)? "-" : val.isDefined()) + ", val=" +  ((val == null)? "-" : val));
+    	//String [] expr = {"1", "+", "2"};
+    	//String [] expr = {"1", "+", "0xf"};
+    	//String [] expr = {"1"};
+    	//String [] expr = {"11", "-", "2", "*", "0x2", "-", "3" };
+    	
+    	//String [] expr = {"11", "-", "2", "-", "0x2", "-", "5" };
+    	//String [] expr = {"11", "-", "2", "-", "0x2", "-", "5" };
+    	String [] expr = {"(", "1", "+", "2", ")", "|", "0x1"};
+    	//RegNumber val = new RegNumber(expr);
+    	//System.out.println("expression resolved to " + val);
+    	/*
+    	for (int i=0; i<100; i++) {
+    	  RegNumber val = new RegNumber(i);
+    	  System.out.println("val=" + val + ", m1hibit=" + val.getMinusOneHighestBit() + ", next_pow_2=" + val.getNextHighestPowerOf2());
+    	}*/
+    	//RegNumber nextpow2 = new RegNumber(String.valueOf(Math.pow(2, (val.getHighestBit()+1))));
+    	//System.out.println("val=" + val + ", next_pow_2=" + val.getNextHighestPowerOf2());
+    	//Integer i;
+    	//BigInteger big; // = new BigInteger(i);
+    	//big.
+
+    }
 
 }

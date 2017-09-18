@@ -160,6 +160,7 @@ public class FieldProperties extends InstanceProperties {
 				//else System.out.println("fieldProperties: reset vector length=" + regNum.getVectorLen() + ", r=" + pList.getProperty("reset"));
 				setReset(regNum);   // assignment of value
 			}
+			else if ("na".equals(pList.getProperty("reset"))) setReset(null); // na indicates no reset
 			else setRef(RhsRefType.RESET_VALUE, pList.getProperty("reset"), pList.getDepth("reset"));  // assignment by reference
 		}
 		
