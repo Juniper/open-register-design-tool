@@ -791,7 +791,8 @@ public class SystemVerilogBuilder extends OutputBuilder {
 				writeInterfaces(outName + getModuleName() + "_pio_interfaces.sv", description, commentPrefix);
 				writeInterfaceWrapper(outName + getModuleName() + "_pio_iwrap.sv", description, commentPrefix);
 			}
-						
+		    // FIXME - switch to new wrapper
+			
 			// loop through nested addrmaps and write these VerilogBuilders
 			for (SystemVerilogBuilder childBuilder: childAddrMaps) {
 				//System.out.println("--- VerilogBuilder - writing child");
@@ -934,10 +935,16 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		// write the top level module
 		top.write();
 		
-		// if IO interfaces are used, generate the interfaces and wrapper
+		// if IO interfaces are used, generate the systemerilog interfaces and wrapper
 		if ((usesInterfaces  || ExtParameters.sysVerilogAlwaysGenerateIwrap()) && !legacyVerilog) {
 			writeInterfaces();
 			writeInterfaceWrapper();  
+			//writeTopWrapperModule(true);  // FIXME - test of wrapper class
+		}
+		// verilog wrapper
+		else if (ExtParameters.sysVerilogAlwaysGenerateIwrap() && legacyVerilog) {
+			writeTopWrapperModule(false);  // FIXME - test of wrapper class
+			//System.out.println("SystemVerilogBuilder write:   ExtParameters.sysVerilogAlwaysGenerateIwrap()= " + ExtParameters.sysVerilogAlwaysGenerateIwrap());
 		}
 					
 		// loop through nested addrmaps and write these VerilogBuilders
@@ -1015,16 +1022,14 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		intfWrapper.addWireAssigns(wrapperIOList.getNonVirtualAssignStrings(LOGIC|DECODE));  // sig to intf assigns
 
 		intfWrapper.write();  // write the wrapper using interfaces	
-		
-		//writeInterfaceWrapperAlt();  // FIXME - test
 	}
 
-	/** TODO write out the interface wrapper */
-	protected  void writeInterfaceWrapperAlt() {		
+	/** TODO write out the wrapper module */
+	protected  void writeTopWrapperModule(boolean useInterfaces) {		
 		// create wrapper module
 		SystemVerilogWrapModule intfWrapper = new SystemVerilogWrapModule(this, 0, defaultClk, getDefaultReset());
 		intfWrapper.setName(getModuleName() + "_pio_iwrap_alt");
-		intfWrapper.setUseInterfaces(false); 
+		intfWrapper.setUseInterfaces(useInterfaces);
 		// add pio_top instance
 		intfWrapper.addInstance(top, "pio");
         // create wrapper

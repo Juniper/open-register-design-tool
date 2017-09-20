@@ -1,6 +1,9 @@
 package ordt.output.systemverilog.io;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+
+import ordt.output.systemverilog.common.RemapRuleList;
 
 public class SystemVerilogIOStruct extends SystemVerilogIOSignalSet {  // FIXME - update for struct support / fix getIODefString - use inout wire type name form in inputs
 
@@ -27,6 +30,31 @@ public class SystemVerilogIOStruct extends SystemVerilogIOSignalSet {  // FIXME 
 		String suffix = ((type==null) || type.isEmpty())? "" : "_";
 		this.type = (hasExtType || !genNewType)? type : getFullName(type + suffix, true) + "_struct";  // if not an ext type then build from path
 		//if (!hasExtType) System.out.println("SystemVerilogIOStruct: name=" + name + ", old type=" + type + ", new type=" + this.type + ", hasExtType=" + hasExtType);
+	}
+
+	/** create copy of an IOStruct w/ hierarchy, keeping elements matching specified rules and not in a unique name list.
+	 * virtual elements will be added w/o rule matching  
+	 * 
+	 * @param origSet - IOStruct be copied
+	 * @param rules - RemapRuleList to be applied for matching
+	 * @param uniqueList - if non-null, only elements with names not in the set will be copied
+	 * @param namePrefix - string prefix from ancestors that is used for hier name creation (recursion parameter)
+	 */
+	protected SystemVerilogIOStruct(SystemVerilogIOStruct origSet, RemapRuleList rules, HashSet<String> uniqueList, String namePrefix) {
+		super(origSet, rules, uniqueList, namePrefix);
+		this.compId = origSet.compId;
+	}
+
+	/** return a copy of this IOStruct w/ hierarchy, keeping elements matching specified rules and not in a unique name list.
+	 * virtual elements will be added w/o rule matching  
+	 * 
+	 * @param rules - RemapRuleList to be applied for matching
+	 * @param uniqueList - if non-null, only elements with names not in the set will be copied
+	 * @param namePrefix - string prefix from ancestors that is used for hier name creation (recursion parameter)
+	 */
+	@Override
+	public SystemVerilogIOStruct createCopy(RemapRuleList rules, HashSet<String> uniqueList, String namePrefix) {
+	   return new SystemVerilogIOStruct(this, rules, uniqueList, namePrefix);
 	}
 
 	/** return a simple IOElement with full generated name */

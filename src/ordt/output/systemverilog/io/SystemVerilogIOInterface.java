@@ -1,7 +1,10 @@
 package ordt.output.systemverilog.io;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+
+import ordt.output.systemverilog.common.RemapRuleList;
 
 public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 
@@ -28,6 +31,32 @@ public class SystemVerilogIOInterface extends SystemVerilogIOSignalSet {
 		String suffix = ((type==null) || type.isEmpty())? "" : "_";
 		this.type = (hasExtType || !genNewType)? type : getFullName(type + suffix, true) + "_intf";  // if not an ext type then build from path
 		//System.out.println("SystemVerilogIOInterface: name=" + name + ", compId=" + compId + ", old type=" + type + ", new type=" + this.type + ", hasExtType=" + hasExtType);
+	}
+
+	/** create copy of an IOInterface w/ hierarchy, keeping elements matching specified rules and not in a unique name list.
+	 * virtual elements will be added w/o rule matching  
+	 * 
+	 * @param origSet - IOInterface be copied
+	 * @param rules - RemapRuleList to be applied for matching
+	 * @param uniqueList - if non-null, only elements with names not in the set will be copied
+	 * @param namePrefix - string prefix from ancestors that is used for hier name creation (recursion parameter)
+	 */
+	protected SystemVerilogIOInterface(SystemVerilogIOInterface origSet, RemapRuleList rules, HashSet<String> uniqueList, String namePrefix) {
+		super(origSet, rules, uniqueList, namePrefix);
+		this.compId = origSet.compId;
+	}
+
+	/** return a copy of this IOInterface w/ hierarchy, keeping elements matching specified rules and not in a unique name list.
+	 * virtual elements will be added w/o rule matching  
+	 * 
+	 * @param rules - RemapRuleList to be applied for matching
+	 * @param uniqueList - if non-null, only elements with names not in the set will be copied
+	 * @param namePrefix - string prefix from ancestors that is used for hier name creation (recursion parameter)
+	 */
+	@Override
+	public SystemVerilogIOInterface createCopy(RemapRuleList rules, HashSet<String> uniqueList, String namePrefix) {
+		//System.out.println("SystemVerilogIOInterface createCopy: name=" + name + ", compId=" + compId);
+	   return new SystemVerilogIOInterface(this, rules, uniqueList, namePrefix);
 	}
 
 	/** return a simple IOElement with full generated name */

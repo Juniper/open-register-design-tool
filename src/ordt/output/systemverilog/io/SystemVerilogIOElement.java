@@ -56,7 +56,7 @@ public abstract class SystemVerilogIOElement {
 		return name;
 	}
 	
-	/** returns true if element name is null of empty */
+	/** returns true if element name is null or empty */
 	public boolean hasNoName() {
 		return (name == null) || name.isEmpty();
 	}

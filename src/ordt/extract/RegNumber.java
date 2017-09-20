@@ -658,7 +658,7 @@ public class RegNumber implements Comparable<RegNumber> {
     	
     	//String [] expr = {"11", "-", "2", "-", "0x2", "-", "5" };
     	//String [] expr = {"11", "-", "2", "-", "0x2", "-", "5" };
-    	String [] expr = {"(", "1", "+", "2", ")", "|", "0x1"};
+    	//String [] expr = {"(", "1", "+", "2", ")", "|", "0x1"};
     	//RegNumber val = new RegNumber(expr);
     	//System.out.println("expression resolved to " + val);
     	/*

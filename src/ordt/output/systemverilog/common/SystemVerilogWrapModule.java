@@ -90,7 +90,8 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			this.xform = xform;
 		}
 		
-        public int getSrcLowIndex() {
+        @SuppressWarnings("unused")
+		public int getSrcLowIndex() {
 			return srcLowIndex;
 		}
 
@@ -198,25 +199,44 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			// loop through map sources
         	for (String root: mappings.keySet()) {
         		WrapperRemapInstance wrapInst = mappings.get(root);
-        		// add non-input sources to wire def list
-        		SystemVerilogSignal src = wrapInst.getSource();
-        		if (wrapInst.isValidSource() && !wrapInst.isInput()) {
+        		SystemVerilogSignal src = wrapInst.getSource();  // get source signal info
+        		// add non-input/non-hierarchical sources to wire def list
+        		if (wrapInst.isValidSource() && !wrapInst.isInput() && !src.getName().contains(".")) {
         			wireDefList.addVector(src.getName(), src.getLowIndex(), src.getSize()); // add the source define
         		}
-        		// add all destinations to wire list
+        		// check for source with no destinations
+        		List<WrapperRemapDestination> remapDestList = wrapInst.getDests();
+        		if (remapDestList.isEmpty())
+        			Ordt.warnMessage("no destinations found for wrapper source signal " + src.getName());
+        		// add all destinations to wire list and use specified xform
     			for (WrapperRemapDestination remapDest: wrapInst.getDests()) {
-    				// TODO - should check src sizes and remap type here
-    				SystemVerilogSignal dst = remapDest.getDest();
+    				SystemVerilogSignal dst = remapDest.getDest();   // get destination signal info
+    				// check src/dest sizes
+    				if (src.getSize() != dst.getSize()) 
+    					Ordt.errorMessage("sizes of wrapper source (" + src.getName() + ", n=" + src.getSize() +
+    							") and destination (" + dst.getName() + ", n=" + dst.getSize() + ") pair do not match");  // TODO - change to allow slice assigns
+    				// add transform is source is valid
     				if (wrapInst.isValidSource()) {
-        				wireDefList.addVector(dst.getName(), dst.getLowIndex(), dst.getSize());  // add the destination define
-        				wireAssignList.add(dst.getName() + " = " + src.getName() + ";");  // add the assignment
+    					WrapperRemapXform xform = remapDest.getXform();
+    			        switch (xform.getType()) {  // TODO - enable other xforms
+    		            case ASSIGN: 
+    		            	if (!dst.getName().contains(".")) wireDefList.addVector(dst.getName(), dst.getLowIndex(), dst.getSize());  // add the destination define
+            				wireAssignList.add(dst.getName() + " = " + src.getName() + ";");  // add the assignment
+    		                break;
+   		                default: 
+   		                	Ordt.errorMessage("invalid wrapper transform (" + xform.getType() + ") specified from source " + src.getName() + " to destination " + dst.getName());
+   		                	break;
+    		        }
+    					
     				}
+    				else Ordt.errorMessage("no valid source found for wrapper destination signal " + dst.getName());  // TODO add internal tieoff option
+
     			}
 		    }
 		}
 		
-		/** update remap transforms for certain signals */
-		public void setRemapTransforms(HashMap<String, WrapperRemapXform> xformMap) {  // TODO - transform should be on from/to pair vs root
+		/** update remap transforms for certain signals - keys off root name */
+		public void setRemapTransforms(HashMap<String, WrapperRemapXform> xformMap) {
 			// loop through map sources
         	for (String root: mappings.keySet()) {
         		if (xformMap.containsKey(root)) {
@@ -332,121 +352,5 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			fullList.loadWrapperMapDestinations(wrapMappings, rules, false, false);
 		}
 	}
-			
-	/** FIXME - this is from SystemVerilogBuilder - write out the interface wrapper
-	protected  void writeInterfaceWrapper() {		
-		// create wrapper module
-		SystemVerilogModule intfWrapper = new SystemVerilogModule(this, 0, defaultClk, getDefaultReset());
-		intfWrapper.setName(getModuleName() + "_pio_iwrap");
-		if (addBaseAddressParameter()) setAddBaseAddrParameter(intfWrapper);
-		intfWrapper.setUseInterfaces(true);  // wrapper will have interfaces in io
-		// add io lists
-		intfWrapper.useIOList(cntlSigList, null);
-		intfWrapper.useIOList(hwSigList, HW);
-		intfWrapper.useIOList(pioSigList, PIO); 
-		// add pio_top instance
-		intfWrapper.addInstance(top, "pio");
-        // create mappings from top module to wrapper IO
-		SystemVerilogIOSignalList wrapperIOList = intfWrapper.getFullIOSignalList();  
-		//System.out.println("SystemVerilogBuilder writeInterfaceWrapper: wrapper n=" + wrapperIOList.size());	
-		intfWrapper.addWireDefs(wrapperIOList.getEncapsulatedSignalList(LOGIC|DECODE));
-		intfWrapper.addWireAssigns(wrapperIOList.getNonVirtualAssignStrings(LOGIC|DECODE));  // sig to intf assigns
-
-		intfWrapper.write();  // write the wrapper using interfaces			
-	} */
-	
-	/** FIXME - this is from SystemVerilogTestBuilder - write out the basic testbench    
-	private  void writeTB() {		
-				
-		int clkPeriod = 10;  // use an even number so half period is int also
-		
-		// define the top module
-		benchtop.setName(getModuleName() + "_test");
-		
-		// add bench io list
-		benchtop.useIOList(benchSigList, null); 
-		
-		// write primary interface bfm module and add bfm control signals to bench list
-		createPrimaryBfm();   // TODO handle secondary bfm
-	
-		// add dut child modules 
-		addDutInstances(benchtop);
-		
-		// add primary bfm instance with names remapped
-		if (decoder.hasSecondaryInterface()) {
-			RemapRuleList rules = new RemapRuleList();
-			if (ExtParameters.getSysVerRootDecoderInterface()==SVDecodeInterfaceTypes.PARALLEL) {
-				rules.addRule("^dec_pio_.*$", RemapRuleType.ADD_PREFIX, "p1_d2h_");  // parallel (note h2d/d2h reflects decoder cascaded output i/f direction, not root i/f)
-				rules.addRule("^pio_dec_.*$", RemapRuleType.ADD_PREFIX, "p1_h2d_");
-				benchtop.addInstance(primaryBfm, "parallel_bfm", rules);
-			}
-			else {
-				rules.addRule("^dec_leaf_.*$", RemapRuleType.ADD_PREFIX, "p1_");  // leaf 
-				rules.addRule("^leaf_dec_.*$", RemapRuleType.ADD_PREFIX, "p1_");
-				benchtop.addInstance(primaryBfm, "leaf_bfm", rules);
-			}
-		}
-		else if (ExtParameters.getSysVerRootDecoderInterface()==SVDecodeInterfaceTypes.PARALLEL) {
-			RemapRuleList rules = new RemapRuleList();
-			rules.addRule("^dec_pio_.*$", RemapRuleType.ADD_PREFIX, "d2h_");  // parallel (note h2d/d2h reflects decoder cascaded output i/f direction, not root i/f)
-			rules.addRule("^pio_dec_.*$", RemapRuleType.ADD_PREFIX, "h2d_");
-			benchtop.addInstance(primaryBfm, "parallel_bfm", rules);  
-		}
-		else benchtop.addInstance(primaryBfm, "leaf_bfm");  // leaf
-		
-		// add all dut extern signals to the bench list
-		addDutIOs(benchtop);  
-		
-		// add wire defs to bench
-		benchtop.setShowDuplicateSignalErrors(false);
-		//benchtop.addWireDefs(benchtop.getSignalList(PIO, DECODE));  // all ports from pio to decoder will be wires
-		benchtop.addWireDefs(getPIOInputWires());  // all except p2 ports from pio to decode will be wires		
-		benchtop.addWireDefs(benchtop.getSignalList(DECODE, PIO));  // all ports from decoder to pio will be wires
-		benchtop.addWireDefs(benchtop.getSignalList(LOGIC, HW));  // all ports to hw will be wires
-		benchtop.addWireDefs(benchtop.getSignalList(DECODE, HW));  // all ports to hw will be wires
-		benchtop.addWireDefs(benchtop.getSignalList(PIO, HW));  // all ports to hw will be wires
-		
-		// add some local reg defines
-		benchtop.addScalarReg("CLK");
-		benchtop.addScalarReg("CLK_div2");
-		benchtop.addScalarReg("CLK_div4");
-		if (ExtParameters.systemverilogUseGatedLogicClk()) benchtop.addScalarReg("delayed_gclk_enable");
-		
-		// add reg defs to bench
-		benchtop.addRegDefs(benchtop.getSignalList(HW, LOGIC));  // all ports from hw will be regs
-		benchtop.addRegDefs(benchtop.getSignalList(HW, DECODE));  // all ports from hw will be regs
-		benchtop.addRegDefs(benchtop.getSignalList(HW, PIO));  // all ports from hw will be regs
-		benchtop.addRegDefs(getPIOInputRegs());  // p2 ports from pio to decode will be regs		
-		
-		// add sim block statements
-		addSimBlocks(clkPeriod);
-		
-		// ----------- write out the testbench
-				
-		// add timescale
-		writeStmt(0, "`timescale 1 ns / 100 ps");
-		
-		// write leaf bfm module and define interfacing signals
-		int indentLevel = 0;
-		primaryBfm.write();   
-		
-		// write the top module
-		benchtop.writeNullModuleBegin(indentLevel);
-		indentLevel++;
-
-		benchtop.writeWireDefs(indentLevel);
-		
-		benchtop.writeRegDefs(indentLevel);  
-		
-		// write the simulation activity block
-		benchtop.writeStatements(indentLevel);
-		
-		// write dut instances
-		benchtop.writeChildInstances(indentLevel);
-		
-		// end the module
-		indentLevel--;
-		benchtop.writeModuleEnd(indentLevel);	
-	}	*/
 
 }
