@@ -1,10 +1,11 @@
 package ordt.output.systemverilog.common;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ordt.extract.Ordt;
 import ordt.output.OutputWriterIntf;
@@ -69,7 +70,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 	
 	// ------------------- remap instance nested classes  -----------------------
 	
-	protected enum WrapperRemapType { ASSIGN, FLOPS, ASYNC_LEVEL, ASYNC_DATA } // flops(num_stages), async_level(aclk), async_data(aclk, valid_sig, num_data) <-- need to group
+	protected enum WrapperRemapType { ASSIGN, SYNC_DELAY, ASYNC_LEVEL, ASYNC_DATA } // flops(num_stages), async_level(aclk), async_data(aclk, valid_sig, num_data) <-- need to group
 
 	/** default remap transform (simple assign) */
 	private class WrapperRemapXform {
@@ -83,11 +84,13 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		private int srcLowIndex;  // low index in source (source size is dest.size)
 		private SystemVerilogSignal dest;  // destination signal and vector info
 		private WrapperRemapXform xform;  // remap transform
+		private boolean isOutput;  // true if this destination signal is an external output
 
-		private WrapperRemapDestination(int srcLowIndex, SystemVerilogSignal dest, WrapperRemapXform xform) { 
+		private WrapperRemapDestination(int srcLowIndex, SystemVerilogSignal dest, WrapperRemapXform xform, boolean isOutput) { 
 			this.srcLowIndex = srcLowIndex;
 			this.dest = dest;
 			this.xform = xform;
+			this.isOutput = isOutput;
 		}
 		
         @SuppressWarnings("unused")
@@ -106,10 +109,50 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		public void setXform(WrapperRemapXform xform) {
 			this.xform = xform;
 		}
+		
+        public boolean isOutput() {
+			return isOutput;
+		}
 
 		@Override
 		public String toString() {
 			return "  -> " + dest + ", type=" + xform.getType();
+		}
+
+		/** Given updated slice info, update size/index of this WrapperRemapDestination and return a list of new WrapperRemapDestinations.
+		 *  Creates max 2 new WrapperRemapDestinations (before and after updated bit range)
+		 * 
+		 * @param sliceInfo - SystemVerilogSignal containing lowIndex and size of a matching signalName pattern
+		 * @param isSourceSlice - true if sourceInfo refers to a source signal slice
+		 * @return List of new WrapperRemapDestinations created
+		 */
+		public List<? extends WrapperRemapDestination> createNewDestSlices(SystemVerilogSignal sliceInfo, boolean isSourceSlice) {
+			List<WrapperRemapDestination> retList = new ArrayList<WrapperRemapDestination>();
+			// save current size and lowIndex
+			int origSrcLowIndex = srcLowIndex;
+			int origDstLowIndex = dest.getLowIndex();
+			int origLowIndex = isSourceSlice? origSrcLowIndex : origDstLowIndex; 
+			int origSize = dest.getSize();
+			int indexChange = sliceInfo.getLowIndex() - origLowIndex;
+			int sizeChange = sliceInfo.getSize() - origSize;
+					
+			// if same slice then just return with no change
+			if ((sliceInfo.getSize() == origSize) && (indexChange == 0)) return retList;
+			// create a new slice before current if needed
+			if (indexChange > 0) {
+				// TODO
+			}
+			else if (indexChange < 0)
+				Ordt.errorExit("wrapper slice " + sliceInfo.getRefArray() + " is invalid for " + (isSourceSlice? "source of signal " : "signal ") + dest.getName());
+			// create a new slice after current if needed
+			else if (indexChange + sizeChange < 0) {
+				// TODO
+			}
+			else if (indexChange + sizeChange > 0)
+				Ordt.errorExit("wrapper slice " + sliceInfo.getRefArray() + " is invalid for " + (isSourceSlice? "source of signal " : "signal ") + dest.getName());
+            // update size and index of this object
+			// TODO
+			return retList;
 		}
 	}
 	
@@ -144,7 +187,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 
 		public void addDestination(String signalName, Integer lowIndex, Integer size, boolean isOutput) {
 			SystemVerilogSignal newDest = new SystemVerilogSignal(signalName, lowIndex, size);
-			dests.add(new WrapperRemapDestination(lowIndex, newDest, new WrapperRemapXform())); 
+			dests.add(new WrapperRemapDestination(lowIndex, newDest, new WrapperRemapXform(), isOutput)); 
 		}
 		
 		@Override
@@ -153,6 +196,109 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
         	for (WrapperRemapDestination dest: dests)
     			retStr += "\n   " + dest;
 			return retStr;
+		}
+
+		/** update remap transforms for specified IO signals in this remapInstance.
+		 *  
+		 * @param xformMap - map of IO signal pattern match keys and corresponding transform to be used on match.
+		 *                   The key string can either be a direct match or else signals will be checked against patterns in order.
+		 *                   If key is of the form <name>[range] the transform will only be applied to the specified slice
+		 *                   and the source/destination mapping will be changed accordingly
+		 */
+		public void setRemapTransforms(LinkedHashMap<String, WrapperRemapXform> xformMap) {
+    		SystemVerilogSignal src = this.getSource();  // get source signal info
+    		// if source is an input, try to match it
+    		if (this.isInput()) {
+    			Pair<WrapperRemapXform, SystemVerilogSignal> retPair = getMatchingXform(src, xformMap);
+        		WrapperRemapXform xform = retPair.first();
+        		SystemVerilogSignal sliceInfo = retPair.second();
+        		// if transform was assigned, apply to all destinations
+        		if (xform != null) { 
+            		// set same xform on all destinations for this source
+					List<WrapperRemapDestination> newDests = new ArrayList<WrapperRemapDestination>();
+        			for (WrapperRemapDestination remapDest: this.getDests()) {
+        				// add remaining slices to dest list with updated src index, dest index, dest size, and same xform
+        				newDests.addAll(remapDest.createNewDestSlices(sliceInfo, true));
+        				// update src index, dest index, dest size, and transform, 
+        				remapDest.setXform(xform);
+        			}
+        			this.getDests().addAll(newDests);
+        		}
+    		}
+    		// otherwise, check each destination for a match
+    		else {
+    			for (WrapperRemapDestination remapDest: this.getDests()) {
+    				if (remapDest.isOutput()) {
+    		    		SystemVerilogSignal dst = remapDest.getDest();  // get destination signal info
+    	    			Pair<WrapperRemapXform, SystemVerilogSignal> retPair = getMatchingXform(dst, xformMap);
+    	        		WrapperRemapXform xform = retPair.first();
+    	        		SystemVerilogSignal sliceInfo = retPair.second();
+    	        		if (xform != null) {
+    						List<WrapperRemapDestination> newDests = new ArrayList<WrapperRemapDestination>();
+            				// add remaining slices to dest list with updated src index, dest index, dest size, and same xform
+            				newDests.addAll(remapDest.createNewDestSlices(sliceInfo, false));
+            				// update src index, dest index, dest size, and transform, 
+            				remapDest.setXform(xform);
+                			this.getDests().addAll(newDests);
+    	        		}
+    				}
+    			}			
+    		}
+		}
+
+		/** return a remap transform if a target signal name matches a set of patterns.
+		 * @param src - target signal
+		 * @param xformMap - map of IO signal pattern match keys and corresponding transform to be used on match.
+		 *                   The key string can either be a direct match or else signals will be checked against patterns in order.
+		 *                   If key is of the form <name>[range] the transform will only be applied to the specified slice
+		 *                   and the source/destination mapping will be changed accordingly
+		 * @return valid WrapperRemapXform if a match or null otherwise
+		 */                   
+		private Pair<WrapperRemapXform, SystemVerilogSignal> getMatchingXform(SystemVerilogSignal target, LinkedHashMap<String, WrapperRemapXform> xformMap) {
+    		// look for exact source match first
+			String targetName = target.getName();
+    		if (xformMap.containsKey(targetName)) {
+    			return new Pair<WrapperRemapXform, SystemVerilogSignal>(xformMap.get(targetName), target);  // direct match, so no slice
+    		}
+    		// otherwise, loop through patterns looking for a match
+    		else for (String rawPattern: xformMap.keySet()) {
+    			// only treat as a pattern if wildcards or slice info  
+    			if (rawPattern.contains("*") || rawPattern.contains(",")) {
+    				// extract the name match pattern and range from the raw pattern 
+    				String namePattern = rawPattern;  // by default pattern is as-is 
+    				SystemVerilogSignal patternInfo = getNamePatternInfo(rawPattern, target);
+    				if (patternInfo != null) {  // proceed if pattern is valid
+    					namePattern = patternInfo.getName();
+    					// now look for a target name match
+        				Pattern nPattern = Pattern.compile(namePattern);
+        				Matcher m = nPattern.matcher(targetName);
+        				if (m.matches()) {
+            				// return the transform and slice info for this pattern (first match)
+        	    			return new Pair<WrapperRemapXform, SystemVerilogSignal>(xformMap.get(rawPattern), patternInfo);
+        				}
+    				}
+    			}
+    		}
+			return null;  // no match
+		}
+
+		/** check for a valid raw pattern and return as a signal instance (pattternName, lowindex, size) or null if invalid */
+		private SystemVerilogSignal getNamePatternInfo(String rawPattern, SystemVerilogSignal target) {
+            String namePattern;
+			Pattern slicePattern = Pattern.compile("^(.*)(\\s*\\[(\\d+)(:(\\d+))\\])$"); // detect slice form 
+			Matcher m = slicePattern.matcher(rawPattern);
+			if (m.matches()) {
+				namePattern = m.group(1);
+				Integer leftIdx = (m.groupCount()>2)? Integer.valueOf(m.group(3)) : null;
+				Integer rightIdx = (m.groupCount()>4)? Integer.valueOf(m.group(5)) : null;
+				Integer newLowIdx = (rightIdx != null)? rightIdx : (leftIdx != null)? leftIdx : target.getLowIndex();
+				Integer newSize = (rightIdx != null)? leftIdx - rightIdx - 1 : (leftIdx != null)? 1 : target.getSize();
+				// check for a name match
+				namePattern = namePattern.replaceAll("\\*", ".*");  // allow wildcards
+				namePattern = "^" + namePattern + "$";
+				return new SystemVerilogSignal(namePattern, newLowIdx, newSize);
+			}
+			return null;
 		}
 	}
 	
@@ -210,7 +356,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
         			Ordt.warnMessage("no destinations found for wrapper source signal " + src.getName());
         		// add all destinations to wire list and use specified xform
     			for (WrapperRemapDestination remapDest: wrapInst.getDests()) {
-    				SystemVerilogSignal dst = remapDest.getDest();   // get destination signal info
+    				SystemVerilogSignal dst = remapDest.getDest();   // get destination signal info   TODO - if a slice then qualify src/dst ranges
     				// check src/dest sizes
     				if (src.getSize() != dst.getSize()) 
     					Ordt.errorMessage("sizes of wrapper source (" + src.getName() + ", n=" + src.getSize() +
@@ -226,8 +372,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
    		                default: 
    		                	Ordt.errorMessage("invalid wrapper transform (" + xform.getType() + ") specified from source " + src.getName() + " to destination " + dst.getName());
    		                	break;
-    		        }
-    					
+    		            }		
     				}
     				else Ordt.errorMessage("no valid source found for wrapper destination signal " + dst.getName());  // TODO add internal tieoff option
 
@@ -235,20 +380,38 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		    }
 		}
 		
-		/** update remap transforms for certain signals - keys off root name */
-		public void setRemapTransforms(HashMap<String, WrapperRemapXform> xformMap) {
+		/** update remap transforms for specified IO signals in this WrapperSignalMap.
+		 *  
+		 * @param xformMap - map of IO signal pattern match keys and corresponding transform to be used on match.
+		 *                   The key string can either be a direct match or else signals will be checked against patterns in order.
+		 *                   If key is of the form <name>[range] the transform will only be applied to the specified slice
+		 *                   and the source/destination mapping will be changed accordingly
+		 */
+		public void setRemapTransforms(LinkedHashMap<String, WrapperRemapXform> xformMap) {
 			// loop through map sources
         	for (String root: mappings.keySet()) {
-        		if (xformMap.containsKey(root)) {
-            		WrapperRemapInstance wrapInst = mappings.get(root);
-            		// set same xform on all destinations for this source
-        			for (WrapperRemapDestination remapDest: wrapInst.getDests()) {
-        				remapDest.setXform(xformMap.get(root));
-        			}
-
-        		}
+        		WrapperRemapInstance wrapInst = mappings.get(root);
+        		// process IO xform on this remap instance (src-dests grouping)
+        		wrapInst.setRemapTransforms(xformMap);
 		    }
 		}
+	}
+	
+	/** utility class for passing around obj pairs */
+	public class Pair<U, V> {
+		    private U first;
+		    private V second;
+
+		    public Pair(U first, V second) {
+		        this.first = first;
+		        this.second = second;
+		    }
+		    public U first() {
+		        return first;
+		    }
+		    public V second() {
+		        return second;
+		    }
 	}
 	
 	// ------------------- wrapper IO/signal generation  -----------------------
@@ -263,9 +426,8 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		setIODestinationSignals(useInterfaces);
 		setChildDestinationSignals();
 		// create wire/reg defs and assigns for mapping
-		wrapMappings.generateMapOutput();
-		
-		//wrapMappings.display();  // TODO
+		wrapMappings.generateMapOutput();	
+		//wrapMappings.display(); 
 	}
 	
 	// TODO add alternate mode to use a specified IO list rather than child extracted IO
@@ -351,6 +513,18 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			// load wrapMappings  
 			fullList.loadWrapperMapDestinations(wrapMappings, rules, false, false);
 		}
+	}
+
+	public static void main(String[] args) {
+		String  namePattern = "mysignal_*_bla";
+		String  targetName = "mysignal_1_bla";
+		namePattern = namePattern.replaceAll("\\*", ".*");
+		namePattern = "^" + namePattern + "$";
+		System.out.println("namePattern=" + namePattern);
+		Pattern nPattern = Pattern.compile(namePattern);
+		Matcher m = nPattern.matcher(targetName);
+		if (m.matches())  System.out.println("--- match");
+		else  System.out.println("--- no match");
 	}
 
 }

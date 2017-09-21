@@ -23,25 +23,26 @@ public class SystemVerilogSignal {
 		return genDefArrayString(lowIndex, size) + name;
 	}
 	
-	/** return the array string used for definitions (includes) prefixed array string */
+	/** return the array string used for definitions  */
 	public String getDefArray() {
 		return genDefArrayString(lowIndex, size);
+	}
+	
+	/** return the array string used for references  */
+	public String getRefArray() {
+		return genRefArrayString(lowIndex, size);
 	}
 	
 	/** return the name of the signal */
 	public String getName () {
 		return name;
 	}
-	/** get lowIndex
-	 *  @return the lowIndex
-	 */
+	/** get lowIndex */
 	public int getLowIndex() {
 		return lowIndex;
 	}
 
-	/** get size
-	 *  @return the size
-	 */
+	/** get size */
 	public int getSize() {
 		return size;
 	}
@@ -62,5 +63,10 @@ public class SystemVerilogSignal {
 	public static String genDefArrayString(int lowIndex, int size) {
 		if (size < 2) return "";
 	   	return " [" + (size + lowIndex - 1) + ":" + lowIndex + "] ";
+	}
+
+	/** returns true if this signal contains the specified bit range */
+	public boolean containsSlice(Integer newLowIdx, Integer newSize) {
+		return (newLowIdx >= lowIndex) && ((newSize + newLowIdx) <= (size + lowIndex));
 	}
 }
