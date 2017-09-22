@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import ordt.output.systemverilog.common.RemapRuleList;
-import ordt.output.systemverilog.common.SystemVerilogWrapModule.WrapperSignalMap;
+import ordt.output.systemverilog.common.wrap.SystemVerilogWrapModule.WrapperSignalMap;
 import ordt.parameters.Utils;
 
 public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {

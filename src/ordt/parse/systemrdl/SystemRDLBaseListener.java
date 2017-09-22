@@ -664,6 +664,30 @@ public class SystemRDLBaseListener implements SystemRDLListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSystemverilog_wrapper_info(SystemRDLParser.Systemverilog_wrapper_infoContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSystemverilog_wrapper_info(SystemRDLParser.Systemverilog_wrapper_infoContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSystemverilog_wrapper_remap_command(SystemRDLParser.Systemverilog_wrapper_remap_commandContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSystemverilog_wrapper_remap_command(SystemRDLParser.Systemverilog_wrapper_remap_commandContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterUvmregs_out_defs(SystemRDLParser.Uvmregs_out_defsContext ctx) { }
 	/**
 	 * {@inheritDoc}

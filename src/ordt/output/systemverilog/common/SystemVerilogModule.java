@@ -100,7 +100,7 @@ public class SystemVerilogModule {
 	}
 
 	/** return encoded integer of all locations inside this module and its children */
-	protected Integer getInsideLocs() {
+	public Integer getInsideLocs() {
 		Integer myInsideLocs = terminalInsideLocs | getChildLocs();
 		//if (terminalInsideLocs==0) System.out.println("SystemVerilogModule getInsideLocs: name=" + getName() + ", insideLocs=" + myInsideLocs + ", terminalInsideLocs=" + terminalInsideLocs + ", children=" + instanceList.size());
 		return myInsideLocs;

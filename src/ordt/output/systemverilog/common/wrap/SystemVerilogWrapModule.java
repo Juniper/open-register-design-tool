@@ -1,4 +1,4 @@
-package ordt.output.systemverilog.common;
+package ordt.output.systemverilog.common.wrap;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -9,8 +9,13 @@ import java.util.regex.Pattern;
 
 import ordt.extract.Ordt;
 import ordt.output.OutputWriterIntf;
+import ordt.output.systemverilog.common.RemapRuleList;
+import ordt.output.systemverilog.common.SystemVerilogInstance;
+import ordt.output.systemverilog.common.SystemVerilogModule;
+import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.common.RemapRuleList.RemapRuleType;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
+import ordt.parameters.ExtParameters;
 
 public class SystemVerilogWrapModule extends SystemVerilogModule {
 
@@ -69,17 +74,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 	}
 	
 	// ------------------- remap instance nested classes  -----------------------
-	
-	protected enum WrapperRemapType { ASSIGN, SYNC_DELAY, ASYNC_LEVEL, ASYNC_DATA } // flops(num_stages), async_level(aclk), async_data(aclk, valid_sig, num_data) <-- need to group
-
-	/** default remap transform (simple assign) */
-	private class WrapperRemapXform {
-		WrapperRemapType type = WrapperRemapType.ASSIGN;
-		public WrapperRemapType getType() {
-			return type;
-		}
-	}
-	
+		
 	private class WrapperRemapDestination {
 		private int srcLowIndex;  // low index in source (source size is dest.size)
 		private SystemVerilogSignal dest;  // destination signal and vector info
@@ -210,10 +205,10 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
     		// if source is an input, try to match it
     		if (this.isInput()) {
     			Pair<WrapperRemapXform, SystemVerilogSignal> retPair = getMatchingXform(src, xformMap);
-        		WrapperRemapXform xform = retPair.first();
-        		SystemVerilogSignal sliceInfo = retPair.second();
         		// if transform was assigned, apply to all destinations
-        		if (xform != null) { 
+        		if (retPair != null) { 
+            		WrapperRemapXform xform = retPair.first();
+            		SystemVerilogSignal sliceInfo = retPair.second();
             		// set same xform on all destinations for this source
 					List<WrapperRemapDestination> newDests = new ArrayList<WrapperRemapDestination>();
         			for (WrapperRemapDestination remapDest: this.getDests()) {
@@ -231,9 +226,9 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
     				if (remapDest.isOutput()) {
     		    		SystemVerilogSignal dst = remapDest.getDest();  // get destination signal info
     	    			Pair<WrapperRemapXform, SystemVerilogSignal> retPair = getMatchingXform(dst, xformMap);
-    	        		WrapperRemapXform xform = retPair.first();
-    	        		SystemVerilogSignal sliceInfo = retPair.second();
-    	        		if (xform != null) {
+    	        		if (retPair != null) {
+        	        		WrapperRemapXform xform = retPair.first();
+        	        		SystemVerilogSignal sliceInfo = retPair.second();
     						List<WrapperRemapDestination> newDests = new ArrayList<WrapperRemapDestination>();
             				// add remaining slices to dest list with updated src index, dest index, dest size, and same xform
             				newDests.addAll(remapDest.createNewDestSlices(sliceInfo, false));
@@ -366,8 +361,12 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
     					WrapperRemapXform xform = remapDest.getXform();
     			        switch (xform.getType()) {  // TODO - enable other xforms
     		            case ASSIGN: 
-    		            	if (!dst.getName().contains(".")) wireDefList.addVector(dst.getName(), dst.getLowIndex(), dst.getSize());  // add the destination define
-            				wireAssignList.add(dst.getName() + " = " + src.getName() + ";");  // add the assignment
+    		            	if (!dst.getName().contains(".")) wireDefList.addVector(dst.getName(), dst.getLowIndex(), dst.getSize()); // add dest define if not encapsulated
+            				wireAssignList.add(xform.getXformString(src.getName(), dst.getName(), null));  // add the assignment
+    		                break;
+    		            case SYNC_DELAY: 
+    		            	if (!dst.getName().contains(".")) wireDefList.addVector(dst.getName(), dst.getLowIndex(), dst.getSize()); // add dest define if not encapsulated
+            				statements.add(xform.getXformString(src.getName(), dst.getName(), null));  // add the sync_delay instance
     		                break;
    		                default: 
    		                	Ordt.errorMessage("invalid wrapper transform (" + xform.getType() + ") specified from source " + src.getName() + " to destination " + dst.getName());
@@ -427,6 +426,8 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		setChildDestinationSignals();
 		// create wire/reg defs and assigns for mapping
 		wrapMappings.generateMapOutput();	
+		// get xform overrides from parameters
+		wrapMappings.setRemapTransforms(ExtParameters.sysVerWrapperXformMap());
 		//wrapMappings.display(); 
 	}
 	

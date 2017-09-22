@@ -148,6 +148,26 @@ public interface ExtParmsListener extends ParseTreeListener {
 	 */
 	void exitSystemverilog_out_parm_assign(ExtParmsParser.Systemverilog_out_parm_assignContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link ExtParmsParser#systemverilog_wrapper_info}.
+	 * @param ctx the parse tree
+	 */
+	void enterSystemverilog_wrapper_info(ExtParmsParser.Systemverilog_wrapper_infoContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ExtParmsParser#systemverilog_wrapper_info}.
+	 * @param ctx the parse tree
+	 */
+	void exitSystemverilog_wrapper_info(ExtParmsParser.Systemverilog_wrapper_infoContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ExtParmsParser#systemverilog_wrapper_remap_command}.
+	 * @param ctx the parse tree
+	 */
+	void enterSystemverilog_wrapper_remap_command(ExtParmsParser.Systemverilog_wrapper_remap_commandContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ExtParmsParser#systemverilog_wrapper_remap_command}.
+	 * @param ctx the parse tree
+	 */
+	void exitSystemverilog_wrapper_remap_command(ExtParmsParser.Systemverilog_wrapper_remap_commandContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link ExtParmsParser#uvmregs_out_defs}.
 	 * @param ctx the parse tree
 	 */

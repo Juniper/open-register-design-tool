@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
@@ -23,6 +24,8 @@ import ordt.annotate.AnnotateSetCommand;
 import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
 import ordt.extract.model.ModComponent.CompType;
+import ordt.output.systemverilog.common.wrap.WrapperRemapSyncDelayXform;
+import ordt.output.systemverilog.common.wrap.WrapperRemapXform;
 import ordt.extract.model.ModRegister;
 import ordt.parse.parameters.ExtParmsBaseListener;
 import ordt.parse.parameters.ExtParmsLexer;
@@ -57,6 +60,9 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	// list of model annotation commands
 	private static List<AnnotateCommand> annotations = new ArrayList<AnnotateCommand>();
 	
+	// set of systemverilog wrapper signal mapping rules
+	private static LinkedHashMap<String, WrapperRemapXform> xformMap = new LinkedHashMap<String, WrapperRemapXform>();
+			
 	public ExtParameters() {
 	}
 	
@@ -339,6 +345,35 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	 */
 	@Override public void enterReglist_out_parm_assign(@NotNull ExtParmsParser.Reglist_out_parm_assignContext ctx) {
 		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
+	}
+	
+	/** 
+	 * Assign SystemVerilog wrapper module remap commands
+	 */
+	@Override public void enterSystemverilog_wrapper_remap_command(ExtParmsParser.Systemverilog_wrapper_remap_commandContext ctx) {
+		String cmdName = ctx.getChild(0).getText();
+		String signalPattern = ctx.getChild(1).getText();
+		WrapperRemapXform xf;
+		switch(cmdName) {
+		case ("set_assign"): // 'set_assign' STR
+			xf = new WrapperRemapXform();  // default is assign 
+		    xformMap.put(signalPattern, xf);
+			break;
+		case ("set_sync_delay"): // 'set_sync_delay' STR NUM 
+			int delayStages = Integer.valueOf(ctx.getChild(2).getText());
+			xf = new WrapperRemapSyncDelayXform(delayStages);  
+	        xformMap.put(signalPattern, xf);
+		    break;
+		//case ("set_async_level"): // 'set_async_level' STR NUM ID 
+			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: " + ctx.getText());   // TODO
+			//break;
+		//case ("set_async_data"): // 'set_async_data' STR STR NUM ID
+			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: " + ctx.getText());   // TODO
+			//break;
+		default: // 'set_async_data' STR STR NUM ID
+			Ordt.errorExit("Unsupported RTL wrapper remap command (" + ctx.getText() + ") specified in parameters.");
+			break;
+		}
 	}
 	
 	/**
@@ -725,6 +760,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getIntegerParameter("max_internal_reg_reps");
 	}
 	
+	/** return rtl wrapper signal transforms */
+	public static LinkedHashMap<String, WrapperRemapXform> sysVerWrapperXformMap() {
+		return xformMap;
+	}
+	
 	// bench parameter getters
 
 	public static Boolean sysVerGenerateExternalRegs() {
@@ -732,7 +772,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	}
 
 	// rdl parameter getters
-	
+
 	/** get rdlRootComonentIsInstanced
 	 *  @return the rdlRootComonentIsInstanced
 	 */

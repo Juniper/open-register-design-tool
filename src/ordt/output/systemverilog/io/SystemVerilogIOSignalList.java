@@ -10,7 +10,7 @@ import ordt.output.systemverilog.SystemVerilogDefinedSignals;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.output.systemverilog.common.RemapRuleList;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
-import ordt.output.systemverilog.common.SystemVerilogWrapModule.WrapperSignalMap;
+import ordt.output.systemverilog.common.wrap.SystemVerilogWrapModule.WrapperSignalMap;
 
 
 /** this is the main class used to hold IO lists for building sv modules.

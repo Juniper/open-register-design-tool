@@ -24,7 +24,7 @@ import ordt.output.RhsReference;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
-import ordt.output.systemverilog.common.SystemVerilogWrapModule;
+import ordt.output.systemverilog.common.wrap.SystemVerilogWrapModule;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalSet;
 import ordt.output.AddressableInstanceProperties.ExtType;

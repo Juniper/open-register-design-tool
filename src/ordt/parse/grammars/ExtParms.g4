@@ -105,7 +105,8 @@ ext_parm_defs
  systemverilog_out_defs
    : 'output' 'systemverilog'
      LBRACE
-     (systemverilog_out_parm_assign)+
+     ( systemverilog_out_parm_assign
+     | systemverilog_wrapper_info )+
      RBRACE
    ;
    
@@ -140,6 +141,20 @@ ext_parm_defs
    | 'nack_partial_writes' EQ bool
    | 'write_enable_size' EQ NUM
    | 'max_internal_reg_reps' EQ NUM
+   ;
+   
+ systemverilog_wrapper_info
+   : 'wrapper_info'
+     LBRACE
+     ( systemverilog_wrapper_remap_command )+
+     RBRACE
+   ;
+   
+ systemverilog_wrapper_remap_command
+   : 'set_assign' STR
+   | 'set_sync_delay' STR NUM 
+   | 'set_async_level' STR NUM ID 
+   | 'set_async_data' STR STR NUM ID 
    ;
       
 // ------------ uvmregs_out_defs
