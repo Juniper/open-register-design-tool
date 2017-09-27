@@ -1,6 +1,7 @@
 package ordt.output.systemverilog.common.wrap;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.regex.Pattern;
 
 import ordt.extract.Ordt;
 import ordt.output.OutputWriterIntf;
+import ordt.output.SimpleOutputWriter;
 import ordt.output.systemverilog.common.RemapRuleList;
 import ordt.output.systemverilog.common.SystemVerilogInstance;
 import ordt.output.systemverilog.common.SystemVerilogModule;
@@ -20,7 +22,8 @@ import ordt.parameters.ExtParameters;
 public class SystemVerilogWrapModule extends SystemVerilogModule {
 
 	// remap list w/ hash by base source signal
-	WrapperSignalMap wrapMappings = new WrapperSignalMap();
+	private WrapperSignalMap wrapMappings = new WrapperSignalMap();  // set of source to destination signal mappings
+	private HashMap<WrapperRemapXform.WrapperRemapType, WrapperRemapXform> xformsDefined = new HashMap<WrapperRemapXform.WrapperRemapType, WrapperRemapXform>();  // xform modules used in this wrapper
 	
 	/** create a wrapper module
 	 * @param writer - OutputWriterIntf to be used for output generation 
@@ -88,9 +91,20 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			this.isOutput = isOutput;
 		}
 		
-        @SuppressWarnings("unused")
+		/* copy constructor */
+        public WrapperRemapDestination(WrapperRemapDestination origDest) {
+        	this.srcLowIndex = origDest.getSrcLowIndex();
+        	this.isOutput = origDest.isOutput();
+        	this.dest = new SystemVerilogSignal(origDest.getDest());
+			this.xform = origDest.getXform();
+		}
+
 		public int getSrcLowIndex() {
 			return srcLowIndex;
+		}
+
+		public void setSrcLowIndex(int srcLowIndex) {
+			this.srcLowIndex = srcLowIndex;
 		}
 
         public SystemVerilogSignal getDest() {
@@ -135,23 +149,36 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			if ((sliceInfo.getSize() == origSize) && (indexChange == 0)) return retList;
 			// create a new slice before current if needed
 			if (indexChange > 0) {
-				// TODO
+				WrapperRemapDestination newDest = new WrapperRemapDestination(this);  // start with a copy of the current
+				newDest.getDest().setSize(indexChange);   // only size of this slice changes
+                retList.add(newDest);
 			}
 			else if (indexChange < 0)
 				Ordt.errorExit("wrapper slice " + sliceInfo.getRefArray() + " is invalid for " + (isSourceSlice? "source of signal " : "signal ") + dest.getName());
 			// create a new slice after current if needed
 			else if (indexChange + sizeChange < 0) {
-				// TODO
+				WrapperRemapDestination newDest = new WrapperRemapDestination(this);  // start with a copy of the current
+				int newSize = origSize - (indexChange + sizeChange);
+				int newSrcLowIndex = origSrcLowIndex + indexChange + sliceInfo.getSize();
+				int newDstLowIndex = origDstLowIndex + indexChange + sliceInfo.getSize();
+				this.setSrcLowIndex(newSrcLowIndex);   // set src low index of this slice
+				newDest.getDest().setLowIndex(newDstLowIndex);   // set low index of this slice 
+				newDest.getDest().setSize(newSize);   // set size of this slice
+                retList.add(newDest);
 			}
 			else if (indexChange + sizeChange > 0)
 				Ordt.errorExit("wrapper slice " + sliceInfo.getRefArray() + " is invalid for " + (isSourceSlice? "source of signal " : "signal ") + dest.getName());
             // update size and index of this object
-			// TODO
+			int newSrcLowIndex = origSrcLowIndex + indexChange;
+			int newDstLowIndex = origDstLowIndex + indexChange;
+			this.setSrcLowIndex(newSrcLowIndex);   // set src low index of this slice
+			this.getDest().setLowIndex(newDstLowIndex);   // set dst low index of this slice
+			this.getDest().setSize(sliceInfo.getSize());   // set size of this slice
 			return retList;
 		}
 	}
 	
-	/** a mapping from source signal to its destinations */
+	/** a mapping from a source signal to its destination signals */
 	private class WrapperRemapInstance {
 		private SystemVerilogSignal source;  // source signal name
 		private boolean isValidSource = true;  // indication that source is valid - false indicates destination(s) with no matching source
@@ -216,8 +243,9 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
         				newDests.addAll(remapDest.createNewDestSlices(sliceInfo, true));
         				// update src index, dest index, dest size, and transform, 
         				remapDest.setXform(xform);
+        				//System.out.println("SystemVerilogWrapModule setRemapTransforms: setting xform on src=" + src.getName() + " to " + xform.getType());
         			}
-        			this.getDests().addAll(newDests);
+        			this.getDests().addAll(newDests);  
         		}
     		}
     		// otherwise, check each destination for a match
@@ -234,6 +262,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
             				newDests.addAll(remapDest.createNewDestSlices(sliceInfo, false));
             				// update src index, dest index, dest size, and transform, 
             				remapDest.setXform(xform);
+            				//System.out.println("SystemVerilogWrapModule setRemapTransforms: setting xform on dst=" + dst.getName() + " to " + xform.getType() + " newDests=" + newDests.size());
                 			this.getDests().addAll(newDests);
     	        		}
     				}
@@ -250,7 +279,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		 * @return valid WrapperRemapXform if a match or null otherwise
 		 */                   
 		private Pair<WrapperRemapXform, SystemVerilogSignal> getMatchingXform(SystemVerilogSignal target, LinkedHashMap<String, WrapperRemapXform> xformMap) {
-    		// look for exact source match first
+			// look for exact source match first
 			String targetName = target.getName();
     		if (xformMap.containsKey(targetName)) {
     			return new Pair<WrapperRemapXform, SystemVerilogSignal>(xformMap.get(targetName), target);  // direct match, so no slice
@@ -258,7 +287,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
     		// otherwise, loop through patterns looking for a match
     		else for (String rawPattern: xformMap.keySet()) {
     			// only treat as a pattern if wildcards or slice info  
-    			if (rawPattern.contains("*") || rawPattern.contains(",")) {
+    			if (rawPattern.contains("*") || rawPattern.contains("[")) {
     				// extract the name match pattern and range from the raw pattern 
     				String namePattern = rawPattern;  // by default pattern is as-is 
     				SystemVerilogSignal patternInfo = getNamePatternInfo(rawPattern, target);
@@ -267,8 +296,11 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
     					// now look for a target name match
         				Pattern nPattern = Pattern.compile(namePattern);
         				Matcher m = nPattern.matcher(targetName);
+        	            //if (targetName.endsWith("_o")) System.out.println("WrapperRemapInstance getMatchingXform: attempting match for target=" + targetName + ", rawPattern=" + rawPattern + ", namePattern=" + namePattern);
         				if (m.matches()) {
             				// return the transform and slice info for this pattern (first match)
+            	            //System.out.println("WrapperRemapInstance getMatchingXform: match found for target=" + targetName + ", rawPattern=" + rawPattern + ", namePattern=" + namePattern);
+            	            //System.out.println("  xform=" + xformMap.get(rawPattern).getXformString("src","dst", patternInfo.getSize(), null) + ", patternInfo=" + patternInfo.getName()  + ", i=" + patternInfo.getLowIndex() + ", s=" + patternInfo.getSize());
         	    			return new Pair<WrapperRemapXform, SystemVerilogSignal>(xformMap.get(rawPattern), patternInfo);
         				}
     				}
@@ -277,20 +309,27 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			return null;  // no match
 		}
 
-		/** check for a valid raw pattern and return as a signal instance (pattternName, lowindex, size) or null if invalid */
+		/** check for a valid raw pattern and return as a signal instance (pattternName, lowindex, size) or null if invalid 
+		 * 
+		 * @param rawPattern - raw pattern with wildcards and range info
+		 * @param target - target signal info (used to set default pattern size and index)
+		 * @return SystemVerilog signal containing pattern name, lowIndex, and size
+		 */
 		private SystemVerilogSignal getNamePatternInfo(String rawPattern, SystemVerilogSignal target) {
             String namePattern;
-			Pattern slicePattern = Pattern.compile("^(.*)(\\s*\\[(\\d+)(:(\\d+))\\])$"); // detect slice form 
+			Pattern slicePattern = Pattern.compile("^(.*)(\\s*\\[(\\d+)(:(\\d+))?\\])?$"); // detect slice form 
 			Matcher m = slicePattern.matcher(rawPattern);
 			if (m.matches()) {
-				namePattern = m.group(1);
-				Integer leftIdx = (m.groupCount()>2)? Integer.valueOf(m.group(3)) : null;
-				Integer rightIdx = (m.groupCount()>4)? Integer.valueOf(m.group(5)) : null;
+				namePattern = m.group(1).replaceAll("\\\"", "");
+				//System.out.println("SystemVerilogWrapModule getNamePatternInfo: ");
+				//for(int i=0; i<=m.groupCount(); i++) System.out.println("  " + i + ": " + m.group(i));
+				Integer leftIdx = (m.group(3)!=null)? Integer.valueOf(m.group(3)) : null;
+				Integer rightIdx = (m.group(5)!=null)? Integer.valueOf(m.group(5)) : null;
 				Integer newLowIdx = (rightIdx != null)? rightIdx : (leftIdx != null)? leftIdx : target.getLowIndex();
 				Integer newSize = (rightIdx != null)? leftIdx - rightIdx - 1 : (leftIdx != null)? 1 : target.getSize();
 				// check for a name match
+				namePattern = '^' + namePattern + '$';
 				namePattern = namePattern.replaceAll("\\*", ".*");  // allow wildcards
-				namePattern = "^" + namePattern + "$";
 				return new SystemVerilogSignal(namePattern, newLowIdx, newSize);
 			}
 			return null;
@@ -328,11 +367,14 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			}
 			// now add a destination
 			mappings.get(rootName).addDestination(signalName, lowIndex, size, isOutput);	// add a destination		
+        	if (!signalName.contains(".")) wireDefList.addVector(signalName, lowIndex, size); // add dest define if not encapsulated
 		}
 		
 		public void display() {
-        	for (String root: mappings.keySet())
-    			System.out.println("root=" + root + ", map=" + mappings.get(root));
+        	for (String root: mappings.keySet()) {
+        		WrapperRemapInstance remapInst = mappings.get(root);
+    			System.out.println("root=" + root + ", remap instance: " + remapInst);
+        	}
 		}
 
 		/** generate wire, register defines and specified mapping statements */
@@ -351,23 +393,27 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
         			Ordt.warnMessage("no destinations found for wrapper source signal " + src.getName());
         		// add all destinations to wire list and use specified xform
     			for (WrapperRemapDestination remapDest: wrapInst.getDests()) {
-    				SystemVerilogSignal dst = remapDest.getDest();   // get destination signal info   TODO - if a slice then qualify src/dst ranges
-    				// check src/dest sizes
-    				if (src.getSize() != dst.getSize()) 
-    					Ordt.errorMessage("sizes of wrapper source (" + src.getName() + ", n=" + src.getSize() +
-    							") and destination (" + dst.getName() + ", n=" + dst.getSize() + ") pair do not match");  // TODO - change to allow slice assigns
+    				SystemVerilogSignal dst = remapDest.getDest();   // get destination signal info 
+    				// if unequal src/dest sizes, add slice info
+    				boolean sameSize = (src.getSize() == dst.getSize());
+    				String srcName = sameSize? src.getName() : src.getName() + SystemVerilogSignal.genRefArrayString(src. getLowIndex(), dst.getSize());
+    				String dstName = sameSize? dst.getName() : dst.getName() + SystemVerilogSignal.genRefArrayString(dst. getLowIndex(), dst.getSize());
     				// add transform is source is valid
     				if (wrapInst.isValidSource()) {
     					WrapperRemapXform xform = remapDest.getXform();
-    			        switch (xform.getType()) {  // TODO - enable other xforms
+    					//System.out.println("SystemVerilogWrapModule generateMapOutput: xform type=" + xform.getType());
+    			        switch (xform.getType()) {  
     		            case ASSIGN: 
-    		            	if (!dst.getName().contains(".")) wireDefList.addVector(dst.getName(), dst.getLowIndex(), dst.getSize()); // add dest define if not encapsulated
-            				wireAssignList.add(xform.getXformString(src.getName(), dst.getName(), null));  // add the assignment
+            				wireAssignList.add(xform.getXformString(srcName, dstName, dst.getSize(), null));  // add the assignment
     		                break;
-    		            case SYNC_DELAY: 
-    		            	if (!dst.getName().contains(".")) wireDefList.addVector(dst.getName(), dst.getLowIndex(), dst.getSize()); // add dest define if not encapsulated
-            				statements.add(xform.getXformString(src.getName(), dst.getName(), null));  // add the sync_delay instance
-    		                break;
+    		            case SYNC_STAGES: // TODO - enable other xforms that instance modules here
+    		            	HashMap<String, String> optionalParms = new HashMap<String, String>();
+    		            	optionalParms.put("defaultClkName", defaultClkName);
+    		            	//String clkName = ((WrapperRemapSyncStagesXform) xform).getClkName();
+    		            	//System.out.println("SystemVerillogWrapModule generateMapOutput: clk=" + clkName);  // TODO - need to load definedSignals
+            				statements.add(xform.getXformString(srcName, dstName, dst.getSize(), optionalParms));  // add the sync stages instance
+            				xformsDefined.put(xform.getType(), xform);  // save in defined xforms list
+            				break;
    		                default: 
    		                	Ordt.errorMessage("invalid wrapper transform (" + xform.getType() + ") specified from source " + src.getName() + " to destination " + dst.getName());
    		                	break;
@@ -424,10 +470,10 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		setChildSourceSignals();
 		setIODestinationSignals(useInterfaces);
 		setChildDestinationSignals();
-		// create wire/reg defs and assigns for mapping
-		wrapMappings.generateMapOutput();	
 		// get xform overrides from parameters
 		wrapMappings.setRemapTransforms(ExtParameters.sysVerWrapperXformMap());
+		// create wire/reg defs and assigns for mapping
+		wrapMappings.generateMapOutput();	
 		//wrapMappings.display(); 
 	}
 	
@@ -514,6 +560,29 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			// load wrapMappings  
 			fullList.loadWrapperMapDestinations(wrapMappings, rules, false, false);
 		}
+	}
+
+	/** write the xform module defines 
+	 * @param separateXformFiles - if true, each xform will be written to a separate file using prefix/suffix info for name generation
+	 * @param outPrefix - prefix to be used on generated xform modules if using separate files
+	 * @param outSuffix- suffix to be used on generated xform modules if using separate files 
+	 * @param commentPrefix 
+	 */
+	public void writeXformModules(boolean separateXformFiles, String outPrefix, String outSuffix, String commentPrefix) { 
+		// write define for each xform used in this wrapper
+		for (WrapperRemapXform xform: xformsDefined.values()) {
+			OutputWriterIntf xformWriter = writer;  // use the builder/writer by default
+			if (separateXformFiles) {
+				String outFile = outPrefix + xform.getModuleName() + outSuffix;
+				xformWriter = new SimpleOutputWriter(outFile, "wrapper xform");  // override writers
+		    	//writer.writeHeader(commentPrefix); // write the file header  TODO - move all these write methods to static?
+			}
+			xformWriter.writeStmt(0, "");
+			//xformWriter.writeStmt(0, "// this is module " + xform.getModuleName());
+			xformWriter.writeStmts(0, xform.getXformModuleDef());
+			if (separateXformFiles) xformWriter.close();
+		}
+		
 	}
 
 	public static void main(String[] args) {

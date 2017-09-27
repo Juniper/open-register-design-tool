@@ -33,6 +33,8 @@ public class SystemVerilogModule {
 	protected List<SystemVerilogIOSignalList> ioList = new ArrayList<SystemVerilogIOSignalList>();  // list of IO lists in this module
 	protected HashMap<Integer, SystemVerilogIOSignalList> ioHash = new HashMap<Integer, SystemVerilogIOSignalList>();  // set of writable IO lists in this module
 
+	protected String defaultClkName; // default clock name for this module
+	protected HashSet<String> otherClocks; // TODO - need to define this
 	protected SystemVerilogSignalList wireDefList;    // list of wires   
 	protected SystemVerilogSignalList regDefList;    // list of reg definitions	
 	protected List<String> wireAssignList = new ArrayList<String>();    // list of wire assign statements
@@ -52,6 +54,7 @@ public class SystemVerilogModule {
 	public SystemVerilogModule(OutputWriterIntf writer, int insideLocs, String defaultClkName, String coverageResetName) {
 		this.writer = writer;  // save reference to calling writer
 		setTerminalInsideLocs(insideLocs);  // locations inside this module
+		this.defaultClkName = defaultClkName;
 		registers = new SystemVerilogRegisters(writer, defaultClkName);
 		wireDefList = new SystemVerilogSignalList();
 		regDefList = new SystemVerilogSignalList();

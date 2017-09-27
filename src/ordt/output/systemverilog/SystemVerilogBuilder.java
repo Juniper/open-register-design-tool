@@ -787,11 +787,15 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			writeDecode(outName + getModuleName() + "_jrdl_decode.sv", description, commentPrefix);
 			
 			// if IO interfaces are used, generate the interfaces and wrapper
-			if ((usesInterfaces || ExtParameters.sysVerilogAlwaysGenerateIwrap()) && !legacyVerilog) {
+			if ((usesInterfaces || ExtParameters.sysVerGenerateWrapperModule()) && !legacyVerilog) {
 				writeInterfaces(outName + getModuleName() + "_pio_interfaces.sv", description, commentPrefix);
-				writeInterfaceWrapper(outName + getModuleName() + "_pio_iwrap.sv", description, commentPrefix);
+				writeTopWrapperModules(true, true, outName, getModuleName() + "_pio_iwrap", ".sv", description, commentPrefix);
 			}
-		    // FIXME - switch to new wrapper
+			// verilog wrapper
+			else if (ExtParameters.sysVerGenerateWrapperModule() && legacyVerilog) {
+				writeTopWrapperModules(false, true, outName, getModuleName() + "_pio_iwrap", ".v", description, commentPrefix);
+				//System.out.println("SystemVerilogBuilder write:   ExtParameters.sysVerilogAlwaysGenerateIwrap()= " + ExtParameters.sysVerilogAlwaysGenerateIwrap());
+			}
 			
 			// loop through nested addrmaps and write these VerilogBuilders
 			for (SystemVerilogBuilder childBuilder: childAddrMaps) {
@@ -893,23 +897,54 @@ public class SystemVerilogBuilder extends OutputBuilder {
     	}
 	}
 
-	/** write interface output to specified output file  
-	 * @param outName - output file or directory
+	/** write wrap module and any required wrapper transform modules to specified output file(s)  
+	 * @param useInterfaces - if true, wrapper will use hierarchical
+	 * @param separateXformFiles - if true, xform modules will be output in separate files
+	 * @param outPrefix - output file path prefix to be used for wrapper and generated xform modules if using separate files
+	 * @param outName - output wrapper file base name if using separate files
+	 * @param outSuffix- output file suffix to be used for wrapper and all generated xform modules if using separate files 
 	 * @param description - text description of file generated
 	 * @param commentPrefix - comment chars for this file type */
-	public void writeInterfaceWrapper(String outName, String description, String commentPrefix) {
-    	BufferedWriter bw = openBufferedWriter(outName, description);
-    	if (bw != null) {
-    		// set bw as default
-    		bufferedWriter = bw;
+	public void writeTopWrapperModules(boolean useInterfaces, boolean separateXformFiles, 
+			String outPrefix, String outName, String outSuffix, String description, String commentPrefix) {
+        // override bufferedWriter if separate output files specified
+		if (separateXformFiles) {
+			BufferedWriter bw = openBufferedWriter(outPrefix + outName + outSuffix, description);
+	    	if (bw == null) return;   // exit on file error
+	    	bufferedWriter = bw;  // set bw as default  TODO - dont do this
+	    	writeHeader(commentPrefix); // write the file header
+		}
+		// create wrapper module 
+		SystemVerilogWrapModule intfWrapper = createTopWrapperModule(useInterfaces);
+		// write xform modules
+		intfWrapper.writeXformModules(separateXformFiles, outPrefix, outSuffix, commentPrefix); 
+		// write wrapper module
+		intfWrapper.write();
 
-    		// write the file header
-    		writeHeader(commentPrefix);
-    		
-    		// now write the output
-	    	writeInterfaceWrapper();
-    		closeBufferedWriter(bw);
-    	}
+		if (separateXformFiles) closeBufferedWriter(bufferedWriter);
+	}
+	
+	/** write wrap module and any required wrapper transform modules to default writer  
+	 * @param useInterfaces - if true, wrapper will use hierarchical */
+	public void writeTopWrapperModules(boolean useInterfaces) {
+		writeTopWrapperModules(useInterfaces, false, "", "", "", "", "");
+	}
+
+	/** generate the wrapper module
+	 * @param useInterfaces - if true, hierarchical IO will be allowed in wrapper
+	 * @param separateXformFiles - if true, xform modules will be output in separate files
+	 * @param outPrefix - prefix to be used on generated xform modules if using separate files
+	 * @param outSuffix- suffix to be used on generated xform modules if using separate files 
+	 */
+	protected  SystemVerilogWrapModule createTopWrapperModule(boolean useInterfaces) {		
+		SystemVerilogWrapModule intfWrapper = new SystemVerilogWrapModule(this, 0, defaultClk, getDefaultReset());
+		intfWrapper.setName(getModuleName() + "_pio_iwrap");
+		intfWrapper.setUseInterfaces(useInterfaces);
+		// add pio_top instance
+		intfWrapper.addInstance(top, "pio");
+        // create wrapper
+		intfWrapper.generateWrapperInfo();
+		return intfWrapper;
 	}
 
 	// ------------------
@@ -936,14 +971,13 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		top.write();
 		
 		// if IO interfaces are used, generate the systemerilog interfaces and wrapper
-		if ((usesInterfaces  || ExtParameters.sysVerilogAlwaysGenerateIwrap()) && !legacyVerilog) {
+		if ((usesInterfaces  || ExtParameters.sysVerGenerateWrapperModule()) && !legacyVerilog) {
 			writeInterfaces();
-			writeInterfaceWrapper();  
-			//writeTopWrapperModule(true);  // FIXME - test of wrapper class
+			writeTopWrapperModules(true);
 		}
 		// verilog wrapper
-		else if (ExtParameters.sysVerilogAlwaysGenerateIwrap() && legacyVerilog) {
-			writeTopWrapperModule(false);  // FIXME - test of wrapper class
+		else if (ExtParameters.sysVerGenerateWrapperModule() && legacyVerilog) {
+			writeTopWrapperModules(false);
 			//System.out.println("SystemVerilogBuilder write:   ExtParameters.sysVerilogAlwaysGenerateIwrap()= " + ExtParameters.sysVerilogAlwaysGenerateIwrap());
 		}
 					
@@ -1000,42 +1034,6 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			for (String defStr: intfDefStrings) writeStmt(indentLevel, defStr);   
 		}
 		//System.out.println("SystemVerilogBuilder writeInterface: " + intfName + ", def str n=" + intfDefStrings.size());	
-	}
-
-	/** write out the interface wrapper */
-	protected  void writeInterfaceWrapper() {		
-		// create wrapper module
-		SystemVerilogModule intfWrapper = new SystemVerilogModule(this, 0, defaultClk, getDefaultReset());
-		intfWrapper.setName(getModuleName() + "_pio_iwrap");
-		if (addBaseAddressParameter()) setAddBaseAddrParameter(intfWrapper);
-		intfWrapper.setUseInterfaces(true);  // wrapper will have interfaces in io
-		// add io lists
-		intfWrapper.useIOList(cntlSigList, null);
-		intfWrapper.useIOList(hwSigList, HW);
-		intfWrapper.useIOList(pioSigList, PIO); 
-		// add pio_top instance
-		intfWrapper.addInstance(top, "pio");
-        // create mappings from top module to wrapper IO
-		SystemVerilogIOSignalList wrapperIOList = intfWrapper.getFullIOSignalList();  
-		//System.out.println("SystemVerilogBuilder writeInterfaceWrapper: wrapper n=" + wrapperIOList.size());	
-		intfWrapper.addWireDefs(wrapperIOList.getEncapsulatedSignalList(LOGIC|DECODE));
-		intfWrapper.addWireAssigns(wrapperIOList.getNonVirtualAssignStrings(LOGIC|DECODE));  // sig to intf assigns
-
-		intfWrapper.write();  // write the wrapper using interfaces	
-	}
-
-	/** TODO write out the wrapper module */
-	protected  void writeTopWrapperModule(boolean useInterfaces) {		
-		// create wrapper module
-		SystemVerilogWrapModule intfWrapper = new SystemVerilogWrapModule(this, 0, defaultClk, getDefaultReset());
-		intfWrapper.setName(getModuleName() + "_pio_iwrap_alt");
-		intfWrapper.setUseInterfaces(useInterfaces);
-		// add pio_top instance
-		intfWrapper.addInstance(top, "pio");
-        // create wrapper
-		intfWrapper.generateWrapperInfo();
-        // write wrapper module
-		intfWrapper.write();			
 	}
 
 	// ------------------ testbench support methods

@@ -11,4 +11,9 @@ public interface OutputWriterIntf {
 	/** return the name of this writer */
 	String getWriterName();
 
+	/** return true if open was successful */
+	boolean isOpen();
+
+	/** close this writer */
+	void close();
 }

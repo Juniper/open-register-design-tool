@@ -24,7 +24,7 @@ import ordt.annotate.AnnotateSetCommand;
 import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
 import ordt.extract.model.ModComponent.CompType;
-import ordt.output.systemverilog.common.wrap.WrapperRemapSyncDelayXform;
+import ordt.output.systemverilog.common.wrap.WrapperRemapSyncStagesXform;
 import ordt.output.systemverilog.common.wrap.WrapperRemapXform;
 import ordt.extract.model.ModRegister;
 import ordt.parse.parameters.ExtParmsBaseListener;
@@ -358,19 +358,19 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		case ("set_assign"): // 'set_assign' STR
 			xf = new WrapperRemapXform();  // default is assign 
 		    xformMap.put(signalPattern, xf);
+			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: adding pattern=" + signalPattern + ", " + xf.getType());   // TODO
 			break;
-		case ("set_sync_delay"): // 'set_sync_delay' STR NUM 
+		case ("add_sync_stages"): // 'add_sync_stages' STR NUM ID?
 			int delayStages = Integer.valueOf(ctx.getChild(2).getText());
-			xf = new WrapperRemapSyncDelayXform(delayStages);  
+		    String clkName = (ctx.getChildCount()>3)? ctx.getChild(3).getText() : null;
+			xf = new WrapperRemapSyncStagesXform(delayStages, clkName);  
 	        xformMap.put(signalPattern, xf);
+			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: adding pattern=" + signalPattern + ", " + xf.getType());   // TODO
 		    break;
-		//case ("set_async_level"): // 'set_async_level' STR NUM ID 
+		//case ("set_async_data"): // 'set_async_data' STR STR NUM ID ID?
 			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: " + ctx.getText());   // TODO
 			//break;
-		//case ("set_async_data"): // 'set_async_data' STR STR NUM ID
-			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: " + ctx.getText());   // TODO
-			//break;
-		default: // 'set_async_data' STR STR NUM ID
+		default:
 			Ordt.errorExit("Unsupported RTL wrapper remap command (" + ctx.getText() + ") specified in parameters.");
 			break;
 		}
@@ -695,12 +695,6 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getBooleanParameter("export_start_end");
 	}
 
-	/** get systemverilogAlwaysGenerateIwrap
-	 */
-	public static Boolean sysVerilogAlwaysGenerateIwrap() {
-		return getBooleanParameter("always_generate_iwrap");
-	}
-
 	/** get systemverilogBlockSelectMode */
 	public static SVBlockSelectModes getSystemverilogBlockSelectMode() {
 		return systemverilogBlockSelectMode;
@@ -734,10 +728,6 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static Boolean sysVerPulseIntrOnClear() {
 		return getBooleanParameter("pulse_intr_on_clear");
 	}
-		
-	public static Boolean sysVerReuseIwrapStructures() {
-		return getBooleanParameter("reuse_iwrap_structures");
-	}
 	
 	public static Boolean sysVerOptimizeParallelExternals() {
 		return getBooleanParameter("optimize_parallel_externals");
@@ -758,6 +748,15 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	/* return max allowed internal register replications */
 	public static int sysVerMaxInternalRegReps() {
 		return getIntegerParameter("max_internal_reg_reps");
+	}
+
+	/** returns true if always_generate_iwrap is true or wrapper xforms are specified */
+	public static Boolean sysVerGenerateWrapperModule() {
+		return getBooleanParameter("always_generate_iwrap") || !xformMap.isEmpty();
+	}
+		
+	public static Boolean sysVerReuseIwrapStructures() {
+		return getBooleanParameter("reuse_iwrap_structures");
 	}
 	
 	/** return rtl wrapper signal transforms */

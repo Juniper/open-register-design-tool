@@ -286,62 +286,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		//System.out.println("SystemVerilogIOSignalSet getNonVirtualSignalSets: n=" + outList.size());
 		return outList;
 	}
-
-	// ------ string output methods
-	
-	/** return a list of assignment strings for this signalset - recursively builds names top down * TODO - replace this w/ loadWrapperMapSources wrap flow
-	 * @param insideLocations - only assigns to/from this location will be returned
-	 * @param sigsOnInside - true if signals are used inside insideLocations, hierarchy outside
-	 * @param pathPrefix - prefix from ancestor levels that will be used to create child name
-	 * @param hierPathPrefix - hierarchical path prefix from ancestor levels that will be used to create hier child name
-	 * @param validEncap - if true, any matching elements in this signalset should be added, otherwise only those encapsulated in a non-virtual set
-	 * @param foundFirstNonVirtual - if true, first non-virtual element in hierarchy was already found, so no name prefix in hier
-	 * @return - list of SystemVerilogIOSignal
-	 */
-	public List<String> getNonVirtualAssignStrings(Integer insideLocations, boolean sigsOnInside, String pathPrefix, String hierPathPrefix, 
-			boolean validEncap, boolean foundFirstNonVirtual) {
-		List<String> outList = new ArrayList<String>();
-		//System.out.println("SystemVerilogIOSignalSet getNonVirtualAssignStrings: hierPathPrefix=" + hierPathPrefix);
-		String prefix = getFullName(pathPrefix, false);  // add current name to prefix
-		String prefixEndChar = hasNoName()? "" : "_";
-		String hierPrefixEndChar = hasNoName()? "" : isVirtual()? "_" : ".";
-		String newHierPrefix = getFullName(hierPathPrefix, !(isVirtual() || foundFirstNonVirtual));  // first non-virtual sets the prefix
-	    // process each rep of this elem
-		for (int idx=0; idx<getReps(); idx++) {
-			// build hier and non-hier name prefixes
-			String repSuffix = isReplicated()? "_" + idx : ""; 
-			String fullPrefix = prefix + repSuffix + prefixEndChar;
-			String hierRepSuffix = (isReplicated() && !isVirtual())? "[" + idx + "]" : repSuffix;
-			String fullHierPrefix = newHierPrefix + hierRepSuffix + hierPrefixEndChar;
-			boolean newValidEncap = validEncap || !isVirtual();  // mark encap as valid if not set already
-			boolean newFoundFirstNonVirtual = foundFirstNonVirtual || !isVirtual();  // mark first non-virtual if not set already
-			for (SystemVerilogIOElement ioElem : childList) {
-				boolean validLeaf = !(ioElem.isVirtual() || ioElem.isSignalSet() || !newValidEncap); 
-				// if this is leaf element then return it
-				if (validLeaf) {
-					String signalName = ioElem.getFullName(fullPrefix, true);
-					String hierName = ioElem.getFullName(fullHierPrefix, false);
-					// assignments for signals into insideLocations
-					if (ioElem.isTo(insideLocations)) {
-						if (sigsOnInside) outList.add(signalName + " = " + hierName + ";");
-						else outList.add(hierName + " = " + signalName + ";");
-					}
-					else if (ioElem.isFrom(insideLocations)) {
-						if (sigsOnInside) outList.add(hierName + " = " + signalName + ";");
-						else outList.add(signalName + " = " + hierName + ";");
-					}
-				}		
-				// otherwise if a signalset, make recursive call 
-				else if (ioElem.isSignalSet()) {
-					List<String> newList = ((SystemVerilogIOSignalSet) ioElem).getNonVirtualAssignStrings(insideLocations, sigsOnInside, fullPrefix, fullHierPrefix, newValidEncap, newFoundFirstNonVirtual);
-					outList.addAll(newList);
-				    }
-			}
-		}
-		//System.out.println("  SystemVerilogIOSignalSet getIOSignalList: output size=" + outList.size());
-		return outList;
-	}
-	
+		
 	/** add matching leaf elements of this SystemVerilogSignalSet to a wrapper signal map as sources or destinations. - recursively builds names top down * 
 	 * @param sigMap - WrapperSignalMap that will be modified
 	 * @param rules - set of remapping rules that will be used each signal 

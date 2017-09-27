@@ -1317,10 +1317,6 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 	//---------------------------- message/output stmt generation  ----------------------------------------
 
-	public String getWriterName() {
-		return getAddressMapName();  // use address map as name of this writer
-	}
-
 	/** write a stmt to the specified BufferedWriter */
 	public  void writeStmt(BufferedWriter bw, int indentLevel, String stmt) {
 		   //System.out.println("OutputBuilder: bufnull=" + (bufferedWriter == null) + ", indent=" + ",Stmt=" + stmt);
@@ -1331,20 +1327,10 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		}
 	}
 	
-	/** write a stmt to the default BufferedWriter */
-	public  void writeStmt(int indentLevel, String stmt) {
-		writeStmt(bufferedWriter, indentLevel, stmt);
-	}
-	
 	/** write multiple stmts to the specified BufferedWriter */
 	public void writeStmts(BufferedWriter bw, int indentLevel, List<String> outputLines) {
 		Iterator<String> iter = outputLines.iterator();
 		while (iter.hasNext()) writeStmt(bw, indentLevel, iter.next());	
-	}
-	
-	/** write a multiple stmts to the default BufferedWriter */
-	public  void writeStmts(int indentLevel, List<String> outputLines) {
-		writeStmts(bufferedWriter, indentLevel, outputLines);
 	}
 
 	/** write an OutputLine to the specified BufferedWriter */
@@ -1369,6 +1355,37 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		for (OutputLine rLine: outputList) {
 			writeStmt(bufferedWriter, rLine.getIndent(), rLine.getLine());  
 		}
+	}
+	
+	// -------- OutputWriterIntf methods
+
+	@Override
+	public String getWriterName() {
+		return getAddressMapName();  // use address map as name of this writer
+	}
+	
+	/** write a stmt to the default BufferedWriter */
+	@Override
+	public  void writeStmt(int indentLevel, String stmt) {
+		writeStmt(bufferedWriter, indentLevel, stmt);
+	}
+	
+	/** write a multiple stmts to the default BufferedWriter */
+	@Override
+	public  void writeStmts(int indentLevel, List<String> outputLines) {
+		writeStmts(bufferedWriter, indentLevel, outputLines);
+	}
+
+	/** return true if open was successful */
+	@Override
+	public boolean isOpen() {
+		return (bufferedWriter != null);
+	}
+
+	/** close this writer */
+	@Override
+	public void close() {
+		OutputBuilder.closeBufferedWriter(bufferedWriter);
 	}
 
 	//---------------------------- methods to write output ----------------------------------------
@@ -1452,7 +1469,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 	/** validate output file and create buffered writer
      */
-    protected static BufferedWriter openBufferedWriter(String outName, String description) {
+    public static BufferedWriter openBufferedWriter(String outName, String description) {
     	File outFile = null;
     	try {	  			
     		outFile = new File(outName); 
@@ -1476,7 +1493,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
     
     /** validate output file and create buffered writer
      */
-    protected static void closeBufferedWriter(BufferedWriter bw) {
+    public static void closeBufferedWriter(BufferedWriter bw) {
     	try {	  
     		bw.close();
 

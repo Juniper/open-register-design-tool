@@ -18,6 +18,13 @@ public class SystemVerilogSignal {
 		this.size = size;
 	}
 	
+	/* copy constructor */
+	public SystemVerilogSignal(SystemVerilogSignal orig) {
+		this.name = orig.getName();
+		this.lowIndex = orig.getLowIndex();
+		this.size = orig.getSize();
+	}
+
 	/** return the name used for definitions (includes) prefixed array string */
 	public String getDefName() {
 		return genDefArrayString(lowIndex, size) + name;
@@ -42,9 +49,17 @@ public class SystemVerilogSignal {
 		return lowIndex;
 	}
 
+	public void setLowIndex(int lowIndex) {
+		this.lowIndex = lowIndex;
+	}
+
 	/** get size */
 	public int getSize() {
 		return size;
+	}
+
+	public void setSize(int size) {
+		this.size = size;
 	}
 
 	/** by default return definition format */

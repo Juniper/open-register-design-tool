@@ -152,9 +152,8 @@ ext_parm_defs
    
  systemverilog_wrapper_remap_command
    : 'set_assign' STR
-   | 'set_sync_delay' STR NUM 
-   | 'set_async_level' STR NUM ID 
-   | 'set_async_data' STR STR NUM ID 
+   | 'add_sync_stages' STR NUM ID?
+//   | 'set_async_data' STR STR NUM ID 
    ;
       
 // ------------ uvmregs_out_defs
