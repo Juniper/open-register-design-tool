@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import ordt.extract.Ordt;
 import ordt.output.OutputWriterIntf;
 import ordt.output.SimpleOutputWriter;
+import ordt.output.systemverilog.SystemVerilogDefinedSignals;
 import ordt.output.systemverilog.common.RemapRuleList;
 import ordt.output.systemverilog.common.SystemVerilogInstance;
 import ordt.output.systemverilog.common.SystemVerilogModule;
@@ -349,7 +350,9 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		 */
 		public void addSource(String rootName, String signalName, Integer lowIndex, Integer size, boolean isInput) {
 			if (mappings.containsKey(rootName)) Ordt.errorExit("Wrapper module found multiple source signals named " + rootName);
-			mappings.put(rootName, new WrapperRemapInstance(signalName, lowIndex, size, true, isInput));	// add a valid source		
+			mappings.put(rootName, new WrapperRemapInstance(signalName, lowIndex, size, true, isInput));	// add a valid source
+			definedSignals.add(signalName);  // save all sources as defined signals
+			//if (signalName.contains("cl")) System.out.println("SystemVerilogWrapModule WrapperSignalMap: found " + signalName);
 		}
 
 		/** add a destination signal to the mapping
@@ -409,8 +412,13 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
     		            case SYNC_STAGES: // TODO - enable other xforms that instance modules here
     		            	HashMap<String, String> optionalParms = new HashMap<String, String>();
     		            	optionalParms.put("defaultClkName", defaultClkName);
-    		            	//String clkName = ((WrapperRemapSyncStagesXform) xform).getClkName();
-    		            	//System.out.println("SystemVerillogWrapModule generateMapOutput: clk=" + clkName);  // TODO - need to load definedSignals
+    		            	// if an override clock specified and it doesnt exist, add to IO and definedSignals
+    		            	String overrideClkName = ((WrapperRemapSyncStagesXform) xform).getClkName();
+    		            	if ((overrideClkName!=null) && !overrideClkName.isEmpty() && !definedSignals.contains(overrideClkName)) {
+    		            		Ordt.infoMessage("New clock specified in wrapper (" + overrideClkName + ") will be added to IO.");
+    		            		addSimpleScalarFrom(SystemVerilogDefinedSignals.HW, overrideClkName);
+    		            		//System.out.println("SystemVerilogWrapModule generateMapOutput: ioHash size=" + ioHash.size());
+    		            	}
             				statements.add(xform.getXformString(srcName, dstName, dst.getSize(), optionalParms));  // add the sync stages instance
             				xformsDefined.put(xform.getType(), xform);  // save in defined xforms list
             				break;
@@ -501,7 +509,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			}
 		}
         // add these child IOs to this modules IO list
-		useIOList(newList, null);
+		useIOList(newList, SystemVerilogDefinedSignals.HW);
 	}
 	
 	/** load wrapMappings w/ source signals from external inputs */

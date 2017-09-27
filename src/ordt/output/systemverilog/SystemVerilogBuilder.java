@@ -911,7 +911,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		if (separateXformFiles) {
 			BufferedWriter bw = openBufferedWriter(outPrefix + outName + outSuffix, description);
 	    	if (bw == null) return;   // exit on file error
-	    	bufferedWriter = bw;  // set bw as default  TODO - dont do this
+	    	bufferedWriter = bw;  // set bw as default  TODO - ugly, fix bw override handling
 	    	writeHeader(commentPrefix); // write the file header
 		}
 		// create wrapper module 

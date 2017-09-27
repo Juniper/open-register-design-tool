@@ -56,7 +56,8 @@ output systemverilog {
     //write_enable_size = 0          // size of data affected by each write enable in bits
     max_internal_reg_reps = 4096     // maximum allowed replications allowed on an internal register 
     wrapper_info {
-       add_sync_stages "*swmod_o" 3 // add sync delays to these outputs (use default clock)
+       add_sync_stages "*swmod_o" 1 // add sync delays to these outputs (use default clock)
+       //add_sync_stages "*_o" 2 newClk // add 2 stage syncronizer to these outputs w/ new clock
     }
 }
 
