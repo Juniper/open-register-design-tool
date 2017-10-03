@@ -1247,6 +1247,10 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		else {
 			incr.setNumFormat(NumFormat.Address);
 			incr.setNumBase(NumBase.Hex);
+			// error if increment specified is too small
+			if (incr.isLessThan(regSetProperties.getAlignedSize()))
+				Ordt.errorMessage("register set " + regSetProperties.getInstancePath() + 
+						" address increment (" + incr +") is smaller than its min size (" + regSetProperties.getAlignedSize().toFormat(NumBase.Hex, NumFormat.Address) +")"); 
 		}
 		return incr;
 	}
@@ -1263,7 +1267,8 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		// otherwise use computed regset size
 		RegNumber incr = new RegNumber(getNextAddress());
 		incr.subtract(regSetProperties.getBaseAddress());
-		//System.out.println("OutputBuilder getRegSetSize: computed size = " + incr);
+		//System.out.println("OutputBuilder getRegSetSize: " + regSetProperties.getInstancePath() + 
+		//				" computed size = " + incr);
 		incr.setNumFormat(NumFormat.Address);
 		incr.setNumBase(NumBase.Hex);
 		return incr;

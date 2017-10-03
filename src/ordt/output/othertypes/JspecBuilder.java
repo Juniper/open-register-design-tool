@@ -53,6 +53,7 @@ public class JspecBuilder extends OutputBuilder {
 	private static HashSet<String> getReservedWords() {
 		HashSet<String> reservedWords = new HashSet<String>();
 		reservedWords.add("nop");
+		reservedWords.add("field_set");
 		reservedWords.add("integer");
 		reservedWords.add("register");
 		reservedWords.add("register_set");
@@ -130,9 +131,7 @@ public class JspecBuilder extends OutputBuilder {
 		// skip this regset if it's empty
 		if (regSetProperties.getExtractInstance().getRegComp().hasChildInstances()) {
 			// all jspec register sets must specify a size
-			boolean useAlignedStride = regSetProperties.isReplicated() && ExtParameters.useJsAddressAlignment();
-			//RegNumber regSetSize = getRegSetAddressStride(false);  // TODO - need to make sure this works before enabling
-			RegNumber regSetSize = getRegSetAddressStride(useAlignedStride); 
+			RegNumber regSetSize = getRegSetAddressStride(regSetProperties.isReplicated()); // allowPrecomputedSize if replicated
 
 			// check for empty register set
 			if (!regSetSize.isGreaterThan(new RegNumber(0))) 
