@@ -776,15 +776,16 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		if (multipleOutputFiles) {
 			File saveDir = new File(outName);
 	   	    saveDir.mkdirs();   // make sure directory exists
+	   	    String extension = legacyVerilog? ".v" : ".sv";
 	   	    
 			// write the top level module
-			writeTop(outName + getModuleName() + "_pio.sv", description, commentPrefix);
+			writeTop(outName + getModuleName() + "_pio" + extension, description, commentPrefix);
 
 			// write the logic module
-			writeLogic(outName + getModuleName() + "_jrdl_logic.sv", description, commentPrefix);
+			writeLogic(outName + getModuleName() + "_jrdl_logic" + extension, description, commentPrefix);
 			
 			// write the decode module
-			writeDecode(outName + getModuleName() + "_jrdl_decode.sv", description, commentPrefix);
+			writeDecode(outName + getModuleName() + "_jrdl_decode" + extension, description, commentPrefix);
 			
 			// if IO interfaces are used, generate the interfaces and wrapper
 			if ((usesInterfaces || ExtParameters.sysVerGenerateWrapperModule()) && !legacyVerilog) {
