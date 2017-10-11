@@ -151,8 +151,9 @@ ext_parm_defs
    ;
    
  systemverilog_wrapper_remap_command
-   : 'set_assign' STR
-   | 'add_sync_stages' STR NUM ID?
+   : 'set_passthru' STR
+   | 'set_invert' STR
+   | 'add_sync_stages' STR NUM ID? ID?  // sig_match num_stages clock module_override
 //   | 'set_async_data' STR STR NUM ID 
    ;
       

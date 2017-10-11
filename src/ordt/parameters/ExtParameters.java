@@ -24,6 +24,7 @@ import ordt.annotate.AnnotateSetCommand;
 import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
 import ordt.extract.model.ModComponent.CompType;
+import ordt.output.systemverilog.common.wrap.WrapperRemapInvertXform;
 import ordt.output.systemverilog.common.wrap.WrapperRemapSyncStagesXform;
 import ordt.output.systemverilog.common.wrap.WrapperRemapXform;
 import ordt.extract.model.ModRegister;
@@ -355,19 +356,25 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		String signalPattern = ctx.getChild(1).getText();
 		WrapperRemapXform xf;
 		switch(cmdName) {
-		case ("set_assign"): // 'set_assign' STR
+		case ("set_passthru"): // 'set_passthru' STR
 			xf = new WrapperRemapXform();  // default is assign 
 		    xformMap.put(signalPattern, xf);
-			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: adding pattern=" + signalPattern + ", " + xf.getType());   // TODO
+			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: adding pattern=" + signalPattern + ", " + xf.getType());
 			break;
-		case ("add_sync_stages"): // 'add_sync_stages' STR NUM ID?
+		case ("set_invert"): // 'set_invert' STR
+			xf = new WrapperRemapInvertXform(); 
+		    xformMap.put(signalPattern, xf);
+			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: adding pattern=" + signalPattern + ", " + xf.getType()); 
+			break;
+		case ("add_sync_stages"): // 'add_sync_stages' STR NUM ID? ID?
 			int delayStages = Integer.valueOf(ctx.getChild(2).getText());
 		    String clkName = (ctx.getChildCount()>3)? ctx.getChild(3).getText() : null;
-			xf = new WrapperRemapSyncStagesXform(delayStages, clkName);  
+		    String moduleOverride = (ctx.getChildCount()>4)? ctx.getChild(4).getText() : null;
+			xf = new WrapperRemapSyncStagesXform(delayStages, clkName, moduleOverride);  
 	        xformMap.put(signalPattern, xf);
-			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: adding pattern=" + signalPattern + ", " + xf.getType());   // TODO
+			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: adding pattern=" + signalPattern + ", " + xf.getType());
 		    break;
-		//case ("set_async_data"): // 'set_async_data' STR STR NUM ID ID?
+		//case ("set_async_data"): // 'set_async_data' STR STR NUM ID ID? 
 			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: " + ctx.getText());   // TODO
 			//break;
 		default:

@@ -8,14 +8,16 @@ public class WrapperRemapSyncStagesXform extends WrapperRemapXform {
 
 	protected int delayStages = 1;
 	protected String clkName;
+	protected String moduleOverride;
 	static int instanceCount = 1;
 	static String moduleName = "ordt_wrap_sync_stages";
 	
-	public WrapperRemapSyncStagesXform(int delayStages, String clkName) {
+	public WrapperRemapSyncStagesXform(int delayStages, String clkName, String moduleOverride) {
 		super();
 		this.type = WrapperRemapType.SYNC_STAGES;
 		this.delayStages = delayStages;
 		this.clkName = clkName;
+		this.moduleOverride = moduleOverride;
 	}
 
 	public String getClkName() {
@@ -26,7 +28,8 @@ public class WrapperRemapSyncStagesXform extends WrapperRemapXform {
 	@Override
 	public String getXformString(String srcName, String dstName, int width, HashMap<String, String> optionalParms) { // optionalParms: defaultClkName
 		String instancedClk = (clkName!=null)? clkName : optionalParms.get("defaultClkName");
-		return moduleName + " #(.STAGES(" + delayStages + "), .WIDTH(" + width + ")) sync_delay_" + instanceCount++ + 
+		String instancedModule = (moduleOverride!=null)? moduleOverride : moduleName;
+		return instancedModule + " #(.STAGES(" + delayStages + "), .WIDTH(" + width + ")) sync_delay_" + instanceCount++ + 
 				 " (" + instancedClk + ", " + srcName + ", " + dstName + ");";  // instance sync delay module
 	}
 	

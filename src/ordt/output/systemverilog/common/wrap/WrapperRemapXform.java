@@ -5,9 +5,9 @@ import java.util.List;
 
 /** remap transform base class (simple assign) */
 public class WrapperRemapXform {
-	public enum WrapperRemapType { ASSIGN, SYNC_STAGES, ASYNC_DATA }
+	public enum WrapperRemapType { PASSTHRU, INVERT, SYNC_STAGES }
 
-	WrapperRemapType type = WrapperRemapType.ASSIGN;
+	WrapperRemapType type = WrapperRemapType.PASSTHRU;
 	
 	public WrapperRemapType getType() {
 		return type;

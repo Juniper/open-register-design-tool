@@ -58,6 +58,7 @@ output systemverilog {
     //wrapper_info {
        //add_sync_stages "*swmod_o" 1 // add sync delays to these outputs (use default clock)
        //add_sync_stages "*_o" 2 newClk // add 2 stage syncronizer to these outputs w/ new clock
+       //add_sync_stages "*_o" 2 newClk mySyncModule // add 2 stage syncronizer to these outputs w/ new clock and module override
     //}
 }
 

@@ -406,7 +406,8 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
     					WrapperRemapXform xform = remapDest.getXform();
     					//System.out.println("SystemVerilogWrapModule generateMapOutput: xform type=" + xform.getType());
     			        switch (xform.getType()) {  
-    		            case ASSIGN: 
+    		            case PASSTHRU: 
+    		            case INVERT: 
             				wireAssignList.add(xform.getXformString(srcName, dstName, dst.getSize(), null));  // add the assignment
     		                break;
     		            case SYNC_STAGES: // TODO - enable other xforms that instance modules here
@@ -420,7 +421,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
     		            		//System.out.println("SystemVerilogWrapModule generateMapOutput: ioHash size=" + ioHash.size());
     		            	}
             				statements.add(xform.getXformString(srcName, dstName, dst.getSize(), optionalParms));  // add the sync stages instance
-            				xformsDefined.put(xform.getType(), xform);  // save in defined xforms list
+            				xformsDefined.put(xform.getType(), xform);  // save in defined xforms list  // TODO - no need to create define if an override
             				break;
    		                default: 
    		                	Ordt.errorMessage("invalid wrapper transform (" + xform.getType() + ") specified from source " + src.getName() + " to destination " + dst.getName());
