@@ -6,10 +6,25 @@ Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
 
 grammar JSpec;
 
+@lexer::members {
+  private static java.util.Set<String> userDefinedParameters = new java.util.HashSet<String>();
+
+  public static void addUserParameter(String parm) {
+    userDefinedParameters.add(parm);
+    //System.out.println("adding user parameter " + parm + " to set");
+  }
+
+  public static boolean isUserParameter(String parm) {
+    //System.out.println("user parameter " + parm + " is found=" + userDefinedParameters.contains(parm));
+    return userDefinedParameters.contains(parm);
+  }
+}
+
 root
   : ( num_constant_def
     | string_constant_def
     | type_definition
+    | param_type_definition
     | typedef_instance
     | register_set_def
     )* EOF
@@ -63,7 +78,14 @@ type_definition
      | transaction_def
      )
    ;
-   
+
+ param_type_definition
+   : 'typedef' 'param'
+     id  { JSpecLexer.addUserParameter($id.text); }  // System.out.println("user parameter=" + $id.text); 
+     EQ 'string'
+     SEMI 
+   ;
+
 /*    enum bla[EA_FO_LOG2_NUM_PORTS] "desc" {
          HSL0 = 0 "HSL channel 0";
          HSL1 = 1 "HSL channel 1";
@@ -150,7 +172,8 @@ assign_parameter
 //   | 'root' 
    | 'sub_category' 
    | 'superset_check' 
-   | ID 
+//   | USER_PARAMETER
+   | ID // still allow unchecked ID in parse for now, since want some IDs to just pass thru 
    ;  
     
 defined_attribute
@@ -210,7 +233,7 @@ register_set_def  // allow constants to be defined in regsets
    : 'register_set' id (str | jstr)
      LBRACE
      (value_assign | register_set_def | register_def 
-     | typedef_instance | type_definition | test_group_def | num_constant_def
+     | typedef_instance | type_definition | param_type_definition | test_group_def | num_constant_def
      | string_constant_def)+
      RBRACE         
      SEMI 
@@ -309,7 +332,11 @@ ML_COMMENT
 
 ID
   : ('\\')?
-    (LETTER | '_')(LETTER | '_' | '0'..'9')*
+    (LETTER | '_')(LETTER | '_' | '0'..'9')* /* { if(isUserParameter(getText())) setType(USER_PARAMETER); } */
+  ;
+
+USER_PARAMETER
+  : 'XUSER_PARAMETERX'  // this rule will never match, but ID can be converted to USER_PARAMETER by predicate
   ;
 
 NUM

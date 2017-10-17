@@ -78,6 +78,16 @@ public interface JSpecListener extends ParseTreeListener {
 	 */
 	void exitType_definition(JSpecParser.Type_definitionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link JSpecParser#param_type_definition}.
+	 * @param ctx the parse tree
+	 */
+	void enterParam_type_definition(JSpecParser.Param_type_definitionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link JSpecParser#param_type_definition}.
+	 * @param ctx the parse tree
+	 */
+	void exitParam_type_definition(JSpecParser.Param_type_definitionContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link JSpecParser#enum_field_def}.
 	 * @param ctx the parse tree
 	 */

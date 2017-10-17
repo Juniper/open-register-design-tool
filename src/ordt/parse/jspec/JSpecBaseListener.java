@@ -100,6 +100,18 @@ public class JSpecBaseListener implements JSpecListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterParam_type_definition(JSpecParser.Param_type_definitionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitParam_type_definition(JSpecParser.Param_type_definitionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterEnum_field_def(JSpecParser.Enum_field_defContext ctx) { }
 	/**
 	 * {@inheritDoc}
