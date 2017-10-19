@@ -35,7 +35,7 @@ public class DefinedProperties {
 		addProperty(newList, "repcount", DefinedPropertyType.NUMBER, "1", DefinedProperty.REGSET | DefinedProperty.REG, true, false); // hidden
 		// regset only properties
 		addProperty(newList, "js_macro_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
-		addProperty(newList, "js_macro_mode", DefinedPropertyType.STRING, "STANDARD", DefinedProperty.REGSET, false, false);
+		addProperty(newList, "js_macro_mode", DefinedPropertyType.STRING, "STANDARD", DefinedProperty.REGSET, false, false);  // TODO - add constant type and use for output gen
 		addProperty(newList, "js_namespace", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
 		addProperty(newList, "js_typedef_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
 		addProperty(newList, "js_instance_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);

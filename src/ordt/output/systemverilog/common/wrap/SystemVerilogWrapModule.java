@@ -369,8 +369,9 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 				mappings.put(rootName, new WrapperRemapInstance(rootName, lowIndex, size, false, false));	// add an invalid source		
 			}
 			// now add a destination
-			mappings.get(rootName).addDestination(signalName, lowIndex, size, isOutput);	// add a destination		
-        	if (!signalName.contains(".")) wireDefList.addVector(signalName, lowIndex, size); // add dest define if not encapsulated
+			mappings.get(rootName).addDestination(signalName, lowIndex, size, isOutput);	// add a destination
+			// add dest define if not encapsulated (skip for sv outputs)
+        	if (!signalName.contains(".") && (!isOutput || isLegacyVerilog())) wireDefList.addVector(signalName, lowIndex, size); 
 		}
 		
 		public void display() {
