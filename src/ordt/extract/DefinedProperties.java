@@ -30,12 +30,12 @@ public class DefinedProperties {
 		addProperty(newList, "use_interface", DefinedPropertyType.STRING, "", DefinedProperty.REGSET | DefinedProperty.REG |DefinedProperty.FIELD, false, false);
 		addProperty(newList, "use_new_interface", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.REGSET | DefinedProperty.REG |DefinedProperty.FIELD, false, false);
 		// reg + regset properties
-		addProperty(newList, "js_superset_check", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.REGSET | DefinedProperty.REG, false, false);
+		addProperty(newList, "js_superset_check", DefinedPropertyType.CONSTANT, "", DefinedProperty.REGSET | DefinedProperty.REG, false, false);
 		addProperty(newList, "external", DefinedPropertyType.SPECIAL, null, DefinedProperty.REGSET | DefinedProperty.REG, false, false);
 		addProperty(newList, "repcount", DefinedPropertyType.NUMBER, "1", DefinedProperty.REGSET | DefinedProperty.REG, true, false); // hidden
 		// regset only properties
 		addProperty(newList, "js_macro_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
-		addProperty(newList, "js_macro_mode", DefinedPropertyType.STRING, "STANDARD", DefinedProperty.REGSET, false, false);  // TODO - add constant type and use for output gen
+		addProperty(newList, "js_macro_mode", DefinedPropertyType.CONSTANT, "STANDARD", DefinedProperty.REGSET, false, false);  // TODO - add constant type and use for output gen
 		addProperty(newList, "js_namespace", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
 		addProperty(newList, "js_typedef_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
 		addProperty(newList, "js_instance_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false);
@@ -126,6 +126,10 @@ public class DefinedProperties {
 	}	
 
 	// -------
+
+	public static boolean hasProperty(String name) {
+		return propertySet.containsKey(name);
+	}
 	
 	public static DefinedPropertyType getType(String name) {
 		if (!propertySet.containsKey(name)) return null;
@@ -208,8 +212,8 @@ public class DefinedProperties {
 	/** add a new non-hidden property to the list of defined properties */
 	public static void addUserProperty(String name, String typeStr, String defaultValue, List<String> components) {
 		// if restricted names are specified, then compare and exit if not compliant
-		if (ExtParameters.rdlRestrictDefinedPropertyNames() && !name.startsWith("p_")) {
-			Ordt.errorMessage("user-defined property " + name + " must begin with 'p_' when restrict_defined_property_names is set");
+		if (ExtParameters.rdlRestrictDefinedPropertyNames() && !(name.startsWith("p_") || name.startsWith("js_"))) {
+			Ordt.errorMessage("user-defined property " + name + " must begin with 'p_' or 'js_' when restrict_defined_property_names is set");
 			return;
 		}
         // generate usage encoding

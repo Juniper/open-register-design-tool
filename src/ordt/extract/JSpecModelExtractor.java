@@ -415,6 +415,25 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	}
 	
 	/**
+   : 'typedef' 'param'
+     id  { JSpecLexer.addUserParameter($id.text); }
+     EQ 'string'
+     SEMI 
+	 */
+	@Override public void enterParam_type_definition(JSpecParser.Param_type_definitionContext ctx) {
+		activeRules.add(ctx.getRuleIndex());
+		String usrPropertyName = "js_" + ctx.getChild(2).getText();
+		List<String> comps = new ArrayList<String>();
+		comps.add("all");
+        // add the new property to defined list
+		DefinedProperties.addUserProperty(usrPropertyName, "string", null, comps);  // js usr properties can apply to any comp type, have no default
+	}
+	
+	@Override public void exitParam_type_definition(JSpecParser.Param_type_definitionContext ctx) {
+		activeRules.remove(ctx.getRuleIndex());
+	}
+	
+	/**
      width_constant_assign
      : ( 'enum' array LBRACE ~(LBRACE|RBRACE)* RBRACE SEMI 
      | 'integer' id array  str SEMI
@@ -1018,10 +1037,6 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 			if (outputAttrs) modComp.setProperty("js_attributes", value, 0);
 		}
 		
-		else if (parm.equals("superset_check")) { 
-			modComp.setProperty("js_superset_check", value, 0);
-		}
-
 		else if (parm.equals("union")) { 
 			if ("true".equals(value.toLowerCase()) && !isTypeDefInstance && ((ModComponent) modComp).isFieldSet()) {   // only handle case of fieldset typedef
 				//System.out.println("JSpecModelExtractor: saveJSpecParam, p=" + parm + ",  v=" + value + ",  num=" + lastResolvedNum); 
@@ -1029,6 +1044,12 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 			}
 		}
 		
+		// detect passthru properties (in defined properties list)
+		else if (DefinedProperties.hasProperty("js_" + parm)) {
+			//System.out.println("Found a passthru jspec property: " + parm + " = " + value + " in component " + activeCompDefs.peek().getId());
+			modComp.setProperty("js_" + parm, value, 0);
+		}
+			
 		// otherwise issue a warning message unless in the ignore list
 		else if (!ignoredParameters.contains(parm)) {
 			Ordt.warnMessage("Unsupported jspec assignment: " + parm + " = " + value + " in component " + activeCompDefs.peek().getId());

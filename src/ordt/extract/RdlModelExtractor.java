@@ -738,7 +738,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	@Override public void exitProperty_definition(@NotNull SystemRDLParser.Property_definitionContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());	
 		//System.out.println("RdlModelExtractor exitProperty_definition: name=" + usrPropertyName + ", type=" + usrPropertyType + ", default=" + usrPropertyDefault+ ", comps=" + usrPropertyComponents);
-        // ad the new property to defined list
+        // add the new property to defined list
 		DefinedProperties.addUserProperty(usrPropertyName, usrPropertyType, usrPropertyDefault, usrPropertyComponents);
 	}
 

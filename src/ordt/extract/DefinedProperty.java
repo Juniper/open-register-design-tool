@@ -11,7 +11,8 @@ public class DefinedProperty {
 	private boolean hidden = false;
 	private boolean userDefined = false;
 	
-	public enum DefinedPropertyType { NUMBER, STRING, BOOLEAN, ADDRMAP, REG, REGSET, FIELD, FIELDSET, REF, SPECIAL };
+	public enum DefinedPropertyType { NUMBER, STRING, BOOLEAN, CONSTANT, 
+		ADDRMAP, REG, REGSET, FIELD, FIELDSET, REF, SPECIAL };  // CONSTANT is not an allowed rdl type, but is used for jspec const assigns
 	
 	private static HashMap<String, DefinedPropertyType> typeEncodings = initTypeEncodings();
 	
