@@ -8,12 +8,15 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import ordt.extract.DefinedProperties;
+import ordt.extract.DefinedProperty;
 import ordt.extract.Ordt;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.model.ModComponent;
 import ordt.extract.model.ModEnum;
 import ordt.extract.model.ModEnumElement;
+import ordt.extract.model.ModInstance;
 import ordt.extract.model.ModRegister;
 import ordt.output.AddressableInstanceProperties;
 import ordt.output.FieldProperties;
@@ -27,6 +30,7 @@ public class RdlBuilder extends OutputBuilder {
 	private List<OutputLine> outputList = new ArrayList<OutputLine>();
 	private static HashSet<String> escapedIds = new HashSet<String>(); // set of keywords needing to be escaped
 	private int indentLvl = 0;
+	private List<DefinedProperty> jsPassthrus = new ArrayList<DefinedProperty>();
 
 	
     //---------------------------- constructor ----------------------------------
@@ -41,7 +45,7 @@ public class RdlBuilder extends OutputBuilder {
 	    model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
     }
 
-	//---------------------------- OutputBuilder methods to load jspec structures ----------------------------------------
+	//---------------------------- OutputBuilder methods to load rdl structures ----------------------------------------
 
 	@Override
 	public void addField() {
@@ -83,8 +87,13 @@ public class RdlBuilder extends OutputBuilder {
 	@Override
 	public void addRegSet() {
 		// if this is the root instance add any enum defs at root level
-		if (regSetProperties.isRootInstance() && !ExtParameters.rdlNoRootEnumDefs()) buildEnumDefs(model.getRoot()); // TODO - optionally move inside header??
-		// if a container for multiple jspec typedefs, generate no output
+		if (regSetProperties.isRootInstance() && !ExtParameters.rdlNoRootEnumDefs()) buildEnumDefs(model.getRoot()); 
+		// add any user property definitions and get list of js passthru properties
+		if (regSetProperties.isRootInstance()){
+			buildPropertyDefs();
+			jsPassthrus = DefinedProperties.getJsPassthruProperties();
+		}
+		// if a container for multiple rdl component defs, generate no output
 		if ("TYPEDEF_CONTAINER".equals(regSetProperties.getId())) {
 			//buildEnumDefs(regSetProperties.getExtractInstance().getRegComp()); // just build the enums
 			return; // do not output the typedef container used in translate from jspec
@@ -110,7 +119,11 @@ public class RdlBuilder extends OutputBuilder {
 	@Override
 	public void addRegMap() { 
 		// add any enum defs at root level
-		if (!ExtParameters.rdlNoRootEnumDefs()) buildEnumDefs(model.getRoot()); // TODO - optionally move inside header??
+		if (!ExtParameters.rdlNoRootEnumDefs()) buildEnumDefs(model.getRoot());
+		// add any user property definitions
+		buildPropertyDefs();
+		// save the list of jspec passthru properties
+		jsPassthrus = DefinedProperties.getJsPassthruProperties();
 		
 		outputList.add(new OutputLine(indentLvl, "// address map " + getAddressMapName()));  
 		//System.out.println("RdlBuilder addRegMap: addrmap regSetProperties, id=" +
@@ -158,7 +171,7 @@ public class RdlBuilder extends OutputBuilder {
 		return instanceStr;
 	}
 
-	/** build a jspec header for current register set instance */ 
+	/** build a rdl header for current register set instance */ 
 	private void buildRegSetHeader() {
 		outputList.add(new OutputLine(indentLvl, "// register set " + regSetProperties.getId()));
 		// if root is not to be instanced then add component name
@@ -197,7 +210,7 @@ public class RdlBuilder extends OutputBuilder {
 		// show category
 		if (regProperties.hasCategory())
 	        outputList.add(new OutputLine(indentLvl, "category = \"" + regProperties.getCategory() + "\";")); 
-		// set jspec properties if specified
+		// set jspec attributes property if specified
 		if (ExtParameters.rdlOutputJspecAttributes() && regProperties.getJspecAttributes() != null) {
 			// if do not test override is applied, make sure it's included in js_attributes
 			String doNotTestStr = "";
@@ -232,6 +245,8 @@ public class RdlBuilder extends OutputBuilder {
 	        outputList.add(new OutputLine(indentLvl, "donttest;"));  
 		else if (properties.isDontCompare())
 	        outputList.add(new OutputLine(indentLvl, "dontcompare;"));  
+		// add any jspec passthru attributes
+		buildJsPassthruAssigns(properties);
 	}
 
 	/** build jspec for current register fields */
@@ -274,6 +289,29 @@ public class RdlBuilder extends OutputBuilder {
 		}
 		outputList.add(new OutputLine(--indentLvl, "};"));  // finish up enum def
 		outputList.add(new OutputLine(indentLvl, ""));	
+	}
+	
+	/** build any user property definitions */
+	private void buildPropertyDefs() {
+		List<DefinedProperty> usrPropList = DefinedProperties.getUserDefinedProperties();
+		if (!usrPropList.isEmpty()) {
+			for (DefinedProperty usrProp : usrPropList) {
+				outputList.add(new OutputLine(indentLvl, usrProp.getRdlDefineString()));
+			}
+			outputList.add(new OutputLine(indentLvl, ""));	 // finish up property defs			
+		}	
+	}
+
+	/** build any jspec passthru assignments by directly pulling from model instance */
+	private void buildJsPassthruAssigns(InstanceProperties properties) {
+		ModInstance modInst = properties.getExtractInstance();
+		// loop thru all possible passthru properties
+		for (DefinedProperty prop: jsPassthrus) {
+			String propName = prop.getName();
+			if (modInst.hasProperty(propName)) {
+	        	outputList.add(new OutputLine(indentLvl, propName + " = " + prop.getRdlValue(modInst.getProperty(propName)) + ";")); 		
+			}
+		}
 	}
 
 	/** build field stmts  */

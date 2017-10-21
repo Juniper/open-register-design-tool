@@ -7,9 +7,10 @@ public class DefinedProperty {
 	private String name;
 	private DefinedPropertyType type;
 	private String defaultValue;
-	private int usage;   // components allowed to use this property
+	private int usage;   // encoding of components allowed to use this property
 	private boolean hidden = false;
 	private boolean userDefined = false;
+	private boolean jsPassthru = false;  // indication that property is a jspec passthru
 	
 	public enum DefinedPropertyType { NUMBER, STRING, BOOLEAN, CONSTANT, 
 		ADDRMAP, REG, REGSET, FIELD, FIELDSET, REF, SPECIAL };  // CONSTANT is not an allowed rdl type, but is used for jspec const assigns
@@ -27,7 +28,7 @@ public class DefinedProperty {
 	public static final Integer ANY = 63;  // any is AND of all comps
 	private static HashMap<String, Integer> compEncodings = initCompEncodings();
 
-	DefinedProperty(String name, DefinedPropertyType type, String defaultValue, int usage, boolean hidden, boolean userDefined) {
+	DefinedProperty(String name, DefinedPropertyType type, String defaultValue, int usage, boolean hidden, boolean userDefined, boolean jsPassthru) {
 		super();
 		this.name = name;
 		this.type = type;
@@ -35,6 +36,7 @@ public class DefinedProperty {
 		this.usage = usage;
 		this.hidden = hidden;
 		this.userDefined = userDefined;
+		this.jsPassthru = jsPassthru;
 	}
 
 	// ----------
@@ -123,6 +125,10 @@ public class DefinedProperty {
 		return userDefined;
 	}
 
+    public boolean isJsPassthru() {
+		return jsPassthru;
+	}
+
 	/** generate usage encoding from a list of strings */
 	public static int getUsageEncoding(String name, List<String> components) {
 		int usage = 0;
@@ -140,4 +146,56 @@ public class DefinedProperty {
 		return typeEncodings.get(typeStr);
 	}
 
+	// -------------------- rdl define methods
+	
+	/** return an rdl define string for this property */
+	public String getRdlDefineString() {
+		return "property " + name + " {" + getRdlComponentClause() + getRdlTypeClause() + getRdlDefaultClause() + "};";
+	}
+
+	private String getRdlDefaultClause() {
+		if ((defaultValue==null) || defaultValue.isEmpty()) return "";
+		return "default=" + getRdlValue(defaultValue) + ";";
+	}
+
+	/** return rdl value with appropriate quoting based on type */
+	public String getRdlValue(String value) {
+		String cleanValue = value.replace("\"", "");
+		if ((type==DefinedPropertyType.STRING) || (type==DefinedPropertyType.CONSTANT)) return "\"" + cleanValue + "\"";  // js CONSTANT are treated as string in rdl
+		return cleanValue;
+	}
+
+	private String getRdlTypeClause() {
+		String typeName="string";
+		switch(type) {
+		case STRING:
+		case CONSTANT:
+			typeName="string";
+			break;
+		case NUMBER:
+			typeName="number";
+			break;
+		case BOOLEAN:
+			typeName="boolean";
+			break;
+		default:
+			Ordt.errorMessage("User defined property " + name + " has an unsupported type.  Default string type will be used.");
+		}
+		return "type=" + typeName + ";";
+	}
+
+	private String getRdlComponentClause() {
+		String compString = "all";
+		if (usage==ANY) compString = "all";
+		else {
+			if ((usage & FIELD) > 0) compString = compString.isEmpty()? "field" : "|field";
+			if ((usage & FIELDSET) > 0) compString = compString.isEmpty()? "fieldstruct" : compString + "|fieldstruct";
+			if ((usage & REG) > 0) compString = compString.isEmpty()? "reg" : compString + "|reg";
+			if ((usage & REGSET) > 0) compString = compString.isEmpty()? "regfile" : compString + "|regfile";
+			if ((usage & ADDRMAP) > 0) compString = compString.isEmpty()? "addrmap" : compString + "|addrmap";
+			if ((usage & SIGNAL) > 0) compString = compString.isEmpty()? "signal" : compString + "|signal";
+		}
+		return "component=" + compString + ";";
+	}
+	
 }
