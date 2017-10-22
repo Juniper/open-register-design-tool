@@ -486,8 +486,9 @@ public class FieldProperties extends InstanceProperties {
     
 	/** extract a PropertyList of user defined parameters for this instance */
     @Override
-	protected void extractUserDefinedProperties(PropertyList pList) {
-		setUserDefinedProperties(pList, DefinedProperties.userFieldPropertySet);
+	protected void extractSpecialPropertyLists(PropertyList pList) {
+		setUserDefinedProperties(pList, DefinedProperties.userDefFieldPropertyNames);
+		setJsPassthruProperties(pList, DefinedProperties.jsPassthruFieldPropertyNames);
 	}
 
 	/** get reset value */

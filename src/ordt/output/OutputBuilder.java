@@ -588,19 +588,9 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		   regSetProperties.setInternal();   // first map in a new builder is treated as internal (overrides RegSetProperties constructor)
 		   rootMapProperties = regSetProperties;  // save these so can restore if empty rs stack
 		   //System.out.println("OutputBuilder addRegMap: adding regmap,  path=" + getInstancePath() + ", id=" + regMapInst.getId()+ ", comp=" + regMapInst.getRegComp().getId());
+		   // extract basic info for root map
+		   regSetProperties.updateRootInstanceInfo();
 		   //regSetProperties.display();
-		   // regmap is special case, so only allow name/desc, jspec passthru property assign, not full extract
-		   if (regMapInst.hasProperty("name")) regSetProperties.setTextName(regMapInst.getProperty("name")); 
-		   if (regMapInst.hasProperty("desc")) regSetProperties.setTextDescription(regMapInst.getProperty("desc")); 
-		   // set jspec pass-thru parameters
-		   if (regMapInst.hasProperty("js_macro_name")) regSetProperties.setJspecMacroName(regMapInst.getProperty("js_macro_name"));
-		   if (regMapInst.hasProperty("js_macro_mode")) regSetProperties.setJspecMacroMode(regMapInst.getProperty("js_macro_mode"));
-		   if (regMapInst.hasProperty("js_namespace")) regSetProperties.setJspecNamespace(regMapInst.getProperty("js_namespace"));
-		   if (regMapInst.hasProperty("js_superset_check")) regSetProperties.setJspecSupersetCheck(regMapInst.getProperty("js_superset_check"));
-		   // get jspec root instance/typedef control parameters
-		   if (regMapInst.hasProperty("js_typedef_name")) regSetProperties.setJspecTypedefName(regMapInst.getProperty("js_typedef_name"));
-		   if (regMapInst.hasProperty("js_instance_name")) regSetProperties.setJspecInstanceName(regMapInst.getProperty("js_instance_name"));
-		   if (regMapInst.hasProperty("js_instance_repeat")) regSetProperties.setJspecInstanceRepeat(regMapInst.getIntegerProperty("js_instance_repeat"));
 		   // if instance has an id then use it for modulename
 		   if (regMapInst.getId() != null) setAddressMapName(regMapInst.getId());  
 		   // only base addrmap instance is first

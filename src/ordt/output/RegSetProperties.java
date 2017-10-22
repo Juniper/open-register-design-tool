@@ -18,9 +18,6 @@ public class RegSetProperties extends AddressableInstanceProperties {
 	private RegNumber highAddress;  // highest valid address
 	private int childHash = 0; // hash of this regset's children
 	// jspec compatibility parameters
-	private String jspecMacroName;
-	private String jspecMacroMode;
-	private String jspecNamespace;
 	private String jspecTypedefName;
 	private String jspecInstanceName;
 	private Integer jspecInstanceRepeat;
@@ -41,6 +38,9 @@ public class RegSetProperties extends AddressableInstanceProperties {
 		super.display();
 		System.out.println("  RegSetProperty info:" );  
 		System.out.println("   max reg width=" + this.getMaxRegWidth());  		
+		System.out.println("   js_typedef_name=" + this.getJspecTypedefName());  		
+		System.out.println("   js_instance_name=" + this.getJspecInstanceName());  		
+		System.out.println("   js_instance_repeat=" + this.getJspecInstanceRepeat());  		
 	}
 
 	/** extract properties from the calling instance */
@@ -48,19 +48,31 @@ public class RegSetProperties extends AddressableInstanceProperties {
 	public void extractProperties(PropertyList pList) {
 		super.extractProperties(pList);  // extract common parameters
 		//if (getId().equals("tx")) System.out.println("RegSetProperties extractProperties: " + getId() + "\n" + pList);
-		// set jspec pass-thru parameters
-		if (pList.hasProperty("js_macro_name")) setJspecMacroName(pList.getProperty("js_macro_name"));
-		if (pList.hasProperty("js_macro_mode")) setJspecMacroMode(pList.getProperty("js_macro_mode"));
-		if (pList.hasProperty("js_namespace")) setJspecNamespace(pList.getProperty("js_namespace"));
+		// set jspec root instance/typedef control parameters
 		if (pList.hasProperty("js_typedef_name")) setJspecTypedefName(pList.getProperty("js_typedef_name"));
 		if (pList.hasProperty("js_instance_name")) setJspecInstanceName(pList.getProperty("js_instance_name"));
 		if (pList.hasProperty("js_instance_repeat")) setJspecInstanceRepeat(pList.getIntegerProperty("js_instance_repeat"));
 	} 
 
+	/** update basic info for the root regmap.  no post-prop assigns, path info	 */
+	public void updateRootInstanceInfo() {
+		// before creating instance list update default instance properties 
+		updateDefaultProperties(extractInstance.getDefaultProperties());
+		// create a property list for holding combined info for this instance
+		PropertyList mergedList = new PropertyList();
+		// now add defined default instance properties
+		mergedList.updateProperties(instDefaultProperties);   // start with instance defaults 
+
+		// now add the base property info
+		mergedList.updateProperties(extractInstance.getProperties());
+		extractProperties(mergedList);   // now that we have combined parameter list, extract instance info
+	}
+
 	/** extract a PropertyList of user defined parameters for this instance */
     @Override
-	protected void extractUserDefinedProperties(PropertyList pList) {
-		setUserDefinedProperties(pList, DefinedProperties.userRegSetPropertySet);
+	protected void extractSpecialPropertyLists(PropertyList pList) {
+		setUserDefinedProperties(pList, DefinedProperties.userDefRegSetPropertyNames);
+		setJsPassthruProperties(pList, DefinedProperties.jsPassthruRegSetPropertyNames);
 	}
 	
 	/** return the max reg width in this regset in bits
@@ -108,30 +120,6 @@ public class RegSetProperties extends AddressableInstanceProperties {
 		fullHigh.setNumFormat(NumFormat.Address);
 		fullHigh.add(getHighAddress());
 		return fullHigh;
-	}
-
-	public String getJspecMacroName() {
-		return jspecMacroName;
-	}
-
-	public void setJspecMacroName(String jspecMacroName) {
-		this.jspecMacroName = jspecMacroName;
-	}
-
-	public String getJspecMacroMode() {
-		return jspecMacroMode;
-	}
-
-	public void setJspecMacroMode(String jspecMacroMode) {
-		this.jspecMacroMode = jspecMacroMode;
-	}
-
-	public String getJspecNamespace() {
-		return jspecNamespace;
-	}
-
-	public void setJspecNamespace(String jspecNamespace) {
-		this.jspecNamespace = jspecNamespace;
 	}
 
 	public String getJspecTypedefName() {

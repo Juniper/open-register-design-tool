@@ -10,7 +10,10 @@ import java.util.PriorityQueue;
 import java.util.Comparator;
 import java.util.HashSet;
 
+import ordt.extract.DefinedProperties;
+import ordt.extract.DefinedProperty;
 import ordt.extract.Ordt;
+import ordt.extract.PropertyList;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
@@ -18,6 +21,7 @@ import ordt.extract.RegNumber.NumFormat;
 import ordt.extract.model.ModEnumElement;
 import ordt.extract.model.ModRegister;
 import ordt.output.FieldProperties;
+import ordt.output.InstanceProperties;
 import ordt.output.OutputBuilder;
 import ordt.output.OutputLine;
 import ordt.parameters.ExtParameters;
@@ -27,7 +31,6 @@ public class JspecBuilder extends OutputBuilder {
 	private List<OutputLine> outputList = new ArrayList<OutputLine>();
 	private int indentLvl = 0;
 	private static HashSet<String> reservedWords = getReservedWords();  // reserved jspec words
-
 	
     //---------------------------- constructor ----------------------------------
 
@@ -118,6 +121,10 @@ public class JspecBuilder extends OutputBuilder {
 
 	@Override
 	public void addRegSet() {
+		// add any user property definitions and get list of js passthru properties
+		if (regSetProperties.isRootInstance()){
+			buildUserParameterDefs();
+		}
 		// skip this regset if it's empty
 		if (regSetProperties.getExtractInstance().getRegComp().hasChildInstances()) {
 			// build the register header
@@ -158,6 +165,9 @@ public class JspecBuilder extends OutputBuilder {
 	/** process root address map */
 	@Override
 	public void addRegMap() {
+		// build any user-defined parameter defines and get list of js passthru properties
+		buildUserParameterDefs();
+		
 		// create text name and description if null
 		String mapId = getAddressMapName();
 		
@@ -171,7 +181,7 @@ public class JspecBuilder extends OutputBuilder {
 		outputList.add(new OutputLine(indentLvl, tdefStr + "register_set " + getRootDefName() + " \"" + textName + "\" {"));
 		outputList.add(new OutputLine(indentLvl++, ""));	
 		// set js pass-thru info
-		buildJspecPassthruAssigns();
+		buildJsPassthruAssigns(regSetProperties);
 		// start address is 0
 		outputList.add(new OutputLine(indentLvl, "address = 0x0;"));
 		// set default reg width
@@ -242,7 +252,7 @@ public class JspecBuilder extends OutputBuilder {
 		// set address using reltive offset from parent base
 		outputList.add(new OutputLine(++indentLvl, "address = " + regSetProperties.getRelativeBaseAddress() + ";"));
 		// set js pass-thru info
-		buildJspecPassthruAssigns();
+		buildJsPassthruAssigns(regSetProperties);
 		// get repcount for this reg set
 		int repCount = regSetProperties.getExtractInstance().getRepCount();
 		if (repCount > 1) 
@@ -255,17 +265,27 @@ public class JspecBuilder extends OutputBuilder {
 	    }
 		outputList.add(new OutputLine(indentLvl, ""));	
 	}
-
-	/** create assigns for jspec-specific passthru properties */
-	private void buildJspecPassthruAssigns() {
-		if (regSetProperties.getJspecMacroName() != null) 
-			outputList.add(new OutputLine(indentLvl, "macro_name = \"" + regSetProperties.getJspecMacroName() + "\";"));
-		if (regSetProperties.getJspecMacroMode() != null) 
-			outputList.add(new OutputLine(indentLvl, "macro_mode = " + regSetProperties.getJspecMacroMode() + ";"));
-		if (regSetProperties.getJspecNamespace() != null) 
-			outputList.add(new OutputLine(indentLvl, "namespace = \"" + regSetProperties.getJspecNamespace() + "\";"));
-		if (regSetProperties.getJspecSupersetCheck() != null) 
-			outputList.add(new OutputLine(indentLvl, "superset_check = " + regSetProperties.getJspecSupersetCheck() + ";"));
+	
+	/** build any user parameter definitions */
+	private void buildUserParameterDefs() {
+		List<DefinedProperty> usrPropList = DefinedProperties.getJsUserDefinedProperties();
+		if (!usrPropList.isEmpty()) {
+			for (DefinedProperty usrProp : usrPropList) {
+				outputList.add(new OutputLine(indentLvl, usrProp.getJsDefineString()));
+			}
+			outputList.add(new OutputLine(indentLvl, ""));	 // finish up property defs			
+		}	
+	}
+	
+	/** build any jspec passthru assignments by directly pulling from model instance */
+	private void buildJsPassthruAssigns(InstanceProperties inst) {
+		if (!inst.hasJsPassthruProperties()) return;
+		PropertyList pList = inst.getJsPassthruProperties();
+		for (String name : pList.getProperties().keySet()) {
+			String value = (pList.getProperty(name) == null)? "" : pList.getProperty(name);
+			DefinedProperty prop = DefinedProperties.getProperty(name);
+			if (prop!=null) outputList.add(new OutputLine(indentLvl, name.substring(3) + " = " + prop.getJsValue(value) + ";")); 	// strip js_ prefix	
+		}
 	}
 
 	/** build a jspec header for current register instance */ 
@@ -307,9 +327,8 @@ public class JspecBuilder extends OutputBuilder {
 		    outputList.add(new OutputLine(indentLvl, "attributes = " + attrStr + ";"));
 		}
 		
-		// set js superset_check
-		if (regProperties.getJspecSupersetCheck() != null) 
-			outputList.add(new OutputLine(indentLvl, "superset_check = " + regProperties.getJspecSupersetCheck() + ";"));
+		// set js pass-thru info
+		buildJsPassthruAssigns(regProperties);
 
 		// set reg width
 		if (regProperties.getRegWidth() != ModRegister.defaultWidth)
@@ -428,9 +447,9 @@ public class JspecBuilder extends OutputBuilder {
 			//Jrdl.warnMessage("reset value not defined for field " + field.getInstancePath());
 			outputList.add(new OutputLine(indentLvl, "reset = unknown;"));
 		}
-		// set js superset_check
-		if (field.getJspecSupersetCheck() != null) 
-			outputList.add(new OutputLine(indentLvl, "superset_check = " + field.getJspecSupersetCheck() + ";"));
+		
+		// set js pass-thru info
+		buildJsPassthruAssigns(field);
 	}
 
 	/** hack output string to remove embedded sl_comments from description */  

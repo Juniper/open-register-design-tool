@@ -111,8 +111,9 @@ public class RegProperties extends AddressableInstanceProperties {
     
 	/** extract a PropertyList of user defined parameters for this instance */
     @Override
-	protected void extractUserDefinedProperties(PropertyList pList) {
-		setUserDefinedProperties(pList, DefinedProperties.userRegPropertySet);
+	protected void extractSpecialPropertyLists(PropertyList pList) {
+		setUserDefinedProperties(pList, DefinedProperties.userDefRegPropertyNames);
+		setJsPassthruProperties(pList, DefinedProperties.jsPassthruRegPropertyNames);
 	}
 
 	/** set the width of register based on instance/component properties

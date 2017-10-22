@@ -12,11 +12,19 @@ import ordt.parameters.ExtParameters;
 /** class containing the set of defined model properties (extension of rdl property set) */
 public class DefinedProperties {
 
+	// save property names by component 
+	public static Set<String> userDefFieldPropertyNames = new HashSet<String>();  // set of all user defined field property names
+	public static Set<String> userDefFieldSetPropertyNames = new HashSet<String>();  // set of all user defined field set property names
+	public static Set<String> userDefRegPropertyNames = new HashSet<String>();  // set of all user defined reg property names
+	public static Set<String> userDefRegSetPropertyNames = new HashSet<String>();  // set of all user defined regset property names
+	
+	public static Set<String> jsPassthruFieldPropertyNames = new HashSet<String>();  // set of all jspec passthru field property names
+	public static Set<String> jsPassthruFieldSetPropertyNames = new HashSet<String>();  // set of all jspec passthru field set property names
+	public static Set<String> jsPassthruRegPropertyNames = new HashSet<String>();  // set of all jspec passthru reg property names
+	public static Set<String> jsPassthruRegSetPropertyNames = new HashSet<String>();  // set of all jspec passthru regset property names
+
 	private static HashMap<String, DefinedProperty> propertySet = initDefinedProperties();  // set of all defined properties
-	public static Set<String> userFieldPropertySet = new HashSet<String>();  // set of all user defined field property names
-	public static Set<String> userFieldSetPropertySet = new HashSet<String>();  // set of all user defined field set property names
-	public static Set<String> userRegPropertySet = new HashSet<String>();  // set of all user defined reg property names
-	public static Set<String> userRegSetPropertySet = new HashSet<String>();  // set of all user defined regset property names
+	
 	
 	/** initialize the list of defined properties */
 	private static HashMap<String, DefinedProperty> initDefinedProperties() {
@@ -131,6 +139,10 @@ public class DefinedProperties {
 	public static boolean hasProperty(String name) {
 		return propertySet.containsKey(name);
 	}
+
+	public static DefinedProperty getProperty(String name) {
+		return propertySet.get(name);
+	}
 	
 	public static DefinedPropertyType getType(String name) {
 		if (!propertySet.containsKey(name)) return null;
@@ -191,7 +203,23 @@ public class DefinedProperties {
 	 * */
 	private static void putProperty(HashMap<String, DefinedProperty> propSet, String name, DefinedPropertyType type, String defaultValue, int usage, boolean hidden, boolean userDefined, boolean jsPassthru) {
 		//System.out.println("DefinedProperties putProperty: name=" + name + ", type=" + type + ", default=" + defaultValue + ", usage=" + usage + ", hidden=" + hidden + ", userDefined=" + userDefined+ ", jsPassthru=" + jsPassthru);
-        propSet.put(name, new DefinedProperty(name, type, defaultValue, usage, hidden, userDefined, jsPassthru));
+		DefinedProperty newProp = new DefinedProperty(name, type, defaultValue, usage, hidden, userDefined, jsPassthru);
+        // first add to the full list
+		propSet.put(name, newProp);
+		// add to user property lists by component
+		if (userDefined) {
+			if (newProp.isFieldProperty()) userDefFieldPropertyNames.add(name);
+			if (newProp.isFieldsetProperty()) userDefFieldSetPropertyNames.add(name);
+			if (newProp.isRegProperty()) userDefRegPropertyNames.add(name);
+			if (newProp.isRegsetProperty()) userDefRegSetPropertyNames.add(name);
+		}
+		// add to jspec passthru lists by component
+		if (jsPassthru) {
+			if (newProp.isFieldProperty()) jsPassthruFieldPropertyNames.add(name);
+			if (newProp.isFieldsetProperty()) jsPassthruFieldSetPropertyNames.add(name);
+			if (newProp.isRegProperty()) jsPassthruRegPropertyNames.add(name);
+			if (newProp.isRegsetProperty()) jsPassthruRegSetPropertyNames.add(name);
+		}
 	}
 	
 	/** add a new property to the specified set of defined properties, issue error if a duplicate
@@ -224,12 +252,6 @@ public class DefinedProperties {
 		boolean isJs = name.startsWith("js_");  // user properties starting with js prefix are considered passthru
 		addProperty(propertySet, name, type, defaultValue, usage, false, true, isJs);
 		//System.out.println("DefinedProperties addUserProperty: name=" + name + ", type=" + type + ", default=" + defaultValue + ", usage=" + usage);
-		// save set of new user properties by component
-		DefinedProperty userProp = propertySet.get(name);
-		if (userProp.isFieldProperty()) userFieldPropertySet.add(name);
-		if (userProp.isFieldsetProperty()) userFieldSetPropertySet.add(name);
-		if (userProp.isRegProperty()) userRegPropertySet.add(name);
-		if (userProp.isRegsetProperty()) userRegSetPropertySet.add(name);
 	}
 
 	/** return the list of user-defined properties */
@@ -241,21 +263,12 @@ public class DefinedProperties {
 		return outList;
 	}
 
-	/** return the list of js passthru properties */
-	public static List<DefinedProperty> getJsPassthruProperties() {
-		List<DefinedProperty> outList = new ArrayList<DefinedProperty>();
-		// add to the output set if user-defined
-		for (DefinedProperty prop : propertySet.values())
-			if (prop.isJsPassthru()) outList.add(prop);
-		return outList;
-	}
-
-	/** return the list of user-defined jspec properties */
+	/** return the list of user-defined jspec properties (user properties with js prefix) */
 	public static List<DefinedProperty> getJsUserDefinedProperties() {
 		List<DefinedProperty> outList = new ArrayList<DefinedProperty>();
 		// add to the output set if user-defined
 		for (DefinedProperty prop : propertySet.values())
-			if (prop.isUserDefined() && prop.isJsPassthru()) outList.add(prop);
+			if (prop.isUserDefined() && prop.getName().startsWith("js_")) outList.add(prop);
 		return outList;
 	}
 

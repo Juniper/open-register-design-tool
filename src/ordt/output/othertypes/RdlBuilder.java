@@ -11,12 +11,12 @@ import java.util.List;
 import ordt.extract.DefinedProperties;
 import ordt.extract.DefinedProperty;
 import ordt.extract.Ordt;
+import ordt.extract.PropertyList;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.model.ModComponent;
 import ordt.extract.model.ModEnum;
 import ordt.extract.model.ModEnumElement;
-import ordt.extract.model.ModInstance;
 import ordt.extract.model.ModRegister;
 import ordt.output.AddressableInstanceProperties;
 import ordt.output.FieldProperties;
@@ -30,8 +30,6 @@ public class RdlBuilder extends OutputBuilder {
 	private List<OutputLine> outputList = new ArrayList<OutputLine>();
 	private static HashSet<String> escapedIds = new HashSet<String>(); // set of keywords needing to be escaped
 	private int indentLvl = 0;
-	private List<DefinedProperty> jsPassthrus = new ArrayList<DefinedProperty>();
-
 	
     //---------------------------- constructor ----------------------------------
 
@@ -91,7 +89,6 @@ public class RdlBuilder extends OutputBuilder {
 		// add any user property definitions and get list of js passthru properties
 		if (regSetProperties.isRootInstance()){
 			buildPropertyDefs();
-			jsPassthrus = DefinedProperties.getJsPassthruProperties();
 		}
 		// if a container for multiple rdl component defs, generate no output
 		if ("TYPEDEF_CONTAINER".equals(regSetProperties.getId())) {
@@ -122,8 +119,6 @@ public class RdlBuilder extends OutputBuilder {
 		if (!ExtParameters.rdlNoRootEnumDefs()) buildEnumDefs(model.getRoot());
 		// add any user property definitions
 		buildPropertyDefs();
-		// save the list of jspec passthru properties
-		jsPassthrus = DefinedProperties.getJsPassthruProperties();
 		
 		outputList.add(new OutputLine(indentLvl, "// address map " + getAddressMapName()));  
 		//System.out.println("RdlBuilder addRegMap: addrmap regSetProperties, id=" +
@@ -303,14 +298,13 @@ public class RdlBuilder extends OutputBuilder {
 	}
 
 	/** build any jspec passthru assignments by directly pulling from model instance */
-	private void buildJsPassthruAssigns(InstanceProperties properties) {
-		ModInstance modInst = properties.getExtractInstance();
-		// loop thru all possible passthru properties
-		for (DefinedProperty prop: jsPassthrus) {
-			String propName = prop.getName();
-			if (modInst.hasProperty(propName)) {
-	        	outputList.add(new OutputLine(indentLvl, propName + " = " + prop.getRdlValue(modInst.getProperty(propName)) + ";")); 		
-			}
+	private void buildJsPassthruAssigns(InstanceProperties inst) {
+		if (!inst.hasJsPassthruProperties()) return;
+		PropertyList pList = inst.getJsPassthruProperties();
+		for (String name : pList.getProperties().keySet()) {
+			String value = (pList.getProperty(name) == null)? "" : pList.getProperty(name);
+			DefinedProperty prop = DefinedProperties.getProperty(name);
+			if (prop!=null) outputList.add(new OutputLine(indentLvl, name + " = " + prop.getRdlValue(value) + ";")); 		
 		}
 	}
 

@@ -179,7 +179,7 @@ public class DefinedProperty {
 			typeName="boolean";
 			break;
 		default:
-			Ordt.errorMessage("User defined property " + name + " has an unsupported type.  Default string type will be used.");
+			Ordt.errorMessage("User defined rdl property " + name + " has an unsupported type.  Default string type will be used.");
 		}
 		return "type=" + typeName + ";";
 	}
@@ -197,5 +197,32 @@ public class DefinedProperty {
 		}
 		return "component=" + compString + ";";
 	}
-	
+
+	// -------------------- jspec define methods
+
+	// typedef param root_cause = string;
+	public String getJsDefineString() {
+		return "typedef param " + name.substring(3) + " = " + getJsType() + ";";  // strip js_ prefix
+	}
+
+	private String getJsType() {
+		String typeName="string";
+		switch(type) {
+		case STRING:
+		case CONSTANT:
+			typeName="string";
+			break;
+		default:
+			Ordt.errorMessage("User defined jspec parameter " + name + " has an unsupported type.  Default string type will be used.");
+		}
+		return typeName;
+	}
+
+	/** return jspec value with appropriate quoting based on type */
+	public String getJsValue(String value) {
+		String cleanValue = value.replace("\"", "");
+		if (type==DefinedPropertyType.STRING) return "\"" + cleanValue + "\"";
+		return cleanValue;
+	}
+
 }

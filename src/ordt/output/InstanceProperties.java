@@ -23,7 +23,6 @@ public class InstanceProperties {
 	
 	private String textName;  // text name of this instance
 	private String textDescription;  // text description of this instance
-	private String jspecSupersetCheck;  // jspec superset_check
 	
 	private boolean dontTest = false;  // default is test this component
 	private boolean dontCompare = false;  // default is conpare this component
@@ -34,7 +33,9 @@ public class InstanceProperties {
 	
 	protected ModInstance extractInstance;   // ptr to instance info in the extract model
 	protected PropertyList instDefaultProperties;   // default properties for this instance
+	
 	protected PropertyList userDefinedProperties;   // user defined properties for this instance
+	protected PropertyList jsPassthruProperties;   // jspec passthru properties for this instance
 
 	private int repNum = 0;  // rep number of this instProperty if part of a replicated set
 		
@@ -67,7 +68,6 @@ public class InstanceProperties {
 		setInstancePath(oldInstance.getInstancePath());  
 		setTextName(oldInstance.getTextName());  
 		setTextDescription(oldInstance.getTextDescription());  
-		setJspecSupersetCheck(oldInstance.getJspecSupersetCheck());  
 		setDontTest(oldInstance.isDontTest());  
 		setDontCompare(oldInstance.isDontCompare());  
 		setRepNum(oldInstance.getRepNum());  
@@ -76,6 +76,7 @@ public class InstanceProperties {
 		setExtInterfaceName(oldInstance.getExtInterfaceName());  
 		setInstDefaultProperties(oldInstance.getInstDefaultProperties());  
 		setUserDefinedProperties(oldInstance.getUserDefinedProperties());  
+		setJsPassthruProperties(oldInstance.getJsPassthruProperties());  
 	}
 	
 	/** display info InstanceProperties info */
@@ -84,7 +85,6 @@ public class InstanceProperties {
 		System.out.println("   path=" + this.getInstancePath());  
 		System.out.println("   name=" + this.getTextName());  
 		System.out.println("   description=" + this.getTextDescription());  
-		System.out.println("   js_superset_check=" + this.getJspecSupersetCheck());  
 		System.out.println("   donttest=" + this.isDontTest());  
 		System.out.println("   dontcompare=" + this.isDontCompare());  
 		System.out.println("   rep num=" + this.getRepNum());  		
@@ -97,6 +97,9 @@ public class InstanceProperties {
 		// display user defined properties
 		System.out.println("    user defined properties:");
 		System.out.println("        " + userDefinedProperties);
+		// display js passthru properties
+		System.out.println("    jspec passthru properties:");
+		System.out.println("        " + jsPassthruProperties);
 	}
 	
 	/** extract properties from the calling instance - this or overloaded child class method called from this.updateInstanceInfo */
@@ -115,14 +118,13 @@ public class InstanceProperties {
 			setUseStruct(true);
 			setExtInterfaceName(pList.getProperty("use_struct"));
 		}
-		if (pList.hasProperty("js_superset_check")) setJspecSupersetCheck(pList.getProperty("js_superset_check"));
 		// get any user defined property settings for this instance
-		extractUserDefinedProperties(pList);
+		extractSpecialPropertyLists(pList);
 		//if (hasUserDefinedProperties()) System.out.println("InstanceProperties extractProperties: instance " + getInstancePath() + " has user defined properties");
 	}
 
-	/** extract a PropertyList of user defined parameters for this instance (overloaded by child classes) */
-	protected void extractUserDefinedProperties(PropertyList pList) {
+	/** extract PropertyLists of user defined and jspec passthru properties for this instance (overloaded by child classes) */
+	protected void extractSpecialPropertyLists(PropertyList pList) {
 	}
 
 	/** return true if this InstanceProperty is instanced by root
@@ -326,20 +328,6 @@ public class InstanceProperties {
 		return newText;
 	}
 
-	/** get jspecSupersetCheck
-	 *  @return the jspecSupersetCheck
-	 */
-	public String getJspecSupersetCheck() {
-		return jspecSupersetCheck;
-	}
-
-	/** set jspecSupersetCheck
-	 *  @param jspecSupersetCheck the jspecSupersetCheck to set
-	 */
-	public void setJspecSupersetCheck(String jspecSupersetCheck) {
-		this.jspecSupersetCheck = jspecSupersetCheck;
-	}
-
 	/** get dontTest
 	 *  @return the dontTest
 	 */
@@ -451,6 +439,27 @@ public class InstanceProperties {
 		return instDefaultProperties.getProperty(propName);
 	}
     
+	/** return a property list of jspec passthru property settings */
+	public PropertyList getJsPassthruProperties() {
+		return jsPassthruProperties;
+	}
+    
+	/** return true if instance has jspec passthru properties */
+	public boolean hasJsPassthruProperties() {
+		return ((jsPassthruProperties != null) && !jsPassthruProperties.isEmpty());
+	}
+
+	/** set the jspec passthru property list */
+	private void setJsPassthruProperties(PropertyList jsPassthruProperties) {
+		this.jsPassthruProperties = jsPassthruProperties;
+	}
+
+	/** set jspec passthru list by pulling properties having specified names from a larger list */
+	protected void setJsPassthruProperties(PropertyList parentList, Set<String> names) {
+		//if (parentList.hasProperty("uvmreg_prune")) System.err.println("InstanceProperties setjsPassthruPropertiesProperties: id=" + getId() + ", pList=" + parentList);
+		this.jsPassthruProperties = parentList.getSubsetList(names);
+	}
+    
 	/** return a property list of user defined property settings */
 	public PropertyList getUserDefinedProperties() {
 		return userDefinedProperties;
@@ -494,7 +503,6 @@ public class InstanceProperties {
 		result = prime * result + ((extInterfaceName == null) ? 0 : extInterfaceName.hashCode());
 		if (includeId) result = prime * result + ((id == null) ? 0 : id.hashCode());  // TODO - need to skip ID check
 		result = prime * result + ((instDefaultProperties == null) ? 0 : instDefaultProperties.hashCode());
-		result = prime * result + ((jspecSupersetCheck == null) ? 0 : jspecSupersetCheck.hashCode());
 		result = prime * result + extractInstance.getRepCount();
 		result = prime * result + ((textName == null) ? 0 : textName.hashCode());
 		result = prime * result + (useInterface ? 1231 : 1237);
@@ -542,11 +550,6 @@ public class InstanceProperties {
 			if (other.instDefaultProperties != null)
 				return false;
 		} else if (!instDefaultProperties.equals(other.instDefaultProperties))
-			return false;
-		if (jspecSupersetCheck == null) {
-			if (other.jspecSupersetCheck != null)
-				return false;
-		} else if (!jspecSupersetCheck.equals(other.jspecSupersetCheck))
 			return false;
 		if (extractInstance.getRepCount() != other.extractInstance.getRepCount())
 			return false;
