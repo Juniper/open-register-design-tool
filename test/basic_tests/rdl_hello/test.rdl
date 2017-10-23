@@ -1,5 +1,9 @@
-// rdl_hello
+// rdl_hello test w/ an enum encoded field
 
+enum ERRSLICE0_MISSIONERR_ENABLE_ERR25_enum{
+  DISABLE = 1'd0;
+  ENABLE = 1'd1;
+};
 addrmap  {
     name = "foo registers";
     desc = "this is a bunch of foo regs bla bla bla";
@@ -11,6 +15,7 @@ addrmap  {
 	    reg {
             field { name="field 1"; sw=rw; hw=rw; we; } fld1[9:0] = 10'd0;
             field { name="field 2"; sw=rw; hw=r; } fld2[15:15];
+            field {encode=ERRSLICE0_MISSIONERR_ENABLE_ERR25_enum; sw=rw; hw=r; reset=1'h1;} ERR25[25:25];
 	    } a_reg[2];	    
 	    
     } bar;

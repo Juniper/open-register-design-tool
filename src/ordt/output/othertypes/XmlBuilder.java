@@ -13,6 +13,8 @@ import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
+import ordt.extract.model.ModEnum;
+import ordt.extract.model.ModEnumElement;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
 import ordt.output.OutputLine;
@@ -75,6 +77,8 @@ public class XmlBuilder extends OutputBuilder {
 			addXmlElement("longtext", wrapXmlText(fieldProperties.getTextDescription()));
 		// if this instance has user defined properties, add them
 		addUserDefinedPropertyElements(fieldProperties);
+		// if this field has an enum encoding add it
+		addFieldEncodeInfo(fieldProperties);
 		
 		addXmlElementEnd("field");
 		// save the common access mode
@@ -454,6 +458,31 @@ public class XmlBuilder extends OutputBuilder {
 			addXmlElement(name, value);
 		}
 		addXmlElementEnd("user_properties");
+	}
+
+	/** add field encode elements */
+	private void addFieldEncodeInfo(FieldProperties fieldProperties) {
+		if (fieldProperties.getEncoding()==null) return;  // exit if no encoding
+		addXmlElementStart("enum_encode");
+		ModEnum enumDef = fieldProperties.getEncoding();
+		addXmlElement("enc_name", enumDef.getId());
+		// check width
+		Integer encodeWidth = enumDef.getWidth();
+		//System.out.println("XmlBuilder addFieldEncodeInfo: encoding id=" + enumDef.getId() + ", enumElems=" + enumDef.getEnumElements().size());
+		if ((encodeWidth != null && encodeWidth != fieldProperties.getFieldWidth())) 
+			Ordt.errorMessage("Encoding width ("+ encodeWidth + ") does not match field width (" + fieldProperties.getFieldWidth() + ") in " + fieldProperties.getInstancePath());
+		else {
+			for (ModEnumElement enumElem : enumDef.getEnumElements()) {
+				addXmlElementStart("enc_elem");
+				enumElem.getValue().setNumFormat(RegNumber.NumFormat.Address);
+				String elemName = (enumElem.getName() == null) ? "encode_" + enumElem.getValue() : enumElem.getName();
+				addXmlElement("enc_elem_name", elemName);
+				String elemValue = enumElem.getValue().toFormat(NumBase.Hex, NumFormat.Address);
+				addXmlElement("enc_elem_value", elemValue);
+				addXmlElementEnd("enc_elem");	
+			}
+		}
+		addXmlElementEnd("enum_encode");	
 	}
 
 	//---------------------------- methods to output verilog ----------------------------------------
