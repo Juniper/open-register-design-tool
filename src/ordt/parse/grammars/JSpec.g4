@@ -82,7 +82,7 @@ type_definition
  param_type_definition
    : 'typedef' 'param'
      id  { JSpecLexer.addUserParameter($id.text); }  // System.out.println("user parameter=" + $id.text); 
-     EQ 'string'
+     EQ ('string' | 'boolean' | 'integer')
      SEMI 
    ;
 

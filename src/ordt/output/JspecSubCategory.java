@@ -39,7 +39,9 @@ public class JspecSubCategory {
 		map.put("INFO", 1); 
 		map.put("MAJOR", 2); 
 		map.put("FATAL", 4); 
-		nextValue = 8; 
+		map.put("MINOR_RECOVERABLE", 8); 
+		map.put("MINOR_TRANSIENT", 16); 
+		nextValue = 32; 
 		return map;
 	}
 	
@@ -73,18 +75,6 @@ public class JspecSubCategory {
 	public static HashMap<String, Integer> getMap() {
 		return map;
 	}
-	
-	public static void main(String[] args) {
-		JspecSubCategory jscat = new JspecSubCategory("INFO");
-		System.out.println("catstr=" + jscat + ", has info=" + jscat.hasValue("INFO"));
-		
-		jscat = new JspecSubCategory("  MAJOR");
-		System.out.println("catstr=" + jscat + ", has info=" + jscat.hasValue("INFO"));
-
-		jscat = new JspecSubCategory("NEW");
-		System.out.println("catstr=" + jscat + ", has info=" + jscat.hasValue("INFO"));
-	
-	}
 
 	@Override
 	public int hashCode() {
@@ -107,4 +97,16 @@ public class JspecSubCategory {
 			return false;
 		return true;
 	}
+	
+	public static void main(String[] args) {
+		JspecSubCategory jscat = new JspecSubCategory("INFO");
+		System.out.println("catstr=" + jscat + ", has info=" + jscat.hasValue("INFO"));
+		
+		jscat = new JspecSubCategory("  MAJOR");
+		System.out.println("catstr=" + jscat + ", has info=" + jscat.hasValue("INFO"));
+
+		jscat = new JspecSubCategory("NEW");
+		System.out.println("catstr=" + jscat + ", has info=" + jscat.hasValue("INFO"));
+	}
+
 }

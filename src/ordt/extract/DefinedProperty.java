@@ -66,6 +66,7 @@ public class DefinedProperty {
 		newList.put("boolean", DefinedPropertyType.BOOLEAN);
 		newList.put("string", DefinedPropertyType.STRING);
 		newList.put("number", DefinedPropertyType.NUMBER);
+		newList.put("integer", DefinedPropertyType.NUMBER); // jspec param type
 		// ref types (disabled for now)
 		//newList.put("ref", DefinedPropertyType.REF);
 		//newList.put("addrmap", DefinedPropertyType.ADDRMAP);  
@@ -211,6 +212,12 @@ public class DefinedProperty {
 		case STRING:
 		case CONSTANT:
 			typeName="string";
+			break;
+		case NUMBER:
+			typeName="integer";
+			break;
+		case BOOLEAN:
+			typeName="boolean";
 			break;
 		default:
 			Ordt.errorMessage("User defined jspec parameter " + name + " has an unsupported type.  Default string type will be used.");

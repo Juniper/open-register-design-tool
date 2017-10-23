@@ -417,16 +417,17 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	/**
    : 'typedef' 'param'
      id  { JSpecLexer.addUserParameter($id.text); }
-     EQ 'string'
+     EQ ('string' | 'boolean' | 'integer')
      SEMI 
 	 */
 	@Override public void enterParam_type_definition(JSpecParser.Param_type_definitionContext ctx) {
 		activeRules.add(ctx.getRuleIndex());
 		String usrPropertyName = "js_" + ctx.getChild(2).getText();
+		String usrPropertyType = ctx.getChild(4).getText();
 		List<String> comps = new ArrayList<String>();
 		comps.add("all");
         // add the new property to defined list
-		DefinedProperties.addUserProperty(usrPropertyName, "string", null, comps);  // js usr properties can apply to any comp type, have no default
+		DefinedProperties.addUserProperty(usrPropertyName, usrPropertyType, null, comps);  // js usr properties can apply to any comp type, have no default
 	}
 	
 	@Override public void exitParam_type_definition(JSpecParser.Param_type_definitionContext ctx) {
