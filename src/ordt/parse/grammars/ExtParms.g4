@@ -99,6 +99,9 @@ ext_parm_defs
    : 'root_regset_is_instanced' EQ bool
    | 'external_decode_is_root' EQ bool // deprecate??
    | 'add_js_include' EQ STR
+   | 'root_typedef_name' EQ STR
+   | 'root_instance_name' EQ STR
+   | 'root_instance_repeat' EQ NUM
    ;
    
 // ------------ systemverilog_out_defs
@@ -369,9 +372,9 @@ ext_parm_defs
   | 'js_macro_name'   // added
   | 'js_macro_mode'   // added
   | 'js_namespace'   // added
-  | 'js_typedef_name'   // added
-  | 'js_instance_name'   // added
-  | 'js_instance_repeat'   // added
+  | 'js_typedef_name'   // added   deprecate?
+  | 'js_instance_name'   // added   deprecate?
+  | 'js_instance_repeat'   // added   deprecate?
   
   | 'fieldstructwidth'  // added
 

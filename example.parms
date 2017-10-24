@@ -64,9 +64,12 @@ output systemverilog {
 
 // jspec output parameters
 output jspec {
-	//root_regset_is_instanced = true   // instance the root or make it a typedef?
-	//external_decode_is_root = true   // external_decode will be converted to root=true?    DEPRECATED
+	//root_regset_is_instanced = true    // instance the root or make it a typedef?
+	//external_decode_is_root = true     // external_decode will be converted to root=true?    DEPRECATED
 	add_js_include = "$ENV{WORKAREA}/$ENV{GENMACROS}/protect/design_spec/func/jspec/protect.jjs" 
+    root_typedef_name="new_typedef"    // override name of root typedef
+    root_instance_name="new_instance"  // override name of root instance
+    root_instance_repeat=3             // override repeat count in root instance
 }
 
 // rdl output parameters  

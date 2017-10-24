@@ -209,7 +209,9 @@ public class JspecBuilder extends OutputBuilder {
 			if (textName == null) textName = " ";
 			outputList.add(new OutputLine(indentLvl++, getRootDefName() + " " + getRootInstanceName() + " \"" + textName + "\" param {"));
 			outputList.add(new OutputLine(indentLvl, "address = 0x0;"));
-			if ((regSetProperties.getJspecInstanceRepeat()!=null) && (regSetProperties.getJspecInstanceRepeat()>1)) 
+			if ((ExtParameters.getJspecRootInstanceRepeat()!=null) && (ExtParameters.getJspecRootInstanceRepeat()>1)) 
+				outputList.add(new OutputLine(indentLvl, "repeat = " + ExtParameters.getJspecRootInstanceRepeat() + ";"));
+			else if ((regSetProperties.getJspecInstanceRepeat()!=null) && (regSetProperties.getJspecInstanceRepeat()>1)) //  FIXME - remove
 				outputList.add(new OutputLine(indentLvl, "repeat = " + regSetProperties.getJspecInstanceRepeat() + ";"));
 			outputList.add(new OutputLine(--indentLvl, "};"));
 			outputList.add(new OutputLine(indentLvl, ""));				
@@ -222,9 +224,11 @@ public class JspecBuilder extends OutputBuilder {
 	private String getRootDefName() {
 		//System.out.println("JspecBuilder getRootDefName: typedef  isNull=" + (regSetProperties.getJspecTypedefName()==null) + ", isEmpty=" + ((regSetProperties.getJspecTypedefName()==null)? "" : regSetProperties.getJspecTypedefName().isEmpty()));
 		//System.out.println("JspecBuilder getRootDefName: instance isNull=" + (regSetProperties.getJspecInstanceName()==null) + ", isEmpty=" + ((regSetProperties.getJspecInstanceName()==null)? "" : regSetProperties.getJspecInstanceName().isEmpty()));
-		if (regSetProperties.getJspecTypedefName()!=null) return regSetProperties.getJspecTypedefName();  // use typedef name override
+		if (ExtParameters.getJspecRootTypedefName()!=null) return ExtParameters.getJspecRootTypedefName();  // use typedef name override
+		if (regSetProperties.getJspecTypedefName()!=null) return regSetProperties.getJspecTypedefName();  // use typedef name override  FIXME - remove
 		if (!ExtParameters.jspecRootRegsetIsInstanced()) return getAddressMapName();  // else use addrmap name as typedef
-		if (regSetProperties.getJspecInstanceName()!=null) return regSetProperties.getJspecInstanceName();  // use instance name override
+		if (ExtParameters.getJspecRootInstanceName()!=null) return ExtParameters.getJspecRootInstanceName();  // use instance name override
+		if (regSetProperties.getJspecInstanceName()!=null) return regSetProperties.getJspecInstanceName();  // use instance name override  FIXME - remove
 		return getAddressMapName();   // else anonymous instance
 	}
 
@@ -232,12 +236,13 @@ public class JspecBuilder extends OutputBuilder {
     private boolean rootHasTypedef() {
 		//System.out.println("JspecBuilder rootHasTypedef: typedef  isNull=" + (regSetProperties.getJspecTypedefName()==null) + ", isEmpty=" + ((regSetProperties.getJspecTypedefName()==null)? "" : regSetProperties.getJspecTypedefName().isEmpty()));
 		//System.out.println("JspecBuilder rootHasTypedef: jspecRootRegsetIsInstanced=" + ExtParameters.jspecRootRegsetIsInstanced());
-		return (regSetProperties.getJspecTypedefName()!=null) || !ExtParameters.jspecRootRegsetIsInstanced();
+		return (ExtParameters.getJspecRootTypedefName()!=null) || (regSetProperties.getJspecTypedefName()!=null) || !ExtParameters.jspecRootRegsetIsInstanced();  // FIXME - remove property
 	}
 
     /** return instance name used in (non-anonymous) instance */
 	private String getRootInstanceName() {
-		return (regSetProperties.getJspecInstanceName()!=null)? regSetProperties.getJspecInstanceName() : getAddressMapName();
+		if (ExtParameters.getJspecRootInstanceName()!=null) return ExtParameters.getJspecRootInstanceName();  // use instance name override
+		return (regSetProperties.getJspecInstanceName()!=null)? regSetProperties.getJspecInstanceName() : getAddressMapName(); // FIXME - remove property
 	}
 
 	/** build a jspec header for current register set instance */ 

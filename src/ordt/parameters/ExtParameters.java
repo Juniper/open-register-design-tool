@@ -153,6 +153,9 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("root_regset_is_instanced", true); 
 		initStringListParameter("add_js_include", new ArrayList<String>());
 		initBooleanParameter("no_root_enum_defs", false); 
+		initStringParameter("root_typedef_name", null);
+		initStringParameter("root_instance_name", null);
+		initIntegerParameter("root_instance_repeat", 1);
 		
 		// ---- reglist output defaults
 		initBooleanParameter("display_external_regs", true); 
@@ -798,6 +801,8 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static Boolean rdlNoRootEnumDefs() {
 		return getBooleanParameter("no_root_enum_defs");
 	}
+	
+	// js out getters/setters
 
 	/** get jspecRootRegsetIsInstanced
 	 *  @return the jspecRootRegsetIsInstanced
@@ -807,10 +812,22 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	}
 
 	/** get jspecIncludeFiles
-	 *  @return the jspecIncludeFiles
+	 *  @return the jspecIncludeFiles list
 	 */
 	public static List<String> getJspecIncludeFiles() {
 		return getStringListParameter("add_js_include");
+	}
+	
+	public static String getJspecRootTypedefName() {
+		return getStringParameter("root_typedef_name");
+	}
+	
+	public static String getJspecRootInstanceName() {
+		return getStringParameter("root_instance_name");
+	}
+	
+	public static Integer getJspecRootInstanceRepeat() {
+		return getIntegerParameter("root_instance_repeat");
 	}
 
 	/** get reglistDisplayExternalRegs
@@ -819,6 +836,8 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static Boolean reglistDisplayExternalRegs() {
 		return getBooleanParameter("display_external_regs");
 	}
+	   
+	// reglist getters/setters
 
 	/** get reglistShowRegType
 	 *  @return the reglistShowRegType
@@ -835,7 +854,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getBooleanParameter("show_fields");
 	}
 	
-	// uvm getters
+	// uvm getters/setters
 	
 	public static Boolean uvmregsSuppressNoCategoryWarnings() {
 		return getBooleanParameter("suppress_no_category_warnings");
