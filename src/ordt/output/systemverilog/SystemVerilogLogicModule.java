@@ -218,8 +218,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		   }
 
 		   // add sw statements
-		   String nameOverride = fieldProperties.isCounter() ? fieldProperties.getFullSignalName(DefSignalType.CNTR_NEXT) : null;
-		   genSwFieldNextWriteStmts(nameOverride, swPrecedence);    // create statements to set value of next based on sw field settings
+		   genSwFieldNextWriteStmts(swPrecedence);    // create statements to set value of next based on sw field settings
 	}
 
 	/** if a fieldProperty signal of specified type has a rhs assignment, generate appropriate defines/assign stmts for 
@@ -260,22 +259,22 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 
 	/** create statements to set value of next based on field settings for sw interface.
 	 *  save sw write statements in alternate list so they can be moved depending on hw/sw precedence of field
-	 * @param nextNameOverride - if non null, this will be the signal modified by sw write stmts
 	 *  */ 
-	void genSwFieldNextWriteStmts(String nextNameOverride, boolean swPrecedence) {  
-		   // get base register and field names
+	void genSwFieldNextWriteStmts(boolean swPrecedence) {  
+		   // set base reg, next and array names
 		   String regBaseName = regProperties.getBaseName();
 		   String fieldRegisterNextName = fieldProperties.getFullSignalName(DefSignalType.FIELD_NEXT);  //"reg_" + hwBaseName + "_next";
 		   String fieldArrayString = fieldProperties.getFieldArrayString();  
 		   
-		   // override names if an aliased register
+		   // override reg and next names if an aliased register
 		   if (regProperties.isAlias()) {
 			   regBaseName = regProperties.getAliasBaseName();
 			   fieldRegisterNextName = FieldProperties.getFieldRegisterNextName(regBaseName + "_" + fieldProperties.getPrefixedId(), true);  
 		   }
-
-		   // override the assigned name if specified
-		   if (nextNameOverride != null) fieldRegisterNextName = nextNameOverride;
+		   // override the next name if a counter
+		   else if (fieldProperties.isCounter()) {
+			   fieldRegisterNextName = fieldProperties.getFullSignalName(DefSignalType.CNTR_NEXT);
+		   }
 		   
 		   String decodeToLogicDataName = regProperties.getFullSignalName(DefSignalType.D2L_DATA);  // write data from decoder
 		   String decodeToLogicEnableName = regProperties.getFullSignalName(DefSignalType.D2L_ENABLE);  // write enable from decoder
@@ -303,8 +302,9 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 					   fieldRegisterNextName + " | " + woEnabledDataString + ");");				   
 		   }
 		   else if (fieldProperties.isWoclr()) {
+			   String andValString = fieldProperties.isCounter()? "{1'b0, ~" + woEnabledDataString + "}": "~" + woEnabledDataString;
 			   addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicWeName + swWeStr + ") " + fieldRegisterNextName + " = (" + 
-					   fieldRegisterNextName + " & ~" + woEnabledDataString + ");");				   
+					   fieldRegisterNextName + " & " + andValString + ");");				   
 		   }
 		   // if a sw write is alowed 
 		   else if (fieldProperties.isSwWriteable()) {		   

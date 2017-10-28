@@ -281,7 +281,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   
 		   // generate alias field write assignment stmts
 		   if (fieldProperties.swChangesValue()) {  // if sw can write or rclr/rset
-			   logic.genSwFieldNextWriteStmts(null, false);    // create statements to set value of next based on sw field settings 
+			   logic.genSwFieldNextWriteStmts(false);    // create statements to set value of next based on sw field settings 
 		   }	
 		   
 		   // generate alias field read assignment stmts
