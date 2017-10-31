@@ -2598,7 +2598,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				int newAddrWidth = addrInstProperties.getExtAddressWidth() - shiftBits;
 				int newLowBit = addrInstProperties.getExtLowBit() + shiftBits;
 				this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwAddrName, 0, newAddrWidth); 
-				this.addWireAssign(decodeToHwAddrName + " = " + extIf.decodeToHwAddrName + SystemVerilogSignal.genRefArrayString(newLowBit, newAddrWidth) + ";");  
+				String arrayStr = (newAddrWidth>1)? SystemVerilogSignal.genRefArrayString(newLowBit, newAddrWidth) : "";
+				this.addWireAssign(decodeToHwAddrName + " = " + extIf.decodeToHwAddrName + arrayStr + ";");  
 			    //System.out.println("SystemVerilogDecodeModule generateExternalInterface_PARALLEL: " + addrInstProperties.getId() + ", reps=" + addrInstProperties.getRepCount()+ ", regbwidth=" + addrInstProperties.getMaxRegByteWidth() + ", shiftBits=" + shiftBits );
 			}
 			
