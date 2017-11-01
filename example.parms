@@ -13,12 +13,12 @@ global {
 input jspec {
 	root_regset_is_addrmap = true   // root component will be created as an addrmap rather than a regfile/regset (not if typedef)
 	//root_is_external_decode = true   // root=true will be converted to external_decode property?
-	//process_typedef = "av_sd16_rx_24ch"   // process this typedef 
+	process_typedef = "new_typedef"   // process this typedef 
 }
 
 // rdl input parameters  
 input rdl {
-	//process_component = "zt_fabio_map"   // process this component
+	//process_component = "yt_fabio_map"   // process this component
     //process_component = "zt_fabio_switch_sopcf0"
     resolve_reg_category = true    // try to determine category from rdl properties if not specified
     //restrict_defined_property_names = true  // user defined rdl properties should always start with 'p_'
@@ -64,7 +64,7 @@ output systemverilog {
 
 // jspec output parameters
 output jspec {
-	//root_regset_is_instanced = true    // instance the root or make it a typedef?
+	root_regset_is_instanced = true    // instance the root or make it a typedef?
 	//external_decode_is_root = true     // external_decode will be converted to root=true?    DEPRECATED
 	add_js_include = "$ENV{WORKAREA}/$ENV{GENMACROS}/protect/design_spec/func/jspec/protect.jjs" 
     root_typedef_name="new_typedef"    // override name of root typedef

@@ -31,12 +31,12 @@ Changes:
 - added use_struct, use_new_struct properties for systemverilog IO interface encaps
 - added js_macro_name, js_macro_mode, js_namespece parms
 - implemented_rdl_property define is moved to ExtParams
+- allowed repeat define of same user property in parser - flagged as warn later
 */
 
 grammar SystemRDL;
 import ExtParms;
 
-tokens  { INST_ID }
 
 @lexer::members {
   private static java.util.Set<String> userDefinedProperties = new java.util.HashSet<String>();
@@ -69,7 +69,7 @@ root
     
  property_definition
    : 'property'
-     id  { SystemRDLLexer.addUserProperty($id.text); }  // System.out.println("user property=" + $id.text); 
+     (id | PROPERTY)  { SystemRDLLexer.addUserProperty($id.text); }  // System.out.println("user property=" + $id.text); 
      LBRACE
      property_body
      RBRACE
@@ -321,7 +321,6 @@ property_modifier
 
 id
   : ID
-  | INST_ID
   ;
 
 num
