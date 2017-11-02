@@ -1,4 +1,5 @@
 // iwrap example
+// added wrapper_info test 11/2/17 
 
 addrmap {
 
@@ -28,5 +29,13 @@ addrmap {
   regs regs_none;
   regs regs_ext;
   regs_ext->use_interface=top_interface;  // first level interface
+      
+    // wrapper_info structure (applied in params file)
+    reg foo2 {
+        default reset=1'b0; 
+        field { sw=rw; hw=r;} bar1;  // passthru
+        field { sw=rw; hw=r;} bar2;  // invert
+        field { sw=rw; hw=r;} bar3;  // sync stages
+     } wrap_info_reg @0x200;
   
 } top;

@@ -9,7 +9,7 @@ public class WrapperRemapSyncStagesXform extends WrapperRemapXform {
 	protected int delayStages = 1;
 	protected String clkName;
 	protected String moduleOverride;
-	static int instanceCount = 1;
+	static int instanceCount = 0;
 	static String moduleName = "ordt_wrap_sync_stages";
 	
 	public WrapperRemapSyncStagesXform(int delayStages, String clkName, String moduleOverride) {

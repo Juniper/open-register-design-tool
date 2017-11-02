@@ -3,6 +3,13 @@
 global {
 	base_address = 0x0                // set block base address
 }
+output systemverilog {
+	always_generate_iwrap = false     // create int wrapper mod even if none specified in rdl
+    wrapper_info {
+       set_invert "*wrap_info_reg.bar2_r"  // invert this output
+       add_sync_stages "*wrap_info_reg.bar3_r" 2 newClk // add sync delays to this output using new clock
+    }
+}
 output bench {
 	add_test_command = "write 32 0x0 0x12345678"  // write
 	add_test_command = "read 32 0x0"  // read 
@@ -10,3 +17,4 @@ output bench {
 	add_test_command = "read 32 0x108"  // read log
 	add_test_command = "read 32 0x10c"  // read log
 }
+
