@@ -156,6 +156,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initStringParameter("root_typedef_name", null);
 		initStringParameter("root_instance_name", null);
 		initIntegerParameter("root_instance_repeat", 1);
+		initBooleanParameter("add_user_param_defines", false); 
 		
 		// ---- reglist output defaults
 		initBooleanParameter("display_external_regs", true); 
@@ -804,16 +805,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	
 	// js out getters/setters
 
-	/** get jspecRootRegsetIsInstanced
-	 *  @return the jspecRootRegsetIsInstanced
-	 */
 	public static Boolean jspecRootRegsetIsInstanced() {
 		return getBooleanParameter("root_regset_is_instanced");
 	}
 
-	/** get jspecIncludeFiles
-	 *  @return the jspecIncludeFiles list
-	 */
+	/** get jspecIncludeFiles list */
 	public static List<String> getJspecIncludeFiles() {
 		return getStringListParameter("add_js_include");
 	}
@@ -829,7 +825,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static Integer getJspecRootInstanceRepeat() {
 		return getIntegerParameter("root_instance_repeat");
 	}
-
+	
+	public static Boolean jspecAddUserParamDefines() {
+		return getBooleanParameter("add_user_param_defines");
+	}
+	
 	/** get reglistDisplayExternalRegs
 	 *  @return the reglistDisplayExternalRegs
 	 */

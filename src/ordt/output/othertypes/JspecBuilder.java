@@ -123,7 +123,7 @@ public class JspecBuilder extends OutputBuilder {
 	public void addRegSet() {
 		// add any user property definitions and get list of js passthru properties
 		if (regSetProperties.isRootInstance()){
-			buildUserParameterDefs();
+			if (ExtParameters.jspecAddUserParamDefines()) buildUserParameterDefs();
 		}
 		// skip this regset if it's empty
 		if (regSetProperties.getExtractInstance().getRegComp().hasChildInstances()) {
@@ -166,7 +166,7 @@ public class JspecBuilder extends OutputBuilder {
 	@Override
 	public void addRegMap() {
 		// build any user-defined parameter defines and get list of js passthru properties
-		buildUserParameterDefs();
+		if (ExtParameters.jspecAddUserParamDefines()) buildUserParameterDefs();
 		
 		// create text name and description if null
 		String mapId = getAddressMapName();

@@ -70,6 +70,7 @@ output jspec {
     root_typedef_name="new_typedef"    // override name of root typedef
     root_instance_name="new_instance"  // override name of root instance
     root_instance_repeat=3             // override repeat count in root instance
+    add_user_param_defines = true     // add user-defined parameter defines to the output
 }
 
 // rdl output parameters  

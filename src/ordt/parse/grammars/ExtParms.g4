@@ -102,6 +102,7 @@ ext_parm_defs
    | 'root_typedef_name' EQ STR
    | 'root_instance_name' EQ STR
    | 'root_instance_repeat' EQ NUM
+   | 'add_user_param_defines' EQ bool
    ;
    
 // ------------ systemverilog_out_defs
