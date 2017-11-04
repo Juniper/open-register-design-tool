@@ -204,6 +204,8 @@ defined_attribute
    | 'FATAL' 
    | 'MAJOR' 
    | 'STATE' 
+   | 'MINOR_RECOVERABLE' 
+   | 'MINOR_TRANSIENT' 
    | 'NOEXPORT' 
    | 'JS_ATTRIB_INT_STATUS'
    | 'JS_ATTRIB_DO_NOT_TEST'
