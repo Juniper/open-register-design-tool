@@ -378,9 +378,6 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	        xformMap.put(signalPattern, xf);
 			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: adding pattern=" + signalPattern + ", " + xf.getType());
 		    break;
-		//case ("set_async_data"): // 'set_async_data' STR STR NUM ID ID? 
-			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: " + ctx.getText());   // TODO
-			//break;
 		default:
 			Ordt.errorExit("Unsupported RTL wrapper remap command (" + ctx.getText() + ") specified in parameters.");
 			break;
