@@ -1,0 +1,105 @@
+// Gradle build file for ordt
+
+description = 'Tool to generate register RTL, models, and docs using ' +
+              'SystemRDL or JSpec input'
+
+// Get version from constant in Ordt.java
+def versionMatcher = file('src/ordt/extract/Ordt.java').text =~ /String version = \"(.*)\";/
+version = versionMatcher[0][1]
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
+    }
+}
+
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'java'
+apply plugin: 'antlr'
+
+repositories {
+    // Use jcenter for resolving my dependencies.
+    jcenter()
+}
+
+dependencies {
+    compile 'org.abego.treelayout:org.abego.treelayout.core:1.0.3'
+    antlr   'org.antlr:antlr4:4.5.1-1'
+    runtime 'org.antlr:antlr4-runtime:4.5.1-1'
+}
+
+// Override default srcDirs for the main source set.
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/ordt/annotate',
+		       'src/ordt/extract',
+		       'src/ordt/output',
+		       'src/ordt/parameters',
+		       //XXX There is probably a variable that contains this path.
+	               'build/generated-src/antlr/main']
+        }
+	antlr {
+	    srcDirs = ['src/ordt/parse/grammars']
+	}
+    }
+}
+
+// If MyDebugController.java does not exist, then make a copy of
+// MyDebugController.example. If it already exists, then we assume that
+// it might have local edits.It won't be overwritten even if the example file
+// is newer.
+// Use the distclean target to remove the local copy of MyDebugController.java.
+task copyMyDebugController {
+    doLast {
+	if (!file('src/ordt/extract/MyDebugController.java').exists()) {
+	    exec {
+		commandLine 'cp', 'src/ordt/extract/MyDebugController.example', 
+		            'src/ordt/extract/MyDebugController.java'
+	    }
+	}
+    }
+}
+
+compileJava.dependsOn(copyMyDebugController)
+
+// Remove extra package line in some of the generated parser files.
+// antlr outputs all @header sections when another grammar is imported.
+generateGrammarSource.doLast {
+    FileTree tree = fileTree(dir: outputDirectory, include: '**/SystemRDL*.java')
+    tree.each {File file ->
+	exec {
+	    commandLine "sed", "-i", "-e", "/package ordt\\.parse\\.parameters/d", file
+	}
+    }
+}
+
+shadowJar {
+    baseName = 'Ordt'
+    classifier = null
+    
+    manifest {
+	attributes 'Main-Class': 'ordt.extract.Ordt'
+    }
+
+    dependencies {
+	// The antlr plugin adds the entire library to the jar file,
+	// not just the runtime, so remove this dependency. The runtime
+	// library is named antlr4-runtime, so it won't be affected by
+	// this exclude rule.
+	exclude(dependency('org.antlr:antlr4:.*'))
+    }
+}
+
+task distclean {
+    dependsOn clean
+
+    doLast {
+	exec {
+	    commandLine 'rm', '-f', 'src/ordt/extract/MyDebugController.java'
+	}
+    }
+}
