@@ -26,5 +26,6 @@ hs_err_pid*
 /rdl/
 
 # gradle stuff
-.gradle
-!gradle/wrapper/*.jar
+/.gradle/
+!/gradle/wrapper/*.jar
+/build/
