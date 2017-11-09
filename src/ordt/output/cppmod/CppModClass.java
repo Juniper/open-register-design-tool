@@ -135,7 +135,7 @@ public class CppModClass extends CppBaseModClass {
 	   nMethod = newClass.addMethod(Vis.PUBLIC, "virtual void read(ordt_data &rdata)");  
 	   newClass.tagMethod("read", nMethod);  // tag this method so field info can be appended
 	   nMethod.addStatement("rdata.clear();");
-	   nMethod.addStatement("for (int widx=0; widx<((m_endaddress - m_startaddress + 1)/4); widx++) rdata.push_back(0);");
+	   nMethod.addStatement("for (uint64_t widx=0; widx<((m_endaddress - m_startaddress + 1)/4); widx++) rdata.push_back(0);");
 	   return newClass;
    }
 
