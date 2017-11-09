@@ -443,7 +443,7 @@ public class CppModBuilder extends OutputBuilder {
 		writeStmt(hppBw, 0, "int ordt_addr_elem_array<T>::write(const uint64_t &addr, const ordt_data &wdata) {");
 		//writeStmt(hppBw, 0, "   std::cout << \"addr_elem array write: ---- addr=\"<< addr << \", data=\" << wdata.to_string() << \"\\n\";");
 		writeStmt(hppBw, 0, "   if (this->containsAddress(addr)) {");
-		writeStmt(hppBw, 0, "      int idx = (addr - m_startaddress) / m_stride;");
+		writeStmt(hppBw, 0, "      uint64_t idx = (addr - m_startaddress) / m_stride;");
 		//writeStmt(hppBw, 0, "      std::cout << \"addr_elem array write: array contains addr=\" << addr << \" at idx=\" << idx << \"\\n\";");
 		writeStmt(hppBw, 0, "      if (idx < this->size()) return this->at(idx).write(addr, wdata);");
 		writeStmt(hppBw, 0, "   }");
@@ -458,7 +458,7 @@ public class CppModBuilder extends OutputBuilder {
 		writeStmt(hppBw, 0, "int ordt_addr_elem_array<T>::read(const uint64_t &addr, ordt_data &rdata) {");
 		//writeStmt(hppBw, 0, "   std::cout << \"addr_elem array read: ---- addr=\"<< addr << \", start=\" << m_startaddress << \", end=\" << m_endaddress<< \", stride=\" << m_stride<< \"\\n\";");
 		writeStmt(hppBw, 0, "   if (this->containsAddress(addr)) {");
-		writeStmt(hppBw, 0, "      int idx = (addr - m_startaddress) / m_stride;");
+		writeStmt(hppBw, 0, "      uint64_t idx = (addr - m_startaddress) / m_stride;");
 		//writeStmt(hppBw, 0, "      std::cout << \"addr_elem array read: array contains addr=\" << addr << \" at idx=\" << idx << \", array size=\" << this->size() << \"\\n\";");
 		writeStmt(hppBw, 0, "      if (idx < this->size()) return this->at(idx).read(addr, rdata);");
 		writeStmt(hppBw, 0, "   }");
