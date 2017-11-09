@@ -35,8 +35,12 @@ Changes:
 */
 
 grammar SystemRDL;
+
 import ExtParms;
 
+@header {
+  package ordt.parse.systemrdl;
+}
 
 @lexer::members {
   private static java.util.Set<String> userDefinedProperties = new java.util.HashSet<String>();

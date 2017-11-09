@@ -24,3 +24,8 @@ hs_err_pid*
 /test/**/output/
 /test/scripts/test.setup
 /rdl/
+
+# gradle stuff
+/.gradle/
+!/gradle/wrapper/*.jar
+/build/

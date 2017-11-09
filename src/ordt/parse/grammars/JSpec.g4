@@ -6,6 +6,10 @@ Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
 
 grammar JSpec;
 
+@header {
+  package ordt.parse.jspec;
+}
+
 @lexer::members {
   private static java.util.Set<String> userDefinedParameters = new java.util.HashSet<String>();
 

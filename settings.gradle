@@ -1,0 +1,5 @@
+// Gradle settings file for ordt
+
+// Explicitly define the project name.
+// Otherwise, gradle infers it from the directory name.
+rootProject.name = 'ordt'

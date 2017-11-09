@@ -366,14 +366,14 @@ public class CppBaseModClass {
 		nMethod = newClass.addMethod(Vis.PUBLIC, "std::string to_string() const");
 		nMethod.addStatement("std::stringstream ss;");
 		nMethod.addStatement("ss << \"{\" << std::hex << std::showbase;");
-		nMethod.addStatement("for (int idx=this->size() - 1; idx >= 0; idx--) ");
+		nMethod.addStatement("for (size_t idx=this->size() - 1; idx >= 0; idx--) ");
 		nMethod.addStatement("   ss << \" \" << this->at(idx);");
 		nMethod.addStatement("ss << \" }\";");
 		nMethod.addStatement("return ss.str();");
 		
 		// = overload
 		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data& operator=(const uint32_t rhs)");
-		//nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
+		//nMethod.addStatement("for (size_t idx=0; idx<this->size(); idx++) ");
 		//nMethod.addStatement("   this->at(idx) = rhs;");
 		nMethod.addStatement("   this->assign(this->size(), rhs);");
 		nMethod.addStatement("return *this;");
@@ -381,14 +381,14 @@ public class CppBaseModClass {
 		// ~ overload
 		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data operator~()");
 		nMethod.addStatement("ordt_data temp;");
-		nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
+		nMethod.addStatement("for (size_t idx=0; idx<this->size(); idx++) ");
 		nMethod.addStatement("   temp.at(idx) = ~ this->at(idx);");
 		nMethod.addStatement("return temp;");
 		
 		// & overload
 		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data operator&(const ordt_data& rhs)");
 		nMethod.addStatement("ordt_data temp;");
-		nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
+		nMethod.addStatement("for (size_t idx=0; idx<this->size(); idx++) ");
 		nMethod.addStatement("   if (idx < rhs.size()) temp.at(idx) = this->at(idx) & rhs.at(idx);");
 		nMethod.addStatement("   else temp.at(idx) = 0;");
 		nMethod.addStatement("return temp;");
@@ -396,7 +396,7 @@ public class CppBaseModClass {
 		// | overload
 		nMethod = newClass.addMethod(Vis.PUBLIC, "ordt_data operator|(const ordt_data& rhs)");
 		nMethod.addStatement("ordt_data temp;");
-		nMethod.addStatement("for (int idx=0; idx<this->size(); idx++) ");
+		nMethod.addStatement("for (size_t idx=0; idx<this->size(); idx++) ");
 		nMethod.addStatement("   if (idx < rhs.size()) temp.at(idx) = this->at(idx) | rhs.at(idx);");
 		nMethod.addStatement("   else temp.at(idx) = this->at(idx);");
 		nMethod.addStatement("return temp;");

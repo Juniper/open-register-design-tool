@@ -4,6 +4,10 @@
 
 grammar ExtParms;
 
+@header {
+  package ordt.parse.parameters;
+}
+
 ext_parms_root
   :  ext_parm_defs
      EOF
