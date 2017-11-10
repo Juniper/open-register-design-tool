@@ -16,6 +16,13 @@ hs_err_pid*
 /info/output/
 /.classpath
 /.project
+# allow shadow copy of generated antlr output so packages work w/ eclipse build
+/src/ordt/parse/jspec/
+/src/ordt/parse/parameters/
+/src/ordt/parse/systemrdl/
+
+# keep user-specific MyDebugController out of repo
+/src/ordt/extract/MyDebugController.java
 
 # vim temp
 *.sw?
