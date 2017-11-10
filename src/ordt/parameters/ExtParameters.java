@@ -288,7 +288,6 @@ public class ExtParameters extends ExtParmsBaseListener  {
         	walker.walk(inParms, tree); // initiate walk of tree with listener
         	if (parser.getNumberOfSyntaxErrors() > 0) {
         		Ordt.errorExit("Parameter file parser errors detected.");  
-        		System.exit(8);
         	}
         	
         	//root.display(true);

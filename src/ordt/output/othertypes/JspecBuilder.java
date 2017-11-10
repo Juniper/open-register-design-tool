@@ -116,7 +116,7 @@ public class JspecBuilder extends OutputBuilder {
 				outputList.add(new OutputLine(indentLvl, ""));					
 			}
 		}
-		else { System.err.println("register "+ regProperties.getInstancePath() + " is neither readable nor writeable"); System.exit(0); }
+		else { Ordt.errorExit("register "+ regProperties.getInstancePath() + " is neither readable nor writeable"); }
 	}
 
 	@Override

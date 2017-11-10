@@ -98,7 +98,6 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
         	walker.walk(this, tree); // initiate walk of tree with listener
         	if (parser.getNumberOfSyntaxErrors() > 0) {
         		Ordt.errorExit("RDL parser errors detected.");  
-        		System.exit(8);
         	}
         	
         	// if components are specified for processing, find each and create an instance  

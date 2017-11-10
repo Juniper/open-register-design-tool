@@ -101,7 +101,6 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
         	walker.walk(this, tree); // initiate walk of tree with listener
         	if (parser.getNumberOfSyntaxErrors() > 0) {
         		Ordt.errorExit("Jspec parser errors detected.");  
-        		System.exit(8);
         	}
 
         	// if typedefs are specified for processing, find each and create an instance  

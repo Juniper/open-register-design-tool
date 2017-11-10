@@ -31,7 +31,7 @@ import ordt.parameters.ExtParameters.UVMModelModes;
 
 public class Ordt {
 
-	private static String version = "171109.01"; 
+	private static String version = "171110.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -49,6 +49,10 @@ public class Ordt {
 	private static HashMap<String, OutputType> outputArgs = new HashMap<String, OutputType>();
 	
     private static RegModelIntf model;
+    
+    private static int returnCode = 0;
+    private final static int ERROR_EXIT_RC = 8;
+    private final static int ERROR_CONTINUE_RC = 4;
 
 	/**
 	 * @param args
@@ -113,6 +117,7 @@ public class Ordt {
         	}
 
 	    	System.out.println("Ordt complete " + new Date());
+	    	System.exit(returnCode);
 		} catch (Exception e) {
 			//errorMessage("Read of rdl file " + inputFile + " failed");
 			e.printStackTrace();
@@ -377,14 +382,15 @@ public class Ordt {
 
 	/** display error message */
 	public static void errorMessage(String msg) {
-		System.err.println("*** ERROR ***: " + msg);		
+		System.err.println("*** ERROR ***: " + msg);
+		returnCode = ERROR_CONTINUE_RC;
 	}
 
 	/** display error message and exit */
 	public static void errorExit(String msg) {
 		errorMessage(msg);	
     	System.out.println("Ordt exited due to error " + new Date());
-		System.exit(8);
+		System.exit(ERROR_EXIT_RC);
 	}
 
 	/** return ordt version */
