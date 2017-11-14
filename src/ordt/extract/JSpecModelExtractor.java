@@ -127,8 +127,10 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
    	    // if only one typedef then just add it to root
 		if (typedefNames.size() == 1) {
 			String typedefName = typedefNames.get(0);
-			ModComponent processComp = root.findLocalCompDef(typedefName);
+			ModComponent processComp = root.findLocalCompDef(typedefName);  
     		if (processComp != null) {
+    			// tag as addrmap if specified
+    			if (ExtParameters.jspecRootRegsetIsAddrmap()) processComp.setCompType(CompType.ADDRMAP);  // TODO - force to addrmap here if specified
     			// add root enums to new root component
     			//processComp.setCompEnumList(root.getCompEnumList());
     			// create a modInstance

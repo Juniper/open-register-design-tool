@@ -11,9 +11,9 @@ global {
 
 // jspec input parameters
 input jspec {
-	root_regset_is_addrmap = true   // root component will be created as an addrmap rather than a regfile/regset (not if typedef)
+	root_regset_is_addrmap = true   // root component will be created as an addrmap rather than a regfile/regset
 	//root_is_external_decode = true   // root=true will be converted to external_decode property?
-	process_typedef = "new_typedef"   // process this typedef 
+	process_typedef = "ea_fo"   // process this typedef 
 }
 
 // rdl input parameters  
@@ -107,7 +107,7 @@ output xml {
 }
 
 // model annotation commands
-annotate {
+//annotate {
   //set_reg_property cppmod_prune = "true" instances "foo.bar.*" // set parameter on all matching registers
   //set_field_property cppmod_prune = "true" instances "ltpn"      // set parameter on all matching fields
   //set_reg_property external = "DEFAULT" instances "sram" // set parameter on all matching registers
@@ -115,11 +115,11 @@ annotate {
   //set_reg_property uvmreg_prune = "true" instances "cntl" // set parameter on all register instances named cntl
   //set_reg_property uvmreg_prune = "true" instances "base_map.eng1.**" // set parameter on all register instances under eng1 instance
   //set_reg_property uvmreg_prune = "true" instances "*.eng1.**" // set parameter on all register instances under eng1 instance 
-  //set_regset_property default uvmreg_prune = "true" instances "e1" // set parameter on all register instances with name e1
+  //set_regset_property desc = "stuff" instances "fo.str"
   //set_regset_property default uvmreg_prune = "true" components "assist_engine_1" // set parameter on all register instances with component name assist_engine_1
-  set_reg_property uvmreg_prune = "true" components "*.assist_engine_1.**" // set parameter on all register instances with component path *.assist_engine_1.** 
+  //set_reg_property uvmreg_prune = "true" components "*.assist_engine_1.**" // set parameter on all register instances with component path *.assist_engine_1.** 
   //set_fieldset_property use_new_interface = "true" instances "foo.blabla.*" // set parameter on all matching fieldsets
-}
+//}
 
 // testbench output parameters
 //output bench {
