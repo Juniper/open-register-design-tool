@@ -1339,7 +1339,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		String byteWidthString = "<MAX_REG_BYTE_WIDTH>"; 
 		if (mapWidthOverride != null) byteWidthString = mapWidthOverride.toString();
 		
-		// if base block then include in base address offset
+		// if base block then include in map with base address offset and set hdl path
 		Boolean isBaseBlock = block.equals("");
 		String endianness = "UVM_LITTLE_ENDIAN";
 		if (isBaseBlock) {
@@ -1392,9 +1392,6 @@ public class UVMRegsBuilder extends OutputBuilder {
 			}	// while	
 		}
 				
-		// if an address map, set hdl path base
-		if (!isMemWrapper && (isBaseBlock || regSetProperties.isAddressMap()))  // TODO - does this work for child addrmaps? 
-			outputList.add(new OutputLine(indentLvl, "set_hdl_path_root({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});"));
 		// now that all subcomponents have been built, add callbacks
 		if (!isMemWrapper && isBaseBlock)
 			outputList.add(new OutputLine(indentLvl, "this.add_callbacks();"));

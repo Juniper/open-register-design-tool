@@ -385,6 +385,7 @@ public class UVMRdlClasses extends UVMRegsCommon {
 		func.addComment("Set the root hdl path to the address map module that this block represents.");	
 		func.addIO("input", "string", "path", "\"\"");
 		func.addStatement("m_rdl_address_map_hdl_path = path;");
+		func.addStatement("this.set_hdl_path_root(path);");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// add rdl path gen methods
