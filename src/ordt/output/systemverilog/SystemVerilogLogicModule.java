@@ -485,7 +485,8 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		   
 		   // if an incr is specified
 		   if (fieldProperties.isIncrCounter()) {
-			   
+			   //if (fieldProperties.getInstancePath().contains("reg4")) System.out.println("SystemVerilogBuilder genCounterWriteStmts: " + fieldProperties.getInstancePath() + " is an incr counter");
+
 			   // add overflow output
 			   if (fieldProperties.hasOverflow()) {
 				   addHwScalar(DefSignalType.L2H_OVERFLOW);   // add hw overflow output

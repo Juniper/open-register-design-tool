@@ -393,10 +393,12 @@ public class FieldProperties extends InstanceProperties {
 			   decrSizeDefined=true;
 			}
 
-			// if no count value is specified default to increment/decrement by 1
-			if ( !incrSizeDefined ) 
+			// if no count value is specified default to increment by 1 (non-null also sets incr state)
+			boolean notADecrCounter = pList.hasTrueProperty("counter") && !(pList.hasProperty("decr") || decrSizeDefined); 
+			if ( !incrSizeDefined && (pList.hasProperty("incr") || notADecrCounter))  // also default to incr if no incr/decr is specified
 				setIncrValue(new RegNumber("1'b1"));   // use 1 as default value
-			
+
+			// if no count value is specified default to decrement by 1 (non-null also sets decr state)
 			if ( pList.hasProperty("decr") && !decrSizeDefined ) 
 				setDecrValue(new RegNumber("1'b1"));   // use 1 as default value
 			
