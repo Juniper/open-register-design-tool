@@ -14,6 +14,7 @@ import ordt.extract.RegNumber.NumFormat;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
+import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.output.AddressableInstanceProperties;
 //import ordt.output.RegProperties;
 import ordt.parameters.ExtParameters;
@@ -62,6 +63,20 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 	public List<AddressableInstanceProperties> getDecodeList() {
 		return decoderList;
+	}
+
+	// -------------------------- IO list helper methods ----------------------------
+	
+	/** add a new scalar IO signal to the hw list based on sigType */
+	public void addHwScalar(DefSignalType sigType) {
+		this.addHwVector(sigType, 0, 1);
+	}
+
+	/** add a new vector IO signal  to the hw list based on sigType */
+	public void addHwVector(DefSignalType sigType, int lowIndex, int size) {
+		SystemVerilogIOSignalList sigList = ioHash.get(SystemVerilogBuilder.HW);  // get the hw siglist
+		if (sigList == null) return;
+		sigList.addVector(sigType, lowIndex, size); 
 	}
 
 	// ------------------------------ decoder pio interface methods -------------------------------
@@ -2517,9 +2532,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// if not optimized interface or writeable then add write external data/wr outputs
 		if (!useAckStateMachine || addrInstProperties.isSwWriteable()) {
-			this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwName, 0, addrInstProperties.getMaxRegWidth());    // add write data to decode to hw signal list 
-			if (hasWriteEnables()) this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwEnableName, 0, addrInstProperties.getWriteEnableWidth());    // add write data to decode to hw signal list 
-			this.addSimpleScalarTo(SystemVerilogBuilder.HW, decodeToHwWeName);
+			this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwName, 0, addrInstProperties.getMaxRegWidth());    // add write data to decode to hw signal list // TODO - interface encap fix
+			//this.addHwVector(DefSignalType.D2H_DATA, 0, addrInstProperties.getMaxRegWidth());    // add write data to decode to hw signal list
+			if (hasWriteEnables()) this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwEnableName, 0, addrInstProperties.getWriteEnableWidth());    // add write data to decode to hw signal list // TODO - interface encap fix
+			//if (hasWriteEnables()) this.addHwVector(DefSignalType.D2H_ENABLE, 0, addrInstProperties.getWriteEnableWidth());    // add write data to decode to hw signal list
+			this.addSimpleScalarTo(SystemVerilogBuilder.HW, decodeToHwWeName);     // TODO - interface encap fix
+			//this.addHwScalar(DefSignalType.D2H_WE);
 			if (!useAckStateMachine) this.addWireAssign(decodeToHwWeName + " = " + extIf.decodeToHwWeName +  ";");
 			else this.addScalarReg(decodeToHwWeName); 
 			this.addWireAssign(decodeToHwName + " = " + extIf.decodeToHwName +  ";");
@@ -2530,17 +2548,20 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorWire(extIf.hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());
 		int regWordBits = Utils.getBits(addrInstProperties.getMaxRegWordWidth());
 		if (!useAckStateMachine || addrInstProperties.isSwReadable()) {
-			this.addSimpleScalarTo(SystemVerilogBuilder.HW, decodeToHwReName);     
-			this.addSimpleVectorFrom(SystemVerilogBuilder.HW, hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());    // add read data to hw to decode signal list 
+			this.addSimpleScalarTo(SystemVerilogBuilder.HW, decodeToHwReName);       // TODO - interface encap fix 
+			//this.addHwScalar(DefSignalType.D2H_RE);
+			this.addSimpleVectorFrom(SystemVerilogBuilder.HW, hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());    // add read data to hw to decode signal list // TODO - interface encap fix 
+			//this.addHwVector(DefSignalType.H2D_DATA, 0, addrInstProperties.getMaxRegWidth());    // add read data to hw to decode signal list
 			if (!useAckStateMachine) this.addWireAssign(decodeToHwReName + " = " + extIf.decodeToHwReName +  ";");
 			else this.addScalarReg(decodeToHwReName);        
 			this.addWireAssign(extIf.hwToDecodeName + " = " + hwToDecodeName +  ";");   
 		}
 		else { // otherwise tie off read data input
-			this.addWireAssign(extIf.hwToDecodeName + " = " + regWordBits + "'b0;");   
+			this.addWireAssign(extIf.hwToDecodeName + " = " + addrInstProperties.getMaxRegWidth() + "'b0;");   
 		}
 		
-		this.addSimpleScalarFrom(SystemVerilogBuilder.HW, hwToDecodeAckName);     // ack input is always needed
+		this.addSimpleScalarFrom(SystemVerilogBuilder.HW, hwToDecodeAckName);     // ack input is always needed   // TODO - interface encap fix
+		//this.addHwScalar(DefSignalType.H2D_ACK);     // ack input is always needed
 
 		// use state machine if read/write limited (regs only), so need to gen nacks or is a reg
 	    if (useAckStateMachine) {
