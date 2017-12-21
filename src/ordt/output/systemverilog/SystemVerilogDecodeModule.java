@@ -2532,12 +2532,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// if not optimized interface or writeable then add write external data/wr outputs
 		if (!useAckStateMachine || addrInstProperties.isSwWriteable()) {
-			this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwName, 0, addrInstProperties.getMaxRegWidth());    // add write data to decode to hw signal list // TODO - interface encap fix
-			//this.addHwVector(DefSignalType.D2H_DATA, 0, addrInstProperties.getMaxRegWidth());    // add write data to decode to hw signal list
-			if (hasWriteEnables()) this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwEnableName, 0, addrInstProperties.getWriteEnableWidth());    // add write data to decode to hw signal list // TODO - interface encap fix
-			//if (hasWriteEnables()) this.addHwVector(DefSignalType.D2H_ENABLE, 0, addrInstProperties.getWriteEnableWidth());    // add write data to decode to hw signal list
-			this.addSimpleScalarTo(SystemVerilogBuilder.HW, decodeToHwWeName);     // TODO - interface encap fix
-			//this.addHwScalar(DefSignalType.D2H_WE);
+			this.addHwVector(DefSignalType.D2H_DATA, 0, addrInstProperties.getMaxRegWidth());    // add write data to decode to hw signal list
+			if (hasWriteEnables()) this.addHwVector(DefSignalType.D2H_ENABLE, 0, addrInstProperties.getWriteEnableWidth());    // add write data to decode to hw signal list
+			this.addHwScalar(DefSignalType.D2H_WE);
 			if (!useAckStateMachine) this.addWireAssign(decodeToHwWeName + " = " + extIf.decodeToHwWeName +  ";");
 			else this.addScalarReg(decodeToHwWeName); 
 			this.addWireAssign(decodeToHwName + " = " + extIf.decodeToHwName +  ";");
@@ -2548,10 +2545,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorWire(extIf.hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());
 		int regWordBits = Utils.getBits(addrInstProperties.getMaxRegWordWidth());
 		if (!useAckStateMachine || addrInstProperties.isSwReadable()) {
-			this.addSimpleScalarTo(SystemVerilogBuilder.HW, decodeToHwReName);       // TODO - interface encap fix 
-			//this.addHwScalar(DefSignalType.D2H_RE);
-			this.addSimpleVectorFrom(SystemVerilogBuilder.HW, hwToDecodeName, 0, addrInstProperties.getMaxRegWidth());    // add read data to hw to decode signal list // TODO - interface encap fix 
-			//this.addHwVector(DefSignalType.H2D_DATA, 0, addrInstProperties.getMaxRegWidth());    // add read data to hw to decode signal list
+			this.addHwScalar(DefSignalType.D2H_RE);
+			this.addHwVector(DefSignalType.H2D_DATA, 0, addrInstProperties.getMaxRegWidth());    // add read data to hw to decode signal list
 			if (!useAckStateMachine) this.addWireAssign(decodeToHwReName + " = " + extIf.decodeToHwReName +  ";");
 			else this.addScalarReg(decodeToHwReName);        
 			this.addWireAssign(extIf.hwToDecodeName + " = " + hwToDecodeName +  ";");   
@@ -2560,8 +2555,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addWireAssign(extIf.hwToDecodeName + " = " + addrInstProperties.getMaxRegWidth() + "'b0;");   
 		}
 		
-		this.addSimpleScalarFrom(SystemVerilogBuilder.HW, hwToDecodeAckName);     // ack input is always needed   // TODO - interface encap fix
-		//this.addHwScalar(DefSignalType.H2D_ACK);     // ack input is always needed
+		this.addHwScalar(DefSignalType.H2D_ACK);     // ack input is always needed
 
 		// use state machine if read/write limited (regs only), so need to gen nacks or is a reg
 	    if (useAckStateMachine) {
@@ -2583,7 +2577,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				this.addWireAssign(validSizeCond + " = 1'b1;");  // not a wide reg space, so always valid
 			
 	    	// add nack input if override specified
-			if (keepNack) this.addSimpleScalarFrom(SystemVerilogBuilder.HW, hwToDecodeNackName); 
+			if (keepNack) this.addHwScalar(DefSignalType.H2D_NACK);
 			
 			// generate validReadCond - nack on addr out of range or if not readable
 			String validReadCond = "par_" + addrInstProperties.getBaseName() + "_valid_read"; 
@@ -2618,7 +2612,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				int shiftBits = Utils.isPowerOf2(addrInstProperties.getMaxRegWordWidth())? Utils.getBits(addrInstProperties.getMaxRegWordWidth()) : 0;
 				int newAddrWidth = addrInstProperties.getExtAddressWidth() - shiftBits;
 				int newLowBit = addrInstProperties.getExtLowBit() + shiftBits;
-				this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwAddrName, 0, newAddrWidth); 
+				this.addHwVector(DefSignalType.D2H_ADDR, 0, newAddrWidth);
 				String arrayStr = (addrInstProperties.getExtAddressWidth()>1)? SystemVerilogSignal.genRefArrayString(newLowBit, newAddrWidth) : "";
 				this.addWireAssign(decodeToHwAddrName + " = " + extIf.decodeToHwAddrName + arrayStr + ";");  
 			    //System.out.println("SystemVerilogDecodeModule generateExternalInterface_PARALLEL: " + addrInstProperties.getId() + ", reps=" + addrInstProperties.getRepCount()+ ", regbwidth=" + addrInstProperties.getMaxRegByteWidth() + ", shiftBits=" + shiftBits );
@@ -2636,7 +2630,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	    // otherwise use basic parallel interface
 	    else {
 	    	// add nack input
-			this.addSimpleScalarFrom(SystemVerilogBuilder.HW, hwToDecodeNackName); 
+			this.addHwScalar(DefSignalType.H2D_NACK);
 
 			// create internal interface signals 
 			this.addScalarWire(extIf.hwToDecodeAckName);
@@ -2647,15 +2641,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 			// if size of external range is greater than one reg we'll need an external address  
 			if (extIf.hasAddress) {  
-				this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwAddrName, addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth()); 
+				this.addHwVector(DefSignalType.D2H_ADDR, addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());
 				this.addWireAssign(decodeToHwAddrName + " = " + extIf.decodeToHwAddrName +  ";");  
 			}
 
 			// if size of max pio transaction is greater than one word need to add transaction size/retry info 
 			if (extIf.hasSize) { 
-				this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToHwTransactionSizeName, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));     
+				this.addHwVector(DefSignalType.D2H_SIZE, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));
 				this.addWireAssign(decodeToHwTransactionSizeName + " = " + extIf.decodeToHwTransactionSizeName +  ";");
-				this.addSimpleVectorFrom(SystemVerilogBuilder.HW, hwToDecodeTransactionSizeName, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));     
+				this.addHwVector(DefSignalType.H2D_RETSIZE, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));
 				this.addVectorWire(extIf.hwToDecodeTransactionSizeName, 0, regWordBits);
 				this.addWireAssign(extIf.hwToDecodeTransactionSizeName + " = " + hwToDecodeTransactionSizeName +  ";");
 			}	

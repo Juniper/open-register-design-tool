@@ -373,11 +373,15 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   }
 		   
 		   decoder.addToDecode(regProperties);    // put external reg info on address list for decoder gen 
-		   
-		   startIOHierarchy(regProperties);  // if an interface is specified add it
 
-		   //System.out.println("SystemVerilogBuilder.addRootExternalRegisters, inst=" + regProperties.getInstancePath() + ", isAddressMap=" + regProperties.isAddressMap() + ", baseAddress=" + regProperties.getBaseAddress());
-		   //System.out.println("    SystemVerilogBuilder.addRootExternalRegisters, regset inst=" + regSetProperties.getInstancePath() + ", regset isAddressMap=" + regSetProperties.isAddressMap());
+		   // for now, inhibit encap of all except PARALLEL
+		   if (!regProperties.hasExternalType(ExtType.PARALLEL) && (regProperties.useInterface() || regProperties.useStruct())) {
+			   regProperties.setUseInterface(false);regProperties.setUseStruct(false);
+			   Ordt.warnMessage("Interface and structure encaps are not currently supported on non-PARALLEL external interfaces, inst= " + regProperties.getInstancePath());
+		   }
+		   startIOHierarchy(regProperties, true);  // if an interface is specified add it with single rep override
+
+		   //System.out.println("SystemVerilogBuilder.addRootExternalRegisters, inst=" + regProperties.getInstancePath() + ", isAddressMap=" + regProperties.isAddressMap() + ", baseAddress=" + regProperties.getBaseAddress() + ", useInterface=" + regProperties.useInterface());
 		   
 		   // if an addrmap create a new VerilogBuilder at new root instance and push onto list
 		   if (ExtParameters.sysVerGenerateChildAddrmaps() && regProperties.isAddressMap()) {
@@ -565,8 +569,13 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		top.addWireDefs(intSigList.getSignalList(LOGIC, DECODE));
 	}
 	
-	/** add IO hierarchy level */
-	private void startIOHierarchy(InstanceProperties properties) {
+	/** add IO hierarchy level
+	 * @param properties - InstanceProperties that will be used for name definition, etc
+	 * @param singleRep - if true, only a single rep of hierarchy level will be added to IO (overrides instance repCount)
+	 */
+	private void startIOHierarchy(InstanceProperties properties, boolean singleRep) {
+		// use repCount override if specified
+		int reps = singleRep? 1 : properties.getRepCount();
 		// if an interface, push intf type onto IO stack
 		if ((properties.useInterface() || properties.useStruct()) && !properties.isRootInstance()) {
 			usesInterfaces = true;
@@ -578,10 +587,15 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			String compId = properties.getExtractInstance().getRegComp().getId();
 			if ((compId != null) && compId.startsWith("aNON")) compId = null;
 			//System.out.println("SystemVerilogBuilder startIOHierarchy: " + properties.getInstancePath() + ", compId=" + compId + ", repCount=" + properties.getRepCount() + ", ExtInterfaceName=" + properties.getExtInterfaceName());
-			hwSigList.pushIOSignalSet(sType, properties.getNoRepId(), properties.getRepCount(), properties.isFirstRep(), properties.getExtInterfaceName(), compId);
+			hwSigList.pushIOSignalSet(sType, properties.getNoRepId(), reps, properties.isFirstRep(), properties.getExtInterfaceName(), compId);
 		}	
 		// otherwise a non-interface hierarchy level
-		else hwSigList.pushIOSignalSet(DefSignalType.SIGSET, properties.getNoRepId(), properties.getRepCount(), properties.isFirstRep(), null, null);
+		else hwSigList.pushIOSignalSet(DefSignalType.SIGSET, properties.getNoRepId(), reps, properties.isFirstRep(), null, null);
+	}
+	
+	/** add IO hierarchy level (no singleRep override) */
+	private void startIOHierarchy(InstanceProperties properties) {
+		startIOHierarchy(properties, false);
 	}
 
 	/** close out active IO hierarchy level */
