@@ -13,7 +13,7 @@ global {
 input jspec {
 	root_regset_is_addrmap = true   // root component will be created as an addrmap rather than a regfile/regset
 	//root_is_external_decode = true   // root=true will be converted to external_decode property?
-	process_typedef = "ea_fo"   // process this typedef 
+	//process_typedef = "ea_fo"   // process this typedef 
 }
 
 // rdl input parameters  
