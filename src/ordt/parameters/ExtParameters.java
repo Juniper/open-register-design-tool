@@ -45,7 +45,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	
 	// enums for non-standard parameter types
 	public enum SVBlockSelectModes { INTERNAL, EXTERNAL, ALWAYS } 
-	public enum SVDecodeInterfaceTypes { NONE, LEAF, SERIAL8, RING8, RING16, RING32, PARALLEL, ENGINE1} 
+	public enum SVDecodeInterfaceTypes { NONE, LEAF, SERIAL8, RING8, RING16, RING32, PARALLEL, PARALLEL_PULSED, ENGINE1} 
 	public enum SVChildInfoModes { PERL, MODULE } 
 	public enum UVMModelModes { HEAVY, LITE1, TRANSLATE1 } 
 	
@@ -462,6 +462,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 			else if (value.equals("ring8")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.RING8;
 			else if (value.equals("ring16")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.RING16;
 			else if (value.equals("ring32")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.RING32;
+			else if (value.equals("parallel_pulsed")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.PARALLEL_PULSED;
 			else sysVerRootDecoderInterface = SVDecodeInterfaceTypes.PARALLEL;  // parallel interface is default
 		}
 		else if (name.equals("secondary_decoder_interface")) {  
@@ -471,6 +472,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 			else if (value.equals("ring16")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.RING16;
 			else if (value.equals("ring32")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.RING32;
 			else if (value.equals("parallel")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.PARALLEL;
+			else if (value.equals("parallel_pulsed")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.PARALLEL_PULSED;
 			else if (value.equals("engine1")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.ENGINE1;
 			else sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.NONE;  // no interface is default
 		}

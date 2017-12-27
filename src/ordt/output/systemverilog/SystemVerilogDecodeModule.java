@@ -135,7 +135,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.RING8)) this.genRingPioInterface(8, topRegProperties, true);
 		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.RING16)) this.genRingPioInterface(16, topRegProperties, true);
 		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.RING32)) this.genRingPioInterface(32, topRegProperties, true);
-		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.PARALLEL)) this.genParallelPioInterface(topRegProperties, true);
+		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.PARALLEL)) this.genParallelPioInterface(topRegProperties, true, false);
+		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.PARALLEL_PULSED)) this.genParallelPioInterface(topRegProperties, true, true);
 		else {
 			String instStr = (topRegProperties == null)? "root" : topRegProperties.getInstancePath();
 			Ordt.errorExit("invalid decoder primary interface type specified for addrmap instance " + instStr);
@@ -151,7 +152,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING8)) this.genRingPioInterface(8, topRegProperties, false);
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING16)) this.genRingPioInterface(16, topRegProperties, false);
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING32)) this.genRingPioInterface(32, topRegProperties, false);
-		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.PARALLEL)) this.genParallelPioInterface(topRegProperties, false);
+		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.PARALLEL)) this.genParallelPioInterface(topRegProperties, false, false);
+		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.PARALLEL_PULSED)) this.genParallelPioInterface(topRegProperties, false, true);
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.ENGINE1)) this.genEngine1Interface(topRegProperties);
 		else {
 			String instStr = (topRegProperties == null)? "root" : topRegProperties.getInstancePath();
@@ -564,8 +566,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 	}
 
-	/** add parallel interface signals (internal intf signals passed thru to interface) */
-	private void genParallelPioInterface(AddressableInstanceProperties topRegProperties, boolean isPrimary) {
+	/** add parallel interface signals (internal intf signals passed thru to interface)
+	 * @param pulseControls - if true, incoming read and write control IOs are assumed to be single pulse
+	 */
+	private void genParallelPioInterface(AddressableInstanceProperties topRegProperties, boolean isPrimary, boolean pulseControls) {
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with parallel interface, id=" + topRegProperties.getInstancePath());
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
@@ -638,8 +642,23 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addWireAssign(pioInterfaceWriteDataName + " = " + ioWriteDataName + ";");
 		if (hasWriteEnables()) this.addWireAssign(pioInterfaceWriteEnableName + " = " + ioWriteEnableName + ";");
 		if (builder.getMaxRegWordWidth() > 1) this.addWireAssign(pioInterfaceTransactionSizeName + " = " + ioTransactionSizeName + ";");
+		
+		// if pulsed controls are specified, generate internal level-based controls
+		String levelIoReName = ioReName + "_lvl";
+		String levelIoWeName = ioWeName + "_lvl";
+		if (pulseControls) {
+			String groupName = getGroupPrefix(isPrimary) + "parallel pulsed i/f signals";  
+			this.addScalarReg(levelIoReName);   
+			this.addResetAssign(groupName, builder.getDefaultReset(), levelIoReName + " <= #1  1'b0;");  
+			this.addScalarReg(levelIoWeName);   
+			this.addResetAssign(groupName, builder.getDefaultReset(), levelIoWeName + " <= #1  1'b0;");  
+			this.addRegAssign(groupName,  levelIoReName + " <= #1  " + ioReName  + " | (" + levelIoReName + " & ~(" + pioInterfaceAckName + " | " + pioInterfaceNackName + "));");
+			this.addRegAssign(groupName,  levelIoWeName + " <= #1  " + ioWeName  + " | (" + levelIoWeName + " & ~(" + pioInterfaceAckName + " | " + pioInterfaceNackName + "));");
+		}
 		// generate re/we assigns - use delayed versions if this is a single primary
-		assignReadWriteRequests(ioReName, ioWeName, pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());
+		String activeIoReName = pulseControls? levelIoReName : ioReName;
+		String activeIoWeName = pulseControls? levelIoWeName : ioWeName;
+		assignReadWriteRequests(activeIoReName, activeIoWeName, pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());
 		
 		// assign output IOs to internal interface
 		if (builder.getMaxRegWordWidth() > 1) this.addWireAssign(ioRetTransactionSizeName + " = " + pioInterfaceRetTransactionSizeName + ";");	
