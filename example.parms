@@ -60,6 +60,7 @@ output systemverilog {
        //add_sync_stages "*_o" 2 newClk // add 2 stage syncronizer to these outputs w/ new clock
        //add_sync_stages "*_o" 2 newClk mySyncModule // add 2 stage syncronizer to these outputs w/ new clock and module override
     //}
+    separate_iwrap_encap_files = true // generate a separate file for each wrap encap (interface/struct) type
 }
 
 // jspec output parameters

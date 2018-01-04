@@ -144,6 +144,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("nack_partial_writes", false); 
 		initIntegerParameter("write_enable_size", 0); 	
 		initIntegerParameter("max_internal_reg_reps", defaultMaxInternalRegReps); 	
+		initBooleanParameter("separate_iwrap_encap_files", false); 
 		
 		// ---- rdl output defaults
 		initBooleanParameter("root_component_is_instanced", true); 
@@ -772,7 +773,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static LinkedHashMap<String, WrapperRemapXform> sysVerWrapperXformMap() {
 		return xformMap;
 	}
-	
+
+	public static boolean sysVerSeparateIwrapEncapFiles() {
+		return getBooleanParameter("separate_iwrap_encap_files");
+	}
+
 	// bench parameter getters
 
 	public static Boolean sysVerGenerateExternalRegs() {

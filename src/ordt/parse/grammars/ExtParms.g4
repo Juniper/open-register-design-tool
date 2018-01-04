@@ -149,6 +149,7 @@ ext_parm_defs
    | 'nack_partial_writes' EQ bool
    | 'write_enable_size' EQ NUM
    | 'max_internal_reg_reps' EQ NUM
+   | 'separate_iwrap_encap_files' EQ bool
    ;
    
  systemverilog_wrapper_info
