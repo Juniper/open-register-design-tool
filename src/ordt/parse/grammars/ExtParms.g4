@@ -2,6 +2,10 @@
 //
 // Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
 
+/*
+- added js_repeat_max property
+*/
+
 grammar ExtParms;
 
 @header {
@@ -149,7 +153,7 @@ ext_parm_defs
    | 'nack_partial_writes' EQ bool
    | 'write_enable_size' EQ NUM
    | 'max_internal_reg_reps' EQ NUM
-   | 'separate_iwrap_encap_files' EQ bool
+   | 'separate_iwrap_encap_files' EQ bool 
    ;
    
  systemverilog_wrapper_info
@@ -378,6 +382,7 @@ ext_parm_defs
   | 'js_macro_name'   // added
   | 'js_macro_mode'   // added
   | 'js_namespace'   // added
+  | 'js_repeat_max'   // added
   | 'js_typedef_name'   // added   deprecate?
   | 'js_instance_name'   // added   deprecate?
   | 'js_instance_repeat'   // added   deprecate?

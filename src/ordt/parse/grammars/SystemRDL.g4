@@ -29,9 +29,10 @@ Changes:
 - added uvmreg_prune register property
 - added fieldstruct component type
 - added use_struct, use_new_struct properties for systemverilog IO interface encaps
-- added js_macro_name, js_macro_mode, js_namespece parms
+- added js_macro_name, js_macro_mode, js_namespace parms
 - implemented_rdl_property define is moved to ExtParams
 - allowed repeat define of same user property in parser - flagged as warn later
+
 */
 
 grammar SystemRDL;

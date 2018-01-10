@@ -40,6 +40,7 @@ public class DefinedProperties {
 		addProperty(newList, "use_new_interface", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.REGSET | DefinedProperty.REG |DefinedProperty.FIELD, false, false, false);
 		// reg + regset properties
 		addProperty(newList, "js_superset_check", DefinedPropertyType.CONSTANT, "", DefinedProperty.REGSET | DefinedProperty.REG, false, false, true); // js passthru
+		addProperty(newList, "js_repeat_max", DefinedPropertyType.NUMBER, "1", DefinedProperty.REGSET | DefinedProperty.REG, false, false, true); // js passthru
 		addProperty(newList, "external", DefinedPropertyType.SPECIAL, null, DefinedProperty.REGSET | DefinedProperty.REG, false, false, false);
 		addProperty(newList, "repcount", DefinedPropertyType.NUMBER, "1", DefinedProperty.REGSET | DefinedProperty.REG, true, false, false); // hidden
 		// regset only properties
