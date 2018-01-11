@@ -101,6 +101,12 @@ public class UVMRegsBuilder extends OutputBuilder {
 		if (reservedWords.contains(word)) return ("\\" + word + " ");
 		return word;
 	}
+	
+	/** clean up strings that will be passes into model */
+	protected static String cleanSysVerString(String str) {
+		String cleanStr = str.replaceAll("(\\r|\\n|\")", "");   // remove cr/lf/quotes
+		return cleanStr;
+	}
 
     //---------------------------- OutputBuilder methods to load structures ----------------------------------------
 
@@ -1232,17 +1238,17 @@ public class UVMRegsBuilder extends OutputBuilder {
 		PropertyList pList = instProperties.getUserDefinedProperties();
 		for (String name : pList.getProperties().keySet()) {
 			String value = (pList.getProperty(name) == null)? "" : pList.getProperty(name);
-			outputList.add(new OutputLine(indentLvl, "this." + instName +  ".add_def_property(\"" + name + "\", \"" + value + "\");")); 
+			outputList.add(new OutputLine(indentLvl, "this." + instName +  ".add_def_property(\"" + name + "\", \"" + cleanSysVerString(value) + "\");")); 
 		}
 	}
-	
+
 	/** add user defined property assigns (for regs, vregs, regsets) */
 	protected void addUserDefinedPropertyElements(String parentID, InstanceProperties instProperties, String instName) {
 		if (!instProperties.hasUserDefinedProperties()) return;  // done if no external properties
 		PropertyList pList = instProperties.getUserDefinedProperties();
 		for (String name : pList.getProperties().keySet()) {
 			String value = (pList.getProperty(name) == null)? "" : pList.getProperty(name);
-			subcompBuildList.addStatement(parentID, "  this." + instName + ".add_def_property(\"" + name + "\", \"" + value + "\");"); 
+			subcompBuildList.addStatement(parentID, "  this." + instName + ".add_def_property(\"" + name + "\", \"" + cleanSysVerString(value) + "\");"); 
 		}
 	}
 //				subcompBuildList.addStatement(parentID, "  this." + regId + "[i].set_external(1);");
