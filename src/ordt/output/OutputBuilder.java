@@ -215,8 +215,10 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			   fieldSetPropertyStack.push(fieldSetProperties);  // push active fieldset onto stack
 			   
 			   // inhibit child builder field call if external and not visiting externals
-			   if (!regProperties.isExternal() || visitExternalRegisters()) 
-			       addFieldSet();
+			   if (visitEachReg() || (regProperties.isFirstRep() && firstRegSetRep())) { // qualify add calls by valid register options	
+				   if (!regProperties.isExternal() || visitExternalRegisters()) 
+				       addFieldSet();
+			   }
 			}
 	}
 
@@ -226,9 +228,11 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	public void finishFieldSet(FieldSetProperties fsProperties) {
 		if (fsProperties != null) {
 			//System.out.println("OutputBuilder: finishFieldSet, path=" + getInstancePath() + ", id=" + fsProperties.getId());
-			// inhibit child builder field call if external and not visiting externals
-			if (!regProperties.isExternal() || visitExternalRegisters()) 
-				finishFieldSet();
+			if (visitEachReg() || (regProperties.isFirstRep() && firstRegSetRep())) { // qualify add calls by valid register options
+				// inhibit child builder field call if external and not visiting externals
+				if (!regProperties.isExternal() || visitExternalRegisters()) 
+					finishFieldSet();
+			}
 			// save min allowed offset prior to popping from the stack
 			Integer newMinOffset = getCurrentFieldSetOffset() + fieldSetProperties.getFieldSetWidth();
 

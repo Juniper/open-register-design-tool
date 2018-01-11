@@ -32,6 +32,72 @@ public class JspecBuilder extends OutputBuilder {
 	private int indentLvl = 0;
 	private static HashSet<String> reservedWords = getReservedWords();  // reserved jspec words
 	
+    // define inner class for storing fieldset start-end index info
+	private int currentBaseOffset = 0;
+	private int currentNestLevel = 0;
+	
+    private class FieldSetInfo {
+		private String id, name;
+		private int lowIndex = 0;
+        private int highIndex = 0;
+        private int nestLevel = 0;
+        private FieldSetInfo(String id, String name, int lowIndex, int highIndex, int nestLevel) {
+			this.id = id;
+			this.name = name;
+			this.lowIndex = lowIndex;
+			this.highIndex = highIndex;
+			this.nestLevel = nestLevel;
+		}
+		public int getHighIndex() {
+			return highIndex;
+		}
+		public int getLowIndex() {
+			return lowIndex;
+		}
+		public int getStartOrder() {
+			return (100*highIndex) - nestLevel; // lower nest level starts first at each index
+		}
+		public int getEndOrder() {
+			return (100*lowIndex) + nestLevel;  // higher nest level ends first at each index
+		}
+		public String getId() {
+			return id;
+		}
+		public String getName() {
+			return name;
+		}
+		// create a header for this fieldset
+		public void genHeader() {
+			//System.out.println("JSpecBuilder FieldSetInfo genHeader: fieldset " + getId() + ", lowIndex=" + getLowIndex() + ", highIndex=" + getHighIndex());
+			outputList.add(new OutputLine(indentLvl, ""));	
+			outputList.add(new OutputLine(indentLvl++, "field_set " + getId() + " \"" + ((getName()==null)? "" : getName()) + "\" {"));
+		}
+		// create end of this fieldset
+		public void genEnd() {
+			//System.out.println("JSpecBuilder FieldSetInfo genEnd: fieldset " + getId() + ", lowIndex=" + getLowIndex() + ", highIndex=" + getHighIndex());
+			outputList.add(new OutputLine(--indentLvl, "};"));
+			outputList.add(new OutputLine(indentLvl, ""));	
+		}    	
+    }
+    // process fieldset start locations ordered by descending high absolute index in register
+    private PriorityQueue<FieldSetInfo> fieldSetStartList = new PriorityQueue<FieldSetInfo>(
+    	8, new Comparator<FieldSetInfo>(){
+        public int compare(FieldSetInfo a, FieldSetInfo b) {
+            if (a.getStartOrder() < b.getStartOrder()) return 1;
+            if (a.getStartOrder() == b.getStartOrder()) return 0;
+            return -1;
+        }
+    });
+    // process fieldset end locations ordered by descending low absolute index in register
+    private PriorityQueue<FieldSetInfo> fieldSetEndList = new PriorityQueue<FieldSetInfo>(
+    	8, new Comparator<FieldSetInfo>(){
+        public int compare(FieldSetInfo a, FieldSetInfo b) {
+            if (a.getEndOrder() < b.getEndOrder()) return 1;
+            if (a.getEndOrder() == b.getEndOrder()) return 0;
+            return -1;
+        }
+    });
+	
     //---------------------------- constructor ----------------------------------
 
     public JspecBuilder(RegModelIntf model) {
@@ -48,7 +114,7 @@ public class JspecBuilder extends OutputBuilder {
                 if (a.getLowIndex() == b.getLowIndex()) return 0;
                 return -1;
             }
-        });
+        }); 
 	    model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
     }
 
@@ -79,6 +145,30 @@ public class JspecBuilder extends OutputBuilder {
 	}
 
 	@Override
+	public void addFieldSet() {
+		// if name is a reserved keyword then exit
+		if (reservedWords.contains(fieldSetProperties.getId()))
+			Ordt.errorMessage("field_set name " + fieldSetProperties.getId() + " is a jspec reserved word");
+		// compute absolute offsets and store fieldset info
+		if (!ExtParameters.jspecKeepFsetHierarchy() || (fieldSetProperties.getFieldSetWidth()==0)) return;
+		currentBaseOffset += fieldSetProperties.getOffset();
+		currentNestLevel += 1;
+		//System.out.println("JSpecBuilder addFieldset: fieldset " + fieldSetProperties.getId() + ", offset=" + fieldSetProperties.getOffset() + ", width=" + fieldSetProperties.getFieldSetWidth() + ", currentBaseOffset=" + currentBaseOffset+ ", currentNestLevel=" + currentNestLevel);
+        FieldSetInfo fsInfo = new FieldSetInfo(fieldSetProperties.getId(), fieldSetProperties.getTextName(), currentBaseOffset, 
+        		currentBaseOffset + fieldSetProperties.getFieldSetWidth() - 1, currentNestLevel);
+		fieldSetStartList.add(fsInfo);
+		fieldSetEndList.add(fsInfo);
+	}
+
+	@Override
+	public void finishFieldSet() {
+		// compute absolute offsets
+		if (!ExtParameters.jspecKeepFsetHierarchy() || (fieldSetProperties.getFieldSetWidth()==0)) return;
+		currentBaseOffset -= fieldSetProperties.getOffset();
+		currentNestLevel -= 1;
+	}
+
+	@Override
 	public void addRegister() {
 		// check for misaligned base address here since jspec doesn't like
 		if (regProperties.isReplicated()) {
@@ -97,6 +187,10 @@ public class JspecBuilder extends OutputBuilder {
 			//   Jrdl.errorMessage("replicated register " + regProperties.getInstancePath() + 
 			//		   " jspec relative base address (" + regProperties.getRelativeBaseAddress() +") is not aligned with total size (" + regStride +")"); 
 		}
+		// initialize info for fieldset output
+		currentBaseOffset = 0;
+		fieldSetStartList.clear();
+		fieldSetEndList.clear();
 	}
 
 	@Override
@@ -106,7 +200,8 @@ public class JspecBuilder extends OutputBuilder {
 			// build the register header
 			buildRegHeader();
 			// add field info
-			buildFields();
+			if (ExtParameters.jspecKeepFsetHierarchy()) buildHierFields();
+			else buildFields();
 			// close out the register definition
 			outputList.add(new OutputLine(--indentLvl, "};"));
 			outputList.add(new OutputLine(indentLvl, ""));	
@@ -372,8 +467,8 @@ public class JspecBuilder extends OutputBuilder {
 			if (nopBits > 0)
 				outputList.add(new OutputLine(indentLvl, "nop[" + nopBits + "];"));
             // display field as enum or int
-			if (field.getEncoding() != null) buildEnumField(field);  
-			else buildIntField(field); 
+			if (field.getEncoding() != null) buildEnumField(field, true); // use id prefix  
+			else buildIntField(field, true);  // use id prefix 
 			currentBit = fieldIdx;
 		}
 		// if still some unused bits add a nop
@@ -381,11 +476,119 @@ public class JspecBuilder extends OutputBuilder {
 			outputList.add(new OutputLine(indentLvl, "nop[" + currentBit + "];"));
 		}	
 	}
+
+	/** build jspec for current register fields and fieldsets */  // FIXME
+	private void buildHierFields() {
+		// traverse field list from high bit to low
+		int currentBit = regProperties.getRegWidth();
+		while (fieldList.size() > 0) {
+			// get next field
+			FieldProperties field = fieldList.remove();
+			int fieldIdx = field.getLowIndex();
+			int fieldWidth = field.getFieldWidth();
+			int fieldHighIdx = fieldIdx + fieldWidth - 1;
+			// step thru both fset start and lists from top of register - at each index, close out then start new fset, return new currentBit 
+			currentBit = buildFieldSets(fieldHighIdx, currentBit);  // generate any fieldset start/end structures down to specified fieldHighIdx
+			// compute nop bits
+			int nopBits = currentBit - (fieldHighIdx + 1);
+			if (nopBits > 0)
+				outputList.add(new OutputLine(indentLvl, "nop[" + nopBits + "];"));
+            // display field as enum or int
+			if (field.getEncoding() != null) buildEnumField(field, false); // no field id prefix  
+			else buildIntField(field, false);  // no field id prefix 
+			currentBit = fieldIdx;
+		}
+		// close out any open fieldsets
+		currentBit = buildFieldSets(-1, currentBit);  // generate any fieldset start/end structures down to specified fieldHighIdx
+		// if still some unused bits add a nop
+		if (currentBit > 0) {
+			outputList.add(new OutputLine(indentLvl, "nop[" + currentBit + "];"));
+		}	
+	}
 	
+	/** generate any fieldset start/end structure from specified currentBit down to new a field
+	 * 
+	 * @param fieldHighIdx - high index of new field that will be added
+	 * @param currentBit - lowest index in reg above new field with a defined structure
+	 * @return updated currentBit (lowest index in reg with a defined structure)
+	 */
+	private int buildFieldSets(int fieldHighIdx, int currentBit) {
+		int newCurrentBit = currentBit;
+		// continue processing down to new field index
+		boolean done = false;
+		while (!done) {
+			// snoop current indices in the start and end queues
+			boolean hasStartInfo = fieldSetStartList.peek() != null;
+			boolean hasEndInfo = fieldSetEndList.peek() != null;
+			if (!(hasStartInfo || hasEndInfo)) return newCurrentBit;  // no fieldset info so exit
+			int nextStartIndex = hasStartInfo? fieldSetStartList.peek().getHighIndex() : -99;
+			int nextEndIndex = hasEndInfo? fieldSetEndList.peek().getLowIndex() : -99;
+			if ((nextStartIndex < fieldHighIdx) && (nextEndIndex <= fieldHighIdx)) done = true;  // no fieldset info before new field so exit
+			// have something to process - process fs ends if next (at a higher index)
+			else {
+				if (nextStartIndex < nextEndIndex)
+					newCurrentBit = buildFieldSetEnds(nextEndIndex, newCurrentBit);  // build all fs nops/ends at next idx and pop from queue
+				else if (nextStartIndex > nextEndIndex)
+					newCurrentBit = buildFieldSetStarts(nextStartIndex, newCurrentBit);  // build all fs nops/starts at next idx and pop from queue
+				else {
+					if (nextEndIndex > fieldHighIdx) newCurrentBit = buildFieldSetEnds(nextEndIndex, newCurrentBit);  // build all fs nops/ends at next idx and pop from queue
+					newCurrentBit = buildFieldSetStarts(nextStartIndex, newCurrentBit);  // build all fs nops/starts at next idx and pop from queue
+				}
+			}
+		}
+		return newCurrentBit;
+	}
+	
+	/** build all fs nops/starts at next idx and pop from queue
+	 * 
+	 * @param startIndex - create fieldset headers starting at this index 
+	 * @param currentBit
+	 * @return
+	 */
+	private int buildFieldSetStarts(int startIndex, int currentBit) {
+		// add a nop if a gap is detected
+		int nopBits = currentBit - (startIndex + 1);
+		if (nopBits > 0)
+			outputList.add(new OutputLine(indentLvl, "nop[" + nopBits + "];"));
+		// process all fieldsets at this index
+		boolean done = false;
+		while (!done) {
+			if ((fieldSetStartList.peek() == null) || (fieldSetStartList.peek().getHighIndex() != startIndex)) done = true;  // no fieldset info before new field so exit
+			else {
+				FieldSetInfo fsInfo = fieldSetStartList.remove();
+				fsInfo.genHeader();
+			}		
+		}
+		return startIndex + 1;
+	}
+
+	/** build all fs nops/ends at next idx and pop from queue 
+	 * 
+	 * @param endIndex - create fieldset headers ending at this index
+	 * @param currentBit
+	 * @return
+	 */
+	private int buildFieldSetEnds(int endIndex, int currentBit) {
+		// add a nop if a gap is detected
+		int nopBits = currentBit - endIndex;
+		if (nopBits > 0)
+			outputList.add(new OutputLine(indentLvl, "nop[" + nopBits + "];"));
+		// process all fieldsets at this index
+		boolean done = false;
+		while (!done) {
+			if ((fieldSetEndList.peek() == null) || (fieldSetEndList.peek().getLowIndex() != endIndex)) done = true;  // no fieldset info before new field so exit
+			else {
+				FieldSetInfo fsInfo = fieldSetEndList.remove();
+				fsInfo.genEnd();
+			}		
+		}
+		return endIndex;
+	}
+
 	/** build jspec enum field  */
-	private void buildEnumField(FieldProperties field) {  
+	private void buildEnumField(FieldProperties field, boolean useIdPrefix) {  
 		// get name/description text
-		String id = field.getPrefixedId();
+		String id = useIdPrefix? field.getPrefixedId() : field.getId();
 		String textName = field.getTextName();
 		if (textName == null) textName = id + " field";
         // gen field header
@@ -409,9 +612,9 @@ public class JspecBuilder extends OutputBuilder {
 	}
 
 	/** build jspec int field  */
-	private void buildIntField(FieldProperties field) {   
+	private void buildIntField(FieldProperties field, boolean useIdPrefix) {   
 		// get name/description text
-		String id = field.getPrefixedId();
+		String id = useIdPrefix? field.getPrefixedId() : field.getId();
 		String textName = field.getTextName();
 		if (textName == null) textName = id + " field";
         // gen field header

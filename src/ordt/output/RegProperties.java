@@ -372,13 +372,15 @@ public class RegProperties extends AddressableInstanceProperties {
 	 */
 	public int addFieldSet(FieldSetProperties fieldSetProperties, int parentFsOffset) {
 		Integer fsOffset = fieldSetProperties.getExtractInstance().getOffset();  // get specified relative offset, could be fixed or floating
+		//System.out.println("RegProperties addFieldSet: incoming state (highAvailableIdx=" + highAvailableIdx + ",fieldSetOffset=" + fieldSetOffset + ", minValidOffset=" + minValidOffset + ")");
 		// adjust current fieldset offset
 		fieldSetOffset = (fsOffset==null)? highAvailableIdx : parentFsOffset + fsOffset;  // TODO null offset is correct only if packing from low to high since highAvailableIdx is absolute
-        if (fieldSetOffset<parentFsOffset) Ordt.errorExit("Unable to fit fieldset " + fieldSetProperties.getId() + " in register " + getInstancePath());
+		if (fieldSetOffset<parentFsOffset) Ordt.errorExit("Unable to fit fieldset " + fieldSetProperties.getId() + " in register " + getInstancePath());
         // set the min allowed register offset including any padding
 		Integer bitPaddingOffset = ((ModRegister) getExtractInstance().getRegComp()).getPadBits();
 		int newMinValidOffset = bitPaddingOffset + fieldSetOffset;
 		if (newMinValidOffset>minValidOffset) minValidOffset = newMinValidOffset; // only update if offset increases
+		//System.out.println("RegProperties addFieldSet: outgoing state (highAvailableIdx=" + highAvailableIdx + ",fieldSetOffset=" + fieldSetOffset + ", minValidOffset=" + minValidOffset + ")");
         return fieldSetOffset - parentFsOffset;
 	}
 
@@ -387,13 +389,17 @@ public class RegProperties extends AddressableInstanceProperties {
 	 * @param minOffset - min valid fieldset offset for field placement (total of fieldset offsets + width w/o padding)
 	 * */
 	public void restoreFieldSetOffsets(Integer newOffset, Integer minOffset) {
+		//System.out.println("RegProperties restoreFieldSetOffsets: inputs (newOffset=" + newOffset + ", minOffset=" + minOffset + ")");
+		//System.out.println("RegProperties restoreFieldSetOffsets: incoming state (highAvailableIdx=" + highAvailableIdx + ",fieldSetOffset=" + fieldSetOffset + ", minValidOffset=" + minValidOffset + ")");
 		// adjust current offset
 		fieldSetOffset = (newOffset==null)? highAvailableIdx : newOffset;  // TODO null offset is correct only if packing from low to high since highAvailableIdx is absolute
         // set the min allowed register offset including any padding
 		Integer bitPaddingOffset = ((ModRegister) getExtractInstance().getRegComp()).getPadBits();
 		if (minOffset!=null) minValidOffset = bitPaddingOffset + minOffset; 
+		// adjust highAvailableIdx if below minValidOffset
+		if (highAvailableIdx < minValidOffset) highAvailableIdx = minValidOffset;
 		//if (getId().equals("blabla")) 
-		//  System.out.println("RegProperties setFieldSetOffset: (newOffset=" + newOffset + ", minOffset=" + minOffset + ") -> (fieldSetOffset=" + fieldSetOffset + ", minValidOffset=" + minValidOffset + ")");
+		//System.out.println("RegProperties restoreFieldSetOffsets: outgoing state (highAvailableIdx=" + highAvailableIdx + ",fieldSetOffset=" + fieldSetOffset + ", minValidOffset=" + minValidOffset + ")");
 		return;
 	}
 

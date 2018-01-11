@@ -72,6 +72,7 @@ output jspec {
     root_instance_name="new_instance"  // override name of root instance
     root_instance_repeat=3             // override repeat count in root instance
     add_user_param_defines = true     // add user-defined parameter defines to the output
+    keep_fset_hierarchy = true     // include fieldset hierarchy in output
 }
 
 // rdl output parameters  

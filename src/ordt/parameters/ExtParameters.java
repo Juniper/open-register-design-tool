@@ -158,6 +158,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initStringParameter("root_instance_name", null);
 		initIntegerParameter("root_instance_repeat", 1);
 		initBooleanParameter("add_user_param_defines", false); 
+		initBooleanParameter("keep_fset_hierarchy", false); 
 		
 		// ---- reglist output defaults
 		initBooleanParameter("display_external_regs", true); 
@@ -831,6 +832,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	
 	public static Boolean jspecAddUserParamDefines() {
 		return getBooleanParameter("add_user_param_defines");
+	}
+	
+	public static Boolean jspecKeepFsetHierarchy() {
+		return getBooleanParameter("keep_fset_hierarchy");
 	}
 	
 	/** get reglistDisplayExternalRegs

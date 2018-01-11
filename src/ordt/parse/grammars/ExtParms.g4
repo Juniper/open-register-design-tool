@@ -2,10 +2,6 @@
 //
 // Copyright (c) 2016 Juniper Networks, Inc. All rights reserved.
 
-/*
-- added js_repeat_max property
-*/
-
 grammar ExtParms;
 
 @header {
@@ -111,6 +107,7 @@ ext_parm_defs
    | 'root_instance_name' EQ STR
    | 'root_instance_repeat' EQ NUM
    | 'add_user_param_defines' EQ bool
+   | 'keep_fset_hierarchy' EQ bool
    ;
    
 // ------------ systemverilog_out_defs
