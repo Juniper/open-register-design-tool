@@ -68,9 +68,11 @@ public class JspecBuilder extends OutputBuilder {
 		}
 		// create a header for this fieldset
 		public void genHeader() {
+			String textName = getName();
+			if ((textName == null) || textName.isEmpty()) textName = getId() + " field_set";
 			//System.out.println("JSpecBuilder FieldSetInfo genHeader: fieldset " + getId() + ", lowIndex=" + getLowIndex() + ", highIndex=" + getHighIndex());
 			outputList.add(new OutputLine(indentLvl, ""));	
-			outputList.add(new OutputLine(indentLvl++, "field_set " + getId() + " \"" + ((getName()==null)? "" : getName()) + "\" {"));
+			outputList.add(new OutputLine(indentLvl++, "field_set " + getId() + " \"" + textName + "\" {"));
 		}
 		// create end of this fieldset
 		public void genEnd() {
