@@ -812,6 +812,11 @@ public class SystemVerilogBuilder extends OutputBuilder {
 				//System.out.println("SystemVerilogBuilder write:   ExtParameters.sysVerilogAlwaysGenerateIwrap()= " + ExtParameters.sysVerilogAlwaysGenerateIwrap());
 			}
 			
+			// write dv bind modules
+			if (ExtParameters.sysVerGenerateDvBindModules() && !legacyVerilog) {
+				writeIntrBindModule(outName + getModuleName() + "_jrdl_logic_intr_bind" + extension, description, commentPrefix);
+			}
+			
 			// loop through nested addrmaps and write these VerilogBuilders
 			for (SystemVerilogBuilder childBuilder: childAddrMaps) {
 				//System.out.println("--- VerilogBuilder - writing child");
@@ -873,7 +878,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
     		closeBufferedWriter(bw);
     	}
 	}
-
+	
 	/** write decode module output to specified output file  
 	 * @param outName - output file or directory
 	 * @param description - text description of file generated
@@ -889,6 +894,25 @@ public class SystemVerilogBuilder extends OutputBuilder {
     		
     		// now write the output
 	    	decoder.write();
+    		closeBufferedWriter(bw);
+    	}
+	}
+	
+	/** write interrupt debug dv binding to logic module - output to specified output file  
+	 * @param outName - output file or directory
+	 * @param description - text description of file generated
+	 * @param commentPrefix - comment chars for this file type */
+	public void writeIntrBindModule(String outName, String description, String commentPrefix) {
+    	BufferedWriter bw = openBufferedWriter(outName, description);
+    	if (bw != null) {
+    		// set bw as default
+    		bufferedWriter = bw;
+
+    		// write the file header
+    		writeHeader(commentPrefix);
+    		
+    		// now write the output
+	    	logic.writeIntrBindModule();
     		closeBufferedWriter(bw);
     	}
 	}
@@ -1002,6 +1026,12 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			writeTopWrapperModules(false);
 			//System.out.println("SystemVerilogBuilder write:   ExtParameters.sysVerilogAlwaysGenerateIwrap()= " + ExtParameters.sysVerilogAlwaysGenerateIwrap());
 		}
+		
+		// write dv bind modules
+		if (ExtParameters.sysVerGenerateDvBindModules() && !legacyVerilog) {
+			logic.writeIntrBindModule();
+		}
+		
 					
 		// loop through nested addrmaps and write these VerilogBuilders
 		for (SystemVerilogBuilder childBuilder: childAddrMaps) {

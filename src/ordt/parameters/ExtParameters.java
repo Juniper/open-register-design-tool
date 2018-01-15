@@ -145,6 +145,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initIntegerParameter("write_enable_size", 0); 	
 		initIntegerParameter("max_internal_reg_reps", defaultMaxInternalRegReps); 	
 		initBooleanParameter("separate_iwrap_encap_files", false); 
+		initBooleanParameter("generate_dv_bind_modules", false); 
 		
 		// ---- rdl output defaults
 		initBooleanParameter("root_component_is_instanced", true); 
@@ -779,6 +780,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getBooleanParameter("separate_iwrap_encap_files");
 	}
 
+	public static boolean sysVerGenerateDvBindModules() {
+		return getBooleanParameter("generate_dv_bind_modules");
+	}
+	
 	// bench parameter getters
 
 	public static Boolean sysVerGenerateExternalRegs() {
