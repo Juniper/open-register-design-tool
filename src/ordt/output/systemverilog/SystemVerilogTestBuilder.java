@@ -198,7 +198,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		benchtop.addStatement("  wr_enable = 0;");
 		benchtop.addStatement("  rd_compare = 0;");
 		benchtop.addStatement("  rd_data = 0;");
-		benchtop.addStatement("  type = 0;");
+		benchtop.addStatement("  trans_type = 0;");
 		benchtop.addStatement("  size = 0;");
 		benchtop.addStatement("  leaf_go = 0;");
 
@@ -222,12 +222,12 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		// if no commands, just issue a read and a write at 0x0
 		else {
 			// do a 32b write     
-			benchtop.addStatement("write32(40'h0, 32'ha5a5a5a5, 0, address, wr_data, wr_enable, rd_compare, rd_data, type, size, leaf_go);");
+			benchtop.addStatement("write32(40'h0, 32'ha5a5a5a5, 0, address, wr_data, wr_enable, rd_compare, rd_data, trans_type, size, leaf_go);");
 		   	benchtop.addStatement("@ (posedge done)");
 		   	benchtop.addStatement("   leaf_go = #2 1'b0; ");
 		   	benchtop.addStatement("");
 			// do a 32b read     
-			benchtop.addStatement("read32(40'h0, 0, 0, address, wr_data, wr_enable, rd_compare, rd_data, type, size, leaf_go);");
+			benchtop.addStatement("read32(40'h0, 0, 0, address, wr_data, wr_enable, rd_compare, rd_data, trans_type, size, leaf_go);");
 		   	benchtop.addStatement("@ (posedge done)");
 		   	benchtop.addStatement("   leaf_go = #2 1'b0; ");
 		   	benchtop.addStatement("");			
@@ -323,7 +323,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 				else dataStr = ", 1'b0, " + ints.get("size") + "'h0";  // read w/o compare
 				//System.out.println("SystemVerilogTestBuilder addStatements: " + typeStr + ints.get("size") + ", rnams=" + rnums);
 				benchtop.addStatement(typeStr + ints.get("size") + "(" + rnums.get("address") + dataStr +   // task inputs
-						", address, wr_data, wr_enable, rd_compare, rd_data, type, size, leaf_go);");  // task outputs
+						", address, wr_data, wr_enable, rd_compare, rd_data, trans_type, size, leaf_go);");  // task outputs
 			   	benchtop.addStatement("@ (posedge done)");
 			   	benchtop.addStatement("   leaf_go = #2 1'b0;");
 			   	benchtop.addStatement("");				
@@ -340,7 +340,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		}
 		
 		public String toString() {
-			String retStr = "type: " + cType;
+			String retStr = "trans_type: " + cType;
 			retStr += "\n  ints: ";
 			for (String key : ints.keySet()) retStr += "\n    " + key + ": " + ints.get(key);
 			retStr += "\n  strs: ";
@@ -443,7 +443,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, decoder.getWriteEnableWidth()) + "wr_enable;");  
 		benchtop.addStatement("  output rd_compare;");
 		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, getMaxRegWidth()) + "rd_data;");  
-		benchtop.addStatement("  output [1:0] type;");
+		benchtop.addStatement("  output [1:0] trans_type;");
 		benchtop.addStatement("  output [3:0] size;");
 		benchtop.addStatement("  output leaf_go;");
 	   	benchtop.addStatement("  begin");
@@ -453,7 +453,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		benchtop.addStatement("    rd_compare = in_rd_compare;");  
 		benchtop.addStatement("    rd_data = 0;");  
 		benchtop.addStatement("    rd_data [" + (width - 1) + ":0] = in_rd_data;");  
-		benchtop.addStatement("    type = 2'b10;");
+		benchtop.addStatement("    trans_type = 2'b10;");
 		benchtop.addStatement("    size = 4'd" + ((width/ExtParameters.getMinDataSize()) - 1) + ";");
 		benchtop.addStatement("    leaf_go = 1'b1;");
 	   	benchtop.addStatement("  end");
@@ -474,7 +474,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, decoder.getWriteEnableWidth()) + "wr_enable;");  
 		benchtop.addStatement("  output rd_compare;");
 		benchtop.addStatement("  output " + SystemVerilogSignal.genDefArrayString(0, getMaxRegWidth()) + "rd_data;");  
-		benchtop.addStatement("  output [1:0] type;");
+		benchtop.addStatement("  output [1:0] trans_type;");
 		benchtop.addStatement("  output [3:0] size;");
 		benchtop.addStatement("  output leaf_go;");
 		//
@@ -485,7 +485,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		benchtop.addStatement("    wr_enable = in_wr_enable;");  
 		benchtop.addStatement("    rd_compare = 0;");  
 		benchtop.addStatement("    rd_data = 0;");  
-		benchtop.addStatement("    type = 0;");
+		benchtop.addStatement("    trans_type = 0;");
 		benchtop.addStatement("    size = 4'd" + ((width/ExtParameters.getMinDataSize()) - 1) + ";");
 		benchtop.addStatement("    leaf_go = 1'b1;");
 	   	benchtop.addStatement("  end");
@@ -552,11 +552,11 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	   	if (getMapAddressWidth()>0) primaryBfm.addStatement("    pio_dec_address = address" + SystemVerilogSignal.genRefArrayString(getAddressLowBit(), getMapAddressWidth()) + ";");
 	   	primaryBfm.addStatement("    pio_dec_write_data = wr_data;");
 	   	if (SystemVerilogDecodeModule.hasWriteEnables()) primaryBfm.addStatement("    pio_dec_write_enable = wr_enable;");
-	   	primaryBfm.addStatement("    pio_dec_read = type[1];");
-	   	primaryBfm.addStatement("    pio_dec_write = ~type[1];");
+	   	primaryBfm.addStatement("    pio_dec_read = trans_type[1];");
+	   	primaryBfm.addStatement("    pio_dec_write = ~trans_type[1];");
 	   	primaryBfm.addStatement("    trans_size = {1'b0, size} + 5'b1;");
 	   	if (getMaxWordBitSize()>0) primaryBfm.addStatement("    pio_dec_trans_size = size" + SystemVerilogSignal.genRefArrayString(0, getMaxWordBitSize()) + ";");
-		primaryBfm.addStatement("    if (type[1] == 1'b0) begin");			
+		primaryBfm.addStatement("    if (trans_type[1] == 1'b0) begin");			
 	   	primaryBfm.addStatement("      $display(\"%0d: initiating %d word write to address %x (data=%x)...\", $time, trans_size, address, wr_data);");
 	   	primaryBfm.addStatement("    end");
 		primaryBfm.addStatement("    else begin");			
@@ -581,7 +581,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	   	primaryBfm.addStatement("  $display(\"  nack = %d\", dec_pio_nack);");	   	
 	   	if (getMaxWordBitSize()>0) primaryBfm.addStatement("  $display(\"  return size = %x\", dec_pio_trans_size);");	   	
 	   	// if a read, display return info
-		primaryBfm.addStatement("  if (type[1] == 1'b1) begin");			
+		primaryBfm.addStatement("  if (trans_type[1] == 1'b1) begin");			
 	   	primaryBfm.addStatement("    $display(\"  read data = %x\", dec_pio_read_data);");
 		primaryBfm.addStatement("    if (rd_compare) begin");			
 		primaryBfm.addStatement("      if (dec_pio_read_data !== rd_data) $display(\"  read compare FAILED - expected %x\", rd_data);");	
@@ -649,10 +649,10 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	   	primaryBfm.addStatement("    leaf_dec_wr_data = wr_data;");
 	   	primaryBfm.addStatement("    leaf_dec_valid = 1'b1;");
 	   	primaryBfm.addStatement("    leaf_dec_wr_dvld = 1'b0;");
-	   	primaryBfm.addStatement("    leaf_dec_cycle = type;");	   	
+	   	primaryBfm.addStatement("    leaf_dec_cycle = trans_type;");	   	
 	   	primaryBfm.addStatement("    trans_size = {1'b0, size} + 5'b1;");
    
-		primaryBfm.addStatement("    if (type[1] == 1'b0) begin");			
+		primaryBfm.addStatement("    if (trans_type[1] == 1'b0) begin");			
 	   	primaryBfm.addStatement("      leaf_dec_wr_width = size" + SystemVerilogSignal.genRefArrayString(0, dataSizeBits) + ";");
 	   	primaryBfm.addStatement("      $display(\"%0d: initiating %d word write to address %x (data=%x)...\", $time, trans_size, address, wr_data);");
 	   	primaryBfm.addStatement("    end");
@@ -665,7 +665,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	   	// sample dut outputs on next clock cycle
 	   	primaryBfm.addStatement("  @(posedge CLK);");
 	   	primaryBfm.addStatement("    leaf_dec_valid = 1'b0;");  // drop valid after 1 cycle
-	   	primaryBfm.addStatement("    leaf_dec_wr_dvld <= ~type[1];");   // activate wr_valid later
+	   	primaryBfm.addStatement("    leaf_dec_wr_dvld <= ~trans_type[1];");   // activate wr_valid later
 	   	primaryBfm.addStatement("    while (~dec_leaf_reject & ~dec_leaf_ack & ~dec_leaf_nack) begin");
 	   	primaryBfm.addStatement("       @(posedge CLK);");
 	   	primaryBfm.addStatement("       leaf_dec_wr_dvld = 1'b0;");  // wr valid removed after a cycle
@@ -685,7 +685,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		primaryBfm.addStatement("  $display(\"  return size = %x\", dec_leaf_data_width);");	   	
 	   	primaryBfm.addStatement("  $display(\"  retry = %d\", dec_leaf_retry_atomic);");	
 	   	// if a read, display return info
-		primaryBfm.addStatement("  if (type[1] == 1'b1) begin");			
+		primaryBfm.addStatement("  if (trans_type[1] == 1'b1) begin");			
 	   	primaryBfm.addStatement("    $display(\"  read data = %x\", dec_leaf_rd_data);");
 		primaryBfm.addStatement("    if (rd_compare) begin");			
 		primaryBfm.addStatement("      if (dec_leaf_rd_data !== rd_data) $display(\"  read compare FAILED - expected %x\", rd_data);");	
@@ -707,7 +707,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		benchSigList.addSimpleVector(HW, PIO, "wr_enable", 0, decoder.getWriteEnableWidth());
 		benchSigList.addSimpleScalar(HW, PIO, "rd_compare");
 		benchSigList.addSimpleVector(HW, PIO, "rd_data", 0, getMaxRegWidth());
-		benchSigList.addSimpleVector(HW, PIO, "type", 0,2);  
+		benchSigList.addSimpleVector(HW, PIO, "trans_type", 0,2);  
 		benchSigList.addSimpleVector(HW, PIO, "size", 0, 4);
 		benchSigList.addSimpleVector(HW, PIO, "leaf_go", 0, 1);
 		benchSigList.addSimpleScalar(HW, PIO, "CLK");
