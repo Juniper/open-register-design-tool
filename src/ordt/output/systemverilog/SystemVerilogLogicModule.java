@@ -354,7 +354,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		   int fieldWidth = fieldProperties.getFieldWidth();
 		   
 		   // always create intr diag info (only save if a leaf intr)
-		   IntrDiagInfo intrInfo = new IntrDiagInfo(fieldRegisterName, fieldWidth>1, fieldProperties.getInstancePath());
+		   IntrDiagInfo intrInfo = new IntrDiagInfo(fieldRegisterName, fieldWidth, fieldProperties.getInstancePath());
 		   
 		   // if register is not already interrupt, then create signal assigns and mark for output creation in finishRegister
 		   String intrOutput = regProperties.getFullSignalName(DefSignalType.L2H_INTR);
@@ -894,7 +894,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		
 	}
 	
-	//---------------------------- interrupt diagnostic bind module ---------------------------------------- TODO
+	//---------------------------- interrupt diagnostic bind module ----------------------------------------
 
 	public void writeIntrBindModule() {
 		SystemVerilogModule intrBindMod = new SystemVerilogModule(builder, getInsideLocs(), defaultClkName, builder.getDefaultReset());
@@ -905,23 +905,43 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		// add default clock and reset
 		intrBindMod.addSimpleScalarFrom(defaultOutputLoc, defaultClkName);
 		intrBindMod.addSimpleScalarFrom(defaultOutputLoc, builder.getDefaultReset());
-		// add property define TODO
+		// add control signal defines
+		intrBindMod.addStatement("//------- intr detect controls");
+		intrBindMod.addStatement("bit enable_intr_check = 1'b1; // shut down all intr assertions");
+		intrBindMod.addStatement("bit allow_intr = 1'b0;        // intr will be flagged as warning, not error");
+		// add property define
+		intrBindMod.addStatement("");
 		intrBindMod.addStatement("//------- intr detect property");
-		
+		intrBindMod.addStatement("property no_rising_intr (sig);");
+		intrBindMod.addStatement("  @(posedge "+ defaultClkName + ")");
+		intrBindMod.addStatement("  disable iff (!enable_intr_check || "+ builder.getDefaultReset() + ")");
+		intrBindMod.addStatement("    not $rose(sig);");
+		intrBindMod.addStatement("endproperty : no_rising_intr");	
 		// add all leaf interrupts to to monitored
 		intrBindMod.addStatement("");
 		intrBindMod.addStatement("//------- intr detect assertions");
 		intrBindMod.setShowDuplicateSignalErrors(false);  // could be leaf interrupts being used as masks/enables
 		for(IntrDiagInfo intrInfo: intrInfoList) {
-			if (!intrInfo.isVector) {  // TODO - only scalar intrs for now
-				// add signal inputs
-				intrBindMod.addSimpleScalarFrom(defaultOutputLoc, intrInfo.getSigName());
-				if (intrInfo.hasIntrEnableOrMask()) intrBindMod.addSimpleScalarFrom(defaultOutputLoc, intrInfo.getIntrEnableName());
-				if (intrInfo.hasHaltEnableOrMask()) intrBindMod.addSimpleScalarFrom(defaultOutputLoc, intrInfo.getHaltEnableName());
-				// add assertions TODO
-				intrBindMod.addStatement("//  ---- assert for " + intrInfo.getSigPath());
+			// add signal inputs
+			intrBindMod.addSimpleVectorFrom(defaultOutputLoc, intrInfo.getSigName(), 0, intrInfo.getWidth());
+			if (intrInfo.hasIntrEnableOrMask()) intrBindMod.addSimpleVectorFrom(defaultOutputLoc, intrInfo.getIntrEnableName(), 0, intrInfo.getWidth());
+			if (intrInfo.hasHaltEnableOrMask()) intrBindMod.addSimpleVectorFrom(defaultOutputLoc, intrInfo.getHaltEnableName(), 0, intrInfo.getWidth());
+			// add assertions 
+			String inSigName = intrInfo.isVector()? "|" + intrInfo.getSigName() : intrInfo.getSigName(); // use or reduction on vectors
+			String assertName = intrInfo.getSigName() + "_intr_assert";
+			String assertMessage = "Interrupt " + intrInfo.getSigPath() + " fired. Value = %h.";
+			String assertMessageParms = intrInfo.getSigName();
+			if (intrInfo.hasIntrEnableOrMask()) { // if intr has an intr enable/mask, display its value
+				assertMessage += " " + intrInfo.getIntrEnableType() + " value = %h.";
+				assertMessageParms += ", " + intrInfo.getIntrEnableName();
 			}
-
+			if (intrInfo.hasHaltEnableOrMask()) { // if intr has a halt/poll enable/mask, display its value
+				assertMessage += " Halt(poll) " + intrInfo.getHaltEnableType().toLowerCase() + " value = %h.";
+				assertMessageParms += ", " + intrInfo.getHaltEnableName();
+			}
+			intrBindMod.addStatement(assertName.toUpperCase() + " : assert property (no_rising_intr("+ inSigName + "))");
+			intrBindMod.addStatement("else if (!allow_intr) $error(\""+ assertMessage + "\", "+ assertMessageParms + ");");
+			intrBindMod.addStatement("else $warning(\""+ assertMessage + "\", "+ assertMessageParms + ");");
 		}
 		// write the module
 		intrBindMod.write();
@@ -932,16 +952,16 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	/** class to hold interrupt bind info */
 	private class IntrDiagInfo {
 		private String sigName;  // intr field register name
-		private boolean isVector = false;  // indication of multi-bit  // TODO - just use loIdx and size
+		private int width = 1;  // size in bits
 		private String sigPath;  // path of this instance
 		private String intrEnableName; // enable/mask name
 		private boolean intrEnable = true;  // true is enable, false if mask
 		private String haltEnableName; // enable/mask name
 		private boolean haltEnable = true;  // true is enable, false if mask
 		
-		IntrDiagInfo(String sigName, boolean isVector, String sigPath) {
+		IntrDiagInfo(String sigName, int width, String sigPath) {
 			this.sigName = sigName;
-			this.isVector = isVector;
+			this.width = width;
 			this.sigPath = sigPath;
 		}
 		protected String getIntrEnableName() {
@@ -955,7 +975,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			return intrEnableName != null;
 		}
 		protected String getIntrEnableType() {
-			return intrEnable? "enable" : "mask";
+			return intrEnable? "Enable" : "Mask";
 		}
 		
 		protected String getHaltEnableName() {
@@ -975,8 +995,11 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		protected String getSigName() {
 			return sigName;
 		}
+		protected int getWidth() {
+			return width;
+		}
 		protected boolean isVector() {
-			return isVector;
+			return width>1;
 		}
 		protected String getSigPath() {
 			return sigPath;
