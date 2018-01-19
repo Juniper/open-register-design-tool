@@ -898,7 +898,8 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 
 	public void writeIntrBindModule() {
 		SystemVerilogModule intrBindMod = new SystemVerilogModule(builder, getInsideLocs(), defaultClkName, builder.getDefaultReset());
-		intrBindMod.setName(getName() + "_intr_bind");
+		String intrBindModName = getName() + "_intr_bind";
+		intrBindMod.setName(intrBindModName);
 		Integer defaultOutputLoc = getOutsideLocs();
 		SystemVerilogIOSignalList bindIOList = new SystemVerilogIOSignalList("default");
 		intrBindMod.useIOList(bindIOList, defaultOutputLoc);
@@ -908,7 +909,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		// add control signal defines
 		intrBindMod.addStatement("//------- intr detect controls");
 		intrBindMod.addStatement("bit enable_intr_check = 1'b1; // shut down all intr assertions");
-		intrBindMod.addStatement("bit allow_intr = 1'b0;        // intr will be flagged as warning, not error");
+		intrBindMod.addStatement("bit allow_intr = 1'b1;        // intr will be flagged as warning, not error");
 		// add property define
 		intrBindMod.addStatement("");
 		intrBindMod.addStatement("//------- intr detect property");
@@ -943,6 +944,10 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			intrBindMod.addStatement("else if (!allow_intr) $error(\""+ assertMessage + "\", "+ assertMessageParms + ");");
 			intrBindMod.addStatement("else $warning(\""+ assertMessage + "\", "+ assertMessageParms + ");");
 		}
+		// print a usage message
+		intrBindMod.addStatement("");
+		intrBindMod.addStatement("//------- " + intrBindModName + " interrupt debug module.  Use by binding as follows in tb:");
+		intrBindMod.addStatement("//        bind " + getName() + " " + intrBindModName + " " + intrBindModName + "_inst(.*);");
 		// write the module
 		intrBindMod.write();
 	}
