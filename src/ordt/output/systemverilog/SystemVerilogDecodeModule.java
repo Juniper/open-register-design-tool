@@ -3918,8 +3918,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				   writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_ADDR) + "_next = pio_dec_address_d1 " + elem.getExtAddressArrayString() + ";");  // address is resistered value from pio
 				// if data sizes are needed then add - also check for single register here and inhibit
 				if ( (elem.getMaxRegWidth() > ExtParameters.getMinDataSize())  && !elem.isSingleExtReg()) {
-				       int widthBits = Utils.getBits(elem.getMaxRegWordWidth());	   
-					   writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_SIZE) + "_next = pio_dec_trans_size_d1" + SystemVerilogSignal.genRefArrayString(0, widthBits) + ";");
+				       int widthBits = Utils.getBits(elem.getMaxRegWordWidth());
+				       String extSizeIdxStr = (builder.getMaxWordBitSize()>1)? SystemVerilogSignal.genRefArrayString(0, widthBits) : "";
+					   writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_SIZE) + "_next = pio_dec_trans_size_d1" + extSizeIdxStr + ";");
 				}
 			}
 			// internal reg so init enables and data
