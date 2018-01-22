@@ -590,7 +590,10 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			hwSigList.pushIOSignalSet(sType, properties.getNoRepId(), reps, properties.isFirstRep(), properties.getExtInterfaceName(), compId);
 		}	
 		// otherwise a non-interface hierarchy level
-		else hwSigList.pushIOSignalSet(DefSignalType.SIGSET, properties.getNoRepId(), reps, properties.isFirstRep(), null, null);
+		else {
+			hwSigList.pushIOSignalSet(DefSignalType.SIGSET, properties.getNoRepId(), reps, properties.isFirstRep(), null, null);
+			//System.out.println("SystemVerilogBuilder startIOHierarchy: SIGSET: " + properties.getInstancePath() + ", reps=" + reps + ", ExtInterfaceName=" + properties.getExtInterfaceName());
+		}
 	}
 	
 	/** add IO hierarchy level (no singleRep override) */

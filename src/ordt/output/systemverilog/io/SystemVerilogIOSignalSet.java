@@ -299,11 +299,12 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	 */
 	public void loadWrapperMapInfo(WrapperSignalMap sigMap, RemapRuleList rules, boolean useHierSignalNames, 
 			boolean addSources, boolean isIO, String pathPrefix, String hierPathPrefix, boolean foundFirstNonVirtual) {
-		//System.out.println("SystemVerilogIOSignalSet loadWrapperMapSources: useHierSignalNames=" + useHierSignalNames + ", addSources=" + addSources);
+		//if (!isVirtual()) System.out.println("SystemVerilogIOSignalSet loadWrapperMapSources: useHierSignalNames=" + useHierSignalNames + ", addSources=" + addSources + ", hierPathPrefix=" + hierPathPrefix + ", foundFirstNonVirtual=" + foundFirstNonVirtual + ", isVirtual=" + isVirtual());
 		String prefix = getFullName(pathPrefix, false);  // add current name to prefix
 		String prefixEndChar = hasNoName()? "" : "_";
 		String hierPrefixEndChar = hasNoName()? "" : isVirtual()? "_" : ".";
 		String newHierPrefix = getFullName(hierPathPrefix, !(isVirtual() || foundFirstNonVirtual));  // first non-virtual sets the prefix
+		//if (!isVirtual()) System.out.println("SystemVerilogIOSignalSet loadWrapperMapSources: prefix=" + prefix + ", newHierPrefix=" + newHierPrefix );
 	    // process each rep of this elem
 		for (int idx=0; idx<getReps(); idx++) {
 			// build hier and non-hier name prefixes
@@ -316,12 +317,13 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 				// if this is leaf element then return it
 				if (!ioElem.isSignalSet()) {
 					String rootName = ioElem.getFullName(fullPrefix, true);  // non-hierarchical name will be root
-					String hierName = ioElem.getFullName(fullHierPrefix, !foundFirstNonVirtual); // hierarchical name for this root - add tagPrefix if non-hier name
+					String hierName = ioElem.getFullName(fullHierPrefix, !newFoundFirstNonVirtual); // hierarchical name for this root - add tagPrefix if non-hier name
 					Integer elemFrom = ioElem.getFrom();
 					Integer elemTo = ioElem.getTo();
 					// check this element against rule set, return non-null source signal name if a match
 					String signalName = useHierSignalNames? rules.getRemappedName(rootName, hierName, elemFrom, elemTo, true):
 						rules.getRemappedName(rootName, null, elemFrom, elemTo, true);
+					//if (!isVirtual()) System.out.println("SystemVerilogIOSignalSet loadWrapperMapSources: hierName=" + hierName + ", signalName=" + signalName );
 					// if a match then add to mappings
 					if (signalName!=null) {
 						/*if (signalName.contains("info_event_int_status_intr") && (useHierSignalNames==true) && (addSources==false)) {
