@@ -61,7 +61,8 @@ output systemverilog {
        //add_sync_stages "*_o" 2 newClk mySyncModule // add 2 stage syncronizer to these outputs w/ new clock and module override
     //}
     //separate_iwrap_encap_files = true // generate a separate file for each wrap encap (interface/struct) type
-    generate_dv_bind_modules = true   // generate diagnostic dv bind modules 
+    generate_dv_bind_modules = true   // if true generate diagnostic dv bind modules 
+    use_global_dv_bind_controls = true   // if true diagnostic dv bind module settings will be controlled by global packages 
 }
 
 // jspec output parameters

@@ -907,15 +907,29 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		intrBindMod.addSimpleScalarFrom(defaultOutputLoc, defaultClkName);
 		intrBindMod.addSimpleScalarFrom(defaultOutputLoc, builder.getDefaultReset());
 		// add control signal defines
-		intrBindMod.addStatement("//------- intr detect controls");
-		intrBindMod.addStatement("bit enable_intr_check = 1'b1; // shut down all intr assertions");
-		intrBindMod.addStatement("bit allow_intr = 1'b1;        // intr will be flagged as warning, not error");
+		String pkgPrefix = "";
+		if (ExtParameters.sysVerUseGlobalDvBindControls()) {
+			intrBindMod.addStatement("//------- intr detect controls are set in global package ordt_dv_bind_controls");
+			intrBindMod.addStatement("//------- which includes the following for intr control:");
+			intrBindMod.addStatement("//package ordt_dv_bind_controls;");
+			intrBindMod.addStatement("//   bit enable_intr_check; // if 1 shut down all intr assertions");
+			intrBindMod.addStatement("//   bit allow_intr;        // if 1 intr will be flagged as warning, not error");
+			intrBindMod.addStatement("//endpackage");
+			intrBindMod.addStatement("//ordt_dv_bind_controls::enable_intr_check = 1'b1; // if 1 shut down all intr assertions");
+			intrBindMod.addStatement("//ordt_dv_bind_controls::allow_intr = 1'b1;        // if 1 intr will be flagged as warning, not error");
+			pkgPrefix = "ordt_dv_bind_controls::";
+		}
+		else {
+			intrBindMod.addStatement("//------- intr detect controls");
+			intrBindMod.addStatement("bit enable_intr_check = 1'b1; // if 1 shut down all intr assertions");
+			intrBindMod.addStatement("bit allow_intr = 1'b1;        // if 1 intr will be flagged as warning, not error");
+		}
 		// add property define
 		intrBindMod.addStatement("");
 		intrBindMod.addStatement("//------- intr detect property");
 		intrBindMod.addStatement("property no_rising_intr (sig);");
 		intrBindMod.addStatement("  @(posedge "+ defaultClkName + ")");
-		intrBindMod.addStatement("  disable iff (!enable_intr_check || "+ builder.getDefaultReset() + ")");
+		intrBindMod.addStatement("  disable iff (!" + pkgPrefix + "enable_intr_check || "+ builder.getDefaultReset() + ")");
 		intrBindMod.addStatement("    not $rose(sig);");
 		intrBindMod.addStatement("endproperty : no_rising_intr");	
 		// add all leaf interrupts to to monitored
@@ -941,13 +955,13 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 				assertMessageParms += ", " + intrInfo.getHaltEnableName();
 			}
 			intrBindMod.addStatement(assertName.toUpperCase() + " : assert property (no_rising_intr("+ inSigName + "))");
-			intrBindMod.addStatement("else if (!allow_intr) $error(\""+ assertMessage + "\", "+ assertMessageParms + ");");
+			intrBindMod.addStatement("else if (!" + pkgPrefix + "allow_intr) $error(\""+ assertMessage + "\", "+ assertMessageParms + ");");
 			intrBindMod.addStatement("else $warning(\""+ assertMessage + "\", "+ assertMessageParms + ");");
 		}
 		// print a usage message
 		intrBindMod.addStatement("");
 		intrBindMod.addStatement("//------- " + intrBindModName + " interrupt debug module.  Use by binding as follows in tb:");
-		intrBindMod.addStatement("//        bind " + getName() + " " + intrBindModName + " " + intrBindModName + "_inst(.*);");
+		intrBindMod.addStatement("//        bind " + getName() + " " + intrBindModName + " intr_bind_inst(.*);");
 		// write the module
 		intrBindMod.write();
 	}
