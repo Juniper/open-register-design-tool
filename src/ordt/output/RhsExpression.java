@@ -29,7 +29,8 @@ public class RhsExpression {
 	   boolean matchFail= false;
 	   int refId = 0;
 	   // search for 3 part pattern of form: allowed lead characters + reference + allowed trailing characters
-	   Pattern refPattern = Pattern.compile("^([\\s\\&\\|\\^\\~\\<\\>\\(\\)\\{\\}\\,\\[\\]]*)([\\w\\.\\']+(\\s*->\\s*\\w+)?)([\\s\\&\\|\\^\\~\\<\\>\\(\\)\\{\\}\\,\\[\\]].*)?$");
+	   // brackets are assumed to be replicated component indices unless trailing a reference, where they are interpreted as a verilog signal slice
+	   Pattern refPattern = Pattern.compile("^([\\s\\&\\|\\^\\~\\<\\>\\(\\)\\{\\}\\,\\[\\]]*)([\\w\\.\\'\\[\\]]+\\w(\\s*->\\s*\\w+)?)([\\s\\&\\|\\^\\~\\<\\>\\(\\)\\{\\}\\,\\[\\]].*)?$");
 	   Matcher m;
 	   // start with the full expression and iteratively extract references to be resolved	   
 	   String expression = rawExpression;

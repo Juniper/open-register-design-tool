@@ -806,7 +806,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 						// check for a valid signal
 						if (!this.hasDefinedSignal(refName) && (rhsSignals.containsKey(refName))) {  
 							RhsReferenceInfo rInfo = rhsSignals.get(refName);
-							//System.out.println("SystemVerilogLogicModule createSignalAssigns: refName=" + refName + ", hasDefinedSignal=" + this.hasDefinedSignal(refName) + ", rhsSignals.containsKey=" + rhsSignals.containsKey(refName));
+							System.out.println("SystemVerilogLogicModule createSignalAssigns: refName=" + refName + ", hasDefinedSignal=" + this.hasDefinedSignal(refName) + ", rhsSignals.containsKey=" + rhsSignals.containsKey(refName));
 							Ordt.errorMessage("unable to resolve " + rInfo.getRhsRefString() + " referenced in rhs dynamic property assignment for " + rInfo.getLhsInstance()); 
 						}						
 					}
@@ -852,7 +852,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		if (!this.hasDefinedSignal(postResolveName)) {
 			if (rhsSignals.containsKey(preResolveName)) {
 				RhsReferenceInfo rInfo = rhsSignals.get(preResolveName);
-				//System.out.println("SystemVerilogLogicModule checkSignalName: preResolveName=" + preResolveName + " found in rhsSignals, but postResolveName=" + postResolveName + " not found in definedSignals");
+				System.out.println("SystemVerilogLogicModule checkSignalName: preResolveName=" + preResolveName + " found in rhsSignals, but postResolveName=" + postResolveName + " not found in definedSignals");
 				Ordt.errorMessage("unable to resolve " + rInfo.getRhsRefString() + " referenced in rhs dynamic property assignment for " + rInfo.getLhsInstance()); 
 			}
 			else

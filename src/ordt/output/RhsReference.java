@@ -152,7 +152,13 @@ public class RhsReference {
 	   else {
 			this.instancePath = rawReference; 
 	   }
-	   if (instancePath != null) this.instancePathElems = instancePath.split("\\.");
+	   if (instancePath != null) {
+		   instancePath = instancePath.replace("[", "_").replace("]", "");  // replace array indices with index suffixes
+		   this.instancePathElems = instancePath.split("\\.");
+	   }
+	   //System.out.println("RhsReference parseRawReference: raw=" + rawReference + ", deRef=" + deRef + ", # instancePathElems=" + instancePathElems.length);
+	   //for (int idx=0; idx<instancePathElems.length; idx++)
+		   //System.out.println("RhsReference parseRawReference:      instancePathElem=" + instancePathElems[idx]);
    }
 
    /** return relative reference if reg string is of register.field format. else return null  

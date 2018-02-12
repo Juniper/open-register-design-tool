@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ordt.annotate.AnnotateCommand;
 import ordt.extract.Ordt;
@@ -352,11 +354,23 @@ public abstract class ModComponent extends ModBaseComponent {
 	 *  @param id of inst
 	 */
 	public ModInstance findLocalInstance(String id) {    
-		//System.out.println("*** looking for inst" + id + " in " + this.getId());
-		// loop through child instances
+		//System.out.println("ModComponent findLocalInstance: *** looking for inst " + id + " in " + this.getId());
+		String idRoot = id;
+		Integer idx = null; // by default, no index
+		// extract array info
+		Pattern pat = Pattern.compile("^(\\S+)\\s*\\[(\\d+)\\]$");
+		Matcher m = pat.matcher(id);
+		if (m.matches()) {
+			idRoot = m.group(1);  // extract id root
+			idx = Integer.valueOf(m.group(2));  // extract index
+			//System.out.println("ModComponent findLocalInstance:     found array reference root=" + idRoot + ", idx=" + idx);
+		}
+		// loop through child instances looking for an id match
 		for (ModInstance regInst : getChildInstances()) {
 			//System.out.println("  * looking for " + id + ", found " + regComp.getId());
-			if ((regInst != null) && (regInst.getId().equals(id))) return regInst;
+			if ((regInst != null) && (regInst.getId().equals(idRoot))) {  // instance with matching id found
+				return ((idx != null) && (idx >= regInst.getRepCount()))? null : regInst;  // check for an invalid index
+			}
 		}
 		return null;
 	}
@@ -365,16 +379,16 @@ public abstract class ModComponent extends ModBaseComponent {
 	 *  @param list containing instance path 
 	 */
 	public ModInstance findInstance(List<String> instances) {   
-		//System.out.println("RegComponent: *** looking for inst=" + instances + " in " + this.getId() + ", path depth=" + instances.size());
+		//System.out.println("ModComponent findInstance: *** looking for inst=" + instances + " in " + this.getId() + ", path depth=" + instances.size());
 		if (instances.size()<1) return null;
 		// get first path in the list
 		String baseInstName = instances.remove(0);
 		// search for this instance locally
-		//System.out.println("  * looking for inst=" + baseInstName);
+		//System.out.println("ModComponent findInstance:   * looking locally for inst=" + baseInstName);
 		//display(getId());
 		ModInstance regInst = findLocalInstance(baseInstName);
 		if (regInst == null) return null;
-		//System.out.println("RegComponent:  * found inst=" + baseInstName + ", remaining path instances=" + instances.size() + ", reps=" + regInst.getRepCount(true));
+		//System.out.println("ModComponent findInstance:   * found inst=" + baseInstName + ", remaining path instances=" + instances.size() + ", reps=" + regInst.getRepCount(true));
 		// if no more instances in path we're done so exit
 		if (instances.size()==0) return regInst;  
 		// otherwise get the next instance recursively
@@ -437,6 +451,7 @@ public abstract class ModComponent extends ModBaseComponent {
 		//System.out.println("  * looking for inst=" + baseInstName);
 		ModInstance regInst = findLocalInstance(baseInstName);
 		// if not found then try assuming a replicated element in instance path
+		// depending on builder, name may have a replication suffix that needs to be removed
 		if (regInst == null) {
 			String newBaseInstName = "";
 			if (baseInstName.matches("\\S+_\\d+$")) {
