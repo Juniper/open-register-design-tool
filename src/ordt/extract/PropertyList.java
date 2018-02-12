@@ -62,7 +62,8 @@ public class PropertyList {
 	 *  @return boolean
 	 */
 	public Boolean hasTrueProperty(String name) {
-		return "true".equals(getProperty(name));
+		String prop = getProperty(name);
+		return (prop==null)? false : "true".equals(prop.toLowerCase());
 	}
 
 	/** return true if a prop value=false
@@ -70,7 +71,8 @@ public class PropertyList {
 	 *  @return boolean
 	 */
 	public Boolean hasFalseProperty(String name) {
-		return "false".equals(getProperty(name));
+		String prop = getProperty(name);
+		return (prop==null)? false : "false".equals(prop.toLowerCase());
 	}
 	
 	/** return true if a prop value=true or false
@@ -117,27 +119,27 @@ public class PropertyList {
 		else prop = new PropertyValue();
 		
 		// reconcile woset/woclr assigns
-		if (name.equals("woclr") && value.equals("true")) values.remove("woset"); 
-		else if (name.equals("woset") && value.equals("true")) values.remove("woclr"); 
+		if (name.equals("woclr") && isTrueString(value)) values.remove("woset"); 
+		else if (name.equals("woset") && isTrueString(value)) values.remove("woclr"); 
 		// reconcile rset/rclr assigns
-		else if (name.equals("rclr") && value.equals("true")) values.remove("rset"); 
-		else if (name.equals("rset") && value.equals("true")) values.remove("rclr");
+		else if (name.equals("rclr") && isTrueString(value)) values.remove("rset"); 
+		else if (name.equals("rset") && isTrueString(value)) values.remove("rclr");
 		// reconcile intrType
 		else if (name.equals("posedge") || name.equals("negedge") || name.equals("bothedge") || name.equals("level")) { 
-			if (value.equals("true")) {
+			if (isTrueString(value)) {
 				prop.setValue(name); setProperty("intrType", prop);
 			}
-			else if (value.equals("false") && name.equals(getProperty("intrType"))) {
+			else if (isFalseString(value) && name.equals(getProperty("intrType"))) {
 				prop.setValue("level"); setProperty("intrType", prop);  // otherwise back to default
 			}
 			return; 
 		} 
 		// reconcile intrStickyType
 		else if (name.equals("nonsticky") || name.equals("sticky") || name.equals("stickybit")) { 
-			if (value.equals("true")) {
+			if (isTrueString(value)) {
 				prop.setValue(name); setProperty("intrStickyType", prop);
 			}
-			else if (value.equals("false") && name.equals(getProperty("intrStickyType"))) {
+			else if (isFalseString(value) && name.equals(getProperty("intrStickyType"))) {
 				prop.setValue("stickybit"); setProperty("intrStickyType", prop);  // back to default
 			}
 			return; 
@@ -147,6 +149,14 @@ public class PropertyList {
 		setProperty(name, prop); 
 	}
 	
+	private static boolean isTrueString(String value) {
+		return (value==null)? false : "true".equals(value.toLowerCase());
+	}
+	
+	private static boolean isFalseString(String value) {
+		return (value==null)? false : "false".equals(value.toLowerCase());
+	}
+
 	/** set a prop value and reconcile values assuming 0 depth (non-dynamic assign)
 	 *  @param name of the value to set
 	 *  @param value - string

@@ -11,7 +11,7 @@ public class ExtBooleanParameter extends ExtParameter<Boolean> {
 
 	@Override
 	public void set(String valStr) {
-		this.value = valStr.equals("true");
+		this.value = (valStr==null)? false : "true".equals(valStr.toLowerCase());
 	}
 
 	@Override
