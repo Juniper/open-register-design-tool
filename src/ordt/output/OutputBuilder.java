@@ -299,6 +299,15 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 				finishRegister();   
 			}
 			regIsActive = false;
+
+			// if visiting each external reg then may need to bump next addr when done
+			if (visitEachExternalRegister() && regProperties.isLocalRootExternal() && regProperties.isLastRep()) {
+				int padRegs = Utils.getNextHighestPowerOf2(regProperties.getRepCount()) - regProperties.getRepCount();
+				if (padRegs > 0) {
+					//System.out.println("OutputBuilder finishRegister: " + regProperties.getInstancePath() + ", ext=" + regProperties.isExternal() + ", local root ext=" + regProperties.isLocalRootExternal() + ", reps=" + regProperties.getRepCount() + ", pow 2 size=" + Utils.getNextHighestPowerOf2(regProperties.getRepCount()));
+					updateNextAddress(padRegs);
+				}
+			}
 		}
 		//else System.out.println("OutputBuilder finishRegister: null regProperties");
 	}
