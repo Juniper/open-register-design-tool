@@ -315,12 +315,14 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	/** finish a register for a particular output */
 	abstract public  void finishRegister();
 	
-	/** add an external register group to this output (called if external and not visiting each reg) // TODO combine with addRegisters
+	/** add an external register group to this output (called in ModRegister if external and not visiting each reg) // TODO combine with addRegisters
 	 * @param rProperties - extracted register properties */
 	public  void addExternalRegisters(RegProperties rProperties) {  
 		if (rProperties != null) {
 		   regIsActive = true;  // regProperties is valid
-		   //System.out.println("OutputBuilder: addExternalRegisters, path=" + getInstancePath() + ", id=" + rProperties.getId());
+		   
+		   //if (rProperties.isRootExternal() != rProperties.isLocalRootExternal())
+		   //   System.out.println("OutputBuilder addExternalRegisters: root mismath for inst=" + getInstancePath() + ", rootExt=" + rProperties.isRootExternal() + ", localRootExt=" + rProperties.isLocalRootExternal());
 
 		   // extract properties from instance/component
 		   regProperties = rProperties; 
@@ -361,7 +363,14 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			    regSetProperties.updateChildHash(regProperties.hashCode(true)); // add this reg's hashcode to parent including id
 				finishRegister();   // only first rset rep here (only one call for all reg reps)
 			}
-			regIsActive = false;
+			regIsActive = false;	
+
+			// pad the the running address if this is a local-only root external with non-power 2 count
+			int padReps = Utils.getNextHighestPowerOf2(regProperties.getRepCount()) - regProperties.getRepCount();
+			if (regProperties.isLocalRootExternal() && !regProperties.isRootExternal() && (padReps > 0)) {
+				RegNumber addressIncrement = regProperties.getExtractInstance().getAddressIncrement();
+				updateNextAddress(addressIncrement, padReps); 
+			}
 		}
 	}
 
