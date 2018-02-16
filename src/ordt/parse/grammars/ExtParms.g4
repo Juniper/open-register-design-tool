@@ -33,7 +33,7 @@ ext_parm_defs
  global_defs
    : 'global'
      LBRACE
-     (global_parm_assign)+
+     (global_parm_assign)*
      RBRACE
    ;
 
@@ -51,7 +51,7 @@ ext_parm_defs
  rdl_in_defs
    : 'input' 'rdl'
      LBRACE
-     (rdl_in_parm_assign)+
+     (rdl_in_parm_assign)*
      RBRACE
    ;
    
@@ -66,7 +66,7 @@ ext_parm_defs
  jspec_in_defs
    : 'input' 'jspec'
      LBRACE
-     (jspec_in_parm_assign)+
+     (jspec_in_parm_assign)*
      RBRACE
    ;
    
@@ -81,7 +81,7 @@ ext_parm_defs
  rdl_out_defs
    : 'output' 'rdl'
      LBRACE
-     (rdl_out_parm_assign)+
+     (rdl_out_parm_assign)*
      RBRACE
    ;
    
@@ -95,7 +95,7 @@ ext_parm_defs
  jspec_out_defs
    : 'output' 'jspec'
      LBRACE
-     (jspec_out_parm_assign)+
+     (jspec_out_parm_assign)*
      RBRACE
    ;
    
@@ -115,7 +115,7 @@ ext_parm_defs
    : 'output' 'systemverilog'
      LBRACE
      ( systemverilog_out_parm_assign
-     | systemverilog_wrapper_info )+
+     | systemverilog_wrapper_info )*
      RBRACE
    ;
    
@@ -173,7 +173,7 @@ ext_parm_defs
  uvmregs_out_defs
    : 'output' 'uvmregs'
      LBRACE
-     (uvmregs_out_parm_assign)+
+     (uvmregs_out_parm_assign)*
      RBRACE
    ;
    
@@ -193,7 +193,7 @@ ext_parm_defs
  reglist_out_defs
    : 'output' 'reglist'
      LBRACE
-     (reglist_out_parm_assign)+
+     (reglist_out_parm_assign)*
      RBRACE
    ;  
    
@@ -208,7 +208,7 @@ ext_parm_defs
  bench_out_defs
    : 'output' 'bench'
      LBRACE
-     (bench_out_parm_assign)+
+     (bench_out_parm_assign)*
      RBRACE
    ;  
    
@@ -223,7 +223,7 @@ ext_parm_defs
  xml_out_defs
    : 'output' 'xml'
      LBRACE
-     (xml_out_parm_assign)+
+     (xml_out_parm_assign)*
      RBRACE
    ;  
    
@@ -236,7 +236,7 @@ ext_parm_defs
  cppmod_out_defs
    : 'output' 'cppmod'
      LBRACE
-     (cppmod_out_parm_assign)+
+     (cppmod_out_parm_assign)*
      RBRACE
    ;  
    
@@ -251,7 +251,7 @@ ext_parm_defs
  model_annotation
    : 'annotate'
      LBRACE
-     (annotation_command)+
+     (annotation_command)*
      RBRACE
    ;
 

@@ -34,6 +34,7 @@ Changes:
 - allowed repeat define of same user property in parser - flagged as warn later
 */
 
+
 grammar SystemRDL;
 
 import ExtParms;
