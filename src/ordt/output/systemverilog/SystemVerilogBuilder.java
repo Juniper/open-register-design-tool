@@ -777,15 +777,11 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	@Override
 	public void write(String outName, String description, String commentPrefix) {		
 		// before starting write, check that this addrmap is valid
-		//int mapSize = this.getMapAddressWidth();
-		//if (mapSize < 1) Ordt.errorExit("Minimum allowed address map size is " + (this.getMinRegByteWidth() * 2) + "B (addrmap=" + getAddressMapName() + ")");
 		if (decoder.getDecodeList().isEmpty()) Ordt.errorExit("Minimum allowed address map size is " + this.getMinRegByteWidth() + "B (addrmap=" + getAddressMapName() + ")");
-		//System.out.println("SystemVerilogBuilder write: Minimum allowed address map size is " + (this.getMinRegByteWidth() * 2) + "B, mapSize=" + mapSize + " (addrmap=" + getAddressMapName() + ")");
 
 		// determine if a single output file or multiple
 		boolean multipleOutputFiles = outName.endsWith("/");
    	    
-		//genPioInterfaceSignals();   // add the pio interface and internal decoder signals
 		//addressRanges.list();                     
 		addressRanges.writeGapComments();
 
@@ -796,13 +792,13 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	   	    String extension = legacyVerilog? ".v" : ".sv";
 	   	    
 			// write the top level module
-			writeTop(outName + getModuleName() + "_pio" + extension, description, commentPrefix);
+			writeModuleToFile(top, outName + getModuleName() + "_pio" + extension, description, commentPrefix);
 
 			// write the logic module
-			writeLogic(outName + getModuleName() + "_jrdl_logic" + extension, description, commentPrefix);
+			writeModuleToFile(logic, outName + getModuleName() + "_jrdl_logic" + extension, description, commentPrefix);
 			
 			// write the decode module
-			writeDecode(outName + getModuleName() + "_jrdl_decode" + extension, description, commentPrefix);
+			writeModuleToFile(decoder, outName + getModuleName() + "_jrdl_decode" + extension, description, commentPrefix);
 			
 			// if IO interfaces are used, generate the interfaces and wrapper
 			if ((usesInterfaces || ExtParameters.sysVerGenerateWrapperModule()) && !legacyVerilog) {
@@ -817,7 +813,8 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			
 			// write dv bind modules
 			if (ExtParameters.sysVerGenerateDvBindModules() && !legacyVerilog) {
-				writeIntrBindModule(outName + getModuleName() + "_jrdl_logic_intr_bind" + extension, description, commentPrefix);
+				SystemVerilogModule intrBindMod = logic.createIntrBindModule();
+				writeModuleToFile(intrBindMod, outName + getModuleName() + "_jrdl_logic_intr_bind" + extension, description, commentPrefix);
 			}
 			
 			// loop through nested addrmaps and write these VerilogBuilders
@@ -844,11 +841,11 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		}
 	}
 	
-	/** write top module output to specified output file  
+	/** write module statements to specified output file.  File is opened/created on entry and closed on return.  
 	 * @param outName - output file or directory
 	 * @param description - text description of file generated
 	 * @param commentPrefix - comment chars for this file type */
-	public void writeTop(String outName, String description, String commentPrefix) {
+	public void writeModuleToFile(SystemVerilogModule mod, String outName, String description, String commentPrefix) {
     	BufferedWriter bw = openBufferedWriter(outName, description);
     	if (bw != null) {
     		// set bw as default
@@ -858,64 +855,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
     		writeHeader(commentPrefix);
     		
     		// now write the output
-	    	top.write();
-    		closeBufferedWriter(bw);
-    	}
-	}
-	
-	/** write logic module output to specified output file  
-	 * @param outName - output file or directory
-	 * @param description - text description of file generated
-	 * @param commentPrefix - comment chars for this file type */
-	public void writeLogic(String outName, String description, String commentPrefix) {
-    	BufferedWriter bw = openBufferedWriter(outName, description);
-    	if (bw != null) {
-    		// set bw as default
-    		bufferedWriter = bw;
-
-    		// write the file header
-    		writeHeader(commentPrefix);
-    		
-    		// now write the output
-	    	logic.write();
-    		closeBufferedWriter(bw);
-    	}
-	}
-	
-	/** write decode module output to specified output file  
-	 * @param outName - output file or directory
-	 * @param description - text description of file generated
-	 * @param commentPrefix - comment chars for this file type */
-	public void writeDecode(String outName, String description, String commentPrefix) {
-    	BufferedWriter bw = openBufferedWriter(outName, description);
-    	if (bw != null) {
-    		// set bw as default
-    		bufferedWriter = bw;
-
-    		// write the file header
-    		writeHeader(commentPrefix);
-    		
-    		// now write the output
-	    	decoder.write();
-    		closeBufferedWriter(bw);
-    	}
-	}
-	
-	/** write interrupt debug dv binding to logic module - output to specified output file  
-	 * @param outName - output file or directory
-	 * @param description - text description of file generated
-	 * @param commentPrefix - comment chars for this file type */
-	public void writeIntrBindModule(String outName, String description, String commentPrefix) {
-    	BufferedWriter bw = openBufferedWriter(outName, description);
-    	if (bw != null) {
-    		// set bw as default
-    		bufferedWriter = bw;
-
-    		// write the file header
-    		writeHeader(commentPrefix);
-    		
-    		// now write the output
-	    	logic.writeIntrBindModule();
+	    	mod.write();
     		closeBufferedWriter(bw);
     	}
 	}
@@ -1032,7 +972,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		
 		// write dv bind modules
 		if (ExtParameters.sysVerGenerateDvBindModules() && !legacyVerilog) {
-			logic.writeIntrBindModule();
+			logic.createIntrBindModule().write();
 		}
 		
 					

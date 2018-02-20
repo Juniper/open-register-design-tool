@@ -896,7 +896,8 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	
 	//---------------------------- interrupt diagnostic bind module ----------------------------------------
 
-	public void writeIntrBindModule() {
+	/** create an interrupt assertion bind module */
+	public SystemVerilogModule createIntrBindModule() {
 		SystemVerilogModule intrBindMod = new SystemVerilogModule(builder, getInsideLocs(), defaultClkName, builder.getDefaultReset());
 		String intrBindModName = getName() + "_intr_bind";
 		intrBindMod.setName(intrBindModName);
@@ -962,8 +963,8 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		intrBindMod.addStatement("");
 		intrBindMod.addStatement("//------- " + intrBindModName + " interrupt debug module.  Use by binding as follows in tb:");
 		intrBindMod.addStatement("//        bind " + getName() + " " + intrBindModName + " intr_bind_inst(.*);");
-		// write the module
-		intrBindMod.write();
+		// return the module
+		return intrBindMod;
 	}
 
 	//---------------------------- inner classes ----------------------------------------

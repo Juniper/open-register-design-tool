@@ -1432,13 +1432,13 @@ public abstract class OutputBuilder implements OutputWriterIntf{
     	}
 	}
 	
-	/** write specified output list to specified output file.
+	/** write specified list of output statements to specified output file. File is opened/created on entry and closed on return.
 	 *  The default bufferedWriter for this OutputBuilder is not affected. 
 	 * @param outName - output file or directory
 	 * @param description - text description of file generated
 	 * @param commentPrefix - comment chars for this file type 
 	 * @param simple list of lines to be written */
-	public void simple_write(String outName, String description, String commentPrefix, List<String> stmts) {
+	public void writeStatementsToFile(String outName, String description, String commentPrefix, List<String> stmts) {
     	BufferedWriter bw = openBufferedWriter(outName, description);
     	if (bw != null) {
     		// write the file header
