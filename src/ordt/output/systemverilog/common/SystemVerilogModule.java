@@ -44,6 +44,7 @@ public class SystemVerilogModule {
     protected boolean showDuplicateSignalErrors = true;
     
 	protected SystemVerilogCoverGroups coverGroups;   // set of cover group info for module
+	protected boolean inhibitCoverageOutput = false;  // inhibit generation of coverage statements within current module (true if an external bind module will be generated)
 	static boolean isLegacyVerilog = false;
 	    
 	/** create a module
@@ -239,13 +240,25 @@ public class SystemVerilogModule {
 		return definedSignals.contains(name);
 	}
 	
+	public SystemVerilogCoverGroups getCoverGroups() {
+		return coverGroups;
+	}
+
+	public void setCoverGroups(SystemVerilogCoverGroups coverGroups) {
+		this.coverGroups = coverGroups;
+	}
+
+	public void setInhibitCoverageOutput(boolean inhibitCoverageOutput) {
+		this.inhibitCoverageOutput = inhibitCoverageOutput;
+	}
+
 	/** create a coverpoint and add it to specified covergroup in this module
 	 *  @param group - name of covergroup
 	 *  @param name - name of new coverpoint
 	 *  @param signal - signal to be sampled
 	 */
-	public void addCoverPoint(String group, String name, String signal, String condition) {
-		coverGroups.addCoverPoint(group, name, signal, condition);
+	public void addCoverPoint(String group, String name, String signal, int size, String condition) {
+		coverGroups.addCoverPoint(group, name, signal, size, condition);
 	}
 	// ------------------- parameter classes/methods  -----------------------
 	
@@ -616,7 +629,7 @@ public class SystemVerilogModule {
 	
 	/** write cover group stmts  */
 	public  void writeCoverGroups(int indentLevel) {
-		if (!isLegacyVerilog) {
+		if (!(isLegacyVerilog || inhibitCoverageOutput)) {
 			coverGroups.write(indentLevel);  // write for each covergroup
 		}
 	}

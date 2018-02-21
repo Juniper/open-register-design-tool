@@ -15,6 +15,7 @@ import ordt.output.FieldProperties;
 import ordt.output.RhsReference;
 import ordt.output.SignalProperties;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.common.SystemVerilogCoverGroups;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
@@ -869,7 +870,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			// add coverage on input intr signal (if it exists)
 			if (!fieldProperties.hasRef(RhsRefType.INTR) && !fieldProperties.hasRef(RhsRefType.NEXT)) {
 				String intrName = fieldProperties.getFullSignalName(DefSignalType.H2L_INTR);
-				this.addCoverPoint("interrupt_cg", intrName, intrName, null);
+				this.addCoverPoint("interrupt_cg", intrName, intrName, fieldProperties.getFieldWidth(), null);
 			}			
 		}
 		// if a counter field, cover incr/decr signals, rollover/saturate, threshold
@@ -877,19 +878,19 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			// add coverage on input incr signal (if it exists)
 			if (fieldProperties.isIncrCounter() && !fieldProperties.hasRef(RhsRefType.INCR)) {
 				String incrName = fieldProperties.getFullSignalName(DefSignalType.H2L_INCR);
-				this.addCoverPoint("counter_cg", incrName, incrName, null);
+				this.addCoverPoint("counter_cg", incrName, incrName, 1, null);
 			}			
 			// add coverage on input decr signal (if it exists)
 			if (fieldProperties.isDecrCounter() && !fieldProperties.hasRef(RhsRefType.DECR)) {
 				String decrName = fieldProperties.getFullSignalName(DefSignalType.H2L_DECR);
-				this.addCoverPoint("counter_cg", decrName, decrName, null);
+				this.addCoverPoint("counter_cg", decrName, decrName, 1, null);
 			}			
 			// TODO - add rollover / saturate test?
 		}
 		// otherwise if rtl_coverage is explicitly specified
 		else if (fieldProperties.generateRtlCoverage()) {
 			String fldReg = fieldProperties.getFullSignalName(DefSignalType.FIELD);
-			this.addCoverPoint("field_cg", fldReg, fldReg, null);
+			this.addCoverPoint("field_cg", fldReg, fldReg, fieldProperties.getFieldWidth(), null);
 		}
 		
 	}
@@ -965,6 +966,31 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		intrBindMod.addStatement("//        bind " + getName() + " " + intrBindModName + " intr_bind_inst(.*);");
 		// return the module
 		return intrBindMod;
+	}
+
+	public SystemVerilogModule createCoverBindModule() {
+		SystemVerilogModule coverBindMod = new SystemVerilogModule(builder, getInsideLocs(), defaultClkName, builder.getDefaultReset());
+		String intrBindModName = getName() + "_cover_bind";
+		coverBindMod.setName(intrBindModName);
+		Integer defaultOutputLoc = getOutsideLocs();
+		SystemVerilogIOSignalList bindIOList = new SystemVerilogIOSignalList("default");
+		coverBindMod.useIOList(bindIOList, defaultOutputLoc);
+		// add default clock and reset
+		coverBindMod.addSimpleScalarFrom(defaultOutputLoc, defaultClkName);
+		coverBindMod.addSimpleScalarFrom(defaultOutputLoc, builder.getDefaultReset());
+		// use defined coverage info in the logic module
+		SystemVerilogCoverGroups definedCGs = getCoverGroups();
+		if (definedCGs.isEmpty()) return null;  // exit if no CGs
+		coverBindMod.setCoverGroups(definedCGs);
+		// add control signal defines  TODO
+		
+		// add bind module inputs
+		for(SystemVerilogSignal sig: definedCGs.getSignalList()) {
+			// add signal inputs
+			coverBindMod.addSimpleVectorFrom(defaultOutputLoc, sig.getName(), sig.getLowIndex(), sig.getSize());
+		}
+		// return the module
+		return coverBindMod;
 	}
 
 	//---------------------------- inner classes ----------------------------------------

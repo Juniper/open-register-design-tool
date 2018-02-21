@@ -795,6 +795,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			writeModuleToFile(top, outName + getModuleName() + "_pio" + extension, description, commentPrefix);
 
 			// write the logic module
+			logic.setInhibitCoverageOutput(ExtParameters.sysVerGenerateDvBindModules());  // no coverpoints output if using bind modules
 			writeModuleToFile(logic, outName + getModuleName() + "_jrdl_logic" + extension, description, commentPrefix);
 			
 			// write the decode module
@@ -814,7 +815,10 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			// write dv bind modules
 			if (ExtParameters.sysVerGenerateDvBindModules() && !legacyVerilog) {
 				SystemVerilogModule intrBindMod = logic.createIntrBindModule();
-				writeModuleToFile(intrBindMod, outName + getModuleName() + "_jrdl_logic_intr_bind" + extension, description, commentPrefix);
+				writeModuleToFile(intrBindMod, outName + getModuleName() + "_jrdl_logic_intr_bind.sv", description, commentPrefix);
+				// create a coverage bind file
+				SystemVerilogModule coverBindMod = logic.createCoverBindModule();
+				if (coverBindMod != null) writeModuleToFile(coverBindMod, outName + getModuleName() + "_jrdl_logic_cover_bind.sv", description, commentPrefix);
 			}
 			
 			// loop through nested addrmaps and write these VerilogBuilders
@@ -951,6 +955,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		//System.out.println("SystemVerilogBuilder write:   Decoder elements= " + decoder.getDecodeList().size());
 
 		// write the logic module
+		logic.setInhibitCoverageOutput(ExtParameters.sysVerGenerateDvBindModules());  // no coverpoints output if using bind modules
 		logic.write();   
 		
 		// write the decode module
@@ -973,6 +978,9 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		// write dv bind modules
 		if (ExtParameters.sysVerGenerateDvBindModules() && !legacyVerilog) {
 			logic.createIntrBindModule().write();
+			// create a coverage bind module
+			SystemVerilogModule coverBindMod = logic.createCoverBindModule();
+			if (coverBindMod != null) coverBindMod.write();
 		}
 		
 					

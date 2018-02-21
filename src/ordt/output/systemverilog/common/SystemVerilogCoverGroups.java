@@ -42,12 +42,17 @@ public class SystemVerilogCoverGroups {
 		return regInfo;
 	}
 	
+	/** return true if no coverpoints */
+	public boolean isEmpty() {
+	  return coverGroups.isEmpty();	
+	}
+	
 	/** create a coverpoint and add it to specified group
 	 *  @param group - name of covergroup
 	 *  @param name - name of new coverpoint
 	 *  @param signal - signal to be sampled
 	 */
-	public void addCoverPoint(String group, String name, String signal, String condition) {
+	public void addCoverPoint(String group, String name, String signal, int size, String condition) {
 		CoverGroupInfo currentGroup;
 		// create group if it doesnt exist
 		if (coverGroups.containsKey(group)) currentGroup = coverGroups.get(group);
@@ -56,7 +61,7 @@ public class SystemVerilogCoverGroups {
 			coverGroups.put(group, currentGroup);
 		}
 		//  add new coverpoint to this group
-		currentGroup.addCoverPoint(name, signal, condition);
+		currentGroup.addCoverPoint(name, signal, size, condition);
 	}
 	
 	/** write out systemverilog for this set of covergroups  */
@@ -67,6 +72,15 @@ public class SystemVerilogCoverGroups {
 			coverGroups.get(regName).write(indentLevel);
 		}
 		writer.writeStmt(indentLevel, "`endif");  
+	}
+
+	/** return a list of signals monitored in this set of covergroups */
+	public List<SystemVerilogSignal> getSignalList() {
+		List<SystemVerilogSignal> sigList = new ArrayList<SystemVerilogSignal>();
+		for (String regName: coverGroups.keySet()) {
+			sigList.addAll(coverGroups.get(regName).getSignalList());
+		}
+		return sigList;
 	}
 
 	// ----------------- inner classes --------------------
@@ -82,14 +96,15 @@ public class SystemVerilogCoverGroups {
 			this.synchronous = true;    // default to synchronous sample
 			this.coverPointList = new ArrayList<CoverPointInfo>();    // list of coverpoints
 		}
+		
 		/** create a coverpoint and add it to this group
 		 *  @param name - name of new coverpoint
 		 *  @param signal - signal to be sampled
 		 *  @param condition - iff condition to be applead for this signal's coverpoint
 		 */
-		public void addCoverPoint(String name, String signal, String condition) {
+		public void addCoverPoint(String name, String signal, int size, String condition) {
 			// create the new coverpoint and add it to this group
-			CoverPointInfo cPoint = new CoverPointInfo(name, signal, condition);
+			CoverPointInfo cPoint = new CoverPointInfo(name, signal, size, condition);
 			coverPointList.add(cPoint);
 		}
 		
@@ -111,17 +126,27 @@ public class SystemVerilogCoverGroups {
 				writer.writeStmt(indentLevel, "");  			
 			}
 		}
+		
+		/** return a list of signals monitored in this covergroups */
+		public List<SystemVerilogSignal> getSignalList() {
+			List<SystemVerilogSignal> sigList = new ArrayList<SystemVerilogSignal>();
+			for (CoverPointInfo info: coverPointList) sigList.add(new SystemVerilogSignal(info.signal, 0, info.size));
+			return sigList;
+		}
+
 	}
 	
 	/** class to hold info associated with a coverage group */   
 	public  class CoverPointInfo {
 		private String name;   // name of this cover point
 		private String signal;   // signal being sampled
+		private int size;   // size of signal being sampled
 		private String condition;   // condition applied to this coverpoint
 		
-		public CoverPointInfo(String name, String signal, String condition) {
+		public CoverPointInfo(String name, String signal, int size, String condition) {
 			this.name = name;
 			this.signal = signal;
+			this.size = size;
 			if (condition != null) this.condition = condition;
 			else this.condition = "!" + resetName;  // default to reset inactive condition
 		}
