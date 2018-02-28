@@ -970,8 +970,8 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 
 	public SystemVerilogModule createCoverBindModule() {
 		SystemVerilogModule coverBindMod = new SystemVerilogModule(builder, getInsideLocs(), defaultClkName, builder.getDefaultReset());
-		String intrBindModName = getName() + "_cover_bind";
-		coverBindMod.setName(intrBindModName);
+		String bindModName = getName() + "_cover_bind";
+		coverBindMod.setName(bindModName);
 		Integer defaultOutputLoc = getOutsideLocs();
 		SystemVerilogIOSignalList bindIOList = new SystemVerilogIOSignalList("default");
 		coverBindMod.useIOList(bindIOList, defaultOutputLoc);
@@ -989,6 +989,10 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			// add signal inputs
 			coverBindMod.addSimpleVectorFrom(defaultOutputLoc, sig.getName(), sig.getLowIndex(), sig.getSize());
 		}
+		// print a usage message
+		coverBindMod.addStatement("");
+		coverBindMod.addStatement("//------- " + bindModName + " coverage module.  Use by binding as follows in tb:");
+		coverBindMod.addStatement("//        bind " + getName() + " " + bindModName + " cover_bind_inst(.*);");
 		// return the module
 		return coverBindMod;
 	}

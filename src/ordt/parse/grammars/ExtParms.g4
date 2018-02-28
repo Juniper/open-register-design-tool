@@ -153,6 +153,7 @@ ext_parm_defs
    | 'separate_iwrap_encap_files' EQ bool 
    | 'generate_dv_bind_modules' EQ bool 
    | 'use_global_dv_bind_controls' EQ bool 
+   | 'include_addr_monitor' EQ bool 
    ;
    
  systemverilog_wrapper_info

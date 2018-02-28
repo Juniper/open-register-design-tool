@@ -123,7 +123,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		}
 		
 		// generate common internal pio interface code
-		this.generateCommonPio();	
+		this.generateCommonPio(topRegProperties);
 	}
 
 	/** create primary processor interface */
@@ -174,7 +174,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** generate common internal pio interface code */
-	private void generateCommonPio() {
+	private void generateCommonPio(AddressableInstanceProperties topRegProperties) {
 		// add internal registered input sigs
 		this.addScalarReg("pio_write_active");  // write indication
 		this.addScalarReg("pio_read_active");  // read indication
@@ -273,7 +273,69 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		//this.addCombinAssign("pio i/f", "$display($time, \" Entering pio i/f block...\");"); 
 
 		this.addVectorReg("dec_pio_read_data_next", 0, builder.getMaxRegWidth());  // read data assignment signal
-		this.addScalarReg("external_transaction_active");    		   
+		this.addScalarReg("external_transaction_active");
+		
+		// if addr monitoring is enabled, then add these IO
+		if (mapHasMultipleAddresses() && ExtParameters.sysVerIncludeAddrMonitor())  generateAddrMonitor(topRegProperties, "pio_dec_address_d1", 
+					"pio_activate_write", "pio_activate_read", pioInterfaceAckNextName, pioInterfaceNackNextName);
+	}
+
+	/** generate the address monitor IO (output write ack/nack, read ack/nack pulses) */
+	private void generateAddrMonitor(AddressableInstanceProperties addrInstProperties, String addrName,
+			String writeName, String readName, String ackName, String nackName) {
+		String instPathStr = (addrInstProperties == null)? "" : "_" + addrInstProperties.getBaseName();
+		
+		// create address monitor IOs
+		String addrMonitorLowAddrName = "h2d" + instPathStr + "_addr_mon_low_addr";                      
+		String addrMonitorHighAddrName = "h2d" + instPathStr + "_addr_mon_high_addr";                      
+		
+		String addrMonitorReadAckName = "d2h" + instPathStr + "_addr_mon_rd_ack_o";                      
+		String addrMonitorReadNackName = "d2h" + instPathStr + "_addr_mon_rd_nack_o";                      
+		String addrMonitorWriteAckName = "d2h" + instPathStr + "_addr_mon_wr_ack_o";                      
+		String addrMonitorWriteNackName = "d2h" + instPathStr + "_addr_mon_wr_nack_o"; 
+		
+		String addrMonitorReadAckNextName = addrMonitorReadAckName + "_next";                      
+		String addrMonitorReadNackNextName = addrMonitorReadNackName + "_next";                      
+		String addrMonitorWriteAckNextName = addrMonitorWriteAckName + "_next";                      
+		String addrMonitorWriteNackNextName = addrMonitorWriteNackName + "_next";   
+		
+		this.addSimpleVectorFrom(SystemVerilogBuilder.HW, addrMonitorLowAddrName, builder.getAddressLowBit(), builder.getMapAddressWidth());    // low address 
+		this.addSimpleVectorFrom(SystemVerilogBuilder.HW, addrMonitorHighAddrName, builder.getAddressLowBit(), builder.getMapAddressWidth());    // high address 
+		
+		this.addSimpleScalarTo(SystemVerilogBuilder.HW, addrMonitorReadAckName);     
+		this.addSimpleScalarTo(SystemVerilogBuilder.HW, addrMonitorReadNackName); 
+		this.addSimpleScalarTo(SystemVerilogBuilder.HW, addrMonitorWriteAckName); 
+		this.addSimpleScalarTo(SystemVerilogBuilder.HW, addrMonitorWriteNackName); 
+		
+		this.addScalarReg(addrMonitorReadAckName);
+		this.addScalarReg(addrMonitorReadNackName);
+		this.addScalarReg(addrMonitorWriteAckName);
+		this.addScalarReg(addrMonitorWriteNackName);
+		
+		this.addResetAssign("address monitor", builder.getDefaultReset(), addrMonitorReadAckName + " <= #1  1'b0;");  
+		this.addRegAssign("address monitor",  addrMonitorReadAckName + " <= #1  " + addrMonitorReadAckNextName + ";");  
+		this.addResetAssign("address monitor", builder.getDefaultReset(), addrMonitorReadNackName + " <= #1  1'b0;");  
+		this.addRegAssign("address monitor",  addrMonitorReadNackName + " <= #1  " + addrMonitorReadNackNextName + ";");  
+		this.addResetAssign("address monitor", builder.getDefaultReset(), addrMonitorWriteAckName + " <= #1  1'b0;");  
+		this.addRegAssign("address monitor",  addrMonitorWriteAckName + " <= #1  " + addrMonitorWriteAckNextName + ";");  
+		this.addResetAssign("address monitor", builder.getDefaultReset(), addrMonitorWriteNackName + " <= #1  1'b0;");  
+		this.addRegAssign("address monitor",  addrMonitorWriteNackName + " <= #1  " + addrMonitorWriteNackNextName + ";");  
+
+		// create combi output values		
+		this.addScalarWire(addrMonitorReadAckNextName);
+		this.addScalarWire(addrMonitorReadNackNextName);
+		this.addScalarWire(addrMonitorWriteAckNextName);
+		this.addScalarWire(addrMonitorWriteNackNextName);
+		
+		// create address match signal
+		this.addScalarWire("addr_monitor_match");
+		this.addWireAssign("addr_monitor_match = ((" + addrName + " >= " + addrMonitorLowAddrName + ") && (" + addrName + " <= " + addrMonitorHighAddrName + "));");
+		
+		// assign monitor outputs
+		this.addWireAssign(addrMonitorReadAckNextName + " = addr_monitor_match && " + readName + " && " + ackName + ";");
+		this.addWireAssign(addrMonitorReadNackNextName + " = addr_monitor_match && " + readName + " && " + nackName + ";");
+		this.addWireAssign(addrMonitorWriteAckNextName + " = addr_monitor_match && " + writeName + " && " + ackName + ";");
+		this.addWireAssign(addrMonitorWriteNackNextName + " = addr_monitor_match && " + writeName + " && " + nackName + ";");
 	}
 
 	/** return true if write enables are specified */
