@@ -90,7 +90,10 @@ public class RegProperties extends AddressableInstanceProperties {
 		// now extract from the combined instance properties
 		// extract boolean test properties
 		if (pList.hasTrueProperty("donttest")) setDontTest(true);
+		else if (pList.hasFalseProperty("donttest")) setDontTest(false);
+		
 		if (pList.hasTrueProperty("dontcompare")) setDontCompare(true);
+		else if (pList.hasFalseProperty("dontcompare")) setDontCompare(false);
 		
 		// extract jspec attributes to be passed thru
 		if (pList.hasProperty("js_attributes")) setJspecAttributes(pList.getProperty("js_attributes"));
@@ -103,10 +106,14 @@ public class RegProperties extends AddressableInstanceProperties {
 		
 		// extract uvmregs test info
 		if (pList.hasTrueProperty("uvmreg_is_mem")) setMem(true);
+		else if (pList.hasFalseProperty("uvmreg_is_mem")) setMem(false);
+		
 		if (pList.hasTrueProperty("uvmreg_prune")) setUvmRegPrune(true);
+		else if (pList.hasFalseProperty("uvmreg_prune")) setUvmRegPrune(false);
 		
 		// extract c++ model info
 		if (pList.hasTrueProperty("cppmod_prune")) setCppModPrune(true);
+		else if (pList.hasFalseProperty("cppmod_prune")) setCppModPrune(false);
 	}
     
 	/** extract a PropertyList of user defined parameters for this instance */

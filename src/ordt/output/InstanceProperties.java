@@ -108,6 +108,7 @@ public class InstanceProperties {
 		if (pList.hasProperty("name")) setTextName(pList.getProperty("name")); 
 		if (pList.hasProperty("desc")) setTextDescription(pList.getProperty("desc")); 
 		//System.out.println("InstanceProperties extractProperties: desc=" + pList.getProperty("desc"));
+		
 		if (pList.hasTrueProperty("use_new_interface"))  setUseInterface(true);
 		else if (pList.hasProperty("use_interface") && !pList.hasBooleanProperty("use_interface")) {
 			setUseInterface(true);
