@@ -58,7 +58,6 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	private Integer lastResolvedArrayIndex;  // value of last resolved integer array index
 	boolean inhibitNextResolveCheck = false;
 	
-	private Integer registerWidth;  // TODO- needed? now that aligned-size info in model? 
 	private Stack<Integer> fieldOffsets = new Stack<Integer>(); // stack of offsets used to calculate fieldset widths
 	private static int anonCompId = 0;
 	private static HashSet<String> ignoredParameters = getIgnoredParameters();  // list of ignored jspec params
@@ -551,7 +550,6 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 		// create the component (and instance if not typedef) 
 		enterComponentDefinition(ctx, "reg", 1, 2);
 		// assume default width unless register_width assignment is made
-		registerWidth = ModRegister.defaultWidth;  // TODO - really should restructure width assign since regsets can assign 
 		//System.out.println("JSpecModelExtractor: enterRegister_def: --------  id=" + ctx.getChild(1).getText() );
 		fieldOffsets.push(0); // init fieldOffset for this reg
 	}
@@ -561,13 +559,9 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	@Override public void exitRegister_def(@NotNull JSpecParser.Register_defContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 		//activeCompDefs.peek().display(null, null, true);
+		// save the bitsAssigned - will use to set bit padding in AlignedSize calculation when register size is known
 		Integer bitsAssigned = fieldOffsets.peek();
-		if (bitsAssigned != registerWidth) {
-			Integer bitPadding = registerWidth - bitsAssigned;
-			//System.out.println("JSpecModelExtractor exitRegister_def: padding needed for reg " + activeCompDefs.peek().getId() + ", w=" + registerWidth + ",assigned=" + bitsAssigned);
-			if (bitPadding > 0) 
-				((ModRegister) activeCompDefs.peek()).setPadBits(bitPadding);  // save req'd reg padding in comp - used in regProperties to set field offsets
-		}
+		((ModRegister) activeCompDefs.peek()).saveBitsAssignedAsPadBits(bitsAssigned);  // save req'd reg padding in comp - used in regProperties to set field offsets
 		exitComponentDefinition();
 		fieldOffsets.pop();
 	}
@@ -715,12 +709,14 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 				//if (activeInstances.isEmpty()) System.out.println("JSpecModelExtractor enterTypedef_instance          activeInstance stack is empty!");
 				//else activeInstances.peek().display(null, 0, true);
 			//}
+			ModInstance parentInst = activeInstances.isEmpty()? null : activeInstances.peek();  // get parent instance
 
 			createNewInstance(comp, id, activeCompDefs.peek(), name, ctx.getStart().getLine());
 			ModInstance newInst = activeInstances.peek();
 			if (newInst.isRootInstance() && ExtParameters.jspecRootRegsetIsAddrmap()) comp.setCompType(CompType.ADDRMAP);  // make root instanced comp an addrmap
 			// update properties from component and ancestors
 			newInst.updateProperties(comp.getProperties());   // get properties from from component type of this instance 
+			if (parentInst != null) newInst.updateProperties(parentInst.getDefaultProperties());  // get default properties from ancestor instance param overrides
 			newInst.updateProperties(newInst.getParent().getDefaultProperties());   // get default properties from ancestors
 			// if a new field or fieldset instance, update field indices (relative - final vals resolved at builder)
 			if (comp.isField() && comp.hasProperty("fieldwidth")) updateFieldIndexInfo(comp.getIntegerProperty("fieldwidth"), true);   
@@ -914,8 +910,12 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 		//
 		else if (parm.equals("register_width")) {
 			verifyNonNullAssignValue(lastResolvedNum, parm, value);
-			registerWidth = lastResolvedNum.toInteger();  // set width of reg for field bit calcs  
-			modComp.setProperty("regwidth", registerWidth.toString(), 0);  // 
+			Integer registerWidth = lastResolvedNum.toInteger();  // set width of reg for field bit calcs
+			// if a register then save as property, else save as default property
+			ModComponent widthComponent = isTypeDefInstance? activeInstances.peek().getRegComp() : (ModComponent) modComp;
+			if (widthComponent.isReg()) modComp.setProperty("regwidth", registerWidth.toString(), 0); 
+			else modComp.setDefaultProperty("regwidth", registerWidth.toString()); 
+			//System.out.println("JSpecModelExtractor saveJSpecParam: Setting register_width to " + registerWidth + " in " + widthComponent.getCompType() + " " + (isTypeDefInstance? "instance " : "typedef ") + modComp.getId());
 		}
 		
 		//

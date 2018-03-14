@@ -19,24 +19,15 @@ public class ModRootComponent extends ModComponent {
 		getChildInstances().clear();
 	}
 
-	/** compute min size of all instanced subcomponents */  
-	public void setAlignedSize() {
+	/** compute min size of all instanced registers and regsets */  
+	public void setAlignedSize(int defaultRegWidth) {
         // only use first instance for size computation (assumes no addr/shift/mod on root inst)
 		ModInstance inst = this.getFirstChildInstance();
 		if (inst != null) {
-			inst.regComp.setAlignedSize();  //recursively set sizes
+			int newDefaultRegWidth = inst.hasDefaultProperty("regwidth") ? inst.getDefaultIntegerProperty("regwidth") : defaultRegWidth;  // use instance default if defined
+			inst.regComp.setAlignedSize(newDefaultRegWidth);  //recursively set sizes
 			this.alignedSize = new RegNumber(inst.regComp.getAlignedSize());  // root comp size is same as first comp?
 		}
-
-		/* add all child sizes
-		RegNumber newAlignedSize = new RegNumber(0);
-		for (ModInstance regInst : childInstances) {
-			regInst.regComp.setAlignedSize();
-			newAlignedSize.add(regInst.regComp.getAlignedSize());
-		}
-		newAlignedSize.setNextHighestPowerOf2();  // round to next power of 2
-		this.alignedSize = newAlignedSize;
-		*/
 	}
 
 	/** sortRegisters - fix simple out of order address order issues */

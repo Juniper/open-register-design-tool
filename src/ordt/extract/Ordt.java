@@ -31,7 +31,7 @@ import ordt.parameters.ExtParameters.UVMModelModes;
 
 public class Ordt {
 
-	private static String version = "180306.01"; 
+	private static String version = "180314.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -255,8 +255,8 @@ public class Ordt {
     		newModel = new RdlModelExtractor(inputFile);
     	}
     	
-    	// precompute min size of each regset
-    	newModel.getRoot().setAlignedSize();
+    	// precompute min size of each register and regset
+    	newModel.getRoot().setAlignedSize(ExtParameters.getMinDataSize());
     	
     	// fix simple address ordering issues 
     	if (ExtParameters.allowUnorderedAddresses()) newModel.getRoot().sortRegisters();

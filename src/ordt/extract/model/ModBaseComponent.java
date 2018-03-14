@@ -124,6 +124,14 @@ public abstract class ModBaseComponent {
 		return outInt;
 	}
 
+	/** get an integer default property or null if exception
+	 *  @param name of the property value to get
+	 *  @return the integer property value
+	 */
+	public Integer getDefaultIntegerProperty(String name) {
+		return defaultProperties.getIntegerProperty(name);
+	}
+
 	/** get properties
 	 *  @return the properties
 	 */

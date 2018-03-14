@@ -202,8 +202,8 @@ public abstract class ModComponent extends ModBaseComponent {
 		return alignedSize;
 	}
 
-	/** default setAlignedSize - overridden in ModRootComponent, ModRegSet, ModRegister */
-	public void setAlignedSize() {
+	/** default setAlignedSize - overridden in ModRootComponent, ModRegSet, ModRegister, precompute the size of registers/regsets prior to output generation */
+	public void setAlignedSize(int defaultRegWidth) {
 	}
 
 	/** default sortRegisters - overridden in ModRootComponent, ModRegSet */

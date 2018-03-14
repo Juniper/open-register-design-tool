@@ -432,7 +432,7 @@ public class RegProperties extends AddressableInstanceProperties {
 		else lowFieldIndex = addFloatingField(width);  // FIXME - fieldsetoffset and padding should constrain valid ranges (min valid has these)
 		// now create the output array index string
 		if (lowFieldIndex == null) {
-			Ordt.errorExit("Unable to fit all fields in register instance " + getId());
+			Ordt.errorExit("Unable to fit all fields in " + getRegWidth() + "b register instance " + getInstancePath());
 		}
 		//if (getId().equals("scfg_data")) System.out.println("RegProperties addField: id=" + fieldProperties.getInstancePath() + ", adding at reg lowFieldIndex=" + lowFieldIndex);
 		fieldCount++;  // bump the field count

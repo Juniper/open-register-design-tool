@@ -73,19 +73,31 @@ public class ModRegister extends ModComponent  {
 		System.out.println("        pad bits=" + this.getPadBits());
 	}
 	
-	/** compute aligned size of this reg in bytes*/
+	/** compute aligned size of this reg in bytes. if reg has no assigned size, assign default determined by ancestors */
 	@Override
-	public void setAlignedSize() {
+	public void setAlignedSize(int defaultRegWidth) {
 		// if already computed then exit
 		if (alignedSize != null) return;
-		// get reg width
-		int regWidth = hasProperty("regwidth") ? getIntegerProperty("regwidth")/8 : defaultWidth/8;
+		// set reg width if it's not defined
+		if (!hasProperty("regwidth")) {
+			setProperty("regwidth", String.valueOf(defaultRegWidth), 0);
+		}
+		int regWidth = getIntegerProperty("regwidth");
+		// get reg width in bytes
+		int regByteWidth = regWidth/8;
 		// add all child sizes
-		RegNumber newMinSize = new RegNumber(regWidth);
+		RegNumber newMinSize = new RegNumber(regByteWidth);
 		//System.out.println("ModRegister setMinSize, register instance=" + getId() + ", regwidth=" + newMinSize);
 		newMinSize.setNextHighestPowerOf2();  // round to next power of 2
 		//System.out.println("ModRegister setMinSize, register instance=" + getId() + ", regwidth=" + newMinSize);
 		this.alignedSize = newMinSize;
+		// if a jspec defined register, compute bit padding
+		int bitsAssigned = this.getPadBits();  // js extract saves bitsAssigned here, which is overwritten
+		if (bitsAssigned > 0) {  // only js extracted can be non-zero
+			Integer bitPadding = regWidth - bitsAssigned; 
+			//System.out.println("JSpecModelExtractor exitRegister_def: padding needed for reg " + activeCompDefs.peek().getId() + ", w=" + registerWidth + ",assigned=" + bitsAssigned);
+			this.setPadBits(bitPadding);  // save req'd reg padding in comp - used in regProperties to set field offsets
+		}
 	}
 	
 	public int getPadBits() {
@@ -96,6 +108,11 @@ public class ModRegister extends ModComponent  {
 		this.padBits = padBits;
 	}
 
+	/** save bits assigned in a jspec extract to calculate bit padding in setAlignedSize */
+	public void saveBitsAssignedAsPadBits(int bitsAssigned) {
+		this.padBits = bitsAssigned;
+	}
+	
 	// ------------------------------------ code gen templates ----------------------------------------
 
 	/* generate output */   

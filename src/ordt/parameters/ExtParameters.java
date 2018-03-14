@@ -530,8 +530,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getIntegerParameter("leaf_address_size");
 	}
 
-	/** get leafMinDataSize
-	 *  @return the leafMinDataSize (bits)
+	/** get minimum allowed register width in bits which defines the base word size (must be a power of 2 between 8 and 128)
 	 */
 	public static Integer getMinDataSize() {
 		return getIntegerParameter("min_data_size");

@@ -64,7 +64,7 @@ public class ModRegSet extends ModComponent {
 	 * returned value is independent of subcomp alignment/base addr 
 	 */
 	@Override
-	public void setAlignedSize() {
+	public void setAlignedSize(int defaultRegWidth) {
 		// if already computed then exit
 		if (alignedSize != null) return;
 		// add all child sizes
@@ -73,7 +73,9 @@ public class ModRegSet extends ModComponent {
 			// only consider addressable instances
 			if (regInst.isAddressable()) {
 				ModAddressableInstance childInst= (ModAddressableInstance) regInst;
-				childInst.regComp.setAlignedSize();  // recursively set size of individual child component 
+				int newDefaultRegWidth = childInst.hasDefaultProperty("regwidth") ? childInst.getDefaultIntegerProperty("regwidth") :   // use instance default if defined
+				   this.hasDefaultProperty("regwidth") ? this.getDefaultIntegerProperty("regwidth") : defaultRegWidth;  // else use current regset default if defined
+				childInst.regComp.setAlignedSize(newDefaultRegWidth);  // recursively set size of individual child component 
 				if (childInst.getAddress() != null) newAlignedSize = new RegNumber(childInst.getAddress());     // if child has a defined address, bump the running size
 				if (childInst.getAddressShift() != null) newAlignedSize.add(childInst.getAddressShift());     // if child has a defined address shift, bump the running size
 				if (childInst.getAddressModulus() != null) newAlignedSize.roundUpToModulus(childInst.getAddressModulus()); // if child has a defined modulus then bump size
