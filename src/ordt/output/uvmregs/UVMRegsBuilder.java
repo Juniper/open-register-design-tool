@@ -11,6 +11,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ordt.extract.Ordt;
 import ordt.extract.PropertyList;
@@ -25,9 +27,12 @@ import ordt.output.OutputLine;
 import ordt.output.RegProperties;
 import ordt.output.RegSetProperties;
 import ordt.output.RhsReference;
+import ordt.output.UniqueNameSet;
+import ordt.output.UniqueNameSet.UniqueNameSetInfo;
 import ordt.output.FieldProperties.RhsRefType;
 import ordt.output.systemverilog.common.SystemVerilogFunction;
 import ordt.parameters.ExtParameters;
+import ordt.parameters.Utils;
 
 public class UVMRegsBuilder extends OutputBuilder {
 
@@ -54,11 +59,11 @@ public class UVMRegsBuilder extends OutputBuilder {
 	protected static int lastCBDepth = -1;
 	protected static int lastCBCount = 0;
 	
-	// unique uvm reg and block class
-	protected HashMap<RegProperties, String> uniqueRegClasses = new HashMap<RegProperties, String>(); // hashmap since even equal RegProperties can have dif't instance paths 
-	protected HashMap<RegSetProperties, String> uniqueBlockClasses = new HashMap<RegSetProperties, String>();  // hashmap since even equal RegSetProperties can have dif't instance paths
-	//protected int regClassCount = 0;
-	//protected int blockClassCount = 0;
+	// unique uvm reg and block class name structures
+	protected UniqueNameSet<RegProperties> uniqueRegNames = new UniqueNameSet<RegProperties>(ExtParameters.uvmregsReuseUvmClasses(), 
+			ExtParameters.uvmregsUseNumericUvmClassNames(), false, "reg");
+	protected UniqueNameSet<RegSetProperties> uniqueBlockNames = new UniqueNameSet<RegSetProperties>(ExtParameters.uvmregsReuseUvmClasses(),
+			ExtParameters.uvmregsUseNumericUvmClassNames(), true, "block");
 
     //---------------------------- constructor ----------------------------------
 
@@ -135,6 +140,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		// only add the register if it is sw accessible and not explicitly pruned from model
 		if ((regProperties.isSwWriteable() || regProperties.isSwReadable()) && !regProperties.uvmRegPrune()) {
 			//if (regProperties.isReplicated()) System.out.println("UVMRegsBuilder finishRegister: replicated reg id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", thold=" + ExtParameters.uvmregsIsMemThreshold());
+
 			// if a memory, then add info to parent uvm_reg_block
 			if (regProperties.isMem() || (regProperties.getRepCount() >= ExtParameters.uvmregsIsMemThreshold())) {   // check is_mem threshold vs reps
 				//System.out.println("UVMRegsBuilder finishRegister: replicated MEM reg id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", thold=" + ExtParameters.uvmregsIsMemThreshold());
@@ -148,38 +154,33 @@ public class UVMRegsBuilder extends OutputBuilder {
 				// otherwise default behavior - create a wrapper block with same create_map width as mem and encapsulate mem/vreg
 				else {
 					// save wrapper block in parent
-					String newBlockName = regProperties.getId();  // use reg name as wrapper block name
-					String uvmBlockClassName = getUVMBlockID(newBlockName);
-					saveRegSetInfo(uvmBlockClassName, newBlockName, regProperties.getRelativeBaseAddress()); 
+					String newBlockInstanceName = regProperties.getId();  // use reg name as wrapper block name
+					// build the wrap block class name from register
+					//System.out.println("UvmRegsBuilder finishRegister: calling reg getName...");
+					@SuppressWarnings("rawtypes")
+					UniqueNameSetInfo reg_ret = uniqueRegNames.getName(regProperties, "block_mem_wrap", getAddrMapPrefix(), null);
+					String uvmBlockClassName = reg_ret.name;
+					//if (ExtParameters.uvmregsReuseUvmClasses() && reg_ret.isNew) System.err.println("UvmRegsBuilder finishRegister: **** error, wrapper name created before reg");
+					saveRegSetInfo(uvmBlockClassName, newBlockInstanceName, regProperties.getRelativeBaseAddress()); 
 					// save info for this memory and virtual regs in the wrapper
 					saveMemInfo(true);  // save info in wrapper block
 					// build the virtual register class definition
 					buildVRegClass();  									
                 	// build the wrapper using reg byte width in map and reg id as suffix
-					buildMemWrapperBlockClass(uvmBlockClassName, newBlockName, regProperties.getRegByteWidth());
+					buildMemWrapperBlockClass(uvmBlockClassName, newBlockInstanceName, regProperties.getRegByteWidth());
 					//System.out.println("UVMRegsBuilder finishRegister wrapper: " + regProperties.getInstancePath() + ", newBlockName=" + newBlockName);
 				}
 			}
 			// otherwise model as a register
 			else {
-				String uvmRegClassName = getUVMRegID();  // generate class name based on current register
-				// if class reuse is specified, store new class names and reuse repeats
-				boolean createNewRegClass = true;
-				if (ExtParameters.uvmregsReuseUvmClasses()) {
-					/*System.out.println("UVMRegsBuilder finishRegister: reg " + regProperties.getInstancePath() + " with class name=" + uvmRegClassName + ", hash=" + regProperties.hashCode() + ", containsKey=" + uniqueRegClasses.containsKey(regProperties));
-					for(RegProperties reg: uniqueRegClasses.keySet()) {
-						System.out.println("    unique reg " + reg.getInstancePath()  + ", hash=" + reg.hashCode()  + ", equals=" + regProperties.equals(reg));
-					}*/
-					if (!uniqueRegClasses.containsKey(regProperties)) uniqueRegClasses.put(regProperties, uvmRegClassName);
-					else {
-						//System.out.println("UVMRegsBuilder finishRegister: reg=" + uvmRegClassName + " is a copy of reg=" + uniqueRegClasses.get(regProperties));
-						uvmRegClassName = uniqueRegClasses.get(regProperties);  // use existing reg class
-						createNewRegClass = false;
-					}
-				}
+				// get the reg class name and create class if it's new or not reusing classes
+				//System.out.println("UvmRegsBuilder finishRegister: calling reg getName...");
+				@SuppressWarnings("rawtypes")
+				UniqueNameSetInfo reg_ret = uniqueRegNames.getName(regProperties, getAddrMapPrefix());
+				String uvmRegClassName = reg_ret.name;
+				boolean createNewRegClass = reg_ret.isNew;
 				// save info for this register to be used in parent uvm_reg_block
-				String uvmBlockClassName = getUVMBlockID();
-			    saveRegInfo(uvmRegClassName, uvmBlockClassName);
+			    saveRegInfo(uvmRegClassName);
 				// build the register class definition
 				if (createNewRegClass) buildRegClass(uvmRegClassName);		
 			}
@@ -199,19 +200,13 @@ public class UVMRegsBuilder extends OutputBuilder {
 		Boolean hasCallback = regSetHasCallback.pop();
 		// if regset has defined registers, add it to the model
 		if (activeRegisterCount.peek()>0) {
+			// get the block class name
+			//System.out.println("UvmRegsBuilder finishRegSet: calling block getName...");
+			@SuppressWarnings("rawtypes")
+			UniqueNameSetInfo blk_ret = uniqueBlockNames.getName(regSetProperties, getAddrMapPrefix());
+			String uvmBlockClassName = blk_ret.name;
+			boolean createNewBlockClass = blk_ret.isNew;
 			// save info for this register set to be used in parent uvm_reg_block (do in finishRegSet so size is computed) - no overrides
-			String uvmBlockClassName = getUVMBlockID();  
-			//blockClassCount++;
-			// if class reuse is specified, store new class names and reuse repeats
-			boolean createNewBlockClass = true;
-			if (ExtParameters.uvmregsReuseUvmClasses()) {
-				if (!uniqueBlockClasses.containsKey(regSetProperties)) uniqueBlockClasses.put(regSetProperties, uvmBlockClassName);
-				else {
-					//System.out.println("UVMRegsBuilder finishRegSet: block=" + uvmBlockClassName + " is a copy of reg=" + uniqueBlockClasses.get(regSetProperties));
-					uvmBlockClassName = uniqueBlockClasses.get(regSetProperties);  // use existing block class
-					createNewBlockClass = false;
-				}
-			}
 			saveRegSetInfo(uvmBlockClassName, null, null);
 			// build the block class definition
 			if (createNewBlockClass) buildBlockClass(uvmBlockClassName, hasCallback);  
@@ -241,7 +236,12 @@ public class UVMRegsBuilder extends OutputBuilder {
 	public  void finishRegMap() {	
 		// build the register class definition
 		Boolean hasCallback = regSetHasCallback.pop();
-		String uvmBlockClassName = getUVMBlockID();
+		// get the block class name
+		//System.out.println("UvmRegsBuilder finishRegMap: calling block getName...");
+		@SuppressWarnings("rawtypes")
+		UniqueNameSetInfo blk_ret = uniqueBlockNames.getName(regSetProperties, getAddrMapPrefix());
+		String uvmBlockClassName = blk_ret.name;
+		// save info for the base block
 		buildBaseBlockClass(uvmBlockClassName, hasCallback); 
 		//System.out.println("UVMRegsBuilder finishRegMap: " + regSetProperties.getInstancePath() + ", activeRegisterCount=" + activeRegisterCount.peek());
 		//System.out.println("UVMRegsBuilder finishRegMap: regs=" + regClassCount + ", unique regs=" + uniqueRegClasses.size());
@@ -261,24 +261,26 @@ public class UVMRegsBuilder extends OutputBuilder {
     //---------------------------- helper methods saving child info for parent build --------------------------------------
 
 	/** save register info for use in parent uvm_reg_block class */
-	protected void saveRegInfo(String uvmRegClassName, String uvmBlockClassName) {
+	protected void saveRegInfo(String uvmRegClassName) {
+		// get current regset id for struct store by block
+		String blockId = regSetProperties.getBaseName();
 		// get parent name
 		String parentID = this.getParentInstancePath().replace('.', '_');
+		//if (!blockId.equals(parentID)) System.out.println("UVMRegsBuilder saveRegInfo: parent=" + parentID + ", block=" + blockId);
 		// escape id and alias names
 		String regId = escapeReservedString(regProperties.getId());
-		//String aliasedId = escapeReservedString(regProperties.getAliasedId());
 		// save register define statements
 		String repStr = (regProperties.isReplicated()) ? "[" + regProperties.getRepCount() + "]" : "";
 		subcompDefList.addStatement(parentID, "rand " + uvmRegClassName + " " + regId + repStr + ";");
 		
 		// save cbs define statements (may not be needed - determine in block finish once alias groups are known)
-		regCbsDefineStatements.addStatement(parentID, "rdl_alias_reg_cbs " + getUVMRegCbsID() + ";", uvmBlockClassName, regProperties.getId(), regProperties.getAliasedId());
+		regCbsDefineStatements.addStatement(parentID, "rdl_alias_reg_cbs " + getUVMRegCbsID() + ";", blockId, regProperties.getId(), regProperties.getAliasedId());
 		// save cbs assign statements
 		String cbsName = getUVMRegCbsID();
-		regCbsAssignStatements.addStatement(parentID, "GENERATE ALIAS GROUP", uvmBlockClassName, regProperties.getId(), regProperties.getAliasedId()); // special line  
-		regCbsAssignStatements.addStatement(parentID, cbsName + " = new(\"" + cbsName + "\");", uvmBlockClassName, regProperties.getId(), regProperties.getAliasedId());  
-		regCbsAssignStatements.addStatement(parentID, cbsName + ".set_alias_regs(alias_group);", uvmBlockClassName, regProperties.getId(), regProperties.getAliasedId());  
-		regCbsAssignStatements.addStatement(parentID, "uvm_reg_cb::add(" + regProperties.getId() + ", " + cbsName + ");", uvmBlockClassName, regProperties.getId(), regProperties.getAliasedId());  
+		regCbsAssignStatements.addStatement(parentID, "GENERATE ALIAS GROUP", blockId, regProperties.getId(), regProperties.getAliasedId()); // special line  
+		regCbsAssignStatements.addStatement(parentID, cbsName + " = new(\"" + cbsName + "\");", blockId, regProperties.getId(), regProperties.getAliasedId());  
+		regCbsAssignStatements.addStatement(parentID, cbsName + ".set_alias_regs(alias_group);", blockId, regProperties.getId(), regProperties.getAliasedId());  
+		regCbsAssignStatements.addStatement(parentID, "uvm_reg_cb::add(" + regProperties.getId() + ", " + cbsName + ");", blockId, regProperties.getId(), regProperties.getAliasedId());  
 
 		// save register coverage statements
 		if (ExtParameters.uvmregsIncludeAddressCoverage()) addRegToAddrCoverageList(parentID, regId, false);  // false = not in a uvm_mem wrapper
@@ -287,7 +289,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		//if (regProperties.isAlias()) System.out.println("UVMRegsNuilder: alias reg hdl using " + regProperties.getAliasedId() + " not " + regProperties.getId());
 		// if an alias register build a cbs class and register callback   
 		if (regProperties.isAlias()) {  // also need isAliased()   // just load alias/aliased register structure by block here
-			aliasGroups.addGroupReg(uvmBlockClassName, regProperties.getAliasedId(), regProperties.getId());  
+			aliasGroups.addGroupReg(blockId, regProperties.getAliasedId(), regProperties.getId());  
 		}
 		// issue warning if no category defined
 		if (!regProperties.hasCategory() && !ExtParameters.uvmregsSuppressNoCategoryWarnings()) 
@@ -364,7 +366,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	 */
 	protected void saveMemInfo(boolean parentIsWrapper) {
 		// get parent block name (use reg name if a wrapper is being used)
-		String parentID = parentIsWrapper? regProperties.getInstancePath().replace('.', '_') : this.getParentInstancePath().replace('.', '_'); 
+		String parentID = parentIsWrapper? regProperties.getBaseName() : this.getParentInstancePath().replace('.', '_'); 
 		// set vreg instance id
 		String regId = parentIsWrapper? "vregs" : regProperties.getId();
 		// escape id name
@@ -645,7 +647,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		buildBlockCoverageDefines(refId);
 		
 		// if this block has alias groups then add a define 
-		if (aliasGroups.blockExists(uvmBlockClassName)) {
+		if (aliasGroups.blockExists(regSetProperties.getBaseName())) {
 			outputList.add(new OutputLine(indentLvl, "local uvm_reg alias_group[$];"));			
 		}
 		
@@ -657,7 +659,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		
 		// create build function  
 		Integer mapWidthOverride = (ExtParameters.hasDebugMode("uvmregs_maps_use_max_width"))?  regSetProperties.getMaxRegByteWidth()  : null; // if debug mode 1 use regset property width
-		buildBlockBuildFunction(uvmBlockClassName, refId, mapWidthOverride, false);
+		buildBlockBuildFunction(refId, mapWidthOverride, false);
 		
 		// close out the class definition
 		outputList.add(new OutputLine(indentLvl, ""));	
@@ -688,7 +690,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		buildBlockNewDefine(uvmBlockClassName, ExtParameters.uvmregsIncludeAddressCoverage());
 		
 		// create build function ising width of underlying virtual regs/mem
-		buildBlockBuildFunction(uvmBlockClassName, refId, mapWidthOverride, true);
+		buildBlockBuildFunction(refId, mapWidthOverride, true);
 		
 		// close out the class definition
 		outputList.add(new OutputLine(indentLvl, ""));	
@@ -715,7 +717,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		buildBlockCoverageDefines(refId);
 		
 		// if this block has alias groups then add a define 
-		if (aliasGroups.blockExists(uvmBlockClassName)) {
+		if (aliasGroups.blockExists(regSetProperties.getBaseName())) {
 			outputList.add(new OutputLine(indentLvl, "local uvm_reg alias_group[$];"));			
 		}
 		
@@ -726,7 +728,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		if (hasCallback) buildBlockAddCallbacksMethod();
 		
 		// create build function (no width override) 
-		buildBlockBuildFunction(uvmBlockClassName, refId, null, false);
+		buildBlockBuildFunction(refId, null, false);
 		
 		// close out the class definition
 		outputList.add(new OutputLine(indentLvl, ""));	
@@ -740,24 +742,26 @@ public class UVMRegsBuilder extends OutputBuilder {
 	protected String getAddrMapPrefix() {
 		String map = getAddressMapName();
 		if (map.isEmpty()) return "";
-		return "_" + map;
+		return map;
 	}
 
-	/** return uvm_reg class name */
+	/** return uvm_reg callback class name. only valid in finishReg when regProperties is set */
 	protected String getUVMRegCbsID() {
-		String fullId = "alias_cbs" + getAddrMapPrefix() + "_" + regProperties.getBaseName();
+		//System.out.println("UvmRegsBuilder getUVMRegCbsID: calling reg getName...");
+		@SuppressWarnings("rawtypes")
+		UniqueNameSetInfo reg_ret = uniqueRegNames.getName(regProperties, "alias_cbs", getAddrMapPrefix(), null);
+		String fullId = reg_ret.name;
+		//if (ExtParameters.uvmregsReuseUvmClasses() && reg_ret.isNew) System.err.println("UvmRegsBuilder getUVMRegCbsID: **** error, cbs name created before reg");
 		return fullId;
 	}
 
-	/** return uvm_reg class name */
-	protected String getUVMRegID() {
-		String fullId = "reg" + getAddrMapPrefix() + "_" + regProperties.getBaseName();  
-		return fullId;
-	}
-
-	/** return uvm_vreg class name */
+	/** return uvm_vreg class name. only valid in finishReg when regProperties is set */
 	protected String getUVMVRegID() {
-		String fullId = "vreg" + getAddrMapPrefix() + "_" + regProperties.getBaseName();  
+		//System.out.println("UvmRegsBuilder getUVMVRegID: calling reg getName...");
+		@SuppressWarnings("rawtypes")
+		UniqueNameSetInfo reg_ret = uniqueRegNames.getName(regProperties, "vreg", getAddrMapPrefix(), null);
+		String fullId = reg_ret.name;
+		//if (ExtParameters.uvmregsReuseUvmClasses() && reg_ret.isNew) System.err.println("UvmRegsBuilder getUVMVRegID: **** error, vreg name created before reg");
 		return fullId;
 	}
 
@@ -766,23 +770,11 @@ public class UVMRegsBuilder extends OutputBuilder {
 	 * @param nameSuffix - optional block name suffix
 	 */
 	protected String getUVMBlockID(RegSetProperties regSetProps, String nameSuffix) {
-		String regSetStr = ((regSetProps == null) || regSetProps.getBaseName().isEmpty()) ? "" : "_" + regSetProps.getBaseName();
-		if (nameSuffix != null) regSetStr += "_" + nameSuffix;
-		String fullId = "block" + getAddrMapPrefix() + regSetStr;
+		String regSetStr = (regSetProps == null)? "" : regSetProps.getBaseName();
+		regSetStr = Utils.usCatenate(regSetStr, nameSuffix);
+		String fullId = "block_" + Utils.usCatenate(getAddrMapPrefix(), regSetStr);
 		//if (fullId.contains("__")) System.out.println("getUVMBlockID: prefix=" + getAddrMapPrefix() + " regSetStr=" + regSetStr);
 		return fullId;
-	}
-
-	/** return uvm_reg_block class name */
-	protected String getUVMBlockID() {
-		return getUVMBlockID(regSetProperties, null);
-	}
-
-	/** return uvm_reg_block class name
-	 * @param nameSuffix - optional block name suffix 
-	 */
-	protected String getUVMBlockID(String nameSuffix) {
-		return getUVMBlockID(regSetProperties, nameSuffix);
 	}
 	
 	/** create add_callbacks methods for uvm_reg_block derived class   
@@ -988,8 +980,16 @@ public class UVMRegsBuilder extends OutputBuilder {
 	/** build the add_callbacks function for current register 
 	 *  add_callbacks is called recursively after build completes and sets field dynamic assign linkages and associated callbacks */
 	protected void buildRegAddCallbacksFunction() {
+		//System.out.println("UvmRegsBuilder buildRegAddCallbacksFunction: calling reg getName...");
+		@SuppressWarnings("rawtypes")
+		UniqueNameSetInfo ret = uniqueRegNames.getName(regProperties, getAddrMapPrefix());
+		String uvmRegClassName = ret.name;
+		//if (ExtParameters.uvmregsReuseUvmClasses() && ret.isNew) System.err.println("UvmRegsBuilder buildRegAddCallbacksFunction: **** error, class name created before reg");
 		// create a new function define
-		SystemVerilogFunction func = new SystemVerilogFunction("void", "add_callbacks", this.getUVMRegID());  // only have callbacks on regs
+		SystemVerilogFunction func = new SystemVerilogFunction("void", "add_callbacks", uvmRegClassName);  // only have callbacks on regs
+		
+		// create a new function define
+		//SystemVerilogFunction func = new SystemVerilogFunction("void", "add_callbacks", this.getUVMRegID());  // only have callbacks on regs
 		func.addComment("Add model callbacks associated with " + regProperties.getInstancePath() + ".");
 		func.setVirtual();
 		
@@ -1169,10 +1169,13 @@ public class UVMRegsBuilder extends OutputBuilder {
 		if (newCBDepth != lastCBDepth) {
 			// generate the ancestor class name so generic block can be cast to specific child
 			RegSetProperties ancRegset = getRegSetAncestor(newCBDepth);
-            String ancestorType = getUVMBlockID(ancRegset, null);
+			String ancId = ancRegset.getBaseName();
+			uniqueBlockNames.setStringMap(ancId, ancRegset); // save ancestor regset to names map for later lookup 
+			// block class name is unknown at this point so save basename for lookup in write stage
+            String ancestorClassNameMarker = "<BLOCK=" + ancId + ">";
             String ancestorName = "m_root_cb_block_" + ++lastCBCount;
 			func.addStatement("m_root_cb_block = this.get_ancestor(" + newCBDepth + ");"); // get root ancestor for assign (if it has changed)
-			func.addPreStatement(ancestorType + " " + ancestorName + ";");
+			func.addPreStatement(ancestorClassNameMarker + " " + ancestorName + ";");
 			func.addStatement("$cast(" + ancestorName + ", m_root_cb_block);");         
 			lastCBDepth = newCBDepth;
 			return ancestorName;  // return new ancestor name
@@ -1333,12 +1336,11 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 	
 	/** build the virtual build function for current block
-	 * @param uvmBlockClassName - name of current uvm block class
-	 * @param block - block id used for structure lookup
+	 * @param blockId - block id used for structure lookup
 	 * @param mapWidthOverrride - if non-null, the created default map for this block will use specified value
 	 * @param isMemWrapper - if true, created block is a wrapper so will avoid regSetProperty references
 	 */
-	protected void buildBlockBuildFunction(String uvmBlockClassName, String block, Integer mapWidthOverride, boolean isMemWrapper) {
+	protected void buildBlockBuildFunction(String blockId, Integer mapWidthOverride, boolean isMemWrapper) {
 		outputList.add(new OutputLine(indentLvl, "")); 	
 		outputList.add(new OutputLine(indentLvl++, "virtual function void build();"));
 		// set access width of block to max of full addrmap by default (<MAX_REG_BYTE_WIDTH> will be replaced with final max value)
@@ -1346,7 +1348,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		if (mapWidthOverride != null) byteWidthString = mapWidthOverride.toString();
 		
 		// if base block then include in map with base address offset and set hdl path
-		Boolean isBaseBlock = block.equals("");
+		Boolean isBaseBlock = blockId.equals("");
 		String endianness = "UVM_LITTLE_ENDIAN";
 		if (isBaseBlock) {
 			String addr = "`UVM_REG_ADDR_WIDTH" + ExtParameters.getPrimaryBaseAddress().toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
@@ -1363,7 +1365,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		}
 		
 		// add subcomponent build statements
-		List<SpecialLine> buildList = subcompBuildList.getStatements(block);
+		List<SpecialLine> buildList = subcompBuildList.getStatements(blockId);
 		if (buildList != null) {
 			Iterator<SpecialLine> iter = buildList.iterator();
 			// traverse subcomponent list
@@ -1373,8 +1375,9 @@ public class UVMRegsBuilder extends OutputBuilder {
 				outputList.add(line);
 			}  
 		}
+		
 		// need to add a callback assignment for each reg in an alias group 
-		List<SpecialLine> cbsList = regCbsAssignStatements.getStatements(block);
+		List<SpecialLine> cbsList = regCbsAssignStatements.getStatements(blockId);
 		// verify list exists (null if block has no directly instanced regs)
 		if (cbsList != null) {
 			Iterator<SpecialLine> iter = cbsList.iterator();
@@ -1385,7 +1388,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 					// if special tag line is detected
 					if (line.getLine().equals("GENERATE ALIAS GROUP")) {
 						// create the aliased register list
-						HashSet<String> aliasGrp = aliasGroups.getGroup(uvmBlockClassName, line.getBaseRegId());
+						HashSet<String> aliasGrp = aliasGroups.getGroup(blockId, line.getBaseRegId());
 						outputList.add(new OutputLine(indentLvl, "alias_group.delete();"));
 						Iterator<String> regIter = aliasGrp.iterator();
 						while (regIter.hasNext()) {
@@ -1600,26 +1603,26 @@ public class UVMRegsBuilder extends OutputBuilder {
     	
     }
     
-
-    /** special line class for post-processing output
-     * in addition to line holds info for alias list generation at block finish (once groups are known) */
+    /** special line class for post-processing output  // TODO - refactor??
+     * in addition to line, holds info for alias list generation at block finish (once groups are known) */
     protected class SpecialLine extends OutputLine {
     	private String blockId;
-    	private String RegId;
-    	private String AliasedId;
+    	private String regId;
+    	private String aliasedId;
     	
 		/**
 		 * @param indent
 		 * @param line
-		 * @param reg 
-		 * @param block 
+		 * @param blockId - BaseName of regset used for aliasGroup lookup 
+		 * @param regId - id of register 
+		 * @param aliasedId - id of register that regId is an alias of (if non null) 
 		 */
-		public SpecialLine(int indent, String line, String block, String reg, String aliased) {
+		public SpecialLine(int indent, String line, String blockId, String regId, String aliasedId) {
 			super(indent, line);
 			setSpecialType();  // make as an overloaded line
-			this.setBlockId(block);
-			this.setRegId(reg);
-			this.setAliasedId(aliased);
+			this.blockId = blockId;
+			this.regId = regId;
+			this.aliasedId = aliasedId;
 			//System.out.println("UVMRegsBuilder: special line: " + line + ", blk=" + block + ", reg=" + reg + ", alias=" + aliased);
 		}
 		
@@ -1630,62 +1633,20 @@ public class UVMRegsBuilder extends OutputBuilder {
 		/** return the base register id of this register */
 		public String getBaseRegId() {
 			// aliased id if it exists
-			return (hasAliasedId() ? getAliasedId() : getRegId());
+			return (hasAliasedId() ? aliasedId : regId);
 		}
 
 		/** return true if block/register is in an alias group */
 		public boolean isInAliasGroup() {
-			return ( hasAliasedId()	|| aliasGroups.baseRegExists(getBlockId(), getRegId()));
+			return (hasAliasedId()	|| aliasGroups.baseRegExists(blockId, regId));
 		}
 		
 		/** return true if register has a valid aliased id */
-		public boolean hasAliasedId() {
-			return ((this.getAliasedId() != null) && (!this.getAliasedId().isEmpty()));
+		private boolean hasAliasedId() {
+			return ((aliasedId != null) && (!aliasedId.isEmpty()));
 		}
-
-		/** get blockId
-		 *  @return the blockId
-		 */
-		public String getBlockId() {
-			return blockId;
-		}
-
-		/** set blockId
-		 *  @param blockId the blockId to set
-		 */
-		public void setBlockId(String blockId) {
-			this.blockId = blockId;
-		}
-
-		/** get regId
-		 *  @return the regId
-		 */
-		public String getRegId() {
-			return RegId;
-		}
-
-		/** set regId
-		 *  @param regId the regId to set
-		 */
-		public void setRegId(String regId) {
-			RegId = regId;
-		}
-
-		/** get aliasedId
-		 *  @return the aliasedId
-		 */
-		public String getAliasedId() {
-			return AliasedId;
-		}
-
-		/** set aliasedId
-		 *  @param aliasedId the aliasedId to set
-		 */
-		public void setAliasedId(String aliasedId) {
-			AliasedId = aliasedId;
-		}
-
     }
+    
     //---------------------------- output write methods ----------------------------------------
 
 	@Override
@@ -1703,11 +1664,35 @@ public class UVMRegsBuilder extends OutputBuilder {
 		}
 		
 		// write any extern methods	
-		for (SystemVerilogFunction func: externMethods)
-			writeStmts(func.genOutputLines(indentLvl, true));  
-
+		for (SystemVerilogFunction func: externMethods) {
+			List<OutputLine> funcStmts = func.genOutputLines(indentLvl, true);
+			// perform uvmClassName assignments now that lookup is valid
+			List<OutputLine> resolvedFuncStmts = getResolvedFuncStatements(funcStmts);
+			writeStmts(resolvedFuncStmts);  
+		}
 	}
 	
+	/** perform uvmClassName assignments now that lookup is valid */
+	private List<OutputLine> getResolvedFuncStatements(List<OutputLine> funcStmts) {
+		List<OutputLine> resolvedFuncStmts = new ArrayList<OutputLine>();
+		for (OutputLine line: funcStmts) {
+			// detect a marker and resolve block class name
+			Pattern p = Pattern.compile("^(.*)<BLOCK=(\\S+)>(.*)$");
+			Matcher m = p.matcher(line.getLine());
+			if (m.matches()) {
+				String preStr = m.group(1);
+				String blockId = m.group(2);
+				String postStr = m.group(3);
+				String blockName = uniqueBlockNames.getNameFromString(blockId, getAddrMapPrefix());
+				String resolvedLine = preStr + blockName + postStr;
+				//System.out.println("UVMRegsBuilder getResolvedFuncStatements: found marker=" + line.getLine() + ", resolved=" + resolvedLine);
+				resolvedFuncStmts.add(new OutputLine(line.getIndent(), resolvedLine));
+			}
+			else resolvedFuncStmts.add(line);
+		}
+		return resolvedFuncStmts;
+	}
+
 	/** write pkg output to specified output file  
 	 * @param outName - output file or directory
 	 * @param description - text description of file generated

@@ -179,7 +179,8 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		uvmModelMode = UVMModelModes.HEAVY; 
 		initStringMapParameter("uvm_model_parameters", new HashMap<String, String>()); 
 		initBooleanParameter("regs_use_factory", false); 
-		
+		initBooleanParameter("use_numeric_uvm_class_names", false); 
+				
 		// ---- bench output defaults
 		initStringListParameter("add_test_command", new ArrayList<String>());
 		initBooleanParameter("generate_external_regs", false); 
@@ -904,6 +905,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getBooleanParameter("regs_use_factory");
 	}
 	
+	public static Boolean uvmregsUseNumericUvmClassNames() {
+		return getBooleanParameter("use_numeric_uvm_class_names");
+	}
+		
 	public static int uvmregsMaxRegCoverageBins() {
 		return getIntegerParameter("max_reg_coverage_bins");
 	}

@@ -188,6 +188,7 @@ ext_parm_defs
    | 'uvm_model_mode' EQ ('heavy' | 'lite1') 
    | 'uvm_model_parameters' EQ STR 
    | 'regs_use_factory' EQ bool
+   | 'use_numeric_uvm_class_names' EQ bool
    ;   
    
 // ------------ reglist_out_defs

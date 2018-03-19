@@ -131,6 +131,14 @@ public class Utils {
 	   return retstr;	
 	}
 	
+	/** catenate 2 strings with a single underscore between */
+	public static String usCatenate(String string1, String string2) {
+		String newString1 = (string1 == null)? "" : string1;
+		String newString2 = (string2 == null)? "" : string2;
+		boolean noUnderscore = newString1.isEmpty() || newString2.isEmpty() || newString1.endsWith("_") || newString2.startsWith("_");
+		return newString1 + (noUnderscore? "" : "_") + newString2;
+	}
+	
     public static void main(String[] args) throws Exception {
     	//for (int i=1; i<34; i++) {
     	//	System.out.println("i=" + i + ", floor=" + floorLog2(i) + ", ceil=" + ceilLog2(i) + ", nextHigh=" + getNextHighestPowerOf2(i) + ", isP2=" + isPowerOf2(i));

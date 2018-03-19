@@ -41,7 +41,7 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 
 	/** save register info for use in parent uvm_reg_block class - no callbacks,coverage */
 	@Override
-	protected void saveRegInfo(String uvmRegClassName, String uvmBlockClassName) {
+	protected void saveRegInfo(String uvmRegClassName) {
 		// get parent name
 		String parentID = this.getParentInstancePath().replace('.', '_');
 		// escape id and alias names
