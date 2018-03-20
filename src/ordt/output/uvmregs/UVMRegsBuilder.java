@@ -32,7 +32,6 @@ import ordt.output.UniqueNameSet.UniqueNameSetInfo;
 import ordt.output.FieldProperties.RhsRefType;
 import ordt.output.systemverilog.common.SystemVerilogFunction;
 import ordt.parameters.ExtParameters;
-import ordt.parameters.Utils;
 
 public class UVMRegsBuilder extends OutputBuilder {
 
@@ -762,18 +761,6 @@ public class UVMRegsBuilder extends OutputBuilder {
 		UniqueNameSetInfo reg_ret = uniqueRegNames.getName(regProperties, "vreg", getAddrMapPrefix(), null);
 		String fullId = reg_ret.name;
 		//if (ExtParameters.uvmregsReuseUvmClasses() && reg_ret.isNew) System.err.println("UvmRegsBuilder getUVMVRegID: **** error, vreg name created before reg");
-		return fullId;
-	}
-
-	/** return uvm_reg_block class name
-	 * @param regSetProps - currently active regset properties
-	 * @param nameSuffix - optional block name suffix
-	 */
-	protected String getUVMBlockID(RegSetProperties regSetProps, String nameSuffix) {
-		String regSetStr = (regSetProps == null)? "" : regSetProps.getBaseName();
-		regSetStr = Utils.usCatenate(regSetStr, nameSuffix);
-		String fullId = "block_" + Utils.usCatenate(getAddrMapPrefix(), regSetStr);
-		//if (fullId.contains("__")) System.out.println("getUVMBlockID: prefix=" + getAddrMapPrefix() + " regSetStr=" + regSetStr);
 		return fullId;
 	}
 	
