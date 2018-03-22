@@ -11,6 +11,7 @@ public class SystemVerilogFunction {
    protected String parentClass;
    protected String retType;
    protected boolean isVirtual = false;
+   protected boolean isStatic = false;
    protected List<SVMethodIO> ioList = new ArrayList<SVMethodIO>();
    protected List<String> comments = new ArrayList<String>();
    protected List<String> statements = new ArrayList<String>();
@@ -34,6 +35,11 @@ public class SystemVerilogFunction {
    /** set this method as virtual */
    public void setVirtual() {
 	   this.isVirtual = true;
+   }
+   
+   /** set this method as static */
+   public void setStatic() {
+	   this.isStatic = true;
    }
    
    /** add an IO definition to this sv method */
@@ -174,7 +180,9 @@ public class SystemVerilogFunction {
    /** generate header type string for this method (function) */
    protected String genHeaderType(boolean isExtern, boolean includeParent) {
 	   String retStr = isExtern? "extern " : "";
-	   retStr += (isVirtual && !includeParent)? "virtual function" : "function";
+	   if (isVirtual && !includeParent) retStr += "virtual ";
+	   if (isStatic && !includeParent) retStr += "static ";
+	   retStr += "function";
 	   retStr = (retType == null)? retStr : retStr + " " + retType; 
 	   return retStr;
    }

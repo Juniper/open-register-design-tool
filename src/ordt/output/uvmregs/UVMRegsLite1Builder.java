@@ -26,6 +26,7 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 
 	public UVMRegsLite1Builder(RegModelIntf model) {
 		super(model);
+		includeExtendedInfo = false;  // extended info is not included in the lite model
 	}
 
 	// --------------------------- package setup methods ------------------------
@@ -77,48 +78,7 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 			subcompBuildList.addStatement(parentID, "this.default_map.add_reg(this." + regId + ", " + addr + ", \"" + getRegAccessType() + "\", 0);");			
 		}	
 	}
-
-	/** save memory info for use in parent uvm_reg_block class - no category, coverage
-	 * @param parentIsWrapper - if true, info will be saved to a wrapper block and reg/mem instance names will be changed
-	 */
-	@Override
-	protected void saveMemInfo(boolean parentIsWrapper) {
-		// get parent block name (use reg name if a wrapper is being used)
-		String parentID = parentIsWrapper? regProperties.getInstancePath().replace('.', '_') : this.getParentInstancePath().replace('.', '_'); 
-		// set vreg instance id
-		String regId = parentIsWrapper? "vregs" : regProperties.getId();
-		// escape id name
-		String escapedRegId = escapeReservedString(regId);
-		// build the memory Id
-		String memId = parentIsWrapper? "mem" : "MEM_" + regProperties.getId();
-		// save memory and vreg define statements
-		subcompDefList.addStatement(parentID, "rand uvm_mem " + memId + ";");   // the memory 
-		subcompDefList.addStatement(parentID, "rand " + getUVMVRegID() + " " + escapedRegId + ";");   // virtual regs
-		//System.out.println("UVMRegsBuilder saveMemInfo: saving statements into wrapper parentID=" + parentID);
-		// save virtual register and mem build statements
-		addMemToBuildList(parentID, memId, escapedRegId);
-
-		// add the memory to the address map  (no offset if in a wrapper block)
-		String addrString = parentIsWrapper? "`UVM_REG_ADDR_WIDTH'h0" :
-		                                     "`UVM_REG_ADDR_WIDTH" + regProperties.getRelativeBaseAddress().toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
-		subcompBuildList.addStatement(parentID, "this.default_map.add_mem(this." + memId + ", " + addrString + ");");						
-	}
 	
-	/** create block build statements adding current register - no reset */
-	@Override
-	protected void addMemToBuildList(String parentID, String memId, String escapedRegId) {
-		// save mem build statements for uvm_reg_block
-		subcompBuildList.addStatement(parentID, "this." + memId + " = new(\"" + memId + "\", " + regProperties.getRepCount() + ", " + regProperties.getRegWidth() + ");");  
-		subcompBuildList.addStatement(parentID, "this." + memId + ".configure(this);");  
-		
-		// save vreg build statements for uvm_reg_block  
-		subcompBuildList.addStatement(parentID, "this." + escapedRegId + " = new;");  
-		subcompBuildList.addStatement(parentID, "this." + escapedRegId + ".configure(this, " + memId + ", " + regProperties.getRepCount() + ");"); 
-		
-		//System.out.println("UVMRegsBuilder saveMemInfo: regid=" + regId + ", memid=" + memId + ", reg reps=" + regProperties.getRepCount() + ", inst reps=" + getVRegReps());
-		subcompBuildList.addStatement(parentID, "this." + escapedRegId + ".build();");		
-	}
-
 	/** save register set info for use in parent uvm_reg_block class - no extensions/addrmap/hdl_path/user-defined props  
 	 * @param uvmBlockClassName - name of uvm block class
 	 * @param blockIdOverride - if non null, specified name will be used as the block instance rather then regset id
@@ -201,12 +161,12 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 		outputList.add(new OutputLine(--indentLvl, "endclass : " + uvmRegClassName));
 	}
 
-	/** build vreg class definition for current register instance */   
+	/** build vreg class definition for current register instance (uses native vreg, not extended version) */   
 	@Override
-	protected void buildVRegClass() {   
+	protected void buildVRegClass(String uvmRegClassName) {   
 		// create text name and description if null
 		String id = regProperties.getId();
-		String fullId = getUVMVRegID();
+		String vregClassName = uvmRegClassName.replaceFirst("reg_", "vreg_");
 		String textName = regProperties.getTextName();
 		if (textName == null) textName = "Virtual Register " + id;
 		else textName = textName.replace('\n', ' ');
@@ -214,14 +174,14 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 		// generate register header 
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// " + textName));
-		outputList.add(new OutputLine(indentLvl++, "class " + fullId + " extends uvm_vreg;")); 
+		outputList.add(new OutputLine(indentLvl++, "class " + vregClassName + " extends uvm_vreg;")); // lite model uses native vreg, not extended version
 						
 		// create field definitions
 		buildVRegFieldDefines();   
 		
 		// create new function
 		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl++, "function new(string name = \"" + fullId + "\");"));
+		outputList.add(new OutputLine(indentLvl++, "function new(string name = \"" + vregClassName + "\");"));
 		outputList.add(new OutputLine(indentLvl,     "super.new(name, " + regProperties.getRegWidth() + ");"));
 		outputList.add(new OutputLine(--indentLvl, "endfunction: new"));
 
@@ -230,7 +190,7 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 				
 		// close out the register definition
 		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(--indentLvl, "endclass : " + fullId));
+		outputList.add(new OutputLine(--indentLvl, "endclass : " + vregClassName));
 	}
 
 	/** build block class definition for current regset instance 
@@ -390,25 +350,6 @@ public class UVMRegsLite1Builder extends UVMRegsBuilder {
 		if ((resetVal != null) && resetVal.isDefined()) return false;
 		return true;
 	}
-
-	/** build the build function for current virtual register - no user properties */
-	@Override
-	protected void buildVRegBuildFunction() {
-		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl++, "virtual function void build();"));
-		Iterator<FieldProperties> iter = fieldList.iterator();
-		// traverse field list
-		while (iter.hasNext()) {
-			FieldProperties field = iter.next();
-			String fieldId = escapeReservedString(field.getPrefixedId());  
-			// create appropriate uvm_reg_vfield class   
-			outputList.add(new OutputLine(indentLvl, "this." + fieldId +  " = new(\"" + field.getPrefixedId() + "\");"));  
-			outputList.add(new OutputLine(indentLvl, "this." + fieldId + ".configure(this, " + field.getFieldWidth() + 
-					", " + field.getLowIndex() + ");")); 
-		} // while		
-		outputList.add(new OutputLine(--indentLvl, "endfunction: build"));
-	}
-	
 	
 	/** build the virtual build function for current block
 	 * @param uvmBlockClassName - name of current uvm block class

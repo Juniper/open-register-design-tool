@@ -31,6 +31,8 @@ public class UVMRdlClasses extends UVMRegsCommon {
 		buildRdlEnums(outputList, indentLvl);
 		// create derived classes
 		buildRdlClasses(outputList, indentLvl);
+		// create mimic reg/field classes (used for uvm_mem api that mimics base reg/field)
+		buildMimicClasses(outputList, indentLvl);
 		// close out the package definition
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(--indentLvl,   "endpackage"));
@@ -1489,4 +1491,103 @@ public class UVMRdlClasses extends UVMRegsCommon {
 		func.addStatement("else return rdl_parent.get_ancestor(depth-1);"); // else call recursively
 		outputList.addAll(func.genOutputLines(indentLvl));	
 	}
+	
+	/** build all derived classes  
+	 * @param outputList 
+	 * @param indentLvl */
+	public static void buildMimicClasses(List<OutputLine> outputList, int indentLvl) {
+		// create reg class that mimics uvm_reg class
+		buildMimicRegClass(outputList, indentLvl);
+		// create field class that mimics uvm_reg_field api
+		buildMimicFieldClass(outputList, indentLvl);
+	
+	}
+
+	/** create reg class that mimics uvm_reg class */
+	private static void buildMimicRegClass(List<OutputLine> outputList, int indentLvl) {
+		// generate class header 
+		outputList.add(new OutputLine(indentLvl, ""));	
+		outputList.add(new OutputLine(indentLvl, "// uvm_reg api mimic class "));
+		outputList.add(new OutputLine(indentLvl++, "class uvm_reg_mimic;"));   
+				
+		// defines   
+		outputList.add(new OutputLine(indentLvl, "protected int unsigned m_index = 0;")); 
+		outputList.add(new OutputLine(indentLvl, "protected int unsigned m_store_index = 0;")); 
+		
+		// create new function
+		SystemVerilogFunction func = new SystemVerilogFunction(null, "new");
+		func.addIO("int unsigned", "index");
+		func.addStatement("m_index = index;");
+		func.addStatement("set_associative_store(1);");  // default to associative
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		// get_index - get the array index of this reg 
+		func = new SystemVerilogFunction("int", "get_index");
+		func.addComment("Return the array index of this uvm_reg_mimic.");	
+		func.addStatement("return m_index;");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		// set store index based to use associative array store or single store location
+		func = new SystemVerilogFunction(null, "set_associative_store");
+		func.addComment("Set store index to use associative array store or single store location.");
+		func.addIO("bit", "is_associative");
+		func.addStatement("if (is_associative) m_store_index = index;");
+		func.addStatement("else m_store_index = 0;");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+
+		// field get/set methods, these are empty versions overridden by child classes
+		func = new SystemVerilogFunction("uvm_data_t", "get_field");
+		func.setVirtual();
+		func.addComment("Return data from this reg's storage location.");
+		func.addIO("string", "fname");
+		func.addStatement("return null;");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		func = new SystemVerilogFunction(null, "set_field");
+		func.setVirtual();
+		func.addComment("Set data in this reg's storage location.");
+		func.addIO("string", "fname");
+		func.addIO("input", "uvm_data_t", "value", null);
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		outputList.add(new OutputLine(indentLvl, ""));	
+		outputList.add(new OutputLine(--indentLvl, "endclass : uvm_reg_mimic"));	
+	}
+
+	/** create field class that mimics uvm_reg_field api */
+	private static void buildMimicFieldClass(List<OutputLine> outputList, int indentLvl) {
+		// generate class header 
+		outputList.add(new OutputLine(indentLvl, ""));	
+		outputList.add(new OutputLine(indentLvl, "// uvm_reg_field api mimic class "));
+		outputList.add(new OutputLine(indentLvl++, "class uvm_reg_field_mimic;"));   
+				
+		// defines
+		outputList.add(new OutputLine(indentLvl, "local string m_name;")); 
+		outputList.add(new OutputLine(indentLvl, "local uvm_reg_mimic m_parent;")); 
+		
+		// create new function
+		SystemVerilogFunction func = new SystemVerilogFunction(null, "new");
+		func.addIO("uvm_reg_mimic", "parent");
+		func.addIO("string", "name");
+		func.addStatement("m_parent = parent;");
+		func.addStatement("m_name = name;");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		// get/set - call thru parent / these assume use of last reg accessed since mimic fields are static
+		func = new SystemVerilogFunction("uvm_data_t", "get");
+		func.addComment("Return field data from this reg's storage location.");
+		func.addStatement("return m_parent.get_field(m_name);");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		func = new SystemVerilogFunction(null, "set");
+		func.addComment("Set field data in this reg's storage location.");
+		func.addIO("input", "uvm_data_t", "value", null);
+		func.addStatement("m_parent.set_field(m_name, value);");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+
+		outputList.add(new OutputLine(indentLvl, ""));	
+		outputList.add(new OutputLine(--indentLvl, "endclass : uvm_reg_field_mimic"));
+	}
+
+
 }

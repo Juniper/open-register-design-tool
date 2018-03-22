@@ -101,7 +101,7 @@ output uvmregs {
 	max_reg_coverage_bins = 64   // limit address coverage bins for replicated regs
 	reuse_uvm_classes = false     // allow reuse of classes in model
 	//skip_no_reset_db_update = false   // bypass uvm_resource_db update for fields with no reset
-	//uvm_model_mode = translate1   // set uvm model type (heavy | lite1)
+	//uvm_model_mode = lite1        // set uvm model type (heavy | lite1)
     //regs_use_factory = true       // registers will be created by and registered with the factory
     use_numeric_uvm_class_names = true // block and reg class names will use unique int rather than catenated path
 }

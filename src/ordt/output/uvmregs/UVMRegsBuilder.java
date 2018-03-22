@@ -31,6 +31,7 @@ import ordt.output.UniqueNameSet;
 import ordt.output.UniqueNameSet.UniqueNameSetInfo;
 import ordt.output.FieldProperties.RhsRefType;
 import ordt.output.systemverilog.common.SystemVerilogFunction;
+import ordt.output.systemverilog.common.SystemVerilogTask;
 import ordt.parameters.ExtParameters;
 
 public class UVMRegsBuilder extends OutputBuilder {
@@ -64,6 +65,10 @@ public class UVMRegsBuilder extends OutputBuilder {
 	protected UniqueNameSet<RegSetProperties> uniqueBlockNames = new UniqueNameSet<RegSetProperties>(ExtParameters.uvmregsReuseUvmClasses(),
 			ExtParameters.uvmregsUseNumericUvmClassNames(), true, "block");
 
+	protected enum UvmMemStrategy { BASIC, BLOCK_WRAPPED, MIMIC_REG_API }
+	
+	protected boolean includeExtendedInfo = true;  // HEAVY model defaults
+	
     //---------------------------- constructor ----------------------------------
 
     public UVMRegsBuilder(RegModelIntf model) {
@@ -140,44 +145,56 @@ public class UVMRegsBuilder extends OutputBuilder {
 		if ((regProperties.isSwWriteable() || regProperties.isSwReadable()) && !regProperties.uvmRegPrune()) {
 			//if (regProperties.isReplicated()) System.out.println("UVMRegsBuilder finishRegister: replicated reg id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", thold=" + ExtParameters.uvmregsIsMemThreshold());
 
+			// get the reg class name and create class if it's new or not reusing classes
+			//System.out.println("UvmRegsBuilder finishRegister: calling reg getName...");
+			@SuppressWarnings("rawtypes")
+			UniqueNameSetInfo reg_ret = uniqueRegNames.getName(regProperties, getAddrMapPrefix());
+			String uvmRegClassName = reg_ret.name;
+			boolean createNewRegClass = reg_ret.isNew;
+
 			// if a memory, then add info to parent uvm_reg_block
-			if (regProperties.isMem() || (regProperties.getRepCount() >= ExtParameters.uvmregsIsMemThreshold())) {   // check is_mem threshold vs reps
+			if (regProperties.isReplicated() && (regProperties.isMem() || (regProperties.getRepCount() >= ExtParameters.uvmregsIsMemThreshold()))) {   // check is_mem threshold vs reps
 				//System.out.println("UVMRegsBuilder finishRegister: replicated MEM reg id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", thold=" + ExtParameters.uvmregsIsMemThreshold());
-                // if debug mode 3 then no wrapper created (old behavior - bad address stride generated in uvm1.1d)
+
+				// if debug mode w/ old behavior (bad address stride generated in uvm1.1d) then no wrapper created)
 				if (ExtParameters.hasDebugMode("uvmregs_no_mem_wrap")) {
 					// save info for this memory and virtual regs to be used in parent uvm_reg_block
-					saveMemInfo(false);  // no wrapper used
+					saveMemInfo(UvmMemStrategy.BASIC, uvmRegClassName);  // no wrapper used
 					// build the virtual register class definition
-					buildVRegClass();  									
+					if (createNewRegClass) buildVRegClass(uvmRegClassName);
+                }
+				// else if reg api mimic option (extended vreg info is reqd currently for mimic api)
+				else if (ExtParameters.hasDebugMode("uvmregs_mimic_reg_api") && includeExtendedInfo) {
+					// save info for this memory and virtual regs to be used in parent uvm_reg_block
+					saveMemInfo(UvmMemStrategy.MIMIC_REG_API, uvmRegClassName);  // no wrapper used, include reg mimic array
+					if (createNewRegClass) {
+						// build the virtual register class definition
+						buildVRegClass(uvmRegClassName);	
+						// build lightweight specialized register class derived from uvm_reg_mimic class that will reference vreg
+						buildMimicRegClass(uvmRegClassName);
+					}
                 }
 				// otherwise default behavior - create a wrapper block with same create_map width as mem and encapsulate mem/vreg
 				else {
 					// save wrapper block in parent
 					String newBlockInstanceName = regProperties.getId();  // use reg name as wrapper block name
 					// build the wrap block class name from register
-					//System.out.println("UvmRegsBuilder finishRegister: calling reg getName...");
-					@SuppressWarnings("rawtypes")
-					UniqueNameSetInfo reg_ret = uniqueRegNames.getName(regProperties, "block_mem_wrap", getAddrMapPrefix(), null);
-					String uvmBlockClassName = reg_ret.name;
+					String uvmBlockClassName = uvmRegClassName.replaceFirst("reg_", "block_mem_wrap_");
 					//if (ExtParameters.uvmregsReuseUvmClasses() && reg_ret.isNew) System.err.println("UvmRegsBuilder finishRegister: **** error, wrapper name created before reg");
 					saveRegSetInfo(uvmBlockClassName, newBlockInstanceName, regProperties.getRelativeBaseAddress()); 
 					// save info for this memory and virtual regs in the wrapper
-					saveMemInfo(true);  // save info in wrapper block
-					// build the virtual register class definition
-					buildVRegClass();  									
-                	// build the wrapper using reg byte width in map and reg id as suffix
-					buildMemWrapperBlockClass(uvmBlockClassName, newBlockInstanceName, regProperties.getRegByteWidth());
+					saveMemInfo(UvmMemStrategy.BLOCK_WRAPPED, uvmRegClassName);  // save info in wrapper block
+					if (createNewRegClass) {
+						// build the virtual register class definition
+						buildVRegClass(uvmRegClassName);	
+	                	// build the wrapper using reg byte width in map and reg id as suffix
+						buildMemWrapperBlockClass(uvmBlockClassName, newBlockInstanceName, regProperties.getRegByteWidth());
+					}
 					//System.out.println("UVMRegsBuilder finishRegister wrapper: " + regProperties.getInstancePath() + ", newBlockName=" + newBlockName);
 				}
 			}
 			// otherwise model as a register
 			else {
-				// get the reg class name and create class if it's new or not reusing classes
-				//System.out.println("UvmRegsBuilder finishRegister: calling reg getName...");
-				@SuppressWarnings("rawtypes")
-				UniqueNameSetInfo reg_ret = uniqueRegNames.getName(regProperties, getAddrMapPrefix());
-				String uvmRegClassName = reg_ret.name;
-				boolean createNewRegClass = reg_ret.isNew;
 				// save info for this register to be used in parent uvm_reg_block
 			    saveRegInfo(uvmRegClassName);
 				// build the register class definition
@@ -273,9 +290,9 @@ public class UVMRegsBuilder extends OutputBuilder {
 		subcompDefList.addStatement(parentID, "rand " + uvmRegClassName + " " + regId + repStr + ";");
 		
 		// save cbs define statements (may not be needed - determine in block finish once alias groups are known)
-		regCbsDefineStatements.addStatement(parentID, "rdl_alias_reg_cbs " + getUVMRegCbsID() + ";", blockId, regProperties.getId(), regProperties.getAliasedId());
+		String cbsName = getUvmRegCbsClassName();
+		regCbsDefineStatements.addStatement(parentID, "rdl_alias_reg_cbs " + cbsName + ";", blockId, regProperties.getId(), regProperties.getAliasedId());
 		// save cbs assign statements
-		String cbsName = getUVMRegCbsID();
 		regCbsAssignStatements.addStatement(parentID, "GENERATE ALIAS GROUP", blockId, regProperties.getId(), regProperties.getAliasedId()); // special line  
 		regCbsAssignStatements.addStatement(parentID, cbsName + " = new(\"" + cbsName + "\");", blockId, regProperties.getId(), regProperties.getAliasedId());  
 		regCbsAssignStatements.addStatement(parentID, cbsName + ".set_alias_regs(alias_group);", blockId, regProperties.getId(), regProperties.getAliasedId());  
@@ -361,58 +378,88 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** save memory info for use in parent uvm_reg_block class
-	 * @param parentIsWrapper - if true, info will be saved to a wrapper block and reg/mem instance names will be changed
+	 * @param memStrategy - UvmMemStrategy to be used for generation of uvm_mem entry in model
+	 * @param uvmRegClassName - register class name
 	 */
-	protected void saveMemInfo(boolean parentIsWrapper) {
+	protected void saveMemInfo(UvmMemStrategy memStrategy, String uvmRegClassName) {
+		boolean blockWrapped = (memStrategy == UvmMemStrategy.BLOCK_WRAPPED);
+		boolean mimicRegApi = (memStrategy == UvmMemStrategy.MIMIC_REG_API);
+		String vregId, memId;
+		
 		// get parent block name (use reg name if a wrapper is being used)
-		String parentID = parentIsWrapper? regProperties.getBaseName() : this.getParentInstancePath().replace('.', '_'); 
+		String parentID = blockWrapped? regProperties.getBaseName() : this.getParentInstancePath().replace('.', '_'); 
 		// set vreg instance id
-		String regId = parentIsWrapper? "vregs" : regProperties.getId();
-		// escape id name
-		String escapedRegId = escapeReservedString(regId);
-		// build the memory Id
-		String memId = parentIsWrapper? "mem" : "MEM_" + regProperties.getId();
-		// save memory and vreg define statements
+		vregId = blockWrapped? "vregs" : mimicRegApi? "VREGS_" + regProperties.getId() : regProperties.getId();
+		String escapedVRegId = escapeReservedString(vregId);  // escape vreg inst name
+		// set memory Id
+		memId = blockWrapped? "mem" : "MEM_" + regProperties.getId();
+		// save memory and vreg define statements in parent block
 		subcompDefList.addStatement(parentID, "rand uvm_mem_rdl " + memId + ";");   // the memory 
-		subcompDefList.addStatement(parentID, "rand " + getUVMVRegID() + " " + escapedRegId + ";");   // virtual regs
+		String uvmVRegClassName = uvmRegClassName.replaceFirst("reg_", "vreg_");  // get vreg class name
+		subcompDefList.addStatement(parentID, "rand " + uvmVRegClassName + " " + escapedVRegId + ";");   // virtual regs
+		// if mimic mode, add array of mimic regs
+		String escapedRegId = escapeReservedString(regProperties.getId());  // escape reg inst name
+		if (mimicRegApi) subcompDefList.addStatement(parentID, "rand " + uvmRegClassName + " " + escapedRegId + " [" + regProperties.getRepCount() + "];");
 		//System.out.println("UVMRegsBuilder saveMemInfo: saving statements into wrapper parentID=" + parentID);
+
 		// save register coverage statements
-		if (ExtParameters.uvmregsIncludeAddressCoverage()) addRegToAddrCoverageList(parentID, escapedRegId, parentIsWrapper);  
-		// save virtual register and mem build statements
-		addMemToBuildList(parentID, memId, escapedRegId);
+		if (includeExtendedInfo && ExtParameters.uvmregsIncludeAddressCoverage()) addRegToAddrCoverageList(parentID, escapedVRegId, blockWrapped);
+		// save virtual register, mem, and mimic reg build statements for parent block
+		addMemToBuildList(parentID, memId, vregId, mimicRegApi, uvmRegClassName, regProperties.getId());
 
 		// issue warning if no category defined
-		if (!regProperties.hasCategory() && !ExtParameters.uvmregsSuppressNoCategoryWarnings()) 
+		if (includeExtendedInfo && !regProperties.hasCategory() && !ExtParameters.uvmregsSuppressNoCategoryWarnings()) 
 			Ordt.warnMessage("register " + regProperties.getInstancePath() + " has no category defined");
 
 		// add the memory to the address map  (no offset if in a wrapper block)
-		String addrString = parentIsWrapper? "`UVM_REG_ADDR_WIDTH'h0" :
+		String addrString = blockWrapped? "`UVM_REG_ADDR_WIDTH'h0" :
 		                                     "`UVM_REG_ADDR_WIDTH" + regProperties.getRelativeBaseAddress().toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
 		subcompBuildList.addStatement(parentID, "this.default_map.add_mem(this." + memId + ", " + addrString + ");");						
 	}
 	
-	/** create block build statements adding current register */
-	protected void addMemToBuildList(String parentID, String memId, String escapedRegId) {
+	/** create block build statements adding current register
+	 * 
+	 * @param parentID - block id for stmt store
+	 * @param memId - uvm_mem instance name
+	 * @param vregId - vreg instance name
+	 * @param mimicRegApi - boolean indication that api mimic regs will be added
+	 * @param mimicRegId - mimic reg instance name
+	 */
+	protected void addMemToBuildList(String parentID, String memId, String vregId, boolean mimicRegApi, String mimicRegClass, String mimicRegId) {
+		String escapedVRegId = escapeReservedString(vregId);  // escape vreg inst name
+		String escapedMimicRegId = escapeReservedString(mimicRegId);  // escape mimic reg inst name
+		
 		// save mem build statements for uvm_reg_block
 		subcompBuildList.addStatement(parentID, "this." + memId + " = new(\"" + memId + "\", " + regProperties.getRepCount() + ", " + regProperties.getRegWidth() + ");");  
 		subcompBuildList.addStatement(parentID, "this." + memId + ".configure(this);");  
 		
-		// compute a reg level reset value from fields (null if no reset fields)
-		RegNumber reset = getFullRegReset();
-		
 		// save vreg build statements for uvm_reg_block  
-		subcompBuildList.addStatement(parentID, "this." + escapedRegId + " = new;");  
-		subcompBuildList.addStatement(parentID, "this." + escapedRegId + ".configure(this, " + memId + ", " + regProperties.getRepCount() + ");"); 
-		// if this vreg group has a reset defined, then add it
-		if (reset != null) {
-			subcompBuildList.addStatement(parentID, "this." + escapedRegId + ".set_reset_value(" + reset.toFormat(NumBase.Hex, NumFormat.Verilog) + ");"); 
+		subcompBuildList.addStatement(parentID, "this." + escapedVRegId + " = new;");  
+		subcompBuildList.addStatement(parentID, "this." + escapedVRegId + ".configure(this, " + memId + ", " + regProperties.getRepCount() + ");"); 
+		
+		if (includeExtendedInfo) {
+			// if this vreg group has a reset defined, then add it
+			RegNumber reset = getFullRegReset();  // compute a reg level reset value from fields (null if no reset fields)
+			if (reset != null) {
+				subcompBuildList.addStatement(parentID, "this." + escapedVRegId + ".set_reset_value(" + reset.toFormat(NumBase.Hex, NumFormat.Verilog) + ");"); 
+			}
+			// add test info
+			subcompBuildList.addStatement(parentID, "this." + escapedVRegId + getUvmRegTestModeString());  
+			// add any user defined properties
+			addUserDefinedPropertyElements(parentID, regProperties, escapedVRegId);
+		}
+		
+		subcompBuildList.addStatement(parentID, "this." + escapedVRegId + ".build();");		
+
+		// if api mimic specified, add an array of mimic regs
+		if (mimicRegApi) {
+			subcompBuildList.addStatement(parentID, mimicRegClass + "::set_vreg(" + vregId + ");"); // set static vreg pointer, need this 
+			subcompBuildList.addStatement(parentID, "for (int unsigned i=0 ; i<" + regProperties.getRepCount() + "; i++) begin");
+			subcompBuildList.addStatement(parentID, "  this." + escapedMimicRegId + "[i] = new(i);");
+			subcompBuildList.addStatement(parentID, "end");
 		}
 		
 		//System.out.println("UVMRegsBuilder saveMemInfo: regid=" + regId + ", memid=" + memId + ", reg reps=" + regProperties.getRepCount() + ", inst reps=" + getVRegReps());
-		subcompBuildList.addStatement(parentID, "this." + escapedRegId + getUvmRegTestModeString());  
-		// add any user defined properties
-		addUserDefinedPropertyElements(parentID, regProperties, escapedRegId);
-		subcompBuildList.addStatement(parentID, "this." + escapedRegId + ".build();");		
 	}
 
 	/** compute a register level reset from the current list of fields (or null if none defined) */
@@ -432,18 +479,6 @@ public class UVMRegsBuilder extends OutputBuilder {
 		// return null if no field resets found
 		//System.out.println("UVMRegsBuilder getVRegReset: id=" + regProperties.getId() + ", hasFldRest=" + hasFieldReset + ", reset=" + reset);	
 		return hasFieldReset? reset : null;
-	}
-
-	/** get total number of replications for this vreg by multiplying reps on reg set stack
-	 */
-	public Integer getVRegReps() {
-		Integer retVal = 1;
-		Iterator<RegSetProperties> iter = regSetPropertyStack.iterator();
-		while (iter.hasNext()) {
-			RegSetProperties inst = iter.next();
-			retVal *= inst.getRepCount();
-		}
-		return retVal;
 	}
 
 	/** save register set info for use in parent uvm_reg_block class   
@@ -593,11 +628,12 @@ public class UVMRegsBuilder extends OutputBuilder {
 		outputList.add(new OutputLine(--indentLvl, "endtask: get_active_intr_fields"));
 	}
 
-	/** build vreg class definition for current register instance */   
-	protected void buildVRegClass() {   
+	/** build vreg class definition for current register instance 
+	 * @param uvmRegClassName */   
+	protected void buildVRegClass(String uvmRegClassName) {   
 		// create text name and description if null
 		String id = regProperties.getId();
-		String fullId = getUVMVRegID();
+		String vregClassName = uvmRegClassName.replaceFirst("reg_", "vreg_");
 		String textName = regProperties.getTextName();
 		if (textName == null) textName = "Virtual Register " + id;
 		else textName = textName.replace('\n', ' ');
@@ -605,14 +641,14 @@ public class UVMRegsBuilder extends OutputBuilder {
 		// generate register header 
 		outputList.add(new OutputLine(indentLvl, ""));	
 		outputList.add(new OutputLine(indentLvl, "// " + textName));
-		outputList.add(new OutputLine(indentLvl++, "class " + fullId + " extends uvm_vreg_rdl;")); 
+		outputList.add(new OutputLine(indentLvl++, "class " + vregClassName + " extends uvm_vreg_rdl;")); 
 						
 		// create field definitions
 		buildVRegFieldDefines();   
 		
 		// create new function
 		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl++, "function new(string name = \"" + fullId + "\");"));
+		outputList.add(new OutputLine(indentLvl++, "function new(string name = \"" + vregClassName + "\");"));
 		outputList.add(new OutputLine(indentLvl,     "super.new(name, " + regProperties.getRegWidth() + ");"));
 		outputList.add(new OutputLine(--indentLvl, "endfunction: new"));
 
@@ -621,7 +657,128 @@ public class UVMRegsBuilder extends OutputBuilder {
 				
 		// close out the register definition
 		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(--indentLvl, "endclass : " + fullId));
+		outputList.add(new OutputLine(--indentLvl, "endclass : " + vregClassName));
+	}
+
+	private void buildMimicRegClass(String uvmRegClassName) {
+		// create text name and description if null
+		String id = regProperties.getId();
+		String textName = regProperties.getTextName();
+		if (textName == null) textName = "Register " + id;
+		else textName = textName.replace('\n', ' ');
+		
+		// generate register header 
+		outputList.add(new OutputLine(indentLvl, ""));	
+		outputList.add(new OutputLine(indentLvl, "// " + textName));
+		outputList.add(new OutputLine(indentLvl++, "class " + uvmRegClassName + " extends uvm_reg_mimic;")); 
+						
+		// add static define for vreg 
+		String vregClassName = uvmRegClassName.replaceFirst("reg_", "vreg_");
+		outputList.add(new OutputLine(indentLvl, "local static " + vregClassName + " m_vregs;"));
+		outputList.add(new OutputLine(indentLvl, "local static int unsigned s_last_store_index = 0;")); // last store location accessed
+		
+		// create field definitions
+		buildMimicRegFieldDefines();
+		
+		// create new function
+		outputList.add(new OutputLine(indentLvl, ""));	
+		outputList.add(new OutputLine(indentLvl++, "function new(int unsigned index);"));
+		outputList.add(new OutputLine(indentLvl,     "super.new(index);"));
+		outputList.add(new OutputLine(--indentLvl, "endfunction: new"));
+		
+		// set_vreg
+		SystemVerilogFunction func = new SystemVerilogFunction("void", "set_vreg");
+		func.addComment("Set static vregs for this register type.");
+		func.setStatic();
+		func.addIO(vregClassName, "vregs");
+		func.addStatement("m_vregs = vregs;");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+
+		// create build function
+		buildMimicRegBuildFunction();
+		
+		// add uvm_reg mimic methods: read/write/get/set/mirror/update
+		SystemVerilogTask task = new SystemVerilogTask("read");
+		task.setVirtual();
+		task.addComment("Register read translation class");
+		task.addIO("output", "uvm_status_e", "status", null);
+		task.addIO("output", "uvm_reg_data_t", "value", null);
+		task.addIO("input", "uvm_path_e", "path", "UVM_DEFAULT_PATH");
+		task.addStatement("m_vregs.read(m_index, status, value, path);"); // read vregs
+		task.addStatement("s_last_store_index = m_store_index;"); // save last store location
+		outputList.addAll(task.genOutputLines(indentLvl));	
+		
+		task = new SystemVerilogTask("write");
+		task.setVirtual();
+		task.addComment("Register write translation class");
+		task.addIO("output", "uvm_status_e", "status", null);
+		task.addIO("input", "uvm_reg_data_t", "value", null);
+		task.addIO("input", "uvm_path_e", "path", "UVM_DEFAULT_PATH");
+		task.addStatement("this.set(value);");
+		task.addStatement("this.update(status, path);");
+		outputList.addAll(task.genOutputLines(indentLvl));	
+		
+		func = new SystemVerilogFunction("uvm_data_t", "get");
+		func.setVirtual();
+		func.addComment("Return data from this reg's storage location.");
+		func.addStatement("s_last_store_index = m_store_index;"); // save last store location
+		func.addStatement("return m_vregs.get_staged(m_store_index);");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		func = new SystemVerilogFunction(null, "set");
+		func.setVirtual();
+		func.addComment("Set data in this reg's storage location.");
+		func.addIO("input", "uvm_data_t", "value", null);
+		func.addStatement("s_last_store_index = m_store_index;"); // save last store location
+		func.addStatement("m_vregs.set_staged(m_store_index, value);");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+				
+		task = new SystemVerilogTask("mirror");
+		task.setVirtual();
+		task.addComment("Register read into data store");
+		task.addIO("output", "uvm_status_e", "status", null);
+		task.addIO("input", "uvm_check_e", "check", "UVM_NO_CHECK");
+		task.addIO("input", "uvm_path_e", "path", "UVM_DEFAULT_PATH");
+		task.addStatement("uvm_data_t read_data;");
+		task.addStatement("this.read(status, read_data, path);");
+		// check if UVM_CHECK specified
+		task.addStatement("if (check == UVM_CHECK) begin");
+		task.addStatement("  uvm_data_t mirror_data = get();");
+		task.addStatement("  if (mirror_data !== read_data)");	   
+		task.addStatement("    `uvm_error(\"RegModel\", $sformatf(\"Memory register %s value read from DUT at index 0xh (0x%h) does not match mirrored value (0x%h)\",");
+		task.addStatement("                 m_vregs.get_full_name(), m_index, read_data, mirror_data));");
+		task.addStatement("end");
+		task.addStatement("this.set(read_data);");
+		outputList.addAll(task.genOutputLines(indentLvl));	
+		
+		task = new SystemVerilogTask("update");
+		task.setVirtual();
+		task.addComment("Register write from data_store");
+		task.addIO("output", "uvm_status_e", "status", null);
+		task.addIO("input", "uvm_path_e", "path", "UVM_DEFAULT_PATH");
+		task.addStatement("m_vregs.write_staged(m_store_index, m_index, status, path);");
+		task.addStatement("s_last_store_index = m_store_index;"); // save last store location
+		outputList.addAll(task.genOutputLines(indentLvl));
+		
+		// field get/set methods, these override empty versions in base class that are called from field
+		func = new SystemVerilogFunction("uvm_data_t", "get_field");
+		func.setVirtual();
+		func.addComment("Return field data from this reg's storage location.");
+		func.addIO("string", "fname");
+		func.addStatement("return m_vregs.get_staged_field(s_last_store_index, fname);");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+		
+		func = new SystemVerilogFunction(null, "set_field");
+		func.setVirtual();
+		func.addComment("Set field data in this reg's storage location.");
+		func.addIO("string", "fname");
+		func.addIO("input", "uvm_data_t", "value", null);
+		func.addStatement("m_vregs.set_staged_field(s_last_store_index, fname, value);");
+		outputList.addAll(func.genOutputLines(indentLvl));	
+
+		// close out the register definition
+		outputList.add(new OutputLine(indentLvl, ""));	
+		outputList.add(new OutputLine(--indentLvl, "endclass : " + uvmRegClassName));
 	}
 
 	/** build block class definition for current regset instance 
@@ -745,22 +902,12 @@ public class UVMRegsBuilder extends OutputBuilder {
 	}
 
 	/** return uvm_reg callback class name. only valid in finishReg when regProperties is set */
-	protected String getUVMRegCbsID() {
+	protected String getUvmRegCbsClassName() {
 		//System.out.println("UvmRegsBuilder getUVMRegCbsID: calling reg getName...");
 		@SuppressWarnings("rawtypes")
 		UniqueNameSetInfo reg_ret = uniqueRegNames.getName(regProperties, "alias_cbs", getAddrMapPrefix(), null);
 		String fullId = reg_ret.name;
 		//if (ExtParameters.uvmregsReuseUvmClasses() && reg_ret.isNew) System.err.println("UvmRegsBuilder getUVMRegCbsID: **** error, cbs name created before reg");
-		return fullId;
-	}
-
-	/** return uvm_vreg class name. only valid in finishReg when regProperties is set */
-	protected String getUVMVRegID() {
-		//System.out.println("UvmRegsBuilder getUVMVRegID: calling reg getName...");
-		@SuppressWarnings("rawtypes")
-		UniqueNameSetInfo reg_ret = uniqueRegNames.getName(regProperties, "vreg", getAddrMapPrefix(), null);
-		String fullId = reg_ret.name;
-		//if (ExtParameters.uvmregsReuseUvmClasses() && reg_ret.isNew) System.err.println("UvmRegsBuilder getUVMVRegID: **** error, vreg name created before reg");
 		return fullId;
 	}
 	
@@ -815,8 +962,18 @@ public class UVMRegsBuilder extends OutputBuilder {
 			String fieldId = escapeReservedString(field.getPrefixedId());  
 			// define field class by type
 			String fieldClass = "uvm_vreg_field";
-			//System.out.println("UVMRegsBuilder: buildVRegFieldDefines def=" + "rand " + fieldClass + " " + fieldId + ";");
 			outputList.add(new OutputLine(indentLvl, "rand " + fieldClass + " " + fieldId + ";"));
+		}
+	}
+
+	/** build field definitions for current mimic register */
+	private void buildMimicRegFieldDefines() {
+		Iterator<FieldProperties> iter = fieldList.iterator();
+		// traverse field list
+		while (iter.hasNext()) {
+			FieldProperties field = iter.next();
+			String fieldId = escapeReservedString(field.getPrefixedId());  
+			outputList.add(new OutputLine(indentLvl, "static uvm_reg_field_mimic " + fieldId + ";"));
 		}
 	}
 
@@ -1184,7 +1341,22 @@ public class UVMRegsBuilder extends OutputBuilder {
 			outputList.add(new OutputLine(indentLvl, "this." + fieldId + ".configure(this, " + field.getFieldWidth() + 
 					", " + field.getLowIndex() + ");")); 
 			// add any user defined properties
-			addUserDefinedPropertyElements(indentLvl, field, fieldId);
+			if (includeExtendedInfo) addUserDefinedPropertyElements(indentLvl, field, fieldId);
+		} // while		
+		outputList.add(new OutputLine(--indentLvl, "endfunction: build"));
+	}
+
+	/** build the build function for mimic register */
+	private void buildMimicRegBuildFunction() {
+		outputList.add(new OutputLine(indentLvl, ""));	
+		outputList.add(new OutputLine(indentLvl++, "virtual function void build();"));
+		Iterator<FieldProperties> iter = fieldList.iterator();
+		// traverse field list
+		while (iter.hasNext()) {
+			FieldProperties field = iter.next();
+			String fieldId = escapeReservedString(field.getPrefixedId());  
+			// create uvm_reg_field_mimic class   
+			outputList.add(new OutputLine(indentLvl, "this." + fieldId +  " = new(this, \"" + field.getPrefixedId() + "\");"));
 		} // while		
 		outputList.add(new OutputLine(--indentLvl, "endfunction: build"));
 	}
@@ -1712,6 +1884,6 @@ public class UVMRegsBuilder extends OutputBuilder {
 
 	/** generate package info (overridden by child uvm builder classes) */
 	protected void buildRdlPackage() {
-		UVMRdlClasses.buildRdlPackage(pkgOutputList, 0);		
+		UVMRdlClasses.buildRdlPackage(pkgOutputList, 0);
 	}
 }

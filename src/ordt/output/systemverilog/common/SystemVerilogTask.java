@@ -14,7 +14,9 @@ public class SystemVerilogTask extends SystemVerilogFunction {
 	@Override
 	protected String genHeaderType(boolean isExtern, boolean includeParent) {
 		   String retStr = isExtern? "extern " : "";
-		   retStr += (isVirtual && !includeParent)? "virtual task" : "task";
+		   if (isVirtual && !includeParent) retStr += "virtual ";
+		   if (isStatic && !includeParent) retStr += "static ";
+		   retStr += "task";
 		return retStr;
 	}
 	  
