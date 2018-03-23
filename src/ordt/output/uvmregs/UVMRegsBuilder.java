@@ -1313,6 +1313,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		if (newCBDepth != lastCBDepth) {
 			// generate the ancestor class name so generic block can be cast to specific child
 			RegSetProperties ancRegset = getRegSetAncestor(newCBDepth);
+			if (ancRegset==null) System.err.println("UVMRegSBuilder buildBlockCbAssign: null ancRegset, newCBDepth=" + newCBDepth + ", reg=" + regProperties.getInstancePath()  + ", eRef=" + eRef.getRawReference());
 			String ancId = ancRegset.getBaseName();
 			uniqueBlockNames.setStringMap(ancId, ancRegset); // save ancestor regset to names map for later lookup 
 			// block class name is unknown at this point so save basename for lookup in write stage
