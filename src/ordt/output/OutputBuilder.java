@@ -77,7 +77,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	protected boolean regIsActive = false;  // indicator that regProperties is currently active
 	protected Stack<RegSetProperties> regSetPropertyStack = new Stack<RegSetProperties>();  // reg sets are nested so store stack
 	protected  RegSetProperties regSetProperties;  // output-relevant active register set properties  
-	private  RegSetProperties rootMapProperties;  // properties of root address map (separate from regSetProperties since root map is handled differently wrt rs stack) 
+	protected  RegSetProperties rootMapProperties;  // properties of root address map (separate from regSetProperties since root map is handled differently wrt rs stack) 
 	
 	/** reset builder state */
 	protected void resetBuilder() {

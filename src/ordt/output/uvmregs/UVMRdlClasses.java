@@ -78,8 +78,6 @@ public class UVMRdlClasses extends UVMRegsCommon {
 		buildUvmRegRdlClass(outputList, indentLvl);
 		// create derived reg class
 		buildUvmVRegRdlClass(outputList, indentLvl);
-		// create derived mem class
-		buildUvmMemRdlClass(outputList, indentLvl);
 		// create derived field class  
 		buildUvmRegFieldRdlClass(outputList, indentLvl);
 		// create derived field class for counters  
@@ -328,29 +326,6 @@ public class UVMRdlClasses extends UVMRegsCommon {
 		outputList.add(new OutputLine(--indentLvl, "endclass : uvm_vreg_rdl"));
 	}
 
-	/** build uvm_mem_rdl class extension of uvm_mem  
-	 * @param outputList - list of output lines to be updated
-	 * @param indentLvl */   
-	private static void buildUvmMemRdlClass(List<OutputLine> outputList, int indentLvl) {
-		outputList.add(new OutputLine(indentLvl, ""));	
-		outputList.add(new OutputLine(indentLvl, "// uvm_mem_rdl class"));
-		outputList.add(new OutputLine(indentLvl++, "class uvm_mem_rdl extends uvm_mem;")); 
-		
-		// create new function
-		SystemVerilogFunction func = new SystemVerilogFunction(null, "new");
-		func.addIO("input", "string", "name", "\"uvm_mem_rdl\"");
-		func.addIO("input", "longint unsigned", "size", "1");
-		func.addIO("input", "int unsigned", "n_bits", "0");
-		func.addIO("input", "string", "access", "\"RW\"");
-		func.addIO("input", "int", "has_coverage", "UVM_NO_COVERAGE");
-		func.addStatement("super.new(name, size, n_bits, access, has_coverage);");
-		outputList.addAll(func.genOutputLines(indentLvl));	
-		
-		// close out the class definition
-		outputList.add(new OutputLine(indentLvl, ""));	
-		//outputList.add(new OutputLine(indentLvl, "`uvm_object_utils(uvm_reg_rdl)")); //NOFACTORY
-		outputList.add(new OutputLine(--indentLvl, "endclass : uvm_mem_rdl"));
-	}
 
 	/** build uvm_reg_block_rdl class extension of uvm_reg_block  
 	 * @param outputList - list of output lines to be updated
@@ -1531,12 +1506,12 @@ public class UVMRdlClasses extends UVMRegsCommon {
 		func = new SystemVerilogFunction(null, "set_associative_store");
 		func.addComment("Set store index to use associative array store or single store location.");
 		func.addIO("bit", "is_associative");
-		func.addStatement("if (is_associative) m_store_index = index;");
+		func.addStatement("if (is_associative) m_store_index = m_index;");
 		func.addStatement("else m_store_index = 0;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		// field get/set methods, these are empty versions overridden by child classes
-		func = new SystemVerilogFunction("uvm_data_t", "get_field");
+		func = new SystemVerilogFunction("uvm_reg_data_t", "get_field");
 		func.setVirtual();
 		func.addComment("Return data from this reg's storage location.");
 		func.addIO("string", "fname");
@@ -1547,7 +1522,7 @@ public class UVMRdlClasses extends UVMRegsCommon {
 		func.setVirtual();
 		func.addComment("Set data in this reg's storage location.");
 		func.addIO("string", "fname");
-		func.addIO("input", "uvm_data_t", "value", null);
+		func.addIO("input", "uvm_reg_data_t", "value", null);
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		outputList.add(new OutputLine(indentLvl, ""));	
@@ -1574,14 +1549,14 @@ public class UVMRdlClasses extends UVMRegsCommon {
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// get/set - call thru parent / these assume use of last reg accessed since mimic fields are static
-		func = new SystemVerilogFunction("uvm_data_t", "get");
+		func = new SystemVerilogFunction("uvm_reg_data_t", "get");
 		func.addComment("Return field data from this reg's storage location.");
 		func.addStatement("return m_parent.get_field(m_name);");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		func = new SystemVerilogFunction(null, "set");
 		func.addComment("Set field data in this reg's storage location.");
-		func.addIO("input", "uvm_data_t", "value", null);
+		func.addIO("input", "uvm_reg_data_t", "value", null);
 		func.addStatement("m_parent.set_field(m_name, value);");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 

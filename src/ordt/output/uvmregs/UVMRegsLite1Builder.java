@@ -25,8 +25,7 @@ import ordt.parameters.ExtParameters;
 public class UVMRegsLite1Builder extends UVMRegsBuilder {
 
 	public UVMRegsLite1Builder(RegModelIntf model) {
-		super(model);
-		includeExtendedInfo = false;  // extended info is not included in the lite model
+		super(model, false);
 	}
 
 	// --------------------------- package setup methods ------------------------
