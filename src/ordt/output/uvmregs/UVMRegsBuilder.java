@@ -65,7 +65,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 	protected UniqueNameSet<RegSetProperties> uniqueBlockNames = new UniqueNameSet<RegSetProperties>(ExtParameters.uvmregsReuseUvmClasses(),
 			ExtParameters.uvmregsUseNumericUvmClassNames(), true, "block");
 
-	protected enum UvmMemStrategy { BASIC, BLOCK_WRAPPED, MIMIC_REG_API }
+	public enum UvmMemStrategy { BASIC, BLOCK_WRAPPED, MIMIC_REG_API }
 	
 	protected boolean includeExtendedInfo = true;  // HEAVY model defaults
 	
@@ -153,21 +153,22 @@ public class UVMRegsBuilder extends OutputBuilder {
 			String uvmRegClassName = reg_ret.name;
 			boolean createNewRegClass = reg_ret.isNew;
 
-			// if a memory, then add info to parent uvm_reg_block
+			// if a memory, then add info to parent uvm_reg_block  // FIXME - restructure isMem to add these conditions and change Hash/Equals
 			if (regProperties.isReplicated() && (regProperties.isMem() || (regProperties.getRepCount() >= ExtParameters.uvmregsIsMemThreshold()))) {   // check is_mem threshold vs reps
 				//System.out.println("UVMRegsBuilder finishRegister: replicated MEM reg id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", thold=" + ExtParameters.uvmregsIsMemThreshold());
 
-				// if debug mode w/ old behavior (bad address stride generated in uvm1.1d) then no wrapper created)
-				if (ExtParameters.hasDebugMode("uvmregs_no_mem_wrap")) {
+				UvmMemStrategy uvmMemStrategy = ExtParameters.uvmregsMemStrategy();
+				// if mode w/ old behavior (bad address stride generated in uvm1.1c??) then no wrapper created)
+				if (uvmMemStrategy == UvmMemStrategy.BASIC) {
 					// save info for this memory and virtual regs to be used in parent uvm_reg_block
-					saveMemInfo(UvmMemStrategy.BASIC, uvmRegClassName);  // no wrapper used
+					saveMemInfo(uvmMemStrategy, uvmRegClassName);  // no wrapper used
 					// build the virtual register class definition
 					if (createNewRegClass) buildVRegClass(uvmRegClassName);
                 }
 				// else if reg api mimic option (extended vreg info is reqd currently for mimic api)
-				else if (ExtParameters.hasDebugMode("uvmregs_mimic_reg_api") && includeExtendedInfo) {
+				else if ((uvmMemStrategy == UvmMemStrategy.MIMIC_REG_API) && includeExtendedInfo) {
 					// save info for this memory and virtual regs to be used in parent uvm_reg_block
-					saveMemInfo(UvmMemStrategy.MIMIC_REG_API, uvmRegClassName);  // no wrapper used, include reg mimic array
+					saveMemInfo(uvmMemStrategy, uvmRegClassName);  // no wrapper used, include reg mimic array
 					if (createNewRegClass) {
 						// build the virtual register class definition
 						buildVRegClass(uvmRegClassName);	

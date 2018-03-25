@@ -186,9 +186,9 @@ ext_parm_defs
    | 'reuse_uvm_classes' EQ bool
    | 'skip_no_reset_db_update' EQ bool
    | 'uvm_model_mode' EQ ('heavy' | 'lite1') 
-   | 'uvm_model_parameters' EQ STR 
    | 'regs_use_factory' EQ bool
    | 'use_numeric_uvm_class_names' EQ bool
+   | 'uvm_mem_strategy' EQ ('basic' | 'block_wrapped' | 'mimic_reg_api') 
    ;   
    
 // ------------ reglist_out_defs

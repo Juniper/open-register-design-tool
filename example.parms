@@ -5,7 +5,7 @@ global {
 	//use_js_address_alignment = true   // align per jspec reg array and register_set rules
 	//suppress_alignment_warnings = true   // inhibit register/regfile base address alignment messages
 	//default_base_map_name = "zt"   // default address map name (replaces 'default_name' in cases where no addrmap is specified)
-	//debug_mode = 2       // debug options, 1=uvmregs reg width matches max for block, 3=no uvm_mem wrapper block 
+	//debug_mode = "mode1 mode2"       // debug options
 	allow_unordered_addresses = true   // attempt to correct order of elements defined in non-descending order
 }
 
@@ -104,6 +104,7 @@ output uvmregs {
 	//uvm_model_mode = lite1        // set uvm model type (heavy | lite1)
     //regs_use_factory = true       // registers will be created by and registered with the factory
     use_numeric_uvm_class_names = true // block and reg class names will use unique int rather than catenated path
+	uvm_mem_strategy = mimic_reg_api        // set uvm_mem modeling strategy (basic | block_wrapped | mimic_reg_api)
 }
 
 // xml output parameters

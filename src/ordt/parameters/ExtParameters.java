@@ -27,6 +27,7 @@ import ordt.extract.model.ModComponent.CompType;
 import ordt.output.systemverilog.common.wrap.WrapperRemapInvertXform;
 import ordt.output.systemverilog.common.wrap.WrapperRemapSyncStagesXform;
 import ordt.output.systemverilog.common.wrap.WrapperRemapXform;
+import ordt.output.uvmregs.UVMRegsBuilder.UvmMemStrategy;
 import ordt.extract.model.ModRegister;
 import ordt.parse.parameters.ExtParmsBaseListener;
 import ordt.parse.parameters.ExtParmsLexer;
@@ -55,7 +56,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	private static SVBlockSelectModes systemverilogBlockSelectMode;  
 	private static SVChildInfoModes sysVerChildInfoMode;  
 	private static UVMModelModes uvmModelMode;  
-
+	private static UvmMemStrategy uvmMemStrategy;
 	private static int defaultMaxInternalRegReps = 4096;  // max internal reg reps allowed
 	
 	// list of model annotation commands
@@ -177,10 +178,9 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("reuse_uvm_classes", false); 
 		initBooleanParameter("skip_no_reset_db_update", true); 
 		uvmModelMode = UVMModelModes.HEAVY; 
-		initStringMapParameter("uvm_model_parameters", new HashMap<String, String>()); 
 		initBooleanParameter("regs_use_factory", false); 
 		initBooleanParameter("use_numeric_uvm_class_names", false); 
-				
+		uvmMemStrategy = UvmMemStrategy.BLOCK_WRAPPED; 		
 		// ---- bench output defaults
 		initStringListParameter("add_test_command", new ArrayList<String>());
 		initBooleanParameter("generate_external_regs", false); 
@@ -504,6 +504,12 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		else if (name.equals("uvm_model_mode")) {  
 			if (value.equals("lite1")) uvmModelMode = UVMModelModes.LITE1;
 			else uvmModelMode = UVMModelModes.HEAVY;
+		}
+
+		else if (name.equals("uvm_mem_strategy")) {  
+			if (value.equals("basic")) uvmMemStrategy = UvmMemStrategy.BASIC;
+			else if (value.equals("mimic_reg_api")) uvmMemStrategy = UvmMemStrategy.MIMIC_REG_API;
+			else uvmMemStrategy = UvmMemStrategy.BLOCK_WRAPPED;
 		}
 		
 		//else
@@ -916,12 +922,9 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static UVMModelModes uvmregsModelMode() {
 		return uvmModelMode;
 	}
-	
-	/** get specified uvm model parameter */
-	public static String getUvmModelParameter(String parm, String dflt) {
-		String retVal = getStringMapParameter("uvm_model_parameters").get(parm);
-		if (retVal==null) return dflt;  // return default value if parameter not found
-		return retVal;
+
+	public static UvmMemStrategy uvmregsMemStrategy() {
+		return uvmMemStrategy;
 	}
 	
 	// --------
