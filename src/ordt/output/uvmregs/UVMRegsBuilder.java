@@ -153,8 +153,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 			String uvmRegClassName = reg_ret.name;
 			boolean createNewRegClass = reg_ret.isNew;
 
-			// if a memory, then add info to parent uvm_reg_block  // FIXME - restructure isMem to add these conditions and change Hash/Equals
-			if (regProperties.isReplicated() && (regProperties.isMem() || (regProperties.getRepCount() >= ExtParameters.uvmregsIsMemThreshold()))) {   // check is_mem threshold vs reps
+			// if a memory, then add info to parent uvm_reg_block
+			if (regProperties.isUvmMem()) {   // check is_mem threshold vs reps
 				//System.out.println("UVMRegsBuilder finishRegister: replicated MEM reg id=" + regProperties.getId() + ", reps=" + regProperties.getRepCount() + ", thold=" + ExtParameters.uvmregsIsMemThreshold());
 
 				UvmMemStrategy uvmMemStrategy = ExtParameters.uvmregsMemStrategy();

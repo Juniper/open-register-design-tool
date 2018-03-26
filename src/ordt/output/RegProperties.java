@@ -38,7 +38,7 @@ public class RegProperties extends AddressableInstanceProperties {
 	private boolean hasHaltOutputDefined = false;   // reg has halt output
 	
 	// uvmregs test info
-	private boolean isMem = false;
+	private Boolean isUvmMem = null;  // store explicitly set uvm_mem state
 	private boolean uvmRegPrune = false;
 	
 	// cppmod info
@@ -105,8 +105,8 @@ public class RegProperties extends AddressableInstanceProperties {
 		}
 		
 		// extract uvmregs test info
-		if (pList.hasTrueProperty("uvmreg_is_mem")) setMem(true);
-		else if (pList.hasFalseProperty("uvmreg_is_mem")) setMem(false);
+		if (pList.hasTrueProperty("uvmreg_is_mem")) setUvmMem(true);
+		else if (pList.hasFalseProperty("uvmreg_is_mem")) setUvmMem(false);
 		
 		if (pList.hasTrueProperty("uvmreg_prune")) setUvmRegPrune(true);
 		else if (pList.hasFalseProperty("uvmreg_prune")) setUvmRegPrune(false);
@@ -305,14 +305,16 @@ public class RegProperties extends AddressableInstanceProperties {
 		this.hasHaltOutputDefined = hasHaltOutputDefined;
 	}
 
-	/** get uvmreg isMem */
-	public boolean isMem() {
-		return isMem;
+	/** return true is this register array should be modeled as uvm_mem */
+	public boolean isUvmMem() {
+		if (!isReplicated()) return false;  // only replicated regs can be modeled as uvm_mem
+		if (isUvmMem != null) return isUvmMem;  // use explicit setting
+		return (getRepCount() >= ExtParameters.uvmregsIsMemThreshold());  // otherwise model as a mem if over replication threshold
 	}
 	
-	/** set uvmreg isMem */
-	public void setMem(boolean isMem) {
-		this.isMem = isMem;
+	/** identify this reg as a uvm memory */
+	public void setUvmMem(boolean isUvmMem) {
+		this.isUvmMem = isUvmMem;
 	}
 	
 	/** return true if this register is to be pruned from uvmreg model output */
@@ -524,7 +526,7 @@ public class RegProperties extends AddressableInstanceProperties {
 		result = prime * result + (hasHaltOutputDefined ? 1231 : 1237);
 		result = prime * result + (hasInterruptFields ? 1231 : 1237);
 		result = prime * result + (hasInterruptOutputDefined ? 1231 : 1237);
-		result = prime * result + (isMem ? 1231 : 1237);
+		result = prime * result + (isUvmMem() ? 1231 : 1237);  // FIXME - add equals/hash modes
 		result = prime * result + ((jspecAttributes == null) ? 0 : jspecAttributes.hashCode());
 		result = prime * result + ((regWidth == null) ? 0 : regWidth.hashCode());
 		result = prime * result + fieldHash;
@@ -577,7 +579,7 @@ public class RegProperties extends AddressableInstanceProperties {
 			return false;
 		if (hasInterruptOutputDefined != other.hasInterruptOutputDefined)
 			return false;
-		if (isMem != other.isMem)
+		if (isUvmMem() != other.isUvmMem())
 			return false;
 		if (jspecAttributes == null) {
 			if (other.jspecAttributes != null)
