@@ -1,0 +1,49 @@
+//  uvmmems using numeric class names and reuse
+
+// parameter defines for this example
+<PARMS>
+// uvmregs output parameters
+output uvmregs {
+	is_mem_threshold = 256   // make replicated regs uvm_mem if reps greater-equal to threshold
+	suppress_no_category_warnings = true   // inhibit reg no category messages
+	reuse_uvm_classes = true     // allow reuse of classes in model
+	//uvm_model_mode = heavy        // set uvm model type (heavy | lite1)
+    use_numeric_uvm_class_names = true // block and reg class names will use unique int rather than catenated path
+	//uvm_mem_strategy = block_wrapped   // set uvm_mem modeling strategy (basic | block_wrapped | mimic_reg_api)
+}
+</PARMS>
+
+reg simple_reg {  // 32b reg with simple field
+    field { sw=rw; } fld1[32];
+};
+
+reg wide_reg {  // 128b reg with 8 fields
+    regwidth = 128;
+    field { sw=rw; } fld1[16];
+    field { sw=rw; } fld2[16];
+    field { sw=rw; } fld3[16];
+    field { sw=rw; } fld4[16];
+    field { sw=rw; } fld5[16];
+    field { sw=rw; } fld6[16];
+    field { sw=rw; } fld7[16];
+    field { sw=rw; } fld8[16];
+};
+
+addrmap {
+    default reset = 0;
+    
+    // single regs up front
+    simple_reg sr1;
+    wide_reg wr1 @0x100;
+    simple_reg sr_repeat1 @0x200;
+    simple_reg sr_repeat2;
+    simple_reg sr_repeat3;
+    
+    // simple uvm mem explicitly made uvm mem
+    simple_reg srmem1[100] @0x2000;
+    srmem1->uvmreg_is_mem=true;
+    
+    // wide uvm mem w/ multiple fields using threshold
+    wide_reg wrmem1[300] @0x20000;
+        
+} top; 
