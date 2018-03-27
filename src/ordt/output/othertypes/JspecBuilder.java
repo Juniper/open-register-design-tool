@@ -235,7 +235,7 @@ public class JspecBuilder extends OutputBuilder {
 		// skip this regset if it's empty
 		if (regSetProperties.getExtractInstance().getRegComp().hasChildInstances()) {
 			// all jspec register sets must specify a size
-			RegNumber regSetSize = getRegSetAddressStride(regSetProperties.isReplicated()); // allowPrecomputedSize if replicated
+			RegNumber regSetSize = getRegSetAddressStride(); // allowPrecomputedSize if replicated
 
 			// check for empty register set
 			if (!regSetSize.isGreaterThan(new RegNumber(0))) 

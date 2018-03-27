@@ -137,8 +137,7 @@ public class JsonBuilder extends OutputBuilder {
 		addJsonNumElement("parent", null, true);  // add bogus parent to close out contents element
 		addJsonElementEnd(false);  // end the contents element
 		// add size which is only available once children are processed
-		addJsonStringElement("size", getRegSetAddressStride(false).toFormat(NumBase.Dec, NumFormat.Int), true);  // write stride in dec  FIXME - why false preComputed?
-		addJsonElementEnd(regSetProperties.isRootInstance());     // end the regset
+		addJsonStringElement("size", getRegSetAddressStride().toFormat(NumBase.Dec, NumFormat.Int), true);  // write stride in dec 
 		if (regSetProperties.isRootInstance()) {
 			addJsonElementEnd(true);  // end the root contents elem
 			addJsonElementEnd(true);  // end root element

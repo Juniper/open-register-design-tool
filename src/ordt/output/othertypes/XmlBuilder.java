@@ -184,7 +184,7 @@ public class XmlBuilder extends OutputBuilder {
 	public void finishRegSet() {
 		// process stride and highaddr which are only available once children are processed
 		if (regSetProperties.isReplicated()) {
-			addXmlElement("stride", getRegSetAddressStride(true).toString());  // write stride in hex
+			addXmlElement("stride", getRegSetAddressStride().toString());  // write stride in hex
 		}
 		if (regSetProperties.getFullHighAddress() != null)
 			addXmlElement("highaddr", regSetProperties.getFullHighAddress().toString());

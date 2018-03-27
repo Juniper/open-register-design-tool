@@ -547,7 +547,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 
 	/** get the increment string for this regset */
 	protected String getRegSetAddrIncrString() {
-		RegNumber incr = getRegSetAddressStride(true);
+		RegNumber incr = getRegSetAddressStride();
 		String addr = "`UVM_REG_ADDR_WIDTH" + incr.toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
 		return addr;
 	}
