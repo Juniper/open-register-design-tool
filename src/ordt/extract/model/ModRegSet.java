@@ -154,11 +154,11 @@ public class ModRegSet extends ModComponent {
 				for (ModInstance regInst : getChildInstances()) {  
 					regInst.generateOutput(outputBuilder);
 				}	
+				
+				// update current regSet address and stride now that all children are processed
+				outputBuilder.updateLastRegSetAddress(regSetProperties);    // final next address is available after this for size compute
 
 				if (regSetProperties.isLastRep()) {   
-
-					outputBuilder.updateLastRegSetAddress(regSetProperties);    // final next address is available after this for size compute
-
 					// if this is a root external instance (addrmaps included), then add the external reg interface
 					// if generation of external address maps is specified then just add to builder list for processing
 					if (regSetProperties.isRootExternal() || (ExtParameters.sysVerGenerateChildAddrmaps() && isAddressMap())) { 
