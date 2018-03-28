@@ -1493,7 +1493,7 @@ public class UVMRdlClasses extends UVMRegsCommon {
 		SystemVerilogFunction func = new SystemVerilogFunction(null, "new");
 		func.addIO("int unsigned", "index");
 		func.addStatement("m_index = index;");
-		func.addStatement("set_associative_store(1);");  // default to associative
+		func.addStatement("void'(set_associative_store(1));");  // default to associative
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		// get_index - get the array index of this reg 
@@ -1515,7 +1515,7 @@ public class UVMRdlClasses extends UVMRegsCommon {
 		func.setVirtual();
 		func.addComment("Return data from this reg's storage location.");
 		func.addIO("string", "fname");
-		func.addStatement("return null;");
+		func.addStatement("return 0;");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 		
 		func = new SystemVerilogFunction(null, "set_field");
@@ -1557,7 +1557,7 @@ public class UVMRdlClasses extends UVMRegsCommon {
 		func = new SystemVerilogFunction(null, "set");
 		func.addComment("Set field data in this reg's storage location.");
 		func.addIO("input", "uvm_reg_data_t", "value", null);
-		func.addStatement("m_parent.set_field(m_name, value);");
+		func.addStatement("void'(m_parent.set_field(m_name, value));");
 		outputList.addAll(func.genOutputLines(indentLvl));	
 
 		outputList.add(new OutputLine(indentLvl, ""));	
