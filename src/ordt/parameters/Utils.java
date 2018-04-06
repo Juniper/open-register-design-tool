@@ -85,29 +85,32 @@ public class Utils {
 		return strToInteger(intStr, 10, null);
 	}
 	
-	/** create an (non negative) integer from string input of various forms (vlog, addr, int) 
+	/** create a pos integer from string input of various forms (vlog, addr, int) 
+	 * @param numStr - input text string
+	 * @param messageSuffix - optional text error message (if null, no error message)
+	 * @return converted integer or null if convert failed
      **/
-	public static Integer numStrToInteger (String numStr) {
+	public static Integer numStrToPosInteger (String numStr, String messageSuffix) {
 		if ((numStr == null) || (numStr.length()<1)) return null;
 		// check for plain integers
 		Pattern p = Pattern.compile("^(\\d+)$");
 		Matcher m = p.matcher(numStr);
 		if (m.matches()) {
-		  return strToInteger(m.group(1));
+		  return strToInteger(m.group(1), messageSuffix);
 		}
 		// check for hex number
 		p = Pattern.compile("^0x([\\d_[a-f][A-F]]+)$");
 		m = p.matcher(numStr);
 		if (m.matches()) {
 			String num = m.group(1).replace("_","");  // remove underscores
-			  return strToInteger(num, 16);
+			  return strToInteger(num, 16, messageSuffix);
 		}
 		// check for bin number
 		p = Pattern.compile("^0b([_[0-1]]+)$");
 		m = p.matcher(numStr);
 		if (m.matches()) {
 			String num = m.group(1).replace("_","");  // remove underscores
-			  return strToInteger(num, 2);
+			  return strToInteger(num, 2, messageSuffix);
 		}
 		// check for verilog number
 		p = Pattern.compile("^(\\d+)\\s*'\\s*([bdoh])\\s*([\\d_[a-f][A-F]]+)$");
@@ -115,13 +118,21 @@ public class Utils {
 		if (m.matches()) {
 			String base = m.group(2);
 			String num = m.group(3).replace("_","");  // remove underscores
-			if ("h".equals(base)) return strToInteger(num, 16);
-			else if ("d".equals(base)) return strToInteger(num);
-			else if ("o".equals(base)) return strToInteger(num, 8);
-			else if ("b".equals(base)) return strToInteger(num, 2);
+			if ("h".equals(base)) return strToInteger(num, 16, messageSuffix);
+			else if ("d".equals(base)) return strToInteger(num, messageSuffix);
+			else if ("o".equals(base)) return strToInteger(num, 8, messageSuffix);
+			else if ("b".equals(base)) return strToInteger(num, 2, messageSuffix);
 		}
 		//else System.err.println("Utils numStrToInteger: string match failed s=" + numStr);
 		return null;
+	}
+	
+	/** create a pos integer from string input of various forms (vlog, addr, int) 
+	 * @param numStr - input text string
+	 * @return converted integer or null if convert failed
+     **/
+	public static Integer numStrToInteger (String numStr) {
+		return numStrToPosInteger (numStr, null);
 	}
 
 	/** generate string of spaces of specified length */

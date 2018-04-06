@@ -1034,7 +1034,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 		// extract array values if they exist after processing address/reset assigns    array [ nnn : nnn ] 
 		//System.out.println("RdlModelExrtactor extractInstanceAddressInfo: childrenFound="+ childrenFound);
 		if (ctx.getChildCount()>childrenFound) {
-			Integer leftIdx = Utils.strToInteger(ctx.getChild(1).getChild(1).getText(), " in instance " + activeInstance.getId());
+			Integer leftIdx = Utils.numStrToPosInteger(ctx.getChild(1).getChild(1).getText(), " in instance " + activeInstance.getId());
 			// save repcount (fieldsets not allowed in rdl so only addressable can be replicated)
 			if (activeInstance.isAddressable()) 
 				activeInstance.setRepCount(leftIdx); // left index will set repcount  
@@ -1045,7 +1045,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 
 				// if a second index, set explicit offset and width
 				if (ctx.getChild(1).getChildCount()>3) {
-					Integer rightIdx = Utils.strToInteger(ctx.getChild(1).getChild(3).getText(), " in instance " + activeInst.getId());
+					Integer rightIdx = Utils.numStrToPosInteger(ctx.getChild(1).getChild(3).getText(), " in instance " + activeInst.getId());
 					activeInst.setWidth(leftIdx - rightIdx + 1);  // TODO assumes lsb0						
 					activeInst.setOffset(rightIdx);  						
 				}
