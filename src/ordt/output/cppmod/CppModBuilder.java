@@ -425,7 +425,7 @@ public class CppModBuilder extends OutputBuilder {
 
 		writeStmt(hppBw, 0, "template<typename T>");
 		writeStmt(hppBw, 0, "ordt_addr_elem_array<T>::ordt_addr_elem_array(uint64_t _m_startaddress, uint64_t _m_endaddress, int _reps, uint64_t _m_stride)");
-		writeStmt(hppBw, 0, "   : ordt_addr_elem(_m_startaddress, _m_endaddress + (_m_stride * _reps)), m_stride(_m_stride) {");
+		writeStmt(hppBw, 0, "   : ordt_addr_elem(_m_startaddress, _m_endaddress + (_m_stride * (_reps - 1))), m_stride(_m_stride) {");
 		writeStmt(hppBw, 0, "   this->reserve(_reps);");
 		writeStmt(hppBw, 0, "   uint64_t el_startaddress = _m_startaddress;");
 		writeStmt(hppBw, 0, "   uint64_t el_endaddress = _m_endaddress;");
