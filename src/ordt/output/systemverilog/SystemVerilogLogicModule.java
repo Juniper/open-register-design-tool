@@ -911,7 +911,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		intrBindMod.addSimpleScalarFrom(defaultOutputLoc, builder.getDefaultReset());
 		// add control signal defines
 		String pkgPrefix = "";
-		if (ExtParameters.sysVerUseGlobalDvBindControls()) {   // TODO enable these
+		if (ExtParameters.sysVerUseGlobalDvBindControls()) {
 			intrBindMod.addStatement("//------- intr detect controls are set in global package ordt_dv_bind_controls");
 			intrBindMod.addStatement("//------- which includes the following for intr control:");
 			intrBindMod.addStatement("//package ordt_dv_bind_controls;");
@@ -919,7 +919,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			intrBindMod.addStatement("//   bit allow_intr;        // if 1 and use_intr_subcategories isn't set, all intr outputs will be warning, not error");
 			intrBindMod.addStatement("//   bit use_subcategories; // if 1 specified subcategory will be used to set assert severity (only if info currently)");
 			intrBindMod.addStatement("//   bit use_enable_mask;   // if 1 intr will only assert if its enable or mask value is set");
-			intrBindMod.addStatement("//   bit show_halt;         // if 1 halt mask/enable will be used when use_enable_or_mask is set");
+			intrBindMod.addStatement("//   bit use_halt;          // if 1 halt mask/enable will be used when use_enable_or_mask is set");
 			intrBindMod.addStatement("//endpackage");
 			intrBindMod.addStatement("//ordt_dv_bind_controls::enable_intr_check = 1'b1; // if 0 shut down all intr assertions");
 			intrBindMod.addStatement("//ordt_dv_bind_controls::allow_intr = 1'b0;        // if 1 and use_intr_subcategories isn't set, all intr outputs will be warning, not error");
@@ -942,22 +942,23 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		intrBindMod.addStatement("typedef enum {INFO, WARN, ERROR} intr_sev_t;");
 		intrBindMod.addStatement("");
 		intrBindMod.addStatement("function intr_sev_t get_severity (string subcat);");
-		intrBindMod.addStatement("  if (" + pkgPrefix + "use_subcategories && (subcat=='INFO')) get_severity=INFO;");
+		intrBindMod.addStatement("  if (" + pkgPrefix + "use_subcategories && (subcat==\"INFO\")) get_severity=INFO;");
 		intrBindMod.addStatement("  else if (" + pkgPrefix + "allow_intr) get_severity=WARN;");
 		intrBindMod.addStatement("  else get_severity=ERROR;");
 		intrBindMod.addStatement("endfunction : get_severity");
 		// add display function
-		intrBindMod.addStatement("//------- intr display function");
 		intrBindMod.addStatement("");
+		intrBindMod.addStatement("//------- intr display function");
 		intrBindMod.addStatement("function void intr_display (string subcat, string sigpath, logic sig, string intr_type, logic intr_en, string halt_type, logic halt_en);");
 		intrBindMod.addStatement("  string message, bstr, istr, hstr;");
-		intrBindMod.addStatement("  intr_sev_t sev = get_severity(subcat);");
-		intrBindMod.addStatement("  bstr = $sformat(\"Interrupt %s fired (sub-category = %s). Value = %h.\", sigpath, subcat, sig);");
-		intrBindMod.addStatement("  if (intr_type != null) istr = $sformat(\" %s value = %h.\", intr_type, intr_en);");
-		intrBindMod.addStatement("  if (halt_type != null) hstr = $sformat(\" Halt(poll) %s value = %h.\", halt_type, halt_en);");
+		intrBindMod.addStatement("  intr_sev_t sev;");
+		intrBindMod.addStatement("  sev = get_severity(subcat);");
+		intrBindMod.addStatement("  bstr = $sformatf(\"Interrupt %s fired (sub-category = %s). Value = %h.\", sigpath, subcat, sig);");
+		intrBindMod.addStatement("  if (intr_type != \"none\") istr = $sformatf(\" %s value = %h.\", intr_type, intr_en);");
+		intrBindMod.addStatement("  if (halt_type != \"none\") hstr = $sformatf(\" Halt(poll) %s value = %h.\", halt_type, halt_en);");
 		intrBindMod.addStatement("  message = {bstr, istr, hstr};");
 		intrBindMod.addStatement("  if (sev==INFO) $info(message);");
-		intrBindMod.addStatement("  else if (sev==WARN) $warn(message);");
+		intrBindMod.addStatement("  else if (sev==WARN) $warning(message);");
 		intrBindMod.addStatement("  else $error(message);");
 		intrBindMod.addStatement("endfunction : intr_display");	
 		// add property define
@@ -981,14 +982,14 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			// add assertions 
 			String redPfix = intrInfo.isVector()? "|" : ""; // use or reduction on vectors
 			String sigName = redPfix + intrInfo.getSigName();
-			String invPfix = (intrInfo.hasIntrEnableOrMask() && intrInfo.getIntrEnableType().startsWith("En"))? "!" : ""; // invert if enable
-			String intrMaskName = intrInfo.hasIntrEnableOrMask()? invPfix+ redPfix + intrInfo.getIntrEnableName() : "1'b0";
-			invPfix = (intrInfo.hasHaltEnableOrMask() && intrInfo.getHaltEnableType().startsWith("en"))? "!" : ""; // invert if enable
-			String haltMaskName = intrInfo.hasIntrEnableOrMask()? invPfix+ redPfix + intrInfo.getHaltEnableName() : "1'b0";
+			String invPfix = (intrInfo.hasIntrEnableOrMask() && intrInfo.getIntrEnableType().startsWith("En"))? "!" : ""; // invert if an enable
+			String intrMaskName = intrInfo.hasIntrEnableOrMask()? invPfix + redPfix + intrInfo.getIntrEnableName() : "1'b0";
+			invPfix = (intrInfo.hasHaltEnableOrMask() && intrInfo.getHaltEnableType().startsWith("en"))? "!" : ""; // invert if an enable
+			String haltMaskName = intrInfo.hasHaltEnableOrMask()? invPfix + redPfix + intrInfo.getHaltEnableName() : "1'b0";
 			intrBindMod.addStatement("intr_assert_" + assert_cnt++ + " : assert property (no_rising_intr("+ sigName + ", " + intrMaskName + ", " + haltMaskName + "))");
-			String intrEnStr = intrInfo.hasIntrEnableOrMask()? "\"" + intrInfo.getIntrEnableType() + "\", " + intrInfo.getIntrEnableName() : "null, null";
-			String haltEnStr = intrInfo.hasHaltEnableOrMask()? ", \"" + intrInfo.getHaltEnableType() + "\", " + intrInfo.getHaltEnableName() : ", null, null";
-			intrBindMod.addStatement("else void = intr_display(\""+ intrInfo.getSubCategory() + "\", \"" + intrInfo.getSigPath() + "\", " + intrInfo.getSigName() + ", " + intrEnStr + haltEnStr + ");");
+			String intrEnStr = intrInfo.hasIntrEnableOrMask()? "\"" + intrInfo.getIntrEnableType() + "\", " + intrInfo.getIntrEnableName() : "\"none\", " + sigName;
+			String haltEnStr = intrInfo.hasHaltEnableOrMask()? ", \"" + intrInfo.getHaltEnableType() + "\", " + intrInfo.getHaltEnableName() : ", \"none\", " + sigName;
+			intrBindMod.addStatement("else void'(intr_display(\""+ intrInfo.getSubCategory() + "\", \"" + intrInfo.getSigPath() + "\", " + intrInfo.getSigName() + ", " + intrEnStr + haltEnStr + "));");
 		}
 		// print a usage message
 		intrBindMod.addStatement("");
