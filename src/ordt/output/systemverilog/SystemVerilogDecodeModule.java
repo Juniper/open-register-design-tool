@@ -2592,7 +2592,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 	/** generate PARALLEL external interface shim logic */  
 	public void generateExternalInterface_PARALLEL(AddressableInstanceProperties addrInstProperties, boolean optimize, boolean keepNack) {
-	    //System.out.println("SystemVerilogDecodeModule generateExternalInterface_PARALLEL: " + addrInstProperties.getId() + ", optimize=" + optimize + ", keepNack=" + keepNack);
+	    //System.out.println("SystemVerilogDecodeModule generateExternalInterface_PARALLEL: " + addrInstProperties.getId() + ", optimize=" + optimize + ", keepNack=" + keepNack + ", addrmap=" + addrInstProperties.isAddressMap() + ", max width=" + addrInstProperties.getMaxRegWidth());
 		// generate common external interface constructs
 		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
 		

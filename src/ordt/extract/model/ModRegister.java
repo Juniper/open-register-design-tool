@@ -18,10 +18,27 @@ public class ModRegister extends ModComponent  {
 
 	private int padBits = 0;  // number of unused bits in this reg / used to compute field offsets for inputs that allow pad (jspec) 
 	public static int defaultWidth = 32;
+	private int width = defaultWidth;
+
+	protected RegNumber alignedSize;   // size of this component in bytes assuming js alignment rules (used for addr alignment)
 	
 	public ModRegister() {
 		super();
 		compType = CompType.REG;
+	}
+
+	/** return integer containing size in bits of this register */
+	@Override
+	public Integer getMaxRegWidth() {
+		return width;
+	}
+	
+	protected int getWidth() {
+		return width;
+	}
+
+	protected void setWidth(int width) {
+		this.width = width;
 	}
 
 	/** set default width of registers */
@@ -70,10 +87,17 @@ public class ModRegister extends ModComponent  {
 		super.display();
 		// display reg properties
 		System.out.println("    register properties:");
-		System.out.println("        pad bits=" + this.getPadBits());
+		System.out.println("        pad bits=" + this.getPadBits() + "   alignedsize=" + alignedSize);
+	}
+
+	/** return regnumber containing size in bytes of this component assuming js alignment rules */
+	@Override
+	public RegNumber getAlignedSize() {
+		return alignedSize;
 	}
 	
-	/** compute aligned size of this reg in bytes. if reg has no assigned size, assign default determined by ancestors */
+	/** compute aligned size of this reg in bytes. if reg has no assigned size, assign default determined by ancestors.
+	 * also set pad bits if generating from jspec  */
 	@Override
 	public void setAlignedSize(int defaultRegWidth) {
 		// if already computed then exit
@@ -82,7 +106,8 @@ public class ModRegister extends ModComponent  {
 		if (!hasProperty("regwidth")) {
 			setProperty("regwidth", String.valueOf(defaultRegWidth), 0);
 		}
-		int regWidth = getIntegerProperty("regwidth");
+		int regWidth = getIntegerProperty("regwidth");  
+		setWidth(regWidth);  // save regWidth
 		// get reg width in bytes
 		int regByteWidth = regWidth/8;
 		// add all child sizes
@@ -190,6 +215,7 @@ public class ModRegister extends ModComponent  {
 		final int prime = 31;
 		int result = super.hashCode();
 		result = prime * result + padBits;
+		result = prime * result + width;
 		return result;
 	}
 
@@ -204,6 +230,8 @@ public class ModRegister extends ModComponent  {
 			return false;
 		ModRegister other = (ModRegister) obj;
 		if (padBits != other.padBits)
+			return false;
+		if (width != other.width)
 			return false;
 		return true;
 	}

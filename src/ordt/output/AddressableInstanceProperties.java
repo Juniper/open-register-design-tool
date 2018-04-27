@@ -357,7 +357,9 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 	public abstract boolean isRegister();
 	
     /** return the max register width within this addressable instance */
-	public abstract int getMaxRegWidth();
+	public int getMaxRegWidth() {
+		return this.getExtractInstance().getRegComp().getMaxRegWidth();   // return precomputed maxregwidth from model
+	}
 
     /** return the write enable width of this addressable instance */
 	public int getWriteEnableWidth() {

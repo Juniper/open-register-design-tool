@@ -4,7 +4,6 @@
 package ordt.extract.model;
 
 import ordt.extract.Ordt;
-import ordt.extract.RegNumber;
 import ordt.output.OutputBuilder;
 
 public class ModRootComponent extends ModComponent {
@@ -19,14 +18,14 @@ public class ModRootComponent extends ModComponent {
 		getChildInstances().clear();
 	}
 
-	/** compute min size of all instanced registers and regsets */  
+	/** compute min size of all instanced registers and regsets */
+	@Override
 	public void setAlignedSize(int defaultRegWidth) {
         // only use first instance for size computation (assumes no addr/shift/mod on root inst)
 		ModInstance inst = this.getFirstChildInstance();
 		if (inst != null) {
 			int newDefaultRegWidth = inst.hasDefaultProperty("regwidth") ? inst.getDefaultIntegerProperty("regwidth") : defaultRegWidth;  // use instance default if defined
 			inst.regComp.setAlignedSize(newDefaultRegWidth);  //recursively set sizes
-			this.alignedSize = new RegNumber(inst.regComp.getAlignedSize());  // root comp size is same as first comp?
 		}
 	}
 

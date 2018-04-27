@@ -31,7 +31,6 @@ public abstract class ModComponent extends ModBaseComponent {
 	protected boolean isRoot = false;   // root component
 	public enum CompType { DEFAULT, ADDRMAP, REG, REGSET, FIELD, FIELDSET }  // subset of comp types used for annotation check and addrmap indication
 	protected CompType compType = CompType.DEFAULT;
-	protected RegNumber alignedSize;   // size of this component in bytes assuming js alignment rules (used for addr alignment)
 	
 	protected ModComponent() {
 		childComponents = new ArrayList<ModComponent>();
@@ -111,7 +110,7 @@ public abstract class ModComponent extends ModBaseComponent {
 	public void display () {
 			String parID = "";
 			if (parent != null) parID = parent.getId();
-			System.out.println("\n---------" + this.getClass() + "   id=" + getFullId() + "   parent=" + parID + "   root=" + isRoot + "   compType=" + compType + "   alignedsize=" + alignedSize); 
+			System.out.println("\n---------" + this.getClass() + "   id=" + getFullId() + "   parent=" + parID + "   root=" + isRoot + "   compType=" + compType); 
 			// display components
 			System.out.println("    child components:");
 			for (ModComponent comp: childComponents) {
@@ -197,13 +196,18 @@ public abstract class ModComponent extends ModBaseComponent {
 		return compType;
 	}
 
-	/** return regnumber containing size in bytes of this component assuming js alignment rules */
+	/** return regnumber containing size in bytes of this component assuming js alignment rules - overridden in ModRegSet, ModRegister*/
 	public RegNumber getAlignedSize() {
-		return alignedSize;
+		return null;
 	}
 
 	/** default setAlignedSize - overridden in ModRootComponent, ModRegSet, ModRegister, precompute the size of registers/regsets prior to output generation */
 	public void setAlignedSize(int defaultRegWidth) {
+	}
+
+	/** return integer containing size in bits of max register in this component - overridden in ModRegSet, ModRegister*/
+	public Integer getMaxRegWidth() {
+		return null;
 	}
 
 	/** default sortRegisters - overridden in ModRootComponent, ModRegSet */
@@ -645,7 +649,6 @@ public abstract class ModComponent extends ModBaseComponent {
 	public int hashCode() {
 		final int prime = 31;
 		int result = super.hashCode();
-		result = prime * result + ((alignedSize == null) ? 0 : alignedSize.hashCode());
 		//result = prime * result + ((childComponents == null) ? 0 : childComponents.hashCode());
 		result = prime * result + ((getChildInstances() == null) ? 0 : getChildInstances().hashCode());
 		result = prime * result + ((compType == null) ? 0 : compType.hashCode());
@@ -665,11 +668,6 @@ public abstract class ModComponent extends ModBaseComponent {
 		if (getClass() != obj.getClass())
 			return false;
 		ModComponent other = (ModComponent) obj;
-		if (alignedSize == null) {
-			if (other.alignedSize != null)
-				return false;
-		} else if (!alignedSize.equals(other.alignedSize))
-			return false;
 		//if (childComponents == null) {
 		//	if (other.childComponents != null)
 		//		return false;
@@ -696,6 +694,5 @@ public abstract class ModComponent extends ModBaseComponent {
 			return false;
 		return true;
 	}
-
 
 }

@@ -43,7 +43,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	private RegNumber nextAddress = new RegNumber("0x0");   // initialize to address 0
 	private RegNumber baseAddress = new RegNumber("0x0");   // initialize to address 0
 	
-	private int maxRegWidth = ExtParameters.getMinDataSize();  // maximum sized register found in this addrmap - default to min pio data width  // TODO - precalculate this and store in model?
+	private int maxRegWidth = ExtParameters.getMinDataSize();  // maximum sized register found in this addrmap - default to min pio data width  // TODO - can replace with precalculated value in model
 
 	protected Stack<InstanceProperties> instancePropertyStack = new Stack<InstanceProperties>();  // track currently active instance path
 	
@@ -1000,16 +1000,6 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		if (addrMapInst == null) return getAddressMapName();  // return the root name
 		return getAddressMapName() + "_" + addrMapInst.getBaseName();  // return the catenated name
 	}
-	
-	/** update max reg width in all regSet instances on the stack
-	 */
-	private void updateAllRegSetMaxRegWidths(int regWidth) {
-		Iterator<RegSetProperties> iter = regSetPropertyStack.iterator();
-		while (iter.hasNext()) {
-			RegSetProperties inst = iter.next();
-			if (!inst.updateMaxRegWidth(regWidth)) return;  // regset properties will be propagate fwd to saved props for output
-		}
-	}
 
 	// ----------------- fieldset stack methods
 
@@ -1210,7 +1200,6 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	 */
 	private void updateMaxRegWidth(int maxRegWidth) {
 		if (maxRegWidth > getMaxRegWidth()) setMaxRegWidth(maxRegWidth);  // update max value for this addrmap
-		updateAllRegSetMaxRegWidths(maxRegWidth);  // update max value in all parent regsets
 	}
 
 	/** get high index of pio address based on max address in map 

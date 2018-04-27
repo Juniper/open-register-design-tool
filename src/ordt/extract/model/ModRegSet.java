@@ -15,7 +15,9 @@ import ordt.output.RegSetProperties;
 import ordt.parameters.ExtParameters;
 
 public class ModRegSet extends ModComponent {
-	
+	protected RegNumber alignedSize;   // size of this component in bytes assuming js alignment rules (used for addr alignment)
+	private int maxRegWidth = ModRegister.defaultWidth;
+
 	protected ModRegSet() {
 		super();
 		compType = CompType.REGSET;
@@ -28,6 +30,17 @@ public class ModRegSet extends ModComponent {
 		newInst.setRegComp(this);  // set component of new instance
 		addInstanceOf(newInst);  // add instance to list for this comp
 		return newInst;
+	}
+
+	/** return integer containing size in bits of this register */
+	@Override
+	public Integer getMaxRegWidth() {
+		return maxRegWidth;
+	}
+
+	/** update max reg width */
+	private void updateMaxRegWidth(Integer regWidth) {
+		if ((regWidth != null) && (regWidth>maxRegWidth)) maxRegWidth = regWidth;		
 	}
 
 	/** default check on valid property assignments - overridden by child types */
@@ -59,9 +72,24 @@ public class ModRegSet extends ModComponent {
 	protected String getBaseComponentTypeName() {
 		return Ordt.hasInputType(InputType.RDL)? "regfile" : "register_set";
 	}
+
+	/** write info to stdout */
+	@Override
+	public void display () {
+		super.display();
+		// display reg properties
+		System.out.println("    register set properties:");
+		System.out.println("        alignedsize=" + alignedSize);
+	}
+
+	/** return regnumber containing size in bytes of this component assuming js alignment rules */
+	@Override
+	public RegNumber getAlignedSize() {
+		return alignedSize;
+	}
 	
 	/** recursively compute size of this component assuming js align rules
-	 * returned value is independent of subcomp alignment/base addr 
+	 * computed value is independent of subcomp alignment/base addr.  max register width is also stored. 
 	 */
 	@Override
 	public void setAlignedSize(int defaultRegWidth) {
@@ -83,6 +111,8 @@ public class ModRegSet extends ModComponent {
 					                                                       new RegNumber(childInst.regComp.getAlignedSize());  // compute size of this instance or use increment if specified
 				childSize.multiply(childInst.getRepCount());  
 				newAlignedSize.add(childSize);
+				// use child reg sizes to set max reg size in this regset
+				updateMaxRegWidth(childInst.regComp.getMaxRegWidth());
 			}
 		}
 		newAlignedSize.setNextHighestPowerOf2();  // round size to next power of 2  
@@ -178,4 +208,32 @@ public class ModRegSet extends ModComponent {
 			}	
 		}
 	}
+	
+	@Override
+	// NOTE: currently used for uvm class reuse
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + ((alignedSize == null) ? 0 : alignedSize.hashCode());
+		return result;
+	}
+
+	@Override
+	// NOTE: currently used for uvm class reuse
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ModRegister other = (ModRegister) obj;
+		if (alignedSize == null) {
+			if (other.alignedSize != null)
+				return false;
+		} else if (!alignedSize.equals(other.alignedSize))
+			return false;
+		return true;
+	}
+
 }

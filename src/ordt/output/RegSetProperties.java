@@ -14,7 +14,6 @@ import ordt.parameters.ExtParameters;
 /** extracted properties of a regset instance created during model walk */
 public class RegSetProperties extends AddressableInstanceProperties {
 	
-	private int maxRegWidth = ExtParameters.getMinDataSize();  // maximum sized register found in this regset - default to min pio data width  
 	private RegNumber highAddress;  // highest valid address
 	private int childHash = 0; // hash of this regset's children
 	// jspec compatibility parameters
@@ -26,11 +25,10 @@ public class RegSetProperties extends AddressableInstanceProperties {
 		super(regSetInst);  // init instance, id, name, description text
 	}
 	
+	/*
 	public RegSetProperties(RegSetProperties oldInstance) {
 		super(oldInstance);
-		// set RegSetProperty info
-		setMaxRegWidth(oldInstance.getMaxRegWidth());  
-	}
+	}*/
 	
 	/** display info AddressableInstanceProperties info */
     @Override
@@ -74,36 +72,10 @@ public class RegSetProperties extends AddressableInstanceProperties {
 		setUserDefinedProperties(pList, DefinedProperties.userDefRegSetPropertyNames);
 		setJsPassthruProperties(pList, DefinedProperties.jsPassthruRegSetPropertyNames);
 	}
-	
-	/** return the max reg width in this regset in bits
-	 */
-	public int getMaxRegWidth() {
-		return maxRegWidth;
-	}
-
-	/** set maxRegWidth
-	 *  @param maxRegWidth the maxRegWidth to set
-	 */
-	public void setMaxRegWidth(int maxRegWidth) {
-		this.maxRegWidth = maxRegWidth;
-	}
-	
-	/** update maxRegWidth if new value is higher
-	 *  @param maxRegWidth the maxRegWidth to set
-	 *  @return true if value was updated
-	 */
-	public boolean updateMaxRegWidth(int maxRegWidth) {
-		if (maxRegWidth > getMaxRegWidth()) {
-			setMaxRegWidth(maxRegWidth);
-			return true;
-		}
-		return false;
-	}
 
 	/** set the highest valid address for this regset */
 	public void setHighAddress(RegNumber highAddress) {
-		this.highAddress = highAddress;
-		
+		this.highAddress = highAddress;	
 	}
 
 	/** return highest valid address in this regset (only valid in finishRegSet call) */
@@ -166,7 +138,6 @@ public class RegSetProperties extends AddressableInstanceProperties {
 		final int prime = 31;
 		int result = super.hashCode(includeId);
 		result = prime * result + childHash;
-		result = prime * result + maxRegWidth;
 		return result;
 	}
 	
@@ -197,8 +168,6 @@ public class RegSetProperties extends AddressableInstanceProperties {
 			//System.out.println("RegSetProperties equals() fail for this=" + getInstancePath() + ", other=" + other.getInstancePath());
 			return false;
 		}
-		if (maxRegWidth != other.maxRegWidth)
-			return false;
 		return true;
 	}
 
