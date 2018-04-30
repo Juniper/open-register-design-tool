@@ -17,6 +17,7 @@ public class DefinedProperties {
 	public static Set<String> userDefFieldSetPropertyNames = new HashSet<String>();  // set of all user defined field set property names
 	public static Set<String> userDefRegPropertyNames = new HashSet<String>();  // set of all user defined reg property names
 	public static Set<String> userDefRegSetPropertyNames = new HashSet<String>();  // set of all user defined regset property names
+	public static Set<String> userDefAddrmapPropertyNames = new HashSet<String>();  // set of all user defined regset property names
 	
 	public static Set<String> jsPassthruFieldPropertyNames = new HashSet<String>();  // set of all jspec passthru field property names
 	public static Set<String> jsPassthruFieldSetPropertyNames = new HashSet<String>();  // set of all jspec passthru field set property names
@@ -213,6 +214,7 @@ public class DefinedProperties {
 			if (newProp.isFieldsetProperty()) userDefFieldSetPropertyNames.add(name);
 			if (newProp.isRegProperty()) userDefRegPropertyNames.add(name);
 			if (newProp.isRegsetProperty()) userDefRegSetPropertyNames.add(name);
+			if (newProp.isAddrmapProperty()) userDefAddrmapPropertyNames.add(name);
 		}
 		// add to jspec passthru lists by component
 		if (jsPassthru) {

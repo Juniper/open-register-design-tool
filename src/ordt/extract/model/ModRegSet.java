@@ -46,7 +46,7 @@ public class ModRegSet extends ModComponent {
 	/** default check on valid property assignments - overridden by child types */
 	@Override
 	protected boolean isValidProperty(String propertyName) {
-		return DefinedProperties.isRegsetProperty(propertyName);
+		return isAddressMap()? DefinedProperties.isAddrmapProperty(propertyName) : DefinedProperties.isRegsetProperty(propertyName);
 	}
 	
 	/** default check for implicit default property assignments - overridden by child types */
@@ -70,7 +70,7 @@ public class ModRegSet extends ModComponent {
 	/** return a string representing this sub-class for messages - overridden by child types */
     @Override
 	protected String getBaseComponentTypeName() {
-		return Ordt.hasInputType(InputType.RDL)? "regfile" : "register_set";
+		return Ordt.hasInputType(InputType.RDL)? (isAddressMap()? "addrmap" : "regfile") : "register_set";
 	}
 
 	/** write info to stdout */

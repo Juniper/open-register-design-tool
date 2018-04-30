@@ -64,12 +64,15 @@ public class RegSetProperties extends AddressableInstanceProperties {
 		// now add the base property info
 		mergedList.updateProperties(extractInstance.getProperties());
 		extractProperties(mergedList);   // now that we have combined parameter list, extract instance info
+		extractSpecialPropertyLists(mergedList); // extract any used-defined or js passthru parameters
+		//System.out.println("RegSetProperties updateRootInstanceInfo: " + userDefinedProperties);
 	}
 
 	/** extract a PropertyList of user defined parameters for this instance */
     @Override
 	protected void extractSpecialPropertyLists(PropertyList pList) {
-		setUserDefinedProperties(pList, DefinedProperties.userDefRegSetPropertyNames);
+		if (isAddressMap()) setUserDefinedProperties(pList, DefinedProperties.userDefAddrmapPropertyNames);
+		else setUserDefinedProperties(pList, DefinedProperties.userDefRegSetPropertyNames);
 		setJsPassthruProperties(pList, DefinedProperties.jsPassthruRegSetPropertyNames);
 	}
 

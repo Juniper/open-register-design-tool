@@ -537,34 +537,6 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 	/** add a register set for a particular output */
 	abstract public  void addRegSet();
-	
-	/** update next address after last regset/regmap rep if an increment/align is specified (called by ModRegSet generate after child processing)
-	 * @param rsProperties - register set properties for active instance
-	 */
-	public  void updateLastRegSetAddress(RegSetProperties rsProperties) {   
-		// save the highest address of this reg set (last child address used)
-		RegNumber highAddress = new RegNumber(nextAddress);
-		highAddress.subtract(1);
-		rsProperties.setHighAddress(highAddress); 
-		//System.out.println("OutputBuilder updateLastRegSetAddress: id=" + rsProperties.getId() + ", next=" + nextAddress + ", highAddress=" + highAddress );	
-		
-		// if a replicated regset with increment, then set nextAddress to end of range when done
-		RegNumber regSetBaseAddress = rsProperties.getBaseAddress();  // base address of last regset rep (rs stack is not yet popped)
-		
-		RegNumber addressIncrement = rsProperties.getExtractInstance().getAddressIncrement();
-		if (regSetBaseAddress != null) {
-			RegNumber newAddr = new RegNumber(regSetBaseAddress);
-			if (addressIncrement != null) {  // if increment is specified, then pad (even if first rep)
-			   newAddr.add(addressIncrement);
-			   setNextAddress(newAddr);
-			}
-			
-			// else if no incr, get estimated size from model and align base address if root external or align is specified
-			else if ((ExtParameters.useJsAddressAlignment() && rsProperties.isReplicated())   // no address padding if not a replicated regset
-					|| (rsProperties.isLocalRootExternal() && rsProperties.isLastRep()))   // pad if last iteration of a root external
-				   alignRegSetAddressToSize(regSetProperties, true, true);
-		}		
-	}
 
 	/** process regset/regmap info after all subsets,regs added 
 	 * @param rsProperties - register set properties for active instance
@@ -630,6 +602,34 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 
 	//---------------------------- end of add/finish methods  ----------------------------------------
+	
+	/** update next address after last regset/regmap rep if an increment/align is specified (called by ModRegSet generate after child processing)
+	 * @param rsProperties - register set properties for active instance
+	 */
+	public  void updateLastRegSetAddress(RegSetProperties rsProperties) {   
+		// save the highest address of this reg set (last child address used)
+		RegNumber highAddress = new RegNumber(nextAddress);
+		highAddress.subtract(1);
+		rsProperties.setHighAddress(highAddress); 
+		//System.out.println("OutputBuilder updateLastRegSetAddress: id=" + rsProperties.getId() + ", next=" + nextAddress + ", highAddress=" + highAddress );	
+		
+		// if a replicated regset with increment, then set nextAddress to end of range when done
+		RegNumber regSetBaseAddress = rsProperties.getBaseAddress();  // base address of last regset rep (rs stack is not yet popped)
+		
+		RegNumber addressIncrement = rsProperties.getExtractInstance().getAddressIncrement();
+		if (regSetBaseAddress != null) {
+			RegNumber newAddr = new RegNumber(regSetBaseAddress);
+			if (addressIncrement != null) {  // if increment is specified, then pad (even if first rep)
+			   newAddr.add(addressIncrement);
+			   setNextAddress(newAddr);
+			}
+			
+			// else if no incr, get estimated size from model and align base address if root external or align is specified
+			else if ((ExtParameters.useJsAddressAlignment() && rsProperties.isReplicated())   // no address padding if not a replicated regset
+					|| (rsProperties.isLocalRootExternal() && rsProperties.isLastRep()))   // pad if last iteration of a root external
+				   alignRegSetAddressToSize(regSetProperties, true, true);
+		}		
+	}
 
 	/** check this register set's current address and shift address if not a mod of its stored alignedSize
 	 * @param regSetProperties - regsetProperties to be evaluated

@@ -217,6 +217,8 @@ public class XmlBuilder extends OutputBuilder {
 
 	@Override
 	public void finishRegMap() {
+		// if this root map has user defined properties, add them
+		addUserDefinedPropertyElements(regSetProperties);
 		addXmlElementEnd("map");
 	}
 	
