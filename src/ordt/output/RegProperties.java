@@ -366,11 +366,14 @@ public class RegProperties extends AddressableInstanceProperties {
 		return filledBits;
 	}
 
-	/** get fieldCount
-	 *  @return the fieldCount
-	 */
+	/** return the number of fields in this register - only valid after field processing */
 	public Integer getFieldCount() {
 		return fieldCount;
+	}
+
+	/** return true if register has at least one field  - only valid after field processing */
+	public boolean hasFields() {
+		return fieldCount>0;
 	}
 
 	/** set current offset info to be used for field packing within a fieldset hierarchy

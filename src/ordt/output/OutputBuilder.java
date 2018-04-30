@@ -296,6 +296,11 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			if (visitEachReg() || (regProperties.isFirstRep() && firstRegSetRep())) {
 			    updateFinishRegProperties(regProperties);  // update regprops post field processing
 			    regSetProperties.updateChildHash(regProperties.hashCode(true)); // add this reg's hashcode to parent including id
+			    // issue warning if register has no fields or isn't sw accessible
+			    if (!regProperties.hasFields())
+					Ordt.warnMessage("register "+ regProperties.getInstancePath() + " has no fields");
+			    else if (!regProperties.isSwWriteable() && !regProperties.isSwReadable()) 
+					Ordt.warnMessage("register "+ regProperties.getInstancePath() + " is neither readable nor writeable");
 				finishRegister();   
 			}
 			regIsActive = false;
@@ -361,6 +366,11 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			// only visit once if specified by this output type
 			if (visitExternalRegisters() && firstRegSetRep()) {
 			    regSetProperties.updateChildHash(regProperties.hashCode(true)); // add this reg's hashcode to parent including id
+			    // issue warning if register has no fields or isn't sw accessible
+			    if (!regProperties.hasFields())
+					Ordt.warnMessage("register "+ regProperties.getInstancePath() + " has no fields");
+			    else if (!regProperties.isSwWriteable() && !regProperties.isSwReadable()) 
+					Ordt.warnMessage("register "+ regProperties.getInstancePath() + " is neither readable nor writeable");
 				finishRegister();   // only first rset rep here (only one call for all reg reps)
 			}
 			regIsActive = false;	
@@ -676,7 +686,9 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		// set reg sw access
 		rProperties.setSwReadable(regIsSwReadable);  
 		rProperties.setSwWriteable(regIsSwWriteable);
-		rProperties.setFieldHash(getOrderedFieldList().hashCode()); // set field hash for this reg - need to convert pq to list
+		
+		// set field hash for this reg - need to convert pq to list
+		rProperties.setFieldHash(getOrderedFieldList().hashCode()); 
 		// set reg category if input is rdl
 		if (ExtParameters.rdlResolveRegCategory() && Ordt.hasInputType(InputType.RDL) && !rProperties.hasCategory()) {
 			boolean isStatus = allFieldsSwReadable && !regIsHwReadable && regIsHwWriteable && !regHasInterrupt;
