@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import ordt.annotate.AnnotateCommand;
+import ordt.extract.model.ModRegister;
 import ordt.output.OutputBuilder;
 import ordt.output.cppmod.CppModBuilder;
 import ordt.output.drvmod.cpp.CppDrvModBuilder;
@@ -255,7 +256,7 @@ public class Ordt {
     	}
     	
     	// precompute min size of each register and regset
-    	newModel.getRoot().setAlignedSize(ExtParameters.getMinDataSize());
+    	newModel.getRoot().setAlignedSize(ModRegister.defaultWidth);
     	
     	// fix simple address ordering issues 
     	if (ExtParameters.allowUnorderedAddresses()) newModel.getRoot().sortRegisters();

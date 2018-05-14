@@ -33,7 +33,7 @@ public class ModRegister extends ModComponent  {
 		return width;
 	}
 	
-	protected int getWidth() {
+	public int getWidth() {
 		return width;
 	}
 
@@ -102,11 +102,8 @@ public class ModRegister extends ModComponent  {
 	public void setAlignedSize(int defaultRegWidth) {
 		// if already computed then exit
 		if (alignedSize != null) return;
-		// set reg width if it's not defined
-		if (!hasProperty("regwidth")) {
-			setProperty("regwidth", String.valueOf(defaultRegWidth), 0);
-		}
-		int regWidth = getIntegerProperty("regwidth");  
+		// set reg width if it's not explicitly defined
+		int regWidth = hasProperty("regwidth")? getIntegerProperty("regwidth") : defaultRegWidth;  
 		setWidth(regWidth);  // save regWidth
 		// get reg width in bytes
 		int regByteWidth = regWidth/8;

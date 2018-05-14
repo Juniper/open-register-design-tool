@@ -68,18 +68,14 @@ public class RegProperties extends AddressableInstanceProperties {
 	    // go directly to extractInstance to get reg width, external, and alias parms
 		
 		// set reg width and initialize fields for field addition
-		setRegWidth();      // set the width of this reg based on properties
+		setRegWidth();      // set the width of this reg based on properties (dynamic assigns are ignored)
+		
 		// initially all bits available for field assignment
 		//System.out.println("RegProperties extractProperties: regwidth=" + getRegWidth());
 		availableBits = new int [getRegWidth() + 1];   // initializes all to 0
 		availableBits[0] = getRegWidth();
 		highAvailableIdx = 0;  // init bit 0 as high available index
-		
-		/*if (getInstancePath().contains("stats.spin")) { 
-		    //display();
-	        System.out.println("RegProperties extractInstance: inst=" + getInstancePath() + ", parmlist=" + pList);
-   	    }*/
-									
+											
 		if (extractInstance.hasProperty("aliasedId")) {
 			//System.out.println("RegProperties: creating properties for aliased register, id=" + regInst.getId() + ", aliasedId=" + regInst.getProperty("aliasedId") );
 			setAliasedId(extractInstance.getProperty("aliasedId"));
@@ -131,8 +127,8 @@ public class RegProperties extends AddressableInstanceProperties {
 		if (extractInstance.hasProperty("regwidth")) 
 			regWidth = extractInstance.getIntegerProperty("regwidth"); 
 		// otherwise look for a regwidth set in component  // TODO - is this needed or will always be picked up in instance props?
-		else if ((regComp != null) && (regComp.hasProperty("regwidth"))) {
-			regWidth = regComp.getIntegerProperty("regwidth");
+		else if ((regComp != null) && (regComp.isReg())) {
+			regWidth = ((ModRegister) regComp).getWidth();
 		}
 		// else use default reg size
 		if (regWidth==null) regWidth = ModRegister.defaultWidth; 
