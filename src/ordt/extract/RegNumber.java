@@ -490,14 +490,19 @@ public class RegNumber implements Comparable<RegNumber> {
 		return this.getValue().compareTo(arg0.getValue());
 	}
 
-	/** return true if instance value is less than this of argument */
+	/** return true if instance value is less than argument value */
 	public boolean isLessThan(RegNumber arg0) {
 		return (this.compareTo(arg0) < 0);
 	}
 
-	/** return true if instance value is greater than this of argument */
+	/** return true if instance value is greater than argument value */
 	public boolean isGreaterThan(RegNumber arg0) {
 		return (this.compareTo(arg0) > 0);
+	}
+
+	/** return true if instance value is equal to argument value */
+	public boolean isEqualTo(RegNumber arg0) {
+		return (this.compareTo(arg0) == 0);
 	}
 	
 	/** return index of highest set bit in binary representation of value */  

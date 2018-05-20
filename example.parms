@@ -12,7 +12,6 @@ global {
 // jspec input parameters
 input jspec {
 	root_regset_is_addrmap = true   // root component will be created as an addrmap rather than a regfile/regset
-	//root_is_external_decode = true   // root=true will be converted to external_decode property?
 	//process_typedef = "ea_fo"   // process this typedef 
 }
 
@@ -43,7 +42,7 @@ output systemverilog {
 	block_select_mode = always       // is block select generated internally, externally or always
 	//export_start_end = true           // create addr_start, addr_end outputs 
 	always_generate_iwrap = true     // create int wrapper mod even if none specified in rdl
-	suppress_no_reset_warnings = false   // inhibit field no reset messages
+	suppress_no_reset_warnings = true   // inhibit field no reset messages
 	generate_child_addrmaps = true   // generate child address maps
 	ring_inter_node_delay = 2             // delay stages added between r16 clients 
 	//bbv5_timeout_input = true         // add input port(s) for bb root interface timeout
@@ -88,7 +87,7 @@ output rdl {
 // reglist output parameters
 output reglist {
 	display_external_regs = true       // include external regs in output?
-	show_reg_type = false              // show int/ext type for each reg?
+	show_reg_type = true              // show int/ext type for each reg?
 	//match_instance = "sopf_ints"           // show only regs with matching instance names
 	show_fields = false                // show field info for each reg
 }

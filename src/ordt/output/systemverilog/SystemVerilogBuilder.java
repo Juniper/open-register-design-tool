@@ -367,7 +367,8 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   if (regProperties.isExternalDecode()) {
 			   //System.out.println("SystemVerilogBuilder.addRootExternalRegisters externalDecode, inst=" + regProperties.getInstancePath() + ", base=" + regProperties.getBaseAddress() + ", size=" + getExternalRegBytes());
 			   //addressRanges.list();
-			   addressRanges.addGap(regProperties.getBaseAddress(), getExternalRegBytes(), regProperties.getInstancePath());
+			   addressRanges.addGap(regProperties.getBaseAddress(), regProperties.getExtractInstance().getAlignedSize(), regProperties.getInstancePath());
+
 			   //addressRanges.list();
 			   return;
 		   }

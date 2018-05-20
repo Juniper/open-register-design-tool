@@ -2666,7 +2666,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			if (!addrInstProperties.isSwReadable())
 				this.addWireAssign(validReadCond + " = 1'b0;");  // no reads are valid
 			else {
-				RegNumber extMaxAddr = builder.getExternalRegBytes().getSubVector(addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());
+				RegNumber extMaxAddr = addrInstProperties.getExtractInstance().getAlignedSize().getSubVector(addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());
 				if (extIf.hasAddress && extMaxAddr.isNonZero()) { // if max addr is less than allowed range, add compare stmt
 					this.addWireAssign(validReadCond + " = (" + extIf.decodeToHwAddrName + " < " + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ");");
 				}
@@ -2680,7 +2680,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			if (!addrInstProperties.isSwWriteable())
 				this.addWireAssign(validWriteCond + " = 1'b0;");  // no writes are valid
 			else {
-				RegNumber extMaxAddr = builder.getExternalRegBytes().getSubVector(addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());
+				RegNumber extMaxAddr = addrInstProperties.getExtractInstance().getAlignedSize().getSubVector(addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());
 				if (extIf.hasAddress && extMaxAddr.isNonZero()) { // if max addr is less than allowed range, add compare stmt
 					this.addWireAssign(validWriteCond + " = (" + extIf.decodeToHwAddrName + " < " + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ");");
 				}
@@ -3101,7 +3101,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// generate valid_addr - compare decodeToSrAddrName to max address of space
 		String srValidAddrName = "dsr_" + addrInstProperties.getBaseName() + "_valid_addr"; 
 		this.addScalarWire(srValidAddrName);
-		RegNumber extMaxAddr = builder.getExternalRegBytes().getSubVector(addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());
+		RegNumber extMaxAddr = addrInstProperties.getExtractInstance().getAlignedSize().getSubVector(addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());
+		
 		if (extMaxAddr.isNonZero()) // if max addr is less than allowed range, add compare stmt
 			this.addWireAssign(srValidAddrName + " = (" + extIf.decodeToHwAddrName + " < " + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ");");
 		else

@@ -103,13 +103,11 @@ public class ModRegSet extends ModComponent {
 				ModAddressableInstance childInst= (ModAddressableInstance) regInst;
 				int newDefaultRegWidth = childInst.hasDefaultProperty("regwidth") ? childInst.getDefaultIntegerProperty("regwidth") :   // use instance default if defined
 				   this.hasDefaultProperty("regwidth") ? this.getDefaultIntegerProperty("regwidth") : defaultRegWidth;  // else use current regset default if defined
-				childInst.regComp.setAlignedSize(newDefaultRegWidth);  // recursively set size of individual child component 
+				childInst.regComp.setAlignedSize(newDefaultRegWidth);  // recursively set size of individual child component
 				if (childInst.getAddress() != null) newAlignedSize = new RegNumber(childInst.getAddress());     // if child has a defined address, bump the running size
 				if (childInst.getAddressShift() != null) newAlignedSize.add(childInst.getAddressShift());     // if child has a defined address shift, bump the running size
 				if (childInst.getAddressModulus() != null) newAlignedSize.roundUpToModulus(childInst.getAddressModulus()); // if child has a defined modulus then bump size
-				RegNumber childSize = (childInst.getAddressIncrement() != null) ? new RegNumber(childInst.getAddressIncrement()) : 
-					                                                       new RegNumber(childInst.regComp.getAlignedSize());  // compute size of this instance or use increment if specified
-				childSize.multiply(childInst.getRepCount());  
+				RegNumber childSize = childInst.getAlignedSize();
 				newAlignedSize.add(childSize);
 				// use child reg sizes to set max reg size in this regset
 				updateMaxRegWidth(childInst.regComp.getMaxRegWidth());

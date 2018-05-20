@@ -437,8 +437,8 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		//System.out.println("OutputBuilder addRootExternalRegisters: adding external reg set, path=" + getInstancePath()); // + ", reps=" + repCount);
 
 		// compute size of the external group from next and stored base address
-		RegNumber extSize = getExternalRegBytes();  
-		//System.out.println("OutputBuilder addRootExternalRegisters: base=" + getExternalBaseAddress() + ", next=" + getNextAddress() + ", delta=" + extSize);
+		RegNumber extSize = regProperties.getExtractInstance().getAlignedSize();
+		//System.out.println("OutputBuilder updateRootExternalRegProperties: " + regProperties.getInstancePath() + ", base=" + getExternalBaseAddress() + ", next=" + getNextAddress() + ", delta=" + extSize);
 
 		int lowBit = getAddressLowBit();  // same low bit as overall address range
 		regProperties.setExtLowBit(lowBit);  // save the low bit in external address
@@ -446,7 +446,9 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		int range = getAddressWidth(extSize);
 		regProperties.setExtAddressWidth(range);  // set width of the external address for this group
 		int reservedRange = 1 << range;  // calc 2^n
-		//System.out.println("addRootExternalRegisters   ext addr range=" + range + ", lo bit=" + lowBit + ", new rep count=" + reservedRange);
+		//if (!extSize.isEqualTo(regProperties.getExtractInstance().getAlignedSize())) 
+		//   System.err.println("OutputBuilder updateRootExternalRegProperties:   ext addr width=" + regProperties.getExtAddressWidth() + ", lo bit=" + lowBit + ", reservedRange=" + reservedRange + ", extSize=" + extSize + ", reps=" + regProperties.getRepCount() + ", inst aligned size=" + regProperties.getExtractInstance().getAlignedSize() + ", comp aligned size=" + regProperties.getExtractInstance().getRegComp().getAlignedSize());
+		
 		return reservedRange;
 	}
 
@@ -1168,13 +1170,6 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	public void setExternalBaseAddress(RegNumber externalBaseAddress) {
 		//System.out.println("Setting ext base address to " + externalBaseAddress);
 		this.externalBaseAddress = new RegNumber(externalBaseAddress);
-	}
-	
-	/** compute size of external register group */
-	public RegNumber getExternalRegBytes() {
-		RegNumber extSize = new RegNumber(getNextAddress());  
-		extSize.subtract(getExternalBaseAddress());
-	    return extSize;
 	}
 		
 	/** get MinRegWidth in bytes */
