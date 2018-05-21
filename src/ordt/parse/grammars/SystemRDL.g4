@@ -33,6 +33,7 @@ Changes:
 - implemented_rdl_property define is moved to ExtParams
 - allowed repeat define of same user property in parser - flagged as warn later
 - made component instance address order more flexible to allow increment after modulus
+- added field_data and rep_level external options for PARALLEL and SRAM external types
 */
 
 grammar SystemRDL;
@@ -170,9 +171,41 @@ anonymous_component_inst_elems
 
 external_clause
   : ( 'external_decode' 
-    | 'external' ( LPAREN ( 'DEFAULT' | PARALLEL | 'BBV5_8' | 'BBV5_16' | 'SRAM' 
-                          | SERIAL8 | RING ) RPAREN )?
+    | 'external' ( LPAREN ( 'DEFAULT' | external_parallel_clause | 'BBV5_8' | 'BBV5_16' | 
+                          external_sram_clause | external_serial8_clause | external_ring_clause ) RPAREN )?
     )
+  ;
+
+external_parallel_clause
+  : 'PARALLEL' (external_opt_option_clause | external_field_data_option_clause | external_rep_level_option_clause)*
+  ;
+
+external_sram_clause
+  : 'SRAM' (external_field_data_option_clause | external_rep_level_option_clause)*
+  ;
+
+external_serial8_clause
+  : SERIAL8 (external_dly_option_clause)?
+  ;
+  
+external_ring_clause
+  : RING (external_dly_option_clause)?
+  ;
+  
+external_dly_option_clause
+  : 'dly' EQ num
+  ;
+  
+external_opt_option_clause
+  : 'opt' EQ ('YES' | 'NO' | 'KEEP_NACK')
+  ;
+  
+external_field_data_option_clause
+  : 'field_data' EQ ('YES' | 'NO')
+  ;
+  
+external_rep_level_option_clause
+  : 'rep_level' EQ num
   ;
 
 component_inst_elem
@@ -375,18 +408,13 @@ ML_COMMENT
         ) -> skip
     ;
 
-// handle external mode options as tokens so no rdl keywords are added
-
-PARALLEL
-  : 'PARALLEL' (' opt=' ('YES' | 'NO' | 'KEEP_NACK'))?
-  ;
-
+// handle serial and ring external mode options as tokens so no rdl keywords are added
 SERIAL8
-  : 'SERIAL8' (('_D' | ' dly=') '0'..'9')?
+  : 'SERIAL8' ('_D' '0'..'9')?
   ;
   
 RING
-  : 'RING' ('8' | '16' | '32') (('_D' | ' dly=') '0'..'9')?
+  : 'RING' ('8' | '16' | '32') ('_D' '0'..'9')?
   ;
 
 ID

@@ -4,6 +4,9 @@
 package ordt.output;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ordt.extract.Ordt;
 import ordt.extract.RegNumber;
@@ -204,17 +207,44 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 
 	/** set external type for this instance from a string (null indicates internal) */
 	public void setExternalTypeFromString(String externalStr) {
-		if (externalStr == null) this.externalType = new ExternalType(ExtType.INTERNAL);  // internal
-		else if ("DEFAULT".equals(externalStr)) this.externalType = new ExternalType(ExtType.PARALLEL);
-		else if (externalStr.startsWith("PARALLEL")) {
-			this.externalType = new ExternalType(ExtType.PARALLEL);  
-			if (externalStr.contains("opt=")) {
-				String optMode = externalStr.substring(externalStr.indexOf('=')+1);
+		String scrubbedStr = externalStr;
+		// return as internal if null string
+		if (externalStr == null) {
+			this.externalType = new ExternalType(ExtType.INTERNAL); 
+			return;
+		}
+        // otherwise clean up string since all whitespace has been removed
+		else {
+			scrubbedStr = scrubbedStr.replace("dly=", " dly=");
+			scrubbedStr = scrubbedStr.replace("opt=", " opt=");
+			scrubbedStr = scrubbedStr.replace("rep_level=", " rep_level=");
+			scrubbedStr = scrubbedStr.replace("field_data=", " field_data=");
+			scrubbedStr = scrubbedStr.replace("_D", " dly="); // replace old parameter form
+			scrubbedStr += " ";
+		}
+		
+		// extract valid external type info
+		if ("DEFAULT".equals(externalStr)) this.externalType = new ExternalType(ExtType.PARALLEL);
+		else if (externalStr.startsWith("PARALLEL") | externalStr.startsWith("SRAM")) {
+			this.externalType = externalStr.startsWith("PARALLEL")? new ExternalType(ExtType.PARALLEL) : new ExternalType(ExtType.SRAM);
+			// extract opt
+			String optMode = extractParamFromString(scrubbedStr, "opt", false);
+			if (optMode != null) {
 				switch (optMode) {
 				case "YES" : this.externalType.addParm("optimize", 1);  break;
 				case "NO" :  this.externalType.addParm("no_optimize", 1);  break;
 				case "KEEP_NACK" : this.externalType.addParm("keep_nack", 1);  break;
 				}
+			}
+			// extract field_data
+			String fData = extractParamFromString(scrubbedStr, "field_data", false);
+			if ((fData != null) && fData.equals("YES")) this.externalType.addParm("field_data", 1);
+			// extract rep_level
+			String rLvl = extractParamFromString(scrubbedStr, "rep_level", true);
+			if (rLvl != null) {
+				Integer repLevel = Integer.valueOf(rLvl);
+				if (repLevel > 0) 
+				   this.externalType.addParm("rep_level", repLevel);  // if this parm is added, rep_level info will be collected in builder
 			}
 		}
 		else if ("EXTERNAL_DECODE".equals(externalStr)) this.externalType = new ExternalType(ExtType.EXTERNAL_DECODE);
@@ -226,21 +256,20 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 			this.externalType = new ExternalType(ExtType.BBV5);
 			this.externalType.addParm("width", 16);
 		}
-		else if ("SRAM".equals(externalStr)) this.externalType = new ExternalType(ExtType.SRAM);
 		else if (externalStr.startsWith("SERIAL8")) {
 			int delay=0;  // default delay
-			String modStr = externalStr.replace("_D", "dly="); // replace old parameter form
-			if (modStr.contains("dly=")) delay = Integer.valueOf(modStr.substring(modStr.indexOf('=')+1));
+			String dlyStr = extractParamFromString(scrubbedStr, "dly", true);
+			if (dlyStr != null) delay = Integer.valueOf(dlyStr);
 			this.externalType = new ExternalType(ExtType.SERIAL8);
 			this.externalType.addParm("delay", delay);
 		}
 		else if (externalStr.startsWith("RING")) {
 			int delay=0;  // default delay
 			int width=16;  // default width
-			String modStr = externalStr.replace("_D", "dly="); // replace old parameter form
-			if (modStr.contains("dly=")) delay = Integer.valueOf(modStr.substring(modStr.indexOf('=')+1));
-			if (modStr.contains("RING8")) width = 8;
-			else if (modStr.contains("RING32")) width = 32;
+			String dlyStr = extractParamFromString(scrubbedStr, "dly", true);
+			if (dlyStr != null) delay = Integer.valueOf(dlyStr);
+			if (externalStr.contains("RING8")) width = 8;
+			else if (externalStr.contains("RING32")) width = 32;
 			this.externalType = new ExternalType(ExtType.RING);
 			this.externalType.addParm("width", width);
 			this.externalType.addParm("delay", delay);
@@ -249,10 +278,32 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 		//System.out.println("InstanceProperties setExternal: input=" + externalStr + ", new val=" + this.externalType + ", inst=" + getId());
 	}
 
+	/** find assign of form param = value in baseStr and return value or null if search fails
+	 * 
+	 * @param baseStr - input string that will be searched for assignment
+	 * @param param - param name on lhs of assign to be found
+	 * @param intValue - if true, value must be an integer
+	 * @return
+	 */
+	private String extractParamFromString(String baseStr, String param, boolean intValue) {
+		Pattern p = intValue? Pattern.compile(".* " + param + "=(\\d+) .*") : Pattern.compile(".* " + param + "=(\\w+) .*");
+		Matcher m = p.matcher(baseStr);
+		if (m.matches()) {
+			String value = m.group(1);
+			//System.out.println("AddressableInstanceProperties extractParamFromString: " + param + ": " + value);
+			return value;
+		}
+		//System.out.println("AddressableInstanceProperties extractParamFromString: " + param + " not found in str=" + baseStr);
+		return null;
+	}
+
 	/** ExternalType class carrying parameters */
 	public class ExternalType {
 		private ExtType type = ExtType.INTERNAL;
 		private HashMap<String, Integer> parms = new HashMap<String, Integer>();
+		private String repLevelBasename;  // alternate pathname to be used if rep_level option is specified
+		private List<Integer> repLevelAddrBits;  // number of address bits in each ancestor if rep_level option is specified
+		private List<Integer> repLevelIndices;  // current instance index of each ancestor if rep_level option is specified
 		// constructors
 		public ExternalType(ExtType type) {
 			this.type = type;
@@ -277,6 +328,9 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 		public boolean hasParm(String parm) {
 			return parms.containsKey(parm);
 		}
+		public void removeParm(String parm) {
+			if (hasParm(parm)) parms.remove(parm);
+		}
 		public void addParm(String parm, Integer value) {
 			parms.put(parm,  value);
 		}
@@ -284,6 +338,30 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 		public String toString() {
 			return type.toString() + parms;
 		}
+		// rep_level option methods  TODO
+		public String getRepLevelBasename() {
+			return repLevelBasename;
+		}
+		public void setRepLevelBasename(String repLevelBasename) {
+			this.repLevelBasename = repLevelBasename;
+		}
+		public List<Integer> getRepLevelAddrBits() {
+			return repLevelAddrBits;
+		}
+		protected void setRepLevelAddrBits(List<Integer> repLevelAddrBits) {
+			this.repLevelAddrBits = repLevelAddrBits;
+		}
+		public List<Integer> getRepLevelIdx() {
+			return repLevelIndices;
+		}
+		protected void setRepLevelIdx(List<Integer> repLevelIdx) {
+			this.repLevelIndices = repLevelIdx;
+		}
+	}
+	
+	/** return true if this instance is external and has a rep_level option */
+	public boolean hasExternalRepLevel () {
+		return isExternal() && externalType.hasParm("rep_level");
 	}
 	
 	/** get rootExternal (set by stack push into outputBuilder)

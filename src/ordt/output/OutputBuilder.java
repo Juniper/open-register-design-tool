@@ -435,6 +435,15 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			regProperties = newRegProperties;
 		}
 		//System.out.println("OutputBuilder addRootExternalRegisters: adding external reg set, path=" + getInstancePath()); // + ", reps=" + repCount);
+		// load external rep_level parameters
+		if (regProperties.hasExternalRepLevel()) {
+			// issue warning if this is a regfile ext region
+			if (newRegProperties != null)
+				Ordt.warnMessage("External rep_level option is only supported on registers currently. Will be ignored in instance " + regProperties.getInstancePath());
+            // otherwise extract info needed for rep_level processing
+			else
+				extractExternalRepLevelInfo();
+		}
 
 		// compute size of the external group from next and stored base address
 		RegNumber extSize = regProperties.getExtractInstance().getAlignedSize();
@@ -442,7 +451,6 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 		int lowBit = getAddressLowBit();  // same low bit as overall address range
 		regProperties.setExtLowBit(lowBit);  // save the low bit in external address
-		//int highBit = getAddressHighBit(repSize);
 		int range = getAddressWidth(extSize);
 		regProperties.setExtAddressWidth(range);  // set width of the external address for this group
 		int reservedRange = 1 << range;  // calc 2^n
@@ -450,6 +458,13 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		//   System.err.println("OutputBuilder updateRootExternalRegProperties:   ext addr width=" + regProperties.getExtAddressWidth() + ", lo bit=" + lowBit + ", reservedRange=" + reservedRange + ", extSize=" + extSize + ", reps=" + regProperties.getRepCount() + ", inst aligned size=" + regProperties.getExtractInstance().getAlignedSize() + ", comp aligned size=" + regProperties.getExtractInstance().getRegComp().getAlignedSize());
 		
 		return reservedRange;
+	}
+
+	/** extract ancestor info needed for rep_level processing of this instance */
+	private void extractExternalRepLevelInfo() {
+		// TODO Auto-generated method stub
+		System.out.println("OutputBuilder extractExternalRepLevelInfo: " + regProperties.getInstancePath() + " has external rep_level option");
+		
 	}
 
 	/** add a register set to this output 
@@ -517,7 +532,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		   // save the base address of this reg set
 		   regSetProperties.setBaseAddress(nextAddress); 
 		   // save address of this reg set if root external 
-		   if (regSetProperties.isRootExternal() && regSetProperties.isFirstRep()) setExternalBaseAddress(nextAddress);  
+		   if (regSetProperties.isRootExternal() && regSetProperties.isFirstRep()) setExternalBaseAddress(nextAddress); 
 		   // compute the relative base address (vs parent) and save it
 		   RegNumber relAddress = new RegNumber(regSetProperties.getBaseAddress());  // start with current
 		   relAddress.subtract(getRegSetParentAddress());  // subtract parent base from current
