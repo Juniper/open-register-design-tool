@@ -30,6 +30,9 @@ public class DefinedProperties {
 	/** initialize the list of defined properties */
 	private static HashMap<String, DefinedProperty> initDefinedProperties() {
 		HashMap<String, DefinedProperty> newList = new HashMap<String, DefinedProperty>();
+		int REGSETorREGorFIELD = DefinedProperty.REGSET | DefinedProperty.REG |DefinedProperty.FIELD;
+		int ADDRMAPorREGSETorREG = DefinedProperty.ADDRMAP | DefinedProperty.REGSET | DefinedProperty.REG;
+		int ADDRMAPorREGSET = DefinedProperty.ADDRMAP | DefinedProperty.REGSET;
 		// common properties
 		addProperty(newList, "name", DefinedPropertyType.STRING, "", DefinedProperty.ANY, false, false, false);
 		addProperty(newList, "desc", DefinedPropertyType.STRING, "", DefinedProperty.ANY, false, false, false);
@@ -37,20 +40,20 @@ public class DefinedProperties {
 		addProperty(newList, "donttest", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.ANY, false, false, false);
 		addProperty(newList, "dontcompare", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.ANY, false, false, false);
 		// interface properties
-		addProperty(newList, "use_interface", DefinedPropertyType.STRING, "", DefinedProperty.REGSET | DefinedProperty.REG |DefinedProperty.FIELD, false, false, false);
-		addProperty(newList, "use_new_interface", DefinedPropertyType.BOOLEAN, "false", DefinedProperty.REGSET | DefinedProperty.REG |DefinedProperty.FIELD, false, false, false);
-		// reg + regset properties
-		addProperty(newList, "js_superset_check", DefinedPropertyType.CONSTANT, "", DefinedProperty.REGSET | DefinedProperty.REG, false, false, true); // js passthru
-		addProperty(newList, "js_repeat_max", DefinedPropertyType.NUMBER, "1", DefinedProperty.REGSET | DefinedProperty.REG, false, false, true); // js passthru
-		addProperty(newList, "external", DefinedPropertyType.SPECIAL, null, DefinedProperty.REGSET | DefinedProperty.REG, false, false, false);
-		addProperty(newList, "repcount", DefinedPropertyType.NUMBER, "1", DefinedProperty.REGSET | DefinedProperty.REG, true, false, false); // hidden
-		// regset only properties
-		addProperty(newList, "js_macro_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false, true); // js passthru
-		addProperty(newList, "js_macro_mode", DefinedPropertyType.CONSTANT, "STANDARD", DefinedProperty.REGSET, false, false, true); // js passthru
-		addProperty(newList, "js_namespace", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false, true); // js passthru
-		addProperty(newList, "js_typedef_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false, false);
-		addProperty(newList, "js_instance_name", DefinedPropertyType.STRING, "", DefinedProperty.REGSET, false, false, false);
-		addProperty(newList, "js_instance_repeat", DefinedPropertyType.NUMBER, "1", DefinedProperty.REGSET, false, false, false);
+		addProperty(newList, "use_interface", DefinedPropertyType.STRING, "", REGSETorREGorFIELD, false, false, false);
+		addProperty(newList, "use_new_interface", DefinedPropertyType.BOOLEAN, "false", REGSETorREGorFIELD, false, false, false);
+		// reg + regset + map properties
+		addProperty(newList, "js_superset_check", DefinedPropertyType.CONSTANT, "", ADDRMAPorREGSETorREG, false, false, true); // js passthru
+		addProperty(newList, "js_repeat_max", DefinedPropertyType.NUMBER, "1", ADDRMAPorREGSETorREG, false, false, true); // js passthru
+		addProperty(newList, "external", DefinedPropertyType.SPECIAL, null, ADDRMAPorREGSETorREG, false, false, false);
+		addProperty(newList, "repcount", DefinedPropertyType.NUMBER, "1", ADDRMAPorREGSETorREG, true, false, false); // hidden
+		// regset + map properties
+		addProperty(newList, "js_macro_name", DefinedPropertyType.STRING, "", ADDRMAPorREGSET, false, false, true); // js passthru
+		addProperty(newList, "js_macro_mode", DefinedPropertyType.CONSTANT, "STANDARD", ADDRMAPorREGSET, false, false, true); // js passthru
+		addProperty(newList, "js_namespace", DefinedPropertyType.STRING, "", ADDRMAPorREGSET, false, false, true); // js passthru
+		addProperty(newList, "js_typedef_name", DefinedPropertyType.STRING, "", ADDRMAPorREGSET, false, false, false);
+		addProperty(newList, "js_instance_name", DefinedPropertyType.STRING, "", ADDRMAPorREGSET, false, false, false);
+		addProperty(newList, "js_instance_repeat", DefinedPropertyType.NUMBER, "1", ADDRMAPorREGSET, false, false, false);
 		// reg only properties
 		addProperty(newList, "category", DefinedPropertyType.STRING, "", DefinedProperty.REG, false, false, false);
 		addProperty(newList, "js_attributes", DefinedPropertyType.STRING, "false", DefinedProperty.REG, false, false, false);
@@ -124,13 +127,13 @@ public class DefinedProperties {
 		
 		// override allowed property set if input type is jspec
 		if (Ordt.hasInputType(Ordt.InputType.JSPEC)) {
-			putProperty(newList, "sub_category", DefinedPropertyType.STRING, "", DefinedProperty.REGSET | DefinedProperty.REG | DefinedProperty.FIELDSET | DefinedProperty.FIELD, false, false, false);
-			putProperty(newList, "category", DefinedPropertyType.STRING, "", DefinedProperty.REGSET | DefinedProperty.REG, false, false, false);
-			putProperty(newList, "js_attributes", DefinedPropertyType.STRING, "", DefinedProperty.REGSET | DefinedProperty.REG, false, false, false);
-			putProperty(newList, "regwidth", DefinedPropertyType.NUMBER, "32", DefinedProperty.REGSET | DefinedProperty.REG, false, false, false);
-			putProperty(newList, "address", DefinedPropertyType.NUMBER, null, DefinedProperty.REGSET | DefinedProperty.REG, false, false, false);
-			putProperty(newList, "arrayidx1", DefinedPropertyType.NUMBER, null, DefinedProperty.REGSET | DefinedProperty.REG, true, false, false);  // hidden
-			putProperty(newList, "addrinc", DefinedPropertyType.NUMBER, null, DefinedProperty.REGSET | DefinedProperty.REG, true, false, false);  // hidden
+			putProperty(newList, "sub_category", DefinedPropertyType.STRING, "", ADDRMAPorREGSETorREG | DefinedProperty.FIELDSET | DefinedProperty.FIELD, false, false, false);
+			putProperty(newList, "category", DefinedPropertyType.STRING, "", ADDRMAPorREGSETorREG, false, false, false);
+			putProperty(newList, "js_attributes", DefinedPropertyType.STRING, "", ADDRMAPorREGSETorREG, false, false, false);
+			putProperty(newList, "regwidth", DefinedPropertyType.NUMBER, "32", ADDRMAPorREGSETorREG, false, false, false);
+			putProperty(newList, "address", DefinedPropertyType.NUMBER, null, ADDRMAPorREGSETorREG, false, false, false);
+			putProperty(newList, "arrayidx1", DefinedPropertyType.NUMBER, null, ADDRMAPorREGSETorREG, true, false, false);  // hidden
+			putProperty(newList, "addrinc", DefinedPropertyType.NUMBER, null, ADDRMAPorREGSETorREG, true, false, false);  // hidden
 		}		
 
 		return newList;
