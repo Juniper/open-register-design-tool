@@ -439,10 +439,10 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		// load external rep_level parameters
 		if (regProperties.hasExternalRepLevel()) {
 			// issue warning if this is a regfile ext region
-			if (newRegProperties != null)
-				Ordt.warnMessage("External rep_level option is only supported on registers currently. Will be ignored in instance " + regProperties.getInstancePath());
+			//if (newRegProperties != null)
+			//	Ordt.warnMessage("External rep_level option is only supported on registers currently. Will be ignored in instance " + regProperties.getInstancePath());
             // otherwise extract info needed for rep_level processing
-			else
+			//else
 				extractExternalRepLevelInfo();
 		}
 
@@ -469,8 +469,13 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		int maxRepLevel = instancePropertyStack.size() - 1; 
 		if ((repLevel > maxRepLevel) || (repLevel < 1)) {
 			regProperties.getExternalType().removeParm("rep_level");
-			Ordt.warnMessage("Invalid external rep_level option specified in instance " + regProperties.getInstancePath()+ ".  rep_level will be ignored.");
+			Ordt.warnMessage("Invalid external rep_level option specified in instance " + regProperties.getInstancePath() + ".  rep_level will be ignored.");
 			return;
+		}
+		// inhibit field_data option and issue a warning since rep_level and field_data are not supported concurrently TODO
+		if (regProperties.useExtFieldData()) {
+			regProperties.getExternalType().removeParm("field_data");
+			Ordt.warnMessage("External rep_level and field_data options are not supported concurrently.  field_data will be ignored in instance " + regProperties.getInstancePath()+ ".");
 		}
 		// extract new path name and ancestor lists for address generation
 		String repLevelPathStr = "";

@@ -16,6 +16,7 @@ import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.output.AddressableInstanceProperties;
+import ordt.output.FieldProperties;
 //import ordt.output.RegProperties;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
@@ -2586,37 +2587,47 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		return extIf;
 	}
 
-	/** generate PARALLEL external interface shim logic */ 
-	public void generateExternalInterface_PARALLEL(AddressableInstanceProperties addrInstProperties, boolean optimize, boolean keepNack) {
+	/** generate PARALLEL external interface shim logic 
+	 * @param fieldList */ 
+	public void generateExternalInterface_PARALLEL(AddressableInstanceProperties addrInstProperties, List<FieldProperties> fieldList, boolean optimize, boolean keepNack) {
 	    //System.out.println("SystemVerilogDecodeModule generateExternalInterface_PARALLEL: " + addrInstProperties.getId() + ", optimize=" + optimize + ", keepNack=" + keepNack + ", addrmap=" + addrInstProperties.isAddressMap() + ", max width=" + addrInstProperties.getMaxRegWidth());
 		// generate common external interface constructs
 		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
 		
 		// define external signal names
-		String decodeToHwName = addrInstProperties.getFullSignalName(DefSignalType.D2H_DATA);   // write data                   
+		String decodeToHwName = addrInstProperties.getFullSignalName(DefSignalType.D2H_DATA);   // default write data name (no field_data option)                  
 		String decodeToHwEnableName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ENABLE);   // write enable                   
 		String decodeToHwWeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_WE); //  we
 		String decodeToHwReName = addrInstProperties.getFullSignalName(DefSignalType.D2H_RE); //  re
-		String hwToDecodeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_DATA); //  read data
+		String hwToDecodeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_DATA); // default read data name (no field_data option)
 		String hwToDecodeAckName = addrInstProperties.getFullSignalName(DefSignalType.H2D_ACK); //  ext ack
 		String hwToDecodeNackName = addrInstProperties.getFullSignalName(DefSignalType.H2D_NACK); //  ext nack
 		String decodeToHwAddrName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ADDR); // address
 		String decodeToHwTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_SIZE);  // size of r/w transaction in words
 		String hwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
 		
-		// if this is an external with rep_level, clean up the ancestor IO hierarchy
+		// if this is an external with field_data
+		if (addrInstProperties.useExtFieldData())
+		    System.out.println("SystemVerilogDecodeModule generateExternalInterface_PARALLEL: " + addrInstProperties.getInstancePath() + " uses field_data option");
 		
 		// use state machine if this is a contiguous replicated reg
 		boolean useAckStateMachine = optimize && (addrInstProperties.getMaxRegByteWidth() == addrInstProperties.getAlignedSize().toLong());
 		
 		// if not optimized interface or writeable then add write external data/wr outputs
 		if (!useAckStateMachine || addrInstProperties.isSwWriteable()) {
-			this.addHwVector(DefSignalType.D2H_DATA, 0, addrInstProperties.getMaxRegWidth());    // add write data to decode to hw signal list
+			// if field_data, define field outputs
+			if (addrInstProperties.useExtFieldData()) genExtFieldDataWriteDefines(fieldList);
+			else this.addHwVector(DefSignalType.D2H_DATA, 0, addrInstProperties.getMaxRegWidth());    // add write data to decode to hw signal list
+
 			if (hasWriteEnables()) this.addHwVector(DefSignalType.D2H_ENABLE, 0, addrInstProperties.getWriteEnableWidth());    // add write data to decode to hw signal list
 			this.addHwScalar(DefSignalType.D2H_WE);
 			if (!useAckStateMachine) this.addWireAssign(decodeToHwWeName + " = " + extIf.decodeToHwWeName +  ";");
 			else this.addScalarReg(decodeToHwWeName); 
-			this.addWireAssign(decodeToHwName + " = " + extIf.decodeToHwName +  ";");
+			
+			// if field_data, define field output assigns
+			if (addrInstProperties.useExtFieldData()) genExtFieldDataWriteAssigns(fieldList, extIf);
+			else this.addWireAssign(decodeToHwName + " = " + extIf.decodeToHwName +  ";");
+			
 			if (hasWriteEnables()) this.addWireAssign(decodeToHwEnableName + " = " + extIf.decodeToHwEnableName +  ";");    // add write enable to decode to hw signal list 
 		}
 		
@@ -2625,10 +2636,16 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int regWordBits = Utils.getBits(addrInstProperties.getMaxRegWordWidth());
 		if (!useAckStateMachine || addrInstProperties.isSwReadable()) {
 			this.addHwScalar(DefSignalType.D2H_RE);
-			this.addHwVector(DefSignalType.H2D_DATA, 0, addrInstProperties.getMaxRegWidth());    // add read data to hw to decode signal list
+			// if field_data, define field inputs
+			if (addrInstProperties.useExtFieldData()) genExtFieldDataReadDefines(fieldList);			
+			else this.addHwVector(DefSignalType.H2D_DATA, 0, addrInstProperties.getMaxRegWidth());    // add read data to hw to decode signal list
+
 			if (!useAckStateMachine) this.addWireAssign(decodeToHwReName + " = " + extIf.decodeToHwReName +  ";");
 			else this.addScalarReg(decodeToHwReName);        
-			this.addWireAssign(extIf.hwToDecodeName + " = " + hwToDecodeName +  ";");   
+			
+			// if field_data, define field input assigns
+			if (addrInstProperties.useExtFieldData()) genExtFieldDataReadAssigns(fieldList, extIf, hwToDecodeName, addrInstProperties);
+			this.addWireAssign(extIf.hwToDecodeName + " = " + hwToDecodeName +  ";");
 		}
 		else { // otherwise tie off read data input
 			this.addWireAssign(extIf.hwToDecodeName + " = " + addrInstProperties.getMaxRegWidth() + "'b0;");   
@@ -2735,6 +2752,45 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 	    }
 	    //System.out.println("SystemVerilogDecodeModule generateExternalInterface_PARALLEL: " + addrInstProperties.getId() + ", reps=" + addrInstProperties.getRepCount()+ ", regbwidth=" + addrInstProperties.getMaxRegByteWidth() + ", asize=" + addrInstProperties.getAlignedSize() + ", read/write=" + addrInstProperties.isSwReadable() + "/" + addrInstProperties.isSwWriteable());
+	}
+
+	/** define field data outputs for external region with field_data option set */
+	private void genExtFieldDataWriteDefines(List<FieldProperties> fieldList) {
+		for (FieldProperties field : fieldList) {
+			builder.startIOHierarchy(field);
+			this.addHwVector(DefSignalType.D2H_DATA, 0, field.getFieldWidth());    // add write data to decode to hw signal list
+			builder.endIOHierarchy(field);
+		}
+	}
+
+	/** assign field data outputs for external region with field_data option set */
+	private void genExtFieldDataWriteAssigns(List<FieldProperties> fieldList, ExternalInterfaceInfo extIf) {
+		for (FieldProperties field : fieldList) {
+			this.addWireAssign(field.getFullSignalName(DefSignalType.D2H_DATA) + " = " + extIf.decodeToHwName + SystemVerilogSignal.genRefArrayString(field.getLowIndex(), field.getFieldWidth()) + ";");
+		}
+		
+	}
+
+	/** define field data inputs for external region with field_data option set */
+	private void genExtFieldDataReadDefines(List<FieldProperties> fieldList) {
+		for (FieldProperties field : fieldList) {
+			builder.startIOHierarchy(field);
+			this.addHwVector(DefSignalType.H2D_DATA, 0, field.getFieldWidth());    // add read data to decode to hw signal list
+			builder.endIOHierarchy(field);
+		}		
+	}
+
+	private void genExtFieldDataReadAssigns(List<FieldProperties> fieldList, ExternalInterfaceInfo extIf,
+			String hwToDecodeName, AddressableInstanceProperties inst) {
+		this.addWireAssign(extIf.hwToDecodeName + " = " + hwToDecodeName +  ";");
+		String groupName = inst.getBaseName() + " external field read data assigns";
+		int width = inst.getMaxRegWidth();
+		this.addVectorReg(hwToDecodeName, 0, width);  
+		this.addRegAssign(groupName,  hwToDecodeName + " = " + width + "'d0;");  // init all bits to zero
+		for (FieldProperties field : fieldList) {
+			this.addRegAssign(groupName, hwToDecodeName + SystemVerilogSignal.genRefArrayString(field.getLowIndex(), field.getFieldWidth()) + " = " + field.getFullSignalName(DefSignalType.H2D_DATA) + ";");
+		}
+		
 	}
 
 	/** generate BBV5 external interface shim logic */  
@@ -3021,7 +3077,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 	/** generate SRAM external interface shim logic */ 
 	public void generateExternalInterface_SRAM(AddressableInstanceProperties addrInstProperties) {
-		//Jrdl.warnMessage("SystemVerilogBuilder gen_SRAM, ext type=" + regProperties.getExternalType() + ", id=" + regProperties.getId());
+		// warn if this is an external with field_data option set
+		if (addrInstProperties.useExtFieldData())
+		    Ordt.warnMessage("field_data option is currently not supported in SRAM external regions - will be ignored in " + addrInstProperties.getInstancePath());
+
 		// generate common external interface constructs
 		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
 		
@@ -4052,9 +4111,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 					int ancLowBit = elem.getExtLowBit() + elem.getExtInstAddressWidth();
 					int ancAddrWidth = elem.getExternalType().getRepLevelAddrWidth();
 					writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_ADDR) + "_next" + SystemVerilogSignal.genRefArrayString(ancLowBit, ancAddrWidth) + " = " + elem.getExternalType().getRepLevelValueString() + ";");
-					}
+				}
 
-				writeStmt(--indentLevel, "end");  								
+				indentLevel--;
+				writeStmt(indentLevel--, "end");  								
 			}
 			
 			// else internal, so create internal ack, re/we to logic, and capture read data

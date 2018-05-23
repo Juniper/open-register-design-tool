@@ -340,6 +340,11 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 		return isExternal() && externalType.hasParm("rep_level");
 	}
 	
+	/** return true if this instance is external and has a field_data option */
+	public boolean useExtFieldData () {
+		return isExternal() && externalType.hasParm("field_data");
+	}
+	
 	// ------
 	
 	/** get rootExternal (set by stack push into outputBuilder)

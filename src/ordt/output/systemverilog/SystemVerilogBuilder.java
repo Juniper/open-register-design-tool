@@ -412,7 +412,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 				   boolean optimize = regProperties.getExternalType().hasParm("optimize")? true :
 					   regProperties.getExternalType().hasParm("no_optimize")? false : ExtParameters.sysVerOptimizeParallelExternals();
 				   boolean keepNack = regProperties.getExternalType().hasParm("keep_nack")? true : false;
-				   decoder.generateExternalInterface_PARALLEL(regProperties, optimize, keepNack);
+				   decoder.generateExternalInterface_PARALLEL(regProperties, getOrderedFieldList(), optimize, keepNack);
 			   }
 			   else if (regProperties.hasExternalType(ExtType.BBV5)) decoder.generateExternalInterface_BBV5(regProperties);
 			   else if (regProperties.hasExternalType(ExtType.SRAM)) decoder.generateExternalInterface_SRAM(regProperties);
@@ -613,7 +613,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	}
 	
 	/** add IO hierarchy level (no singleRep override) */
-	private void startIOHierarchy(InstanceProperties properties) {
+	void startIOHierarchy(InstanceProperties properties) {
 		startIOHierarchy(properties, false);
 	}
 	
@@ -631,7 +631,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	}
 
 	/** close out active IO hierarchy level */
-	private void endIOHierarchy(InstanceProperties properties) {
+	void endIOHierarchy(InstanceProperties properties) {
 			//System.out.println("*** Popping interface:" + properties.getBaseName());
 			hwSigList.popIOSignalSet();
 	}

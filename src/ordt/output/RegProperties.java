@@ -55,7 +55,9 @@ public class RegProperties extends AddressableInstanceProperties {
 
 	@Override
 	public boolean isRegister() {
-		return true;
+		ModComponent comp = getExtractInstance().getRegComp();
+		return (comp != null) && (comp.isReg());  // can have regset model elements mapped onto RegProperties for external region processing
+		//return true;
 	}
 	
 	// TODO - add clone constructor and display for regprops
