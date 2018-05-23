@@ -2508,8 +2508,6 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		public String decodeToHwAddrName; // address
 		public String decodeToHwTransactionSizeName;  // size of r/w transaction in words
 		public String hwToDecodeTransactionSizeName;  // size of return read transaction in word
-		public Boolean hasAddress;   // true if external region has an address
-		public Boolean hasSize;   // true if external region has size signals
 
 		/** extract external interface info from instance properties */
 		public ExternalInterfaceInfo(AddressableInstanceProperties addrInstProperties) {
@@ -2523,8 +2521,6 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			   this.decodeToHwAddrName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ADDR) + "_ex"; // address
 			   this.decodeToHwTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_SIZE) + "_ex";  // size of r/w transaction in words
 			   this.hwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE) + "_ex";  // size of return read transaction in words
-			   this.hasAddress = (addrInstProperties.getExtAddressWidth() > 0)  && !addrInstProperties.isSingleExtReg();
-			   this.hasSize = (addrInstProperties.getMaxRegWordWidth() > 1) && !addrInstProperties.isSingleExtReg();
 		}
 	}
 	
@@ -2568,14 +2564,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addRegAssign("external i/f",  extIf.decodeToHwReName + " <= #1  " + intDecodeToHwReName + " & " + ackInhibitStr  + ";");  // assign next to flop
 
 		// if size of external range is greater than one reg we'll need an external address  
-		if (extIf.hasAddress) {  
+		if (addrInstProperties.hasExtAddress()) {  
 			this.addVectorReg(extIf.decodeToHwAddrName, addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());  
 			this.addVectorReg(intDecodeToHwAddrName, addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());  
 			this.addRegAssign("external i/f",  extIf.decodeToHwAddrName + " <= #1  " + intDecodeToHwAddrName  + ";");  // assign next to flop
 		}	
 
 		// if size of max pio transaction is greater than one word need to add transaction size/retry info 
-		if (extIf.hasSize) { 
+		if (addrInstProperties.hasExtSize()) { 
 			int regWordBits = Utils.getBits(addrInstProperties.getMaxRegWordWidth());
 			//if (addrInstProperties.getMaxRegWordWidth()==3) System.out.println("SystemVerilogDecodeModule generateBaseExternalInterface: regWordBits=" + regWordBits);
 
@@ -2586,11 +2582,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addVectorReg(intHwToDecodeTransactionSizeName, 0, regWordBits);  
 			this.addResetAssign("external i/f", builder.getDefaultReset(), intHwToDecodeTransactionSizeName + " <= #1  " + regWordBits +"'b0;");  // reset input size flop
 			this.addRegAssign("external i/f",  intHwToDecodeTransactionSizeName + " <= #1  " + extIf.hwToDecodeTransactionSizeName + ";");  // assign input size to flop
-		}	
+		}			
 		return extIf;
 	}
 
-	/** generate PARALLEL external interface shim logic */  
+	/** generate PARALLEL external interface shim logic */ 
 	public void generateExternalInterface_PARALLEL(AddressableInstanceProperties addrInstProperties, boolean optimize, boolean keepNack) {
 	    //System.out.println("SystemVerilogDecodeModule generateExternalInterface_PARALLEL: " + addrInstProperties.getId() + ", optimize=" + optimize + ", keepNack=" + keepNack + ", addrmap=" + addrInstProperties.isAddressMap() + ", max width=" + addrInstProperties.getMaxRegWidth());
 		// generate common external interface constructs
@@ -2607,6 +2603,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String decodeToHwAddrName = addrInstProperties.getFullSignalName(DefSignalType.D2H_ADDR); // address
 		String decodeToHwTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_SIZE);  // size of r/w transaction in words
 		String hwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
+		
+		// if this is an external with rep_level, clean up the ancestor IO hierarchy
 		
 		// use state machine if this is a contiguous replicated reg
 		boolean useAckStateMachine = optimize && (addrInstProperties.getMaxRegByteWidth() == addrInstProperties.getAlignedSize().toLong());
@@ -2647,9 +2645,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			
 			// generate validSizeCond by comparing decodeToHwTransactionSizeName value with regWordWidth - 1
 			String regSizeStr = regWordBits + "'d" + (addrInstProperties.getMaxRegWordWidth() - 1);
-			String validSizeCond = "par_" + addrInstProperties.getBaseName() + "_valid_size"; 
+			String validSizeCond = "par_" + addrInstProperties.getExtBaseName() + "_valid_size"; 
 			this.addScalarWire(validSizeCond);
-			if (extIf.hasSize) {  
+			if (addrInstProperties.hasExtSize()) {  
 				this.addWireAssign(validSizeCond + " = (" + extIf.decodeToHwTransactionSizeName + " == " + regSizeStr + ");");
 				this.addVectorWire(extIf.hwToDecodeTransactionSizeName, 0, regWordBits);
 				this.addWireAssign(extIf.hwToDecodeTransactionSizeName + " = " + regSizeStr + ";");  // tie off width
@@ -2660,36 +2658,36 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	    	// add nack input if override specified
 			if (keepNack) this.addHwScalar(DefSignalType.H2D_NACK);
 			
+			// create read and write valid conditions that will generate nacks 
+			RegNumber extMaxAddr = addrInstProperties.getExtractInstance().getAlignedSize().getSubVector(addrInstProperties.getExtLowBit(), addrInstProperties.getExtInstAddressWidth());
+			String extIfAddressStr = extIf.decodeToHwAddrName + (addrInstProperties.hasExternalRepLevel()? SystemVerilogSignal.genRefArrayString(addrInstProperties.getExtLowBit(), addrInstProperties.getExtInstAddressWidth()) : "");
+			
 			// generate validReadCond - nack on addr out of range or if not readable
-			String validReadCond = "par_" + addrInstProperties.getBaseName() + "_valid_read"; 
+			String validReadCond = "par_" + addrInstProperties.getExtBaseName() + "_valid_read"; 
 			this.addScalarWire(validReadCond);
 			if (!addrInstProperties.isSwReadable())
 				this.addWireAssign(validReadCond + " = 1'b0;");  // no reads are valid
 			else {
-				RegNumber extMaxAddr = addrInstProperties.getExtractInstance().getAlignedSize().getSubVector(addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());
-				if (extIf.hasAddress && extMaxAddr.isNonZero()) { // if max addr is less than allowed range, add compare stmt
-					this.addWireAssign(validReadCond + " = (" + extIf.decodeToHwAddrName + " < " + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ");");
-				}
+				if (addrInstProperties.hasExtInstAddress() && extMaxAddr.isNonZero())  // if max addr is less than allowed range, add compare stmt
+					this.addWireAssign(validReadCond + " = (" + extIfAddressStr + " < " + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ");");
 				else
 					this.addWireAssign(validReadCond + " = 1'b1;");  // all reads are valid
 			}
 			
 			// generate validWriteCond - nack on addr out of range or if not writeable
-			String validWriteCond = "par_" + addrInstProperties.getBaseName() + "_valid_write"; 
+			String validWriteCond = "par_" + addrInstProperties.getExtBaseName() + "_valid_write"; 
 			this.addScalarWire(validWriteCond);
 			if (!addrInstProperties.isSwWriteable())
 				this.addWireAssign(validWriteCond + " = 1'b0;");  // no writes are valid
 			else {
-				RegNumber extMaxAddr = addrInstProperties.getExtractInstance().getAlignedSize().getSubVector(addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());
-				if (extIf.hasAddress && extMaxAddr.isNonZero()) { // if max addr is less than allowed range, add compare stmt
-					this.addWireAssign(validWriteCond + " = (" + extIf.decodeToHwAddrName + " < " + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ");");
-				}
+				if (addrInstProperties.hasExtInstAddress() && extMaxAddr.isNonZero())  // if max addr is less than allowed range, add compare stmt
+					this.addWireAssign(validWriteCond + " = (" + extIfAddressStr + " < " + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ");");
 				else 
 					this.addWireAssign(validWriteCond + " = 1'b1;");  // all writes are valid
 			}
 	    	
 			// address shift to lsb0 
-			if (extIf.hasAddress) { 
+			if (addrInstProperties.hasExtAddress()) { 
 				int shiftBits = Utils.isPowerOf2(addrInstProperties.getMaxRegWordWidth())? Utils.getBits(addrInstProperties.getMaxRegWordWidth()) : 0;
 				int newAddrWidth = addrInstProperties.getExtAddressWidth() - shiftBits;
 				int newLowBit = addrInstProperties.getExtLowBit() + shiftBits;
@@ -2701,8 +2699,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			
 			// generate rd/wr pulses if valid_size and valid_addr
 			// generate ack/nack based on address compare, valid_size, valid_addr, rd_ack, and wr_status
-			String parStateName = "par_" + addrInstProperties.getBaseName() + "_state";                      
-			String groupName = addrInstProperties.getBaseName() + " optimized ext parallel i/f";
+			String parStateName = "par_" + addrInstProperties.getExtBaseName() + "_state";                      
+			String groupName = addrInstProperties.getExtBaseName() + " optimized ext parallel i/f";
 			generateAckNackMachine(parStateName, groupName, false, 
 					extIf.decodeToHwReName, extIf.decodeToHwWeName, validReadCond, validWriteCond, validSizeCond, hwToDecodeAckName, keepNack? hwToDecodeNackName : null,  // optional nack input
 					addrInstProperties.isSwReadable()? decodeToHwReName : null, addrInstProperties.isSwWriteable()? decodeToHwWeName : null, // eliminate re/we outputs if needed
@@ -2721,13 +2719,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addWireAssign(extIf.hwToDecodeNackName + " = " + hwToDecodeNackName +  ";");
 		
 			// if size of external range is greater than one reg we'll need an external address  
-			if (extIf.hasAddress) {  
+			if (addrInstProperties.hasExtAddress()) {  
 				this.addHwVector(DefSignalType.D2H_ADDR, addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());
 				this.addWireAssign(decodeToHwAddrName + " = " + extIf.decodeToHwAddrName +  ";");  
 			}
 
 			// if size of max pio transaction is greater than one word need to add transaction size/retry info 
-			if (extIf.hasSize) { 
+			if (addrInstProperties.hasExtSize()) { 
 				this.addHwVector(DefSignalType.D2H_SIZE, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));
 				this.addWireAssign(decodeToHwTransactionSizeName + " = " + extIf.decodeToHwTransactionSizeName +  ";");
 				this.addHwVector(DefSignalType.H2D_RETSIZE, 0, Utils.getBits(addrInstProperties.getMaxRegWordWidth()));
@@ -2737,8 +2735,6 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 	    }
 	    //System.out.println("SystemVerilogDecodeModule generateExternalInterface_PARALLEL: " + addrInstProperties.getId() + ", reps=" + addrInstProperties.getRepCount()+ ", regbwidth=" + addrInstProperties.getMaxRegByteWidth() + ", asize=" + addrInstProperties.getAlignedSize() + ", read/write=" + addrInstProperties.isSwReadable() + "/" + addrInstProperties.isSwWriteable());
-
-
 	}
 
 	/** generate BBV5 external interface shim logic */  
@@ -2797,12 +2793,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		}
 		// if size of external range is greater than one reg we'll need to set external address bits 
 		RegNumber newBase = addrInstProperties.getFullBaseAddress();  
-		//RegNumber newBase = new RegNumber(ExtParameters.getLeafBaseAddress());  
-		//newBase.setVectorLen(ExtParameters.getLeafAddressSize());
-		//newBase.add(regProperties.getBaseAddress());
-		if (extIf.hasAddress) {
-			//decodes.get(regProperties.getBaseName() + " (external BBV5)", topBackboneAddrName + " = " + 
-			//    newBase.toFormat(NumBase.Hex, NumFormat.Verilog) + "& " + decodeToHwAddrName + ";");    
+		if (addrInstProperties.hasExtAddress()) {
 			this.addWireAssign(topBackboneAddrName + " = " + newBase.toFormat(NumBase.Hex, NumFormat.Verilog) + " | (" + extIf.decodeToHwAddrName + " << " + addrInstProperties.getExtLowBit() + ");");
 			//System.out.println("SystemVerilogBuilder generateExternalInterface_BBV5:base address=" + regProperties.getBaseAddress());
 		}
@@ -2814,7 +2805,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int regWords = addrInstProperties.getMaxRegWordWidth();
 		int regWordBits = Utils.getBits(regWords);
 		//System.out.println("SystemVerilogBuilder generateExternalInterface_BBV5: regwords=" + regWords + ", bits=" + regWordBits);
-		if (extIf.hasSize) {
+		if (addrInstProperties.hasExtSize()) {
 			this.addWireAssign(topBackboneWrWidthName + " = 4'b0 | " + extIf.decodeToHwTransactionSizeName + ";");
 			// create inbound size signal
 			this.addVectorWire(extIf.hwToDecodeTransactionSizeName, 0, regWordBits);
@@ -3028,7 +3019,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	
 	}
 
-	/** generate SRAM external interface shim logic */  
+	/** generate SRAM external interface shim logic */ 
 	public void generateExternalInterface_SRAM(AddressableInstanceProperties addrInstProperties) {
 		//Jrdl.warnMessage("SystemVerilogBuilder gen_SRAM, ext type=" + regProperties.getExternalType() + ", id=" + regProperties.getId());
 		// generate common external interface constructs
@@ -3040,15 +3031,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarReg(extIf.hwToDecodeNackName);
 
 		// create module IOs
-		String decodeToSrRdName = "d2sr_" + addrInstProperties.getBaseName() + "_rd";                      
-		String decodeToSrWrName = "d2sr_" + addrInstProperties.getBaseName() + "_wr";                      
-		String decodeToSrWrDataName = "d2sr_" + addrInstProperties.getBaseName() + "_wr_data";                      
-		String decodeToSrWrEnableName = "d2sr_" + addrInstProperties.getBaseName() + "_wr_enable";                      
-		String decodeToSrAddrName = "d2sr_" + addrInstProperties.getBaseName() + "_addr"; 
+		String decodeToSrRdName = "d2sr_" + addrInstProperties.getExtBaseName() + "_rd";                      
+		String decodeToSrWrName = "d2sr_" + addrInstProperties.getExtBaseName() + "_wr";                      
+		String decodeToSrWrDataName = "d2sr_" + addrInstProperties.getExtBaseName() + "_wr_data";                      
+		String decodeToSrWrEnableName = "d2sr_" + addrInstProperties.getExtBaseName() + "_wr_enable";                      
+		String decodeToSrAddrName = "d2sr_" + addrInstProperties.getExtBaseName() + "_addr"; 
 		
-		String srToDecodeAck = "sr2d_" + addrInstProperties.getBaseName() + "_ack";                      
-		String srToDecodeNack = "sr2d_" + addrInstProperties.getBaseName() + "_nack";                      
-		String srToDecodeRdDataName = "sr2d_" + addrInstProperties.getBaseName() + "_rd_data";  
+		String srToDecodeAck = "sr2d_" + addrInstProperties.getExtBaseName() + "_ack";                      
+		String srToDecodeNack = "sr2d_" + addrInstProperties.getExtBaseName() + "_nack";                      
+		String srToDecodeRdDataName = "sr2d_" + addrInstProperties.getExtBaseName() + "_rd_data";  
 		
 		//  inputs
 		this.addSimpleScalarFrom(SystemVerilogBuilder.HW, srToDecodeAck);   // ack
@@ -3081,7 +3072,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addWireAssign(decodeToSrAddrName + " = " + extIf.decodeToHwAddrName + SystemVerilogSignal.genRefArrayString(regWordBits + addrInstProperties.getExtLowBit(), srAddrBits) + ";");
 
 		// generate valid_size by comparing decodeToHwTransactionSizeName value with regWordWidth - 1
-		String srValidSizeName = "dsr_" + addrInstProperties.getBaseName() + "_valid_size"; 
+		String srValidSizeName = "dsr_" + addrInstProperties.getExtBaseName() + "_valid_size"; 
 		this.addScalarWire(srValidSizeName);
 		if ((addrInstProperties.getMaxRegWordWidth() > 1) && !addrInstProperties.isSingleExtReg()) {
 			this.addWireAssign(srValidSizeName + " = (" + extIf.decodeToHwTransactionSizeName + " == " + srRegSize + ");");
@@ -3099,20 +3090,21 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addWireAssign(extIf.hwToDecodeName + " = " + srToDecodeRdDataName +  ";");
 
 		// generate valid_addr - compare decodeToSrAddrName to max address of space
-		String srValidAddrName = "dsr_" + addrInstProperties.getBaseName() + "_valid_addr"; 
+		String srValidAddrName = "dsr_" + addrInstProperties.getExtBaseName() + "_valid_addr"; 
 		this.addScalarWire(srValidAddrName);
-		RegNumber extMaxAddr = addrInstProperties.getExtractInstance().getAlignedSize().getSubVector(addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());
+		RegNumber extMaxAddr = addrInstProperties.getExtractInstance().getAlignedSize().getSubVector(addrInstProperties.getExtLowBit(), addrInstProperties.getExtInstAddressWidth());
+		String extIfAddressStr = extIf.decodeToHwAddrName + (addrInstProperties.hasExternalRepLevel()? SystemVerilogSignal.genRefArrayString(addrInstProperties.getExtLowBit(), addrInstProperties.getExtInstAddressWidth()) : "");
 		
 		if (extMaxAddr.isNonZero()) // if max addr is less than allowed range, add compare stmt
-			this.addWireAssign(srValidAddrName + " = (" + extIf.decodeToHwAddrName + " < " + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ");");
+			this.addWireAssign(srValidAddrName + " = (" + extIfAddressStr + " < " + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog) + ");");
 		else
 			this.addWireAssign(srValidAddrName + " = 1'b1;");
 		//System.out.println("SystemVerilogBuilder gen.._SRAM: ext size (Bytes)=" + getExternalRegBytes() + ", extMax=" + extMaxAddr.toFormat(NumBase.Hex, NumFormat.Verilog));  
 
 		// generate rd/wr pulses if valid_size and valid_addr
 		// generate ack/nack based on address compare, valid_size, valid_addr, rd_ack, and wr_status
-		String srStateName = "sr_" + addrInstProperties.getBaseName() + "_state";                      
-		String groupName = addrInstProperties.getBaseName() + " sr i/f";
+		String srStateName = "sr_" + addrInstProperties.getExtBaseName() + "_state";                      
+		String groupName = addrInstProperties.getExtBaseName() + " sr i/f";
 		generateAckNackMachine(srStateName, groupName, true,
 				extIf.decodeToHwReName, extIf.decodeToHwWeName, srValidAddrName, srValidAddrName, srValidSizeName, srToDecodeAck, srToDecodeNack, 
 				decodeToSrRdName, decodeToSrWrName, extIf.hwToDecodeAckName, extIf.hwToDecodeNackName);		
@@ -3254,7 +3246,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// calculate number of 8b xfers required for address (same for all transctions to this i/f)
 		int addrXferCount = 0;
-		if ( extIf.hasAddress) {
+		if ( addrInstProperties.hasExtAddress()) {
 			addrXferCount = (int) Math.ceil(addrInstProperties.getExtAddressWidth()/8.0);
 			//System.out.println("SystemVerilogBuilder generateExternalInterface_Serial8: addr width=" + regProperties.getExtAddressWidth() + ", addr count=" + addrXferCount);
 		}
@@ -3262,7 +3254,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// compute max transaction size in 32b words and number of bits to represent (4 max) 
 		int regWords = addrInstProperties.getMaxRegWordWidth();
 		int regWordBits = Utils.getBits(regWords);
-		boolean useTransactionSize = extIf.hasSize;  // if transaction sizes need to be sent/received
+		boolean useTransactionSize = addrInstProperties.hasExtSize();  // if transaction sizes need to be sent/received
 		
 		// now create state machine vars
 		String s8StateName = "s8_" + addrInstProperties.getBaseName() + "_state";                      
@@ -3592,7 +3584,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// calculate number of xfers required for address (same for all transctions to this i/f)
 		int addrXferCount = 0;
 		int localAddrBits = addrInstProperties.getExtAddressWidth(); 
-		if ( extIf.hasAddress) {
+		if ( addrInstProperties.hasExtAddress()) {
 			nonCntlAddrBits = (localAddrBits > addrOffset)? localAddrBits - addrOffset : 0;  // compute address bits not in cntl word
 			addrXferCount = (int) Math.ceil(nonCntlAddrBits/(double) ringWidth);
 			//System.out.println("SystemVerilogBuilder generateExternalInterface_ring: addr width=" + regProperties.getExtAddressWidth() + ", addr count=" + addrXferCount);
@@ -3605,7 +3597,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// compute max transaction size in 32b words and number of bits to represent (4 max) 
 		int regWords = addrInstProperties.getMaxRegWordWidth();
 		int regWordBits = Utils.getBits(regWords);
-		boolean useTransactionSize = extIf.hasSize;  // if transaction sizes need to be sent/received
+		boolean useTransactionSize = addrInstProperties.hasExtSize();  // if transaction sizes need to be sent/received
 		// error if max reg size is too big for this region 
 		if (regWordBits > maxRegWordBits) 
 			Ordt.errorExit("Max register width (" + addrInstProperties.getMaxRegWidth() + ") is too large for " + ringWidth + "b ring external region " + addrInstProperties.getInstancePath());
@@ -3971,19 +3963,27 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			
 			// generate default assigns for externals
 			if (elem.isExternal()) {
-				// generate reg write data assignment
-				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_DATA) + "_next = pio_dec_write_data_d1" + SystemVerilogSignal.genRefArrayString(0, elem.getMaxRegWidth()) + ";"); // regardless of transaction size assign based on regsize
-				if (hasWriteEnables()) writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_ENABLE) + "_next = pio_dec_write_enable_d1" + SystemVerilogSignal.genRefArrayString(0, elem.getWriteEnableWidth()) + ";");
-				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_WE) + "_next = 1'b0;");  // we defaults to 0
-				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_RE) + "_next = 1'b0;");  // we defaults to 0
-				// if an address is required then add it 
-				if ( (elem.getExtAddressWidth() > 0 ) && !elem.isSingleExtReg())
-				   writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_ADDR) + "_next = pio_dec_address_d1 " + elem.getExtAddressArrayString() + ";");  // address is resistered value from pio
-				// if data sizes are needed then add - also check for single register here and inhibit
-				if ( (elem.getMaxRegWidth() > ExtParameters.getMinDataSize())  && !elem.isSingleExtReg()) {
-				       int widthBits = Utils.getBits(elem.getMaxRegWordWidth());
-				       String extSizeIdxStr = (builder.getMaxWordBitSize()>1)? SystemVerilogSignal.genRefArrayString(0, widthBits) : "";
-					   writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_SIZE) + "_next = pio_dec_trans_size_d1" + extSizeIdxStr + ";");
+				if (elem.definesExtControls()) {
+					// generate reg write data assignment
+					writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_DATA) + "_next = pio_dec_write_data_d1" + SystemVerilogSignal.genRefArrayString(0, elem.getMaxRegWidth()) + ";"); // regardless of transaction size assign based on regsize
+					if (hasWriteEnables()) writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_ENABLE) + "_next = pio_dec_write_enable_d1" + SystemVerilogSignal.genRefArrayString(0, elem.getWriteEnableWidth()) + ";");
+					writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_WE) + "_next = 1'b0;");  // we defaults to 0
+					writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_RE) + "_next = 1'b0;");  // we defaults to 0
+					// if an address is required then add it 
+					if (elem.hasExtAddress()) {
+						String addressDefault = "";
+						if (elem.hasExternalRepLevel()) 
+							addressDefault = "{" + elem.getExternalType().getRepLevelAddrWidth() + "'d0, pio_dec_address_d1 " + SystemVerilogSignal.genRefArrayString(elem.getExtLowBit(), elem.getExtInstAddressWidth()) + "}"; // zero ancestor bits
+						else
+							addressDefault = "pio_dec_address_d1 " + elem.getExtAddressArrayString(); 
+						writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_ADDR) + "_next = " + addressDefault + ";");  // address is resistered value from pio
+					}
+					// if data sizes are needed then add - also check for single register here and inhibit
+					if (elem.hasExtSize()) {
+						int widthBits = Utils.getBits(elem.getMaxRegWordWidth());
+						String extSizeIdxStr = (builder.getMaxWordBitSize()>1)? SystemVerilogSignal.genRefArrayString(0, widthBits) : "";
+						writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_SIZE) + "_next = pio_dec_trans_size_d1" + extSizeIdxStr + ";");
+					}
 				}
 			}
 			// internal reg so init enables and data
@@ -3991,9 +3991,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2L_DATA) + " = pio_dec_write_data_d1 " + SystemVerilogSignal.genRefArrayString(0, elem.getMaxRegWidth()) +";");  // regardless of transaction size assign based on regsize
 				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2L_WE) + " = 1'b0;");  // we defaults to 0
 				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2L_RE) + " = 1'b0;");  // re defaults to 0
-				// construct full width enable vector for internals  TODO - build full vector above and reference here
-				if (hasWriteEnables()) writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2L_ENABLE) + " = pio_dec_write_enable_full " + SystemVerilogSignal.genRefArrayString(0, elem.getMaxRegWidth()) +";");
-				
+				// construct full width enable vector for internals
+				if (hasWriteEnables()) writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2L_ENABLE) + " = pio_dec_write_enable_full " + SystemVerilogSignal.genRefArrayString(0, elem.getMaxRegWidth()) +";");		
 			}
 		}	
 
@@ -4007,7 +4006,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
  			//System.out.println("//  Register: "+ elem.getInstancePath() + "     Address: " + elem.getBaseAddress() + "     External: " + elem.isExternal()); 
 			//System.out.println("  reg width=" + elem.getRegWidth() + ",  words=" + regWords + "  bits=" + regWordBits);
 
-			// external, so capture external ack/nack, create re/we to hw, and capture read data
+			// external, so capture external ack/nack, create re/we to hw, and capture read data    // TODO rep_level mods
 			if (elem.isExternal()) {
 				// getNextAddress holds max value of address map at this point   
 				if (mapHasMultipleAddresses()) writeStmt(indentLevel++, getExtDecodeAddressString(elem) + ":");
@@ -4015,8 +4014,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				//System.out.println("VerilogBuilder: external region, regsize=" + elem.getRegWidth() + ", regwordbits=" + getBits(elem.getRegWordWidth()) + ", sizebits=" + elem.getExtAddressWidth());
 
 	            // if this is a wide register 
-				if (elem.getMaxRegWordWidth() > 1) {
-					
+				if (elem.getMaxRegWordWidth() > 1) {					
 					// if this is a single ext register, handle size internally
 					if (elem.isSingleExtReg()) {
 						// write the size dependent assigns
@@ -4025,8 +4023,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 						writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_WE) + "_next = pio_write_active & (pio_dec_trans_size_d1 >= reg_width) & ~(pio_external_ack | pio_external_nack);");
 						// generate a fake ack on invalid size
 						writeStmt(indentLevel, "pio_external_ack_next = " + elem.getFullSignalName(DefSignalType.H2D_ACK) + "_ex | (pio_write_active & (pio_dec_trans_size_d1 < reg_width));"); 
-					}
-					
+					}					
 					// otherwise this is a larger ext region so use size io
 					else {
 						// write the size dependent assigns
@@ -4035,9 +4032,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 						// assign write enable 
 						writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_WE) + "_next = pio_write_active & ~(pio_external_ack | pio_external_nack);");		// write goes thru even if invalid				
 						writeStmt(indentLevel, "pio_external_ack_next = " + elem.getFullSignalName(DefSignalType.H2D_ACK) + "_ex;"); 
-					}
-				   
+					}	   
 				}
+				// otherwise a single (default) width
 				else {
 					writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_WE) + "_next = pio_write_active & ~(pio_external_ack | pio_external_nack);"); 
 					writeStmt(indentLevel, "pio_external_ack_next = " + elem.getFullSignalName(DefSignalType.H2D_ACK) + "_ex;"); 
@@ -4049,8 +4046,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_RE) + "_next = pio_read_active & ~(pio_external_ack | pio_external_nack);"); 
 				// capture ack/nack/read data
 				writeStmt(indentLevel, "pio_external_nack_next = " + elem.getFullSignalName(DefSignalType.H2D_NACK) + "_ex;");  
-				writeStmt(indentLevel--, "dec_pio_read_data_next " + elem.getMaxRegArrayString() + " = " + elem.getFullSignalName(DefSignalType.H2D_DATA) + "_ex;");
-				writeStmt(indentLevel--, "end");  								
+				writeStmt(indentLevel, "dec_pio_read_data_next " + elem.getMaxRegArrayString() + " = " + elem.getFullSignalName(DefSignalType.H2D_DATA) + "_ex;");
+                // if external region has rep_level option, override ancestor bits
+				if (elem.hasExternalRepLevel()) {
+					int ancLowBit = elem.getExtLowBit() + elem.getExtInstAddressWidth();
+					int ancAddrWidth = elem.getExternalType().getRepLevelAddrWidth();
+					writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_ADDR) + "_next" + SystemVerilogSignal.genRefArrayString(ancLowBit, ancAddrWidth) + " = " + elem.getExternalType().getRepLevelValueString() + ";");
+					}
+
+				writeStmt(--indentLevel, "end");  								
 			}
 			
 			// else internal, so create internal ack, re/we to logic, and capture read data
@@ -4117,7 +4121,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	private  String getExtDecodeAddressString(AddressableInstanceProperties elem) {
 		String intString = getIntDecodeAddressString(elem).replace('?', '0');  // start with internal string for base address (remove wildcards) // FIXME - this has base addr of last rep
 		int decodeAddrWidth = intString.length();
-		int extAddrWidth = elem.getExtAddressWidth();
+		int extAddrWidth = elem.getExtInstAddressWidth();  // do not use rep_level ancestor bits
 		// now split base address string
 		if (extAddrWidth > 0) {
 			String topBits = intString.substring(0, decodeAddrWidth - extAddrWidth);

@@ -380,6 +380,13 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			   regProperties.setUseInterface(false);regProperties.setUseStruct(false);
 			   Ordt.warnMessage("Interface and structure encaps are not currently supported on non-PARALLEL external interfaces, inst= " + regProperties.getInstancePath());
 		   }
+		   
+		   // if a rep level external, change IO ancestors to remove reps
+		   if (regProperties.hasExternalRepLevel()) {
+			   int repLevels = regProperties.getExternalType().getRepLevel();
+			   endIOHierarchy(repLevels);  // remove rep_level IO ancestors
+			   startIOHierarchy(repLevels, true); // restore rep_level IO ancestors with no reps
+		   }
 		   startIOHierarchy(regProperties, true);  // if an interface is specified add it with single rep override
 
 		   //System.out.println("SystemVerilogBuilder.addRootExternalRegisters, inst=" + regProperties.getInstancePath() + ", isAddressMap=" + regProperties.isAddressMap() + ", baseAddress=" + regProperties.getBaseAddress() + ", useInterface=" + regProperties.useInterface());
@@ -399,21 +406,29 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   }
 		   
 		   // generate specific i/f type for this external region
-		   if (regProperties.hasExternalType(ExtType.PARALLEL)) {
-			   // pick up any instance overrides
-			   boolean optimize = regProperties.getExternalType().hasParm("optimize")? true :
-				   regProperties.getExternalType().hasParm("no_optimize")? false : ExtParameters.sysVerOptimizeParallelExternals();
-			   boolean keepNack = regProperties.getExternalType().hasParm("keep_nack")? true : false;
-			   decoder.generateExternalInterface_PARALLEL(regProperties, optimize, keepNack);
+		   if (regProperties.definesExtControls()) {
+			   if (regProperties.hasExternalType(ExtType.PARALLEL)) {
+				   // pick up any instance overrides
+				   boolean optimize = regProperties.getExternalType().hasParm("optimize")? true :
+					   regProperties.getExternalType().hasParm("no_optimize")? false : ExtParameters.sysVerOptimizeParallelExternals();
+				   boolean keepNack = regProperties.getExternalType().hasParm("keep_nack")? true : false;
+				   decoder.generateExternalInterface_PARALLEL(regProperties, optimize, keepNack);
+			   }
+			   else if (regProperties.hasExternalType(ExtType.BBV5)) decoder.generateExternalInterface_BBV5(regProperties);
+			   else if (regProperties.hasExternalType(ExtType.SRAM)) decoder.generateExternalInterface_SRAM(regProperties);
+			   else if (regProperties.hasExternalType(ExtType.SERIAL8)) decoder.generateExternalInterface_SERIAL8(regProperties);
+			   else if (regProperties.hasExternalType(ExtType.RING)) decoder.generateExternalInterface_RING(regProperties.getExternalType().getParm("width"), regProperties);
 		   }
-		   else if (regProperties.hasExternalType(ExtType.BBV5)) decoder.generateExternalInterface_BBV5(regProperties);
-		   else if (regProperties.hasExternalType(ExtType.SRAM)) decoder.generateExternalInterface_SRAM(regProperties);
-		   else if (regProperties.hasExternalType(ExtType.SERIAL8)) decoder.generateExternalInterface_SERIAL8(regProperties);
-		   else if (regProperties.hasExternalType(ExtType.RING)) decoder.generateExternalInterface_RING(regProperties.getExternalType().getParm("width"), regProperties);
 		   
 		   endIOHierarchy(regProperties);  // close out interface 
+		   // if a rep level external, change IO ancestors to store reps
+		   if (regProperties.hasExternalRepLevel()) {
+			   int repLevels = regProperties.getExternalType().getRepLevel();
+			   endIOHierarchy(repLevels);  // remove rep_level IO ancestors
+			   startIOHierarchy(repLevels, false); // restore rep_level IO ancestors with reps
+		   }
 	}
-	
+
 	/** add a non-root addressmap - overridden by child builders (sv builder) */
 	@Override
 	protected void addNonRootExternalAddressMap() {
@@ -601,11 +616,31 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	private void startIOHierarchy(InstanceProperties properties) {
 		startIOHierarchy(properties, false);
 	}
+	
+	/** add specified number of IO hierarchy levels using current ancestors from the instance stack (last elem not included)
+	 * @param levels - number of IO levels to start
+	 * @param singleRep - if true, only a single rep of each hierarchy level will be added to IO
+	 */
+	private void startIOHierarchy(int levels, boolean singleRep) {
+		int startIdx = instancePropertyStack.size() - levels - 1;
+		if (startIdx < 0) return;
+		for (int i=0; i<levels; i++) {
+			int stackIdx = startIdx + i;
+			startIOHierarchy(instancePropertyStack.elementAt(stackIdx), singleRep);
+		}
+	}
 
 	/** close out active IO hierarchy level */
 	private void endIOHierarchy(InstanceProperties properties) {
 			//System.out.println("*** Popping interface:" + properties.getBaseName());
 			hwSigList.popIOSignalSet();
+	}
+	
+	/** end specified number of IO hierarchy levels
+	 * @param levels - number of IO levels to end
+	 */
+	private void endIOHierarchy(int levels) {
+		for (int i=0; i<levels; i++) endIOHierarchy(regProperties);
 	}
 
 	/** add BASE_ADDR parameter to a module */

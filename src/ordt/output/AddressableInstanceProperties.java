@@ -14,6 +14,8 @@ import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.extract.model.ModAddressableInstance;
 import ordt.extract.model.ModInstance;
+import ordt.output.systemverilog.SystemVerilogDefinedSignals;
+import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 
@@ -24,7 +26,7 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 	protected RegNumber relativeBaseAddress;   // base address of reg relative to parent
 
 	// external register group parameters
-	protected int extAddressWidth = 0;   // width of word address range for this group
+	private int extInstAddressWidth = 0;   // width of word address range for this reg/group (only includes instance size, not ancestor bits used in rep_level option)
 	protected int extLowBit = 0;  // low bit in external address range
 	
     // external/map type
@@ -53,7 +55,7 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 		setAddressMap(oldInstance.isAddressMap());  
 		setRelativeBaseAddress(oldInstance.getRelativeBaseAddress());  
 		setBaseAddress(oldInstance.getBaseAddress());  
-		setExtAddressWidth(oldInstance.getExtAddressWidth());  
+		setExtInstAddressWidth(oldInstance.getExtAddressWidth());  
 		setExtLowBit(oldInstance.getExtLowBit());  
 	}
 	
@@ -68,6 +70,18 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 		System.out.println("   external=" + this.externalType);  
 		System.out.println("   root external=" + this.isRootExternal());  
 		System.out.println("   is address map=" + this.isAddressMap());  		
+	}
+	
+	/** return the name for specified defined signal type using the current instance path (or alternate if rep_level is specified)
+	 *  This is a catenation of prefix, input pathStr, and suffix */
+	@Override
+	public String getFullSignalName(DefSignalType sigType) {
+		return SystemVerilogDefinedSignals.getFullName(sigType, getExtBaseName(), true);
+	}
+
+	/** return the instance path derived name including alternate ancestor names if instance has rep_level is specified */
+	public String getExtBaseName() {
+		return hasExternalRepLevel()? this.getExternalType().getRepLevelBasename() : getInstancePath().replace('.', '_');
 	}
 
 	/** get baseAddress
@@ -114,18 +128,44 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 	public void setRelativeBaseAddress(RegNumber relativeBaseAddress) {
 		this.relativeBaseAddress = new RegNumber(relativeBaseAddress);  // use a copy, not reference;
 	}
-	/** get extAddressWidth
-	 *  @return the extAddressWidth
+	
+	// -------------
+	
+	/** get extractInstance
+	 *  @return the extractInstance
 	 */
-	public int getExtAddressWidth() {
-		return extAddressWidth;
+	@Override
+	public ModAddressableInstance getExtractInstance() {
+		return (ModAddressableInstance) extractInstance;
 	}
 
-	/** set extRegWidth
-	 *  @param extRegWidth the extRegWidth to set
+	/** return true if this instance is an addrmap
 	 */
-	public void setExtAddressWidth(int extAddressWidth) {
-		this.extAddressWidth = extAddressWidth;
+	public boolean isAddressMap() {
+		return addressMap;
+	}
+
+	/** mark this instance as an addrmap
+	 */
+	public void setAddressMap(boolean addressMap) {
+		this.addressMap = addressMap;
+	}
+	
+	// ------- external region methods
+	
+	/** returns address width of word address range for this reg/group (only includes instance size, not ancestor bits used in rep_level option) */
+	public int getExtInstAddressWidth() {
+		return extInstAddressWidth;
+	}
+	
+	/** return full address width of external region for this instance */
+	public int getExtAddressWidth() {
+		return getExtInstAddressWidth() + getExternalType().getRepLevelAddrWidth();
+	}
+
+	/** sets the address width of word address range for this reg/group (only includes instance size, not ancestor bits used in rep_level option) */
+	public void setExtInstAddressWidth(int extInstAddressWidth) {
+		this.extInstAddressWidth = extInstAddressWidth;
 	}
 
 	/** get the low bit index of external address range
@@ -151,28 +191,26 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 	public boolean isSingleExtReg() {
 		return (isRegister() && isExternal() && (Utils.getBits(getMaxRegWordWidth()) == getExtAddressWidth()));
 	}
-	
-	/** get extractInstance
-	 *  @return the extractInstance
-	 */
-	@Override
-	public ModAddressableInstance getExtractInstance() {
-		return (ModAddressableInstance) extractInstance;
+
+	/** true if external region has an address */
+	public boolean hasExtAddress() {
+		return (getExtAddressWidth() > 0)  && !isSingleExtReg();
 	}
 
-	/** return true if this instance is an addrmap
-	 */
-	public boolean isAddressMap() {
-		return addressMap;
+	/** true if external region instance (ignoring ancestor rep_level bits) has an address */
+	public boolean hasExtInstAddress() {
+		return (getExtInstAddressWidth() > 0)  && !isSingleExtReg();
 	}
 
-	/** mark this instance as an addrmap
-	 */
-	public void setAddressMap(boolean addressMap) {
-		this.addressMap = addressMap;
+	/** true if external region has mult-word width */
+	public boolean hasExtSize() {
+		return (getMaxRegWordWidth() > 1) && !isSingleExtReg();
 	}
 
-	// -------- external/addrmap methods
+	/** true if this external instance will define rtl structures (first ancestor iteration of a rep_external region or not rep_external)  */
+	public boolean definesExtControls() {
+		return !hasExternalRepLevel() || getExternalType().isFirstRepLevelIteration();
+	}
 	
 	/** get externalType
 	 *  @return the externalType
@@ -296,6 +334,50 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 		//System.out.println("AddressableInstanceProperties extractParamFromString: " + param + " not found in str=" + baseStr);
 		return null;
 	}
+	
+	/** return true if this instance is external and has a rep_level option */
+	public boolean hasExternalRepLevel () {
+		return isExternal() && externalType.hasParm("rep_level");
+	}
+	
+	// ------
+	
+	/** get rootExternal (set by stack push into outputBuilder)
+	 *  @return the rootExternal
+	 */
+	public boolean isRootExternal() {
+		return rootExternal;
+	}
+
+	/** set rootExternal
+	 *  @param rootExternal the rootExternal to set
+	 */
+	public void setRootExternal(boolean rootExternal) {
+		this.rootExternal = rootExternal;
+	}
+
+	/** get externalDecode
+	 *  @return the externalDecode
+	 */
+	public boolean isExternalDecode() {
+		return externalType.isExternalDecode();
+	}
+	
+	public boolean isLocalExternal() {
+		return localExternal;
+	}
+
+	public void setLocalExternal(boolean localExternal) {
+		this.localExternal = localExternal;
+	}
+
+	public boolean isLocalRootExternal() {
+		return localRootExternal;
+	}
+
+	public void setLocalRootExternal(boolean localRootExternal) {
+		this.localRootExternal = localRootExternal;
+	}
 
 	/** ExternalType class carrying parameters */
 	public class ExternalType {
@@ -348,57 +430,42 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 		public List<Integer> getRepLevelAddrBits() {
 			return repLevelAddrBits;
 		}
-		protected void setRepLevelAddrBits(List<Integer> repLevelAddrBits) {
+		public void setRepLevelAddrBits(List<Integer> repLevelAddrBits) {
 			this.repLevelAddrBits = repLevelAddrBits;
 		}
-		public List<Integer> getRepLevelIdx() {
+		public List<Integer> getRepLevelIndices() {
 			return repLevelIndices;
 		}
-		protected void setRepLevelIdx(List<Integer> repLevelIdx) {
-			this.repLevelIndices = repLevelIdx;
+		public void setRepLevelIndices(List<Integer> repLevelIndices) {
+			this.repLevelIndices = repLevelIndices;
 		}
-	}
-	
-	/** return true if this instance is external and has a rep_level option */
-	public boolean hasExternalRepLevel () {
-		return isExternal() && externalType.hasParm("rep_level");
-	}
-	
-	/** get rootExternal (set by stack push into outputBuilder)
-	 *  @return the rootExternal
-	 */
-	public boolean isRootExternal() {
-		return rootExternal;
-	}
-
-	/** set rootExternal
-	 *  @param rootExternal the rootExternal to set
-	 */
-	public void setRootExternal(boolean rootExternal) {
-		this.rootExternal = rootExternal;
-	}
-
-	/** get externalDecode
-	 *  @return the externalDecode
-	 */
-	public boolean isExternalDecode() {
-		return externalType.isExternalDecode();
-	}
-	
-	public boolean isLocalExternal() {
-		return localExternal;
-	}
-
-	public void setLocalExternal(boolean localExternal) {
-		this.localExternal = localExternal;
-	}
-
-	public boolean isLocalRootExternal() {
-		return localRootExternal;
-	}
-
-	public void setLocalRootExternal(boolean localRootExternal) {
-		this.localRootExternal = localRootExternal;
+		/** return true if this is first iteration of a rep_level group that will be collapsed into one external interface */
+		public boolean isFirstRepLevelIteration() {
+			for (Integer idx : repLevelIndices) if (idx != 0) return false;
+			return true;
+		}
+		/** returns address width of ancestor bits used in rep_level option */
+		public int getRepLevelAddrWidth() {
+			if (repLevelAddrBits == null) return 0;
+			int width = 0;
+			for (Integer bits : repLevelAddrBits) width += bits;
+			return width;
+		}
+		/** return the repLevel */
+		public int getRepLevel() {
+			Integer rLev = getParm("rep_level");
+			return (rLev==null)? 0 : rLev;
+		}
+		/** return verilog value of rep_level ancestor bits */
+		public String getRepLevelValueString() {
+			String outStr = "";
+			for (int idx=0; idx<getRepLevel(); idx++) {
+				String prefix = ((idx + 1) == getRepLevel())? "" : ",";
+				outStr = prefix + repLevelAddrBits.get(idx) + "'d" + repLevelIndices.get(idx) + outStr;
+			}
+			if (getRepLevel() > 1) outStr = "{" + outStr + "}";
+			return outStr;
+		}
 	}
 
 	// ------------

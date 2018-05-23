@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
@@ -452,7 +453,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		int lowBit = getAddressLowBit();  // same low bit as overall address range
 		regProperties.setExtLowBit(lowBit);  // save the low bit in external address
 		int range = getAddressWidth(extSize);
-		regProperties.setExtAddressWidth(range);  // set width of the external address for this group
+		regProperties.setExtInstAddressWidth(range);  // set width of the external address for this group
 		int reservedRange = 1 << range;  // calc 2^n
 		//if (!extSize.isEqualTo(regProperties.getExtractInstance().getAlignedSize())) 
 		//   System.err.println("OutputBuilder updateRootExternalRegProperties:   ext addr width=" + regProperties.getExtAddressWidth() + ", lo bit=" + lowBit + ", reservedRange=" + reservedRange + ", extSize=" + extSize + ", reps=" + regProperties.getRepCount() + ", inst aligned size=" + regProperties.getExtractInstance().getAlignedSize() + ", comp aligned size=" + regProperties.getExtractInstance().getRegComp().getAlignedSize());
@@ -462,9 +463,52 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 	/** extract ancestor info needed for rep_level processing of this instance */
 	private void extractExternalRepLevelInfo() {
-		// TODO Auto-generated method stub
-		System.out.println("OutputBuilder extractExternalRepLevelInfo: " + regProperties.getInstancePath() + " has external rep_level option");
-		
+		// get rep_level
+		int repLevel = regProperties.getExternalType().getRepLevel();
+		// check for valid repLevel
+		int maxRepLevel = instancePropertyStack.size() - 1; 
+		if ((repLevel > maxRepLevel) || (repLevel < 1)) {
+			regProperties.getExternalType().removeParm("rep_level");
+			Ordt.warnMessage("Invalid external rep_level option specified in instance " + regProperties.getInstancePath()+ ".  rep_level will be ignored.");
+			return;
+		}
+		// extract new path name and ancestor lists for address generation
+		String repLevelPathStr = "";
+		List<Integer> repLevelAddrBits = new ArrayList<Integer>(repLevel); // address bits of each ancestor
+		List<Integer> repLevelIdx = new ArrayList<Integer>(repLevel); // rep index of each ancestor
+		//regProperties.getExternalType().getRepLevelAddrBits(); regProperties.getExternalType().getRepLevelIdx();
+		int ancestorLevel = maxRepLevel;
+		boolean hasBits = false;
+		for (InstanceProperties inst: instancePropertyStack) {
+			if (inst != null) {
+				// save rep info and remove reps from path if one of ancestors used for to determine replication
+				if ((ancestorLevel > 0) && (ancestorLevel <= repLevel)) {
+					int addrBits = Utils.getBits(inst.getRepCount());
+					if (addrBits > 0) hasBits = true;
+					repLevelAddrBits.add(addrBits);
+					repLevelIdx.add(inst.getRepNum());
+					repLevelPathStr += "_" + inst.getNoRepId();
+				}
+				else
+					repLevelPathStr += "_" + inst.getId();
+				ancestorLevel--;
+			}
+		}
+		if (repLevelPathStr.length()<2) repLevelPathStr = "";
+		else repLevelPathStr = repLevelPathStr.substring(1);
+		// reverse list order
+		Collections.reverse(repLevelAddrBits);
+		Collections.reverse(repLevelIdx);
+        // if no replicated ancestors or wrong ancestor count then exit
+		if (!hasBits || (repLevelAddrBits.size() != repLevel)) {
+			regProperties.getExternalType().removeParm("rep_level");
+			return;
+		}
+		// save results
+		regProperties.getExternalType().setRepLevelBasename(repLevelPathStr);
+		regProperties.getExternalType().setRepLevelAddrBits(repLevelAddrBits);
+		regProperties.getExternalType().setRepLevelIndices(repLevelIdx);
+		//System.out.println("OutputBuilder extractExternalRepLevelInfo: " + regProperties.getInstancePath() + " has external rep_level option, rep_level=" + repLevel + ", newname=" + repLevelPathStr + ", repLevelAddrBits=" + repLevelAddrBits + ", repLevelIdx=" + repLevelIdx);
 	}
 
 	/** add a register set to this output 
