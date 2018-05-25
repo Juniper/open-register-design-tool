@@ -507,7 +507,10 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 				Integer insideLocs = inst.getMod().getInsideLocs();  // get this child's internal locations
 				rules.addRule(outsideLocs, insideLocs, RemapRuleType.SAME, ""); // input rule
 				rules.addRule(insideLocs, outsideLocs, RemapRuleType.SAME, ""); // output rule
+				//System.out.println("SystemVerilogWrapModule generateIOListFromChildren: insideLocs=" + insideLocs + ", outsideLocs=" + outsideLocs);
 				newList.addList(new SystemVerilogIOSignalList(fullList, rules, uniqueIONames));  // get unique child IOs
+				//newList.display();
+				//System.out.println(uniqueIONames);
 			}
 		}
         // add these child IOs to this modules IO list

@@ -2607,8 +2607,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String hwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE);  // size of return read transaction in words
 		
 		// if this is an external with field_data
-		if (addrInstProperties.useExtFieldData())
-		    System.out.println("SystemVerilogDecodeModule generateExternalInterface_PARALLEL: " + addrInstProperties.getInstancePath() + " uses field_data option");
+		//if (addrInstProperties.useExtFieldData())
+		//    System.out.println("SystemVerilogDecodeModule generateExternalInterface_PARALLEL: " + addrInstProperties.getInstancePath() + " uses field_data option");
 		
 		// use state machine if this is a contiguous replicated reg
 		boolean useAckStateMachine = optimize && (addrInstProperties.getMaxRegByteWidth() == addrInstProperties.getAlignedSize().toLong());
@@ -2625,7 +2625,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			else this.addScalarReg(decodeToHwWeName); 
 			
 			// if field_data, define field output assigns
-			if (addrInstProperties.useExtFieldData()) genExtFieldDataWriteAssigns(fieldList, extIf);
+			if (addrInstProperties.useExtFieldData()) genExtFieldDataWriteAssigns(fieldList, extIf, hwToDecodeName);
 			else this.addWireAssign(decodeToHwName + " = " + extIf.decodeToHwName +  ";");
 			
 			if (hasWriteEnables()) this.addWireAssign(decodeToHwEnableName + " = " + extIf.decodeToHwEnableName +  ";");    // add write enable to decode to hw signal list 
@@ -2764,9 +2764,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	/** assign field data outputs for external region with field_data option set */
-	private void genExtFieldDataWriteAssigns(List<FieldProperties> fieldList, ExternalInterfaceInfo extIf) {
+	private void genExtFieldDataWriteAssigns(List<FieldProperties> fieldList, ExternalInterfaceInfo extIf, String hwToDecodeName) {
+		// need to extract the field path from parent's which reflects field_data option
+		String prefix = SystemVerilogDefinedSignals.getPrefix(DefSignalType.D2H_DATA);
+		String suffix = SystemVerilogDefinedSignals.getSuffix(DefSignalType.D2H_DATA);
+		String parentName = hwToDecodeName.substring(0 + prefix.length(), hwToDecodeName.length() - suffix.length());  // strip prefix/suffix
 		for (FieldProperties field : fieldList) {
-			this.addWireAssign(field.getFullSignalName(DefSignalType.D2H_DATA) + " = " + extIf.decodeToHwName + SystemVerilogSignal.genRefArrayString(field.getLowIndex(), field.getFieldWidth()) + ";");
+			String fieldSignalName = prefix + parentName + field.getPrefixedId() + "_" + suffix;
+			this.addWireAssign(fieldSignalName + " = " + extIf.decodeToHwName + SystemVerilogSignal.genRefArrayString(field.getLowIndex(), field.getFieldWidth()) + ";");
+		    //System.out.println("SystemVerilogDecodeModule genExtFieldDataWriteAssigns: field data sig name=" + field.getFullSignalName(DefSignalType.D2H_DATA) + ", fieldSignalName=" + fieldSignalName  + ", parentName=" + parentName + ", contains=" + field.getFullSignalName(DefSignalType.D2H_DATA).contains(parentName));
 		}
 		
 	}
@@ -2780,15 +2786,20 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		}		
 	}
 
-	private void genExtFieldDataReadAssigns(List<FieldProperties> fieldList, ExternalInterfaceInfo extIf,
-			String hwToDecodeName, AddressableInstanceProperties inst) {
+	private void genExtFieldDataReadAssigns(List<FieldProperties> fieldList, ExternalInterfaceInfo extIf, String hwToDecodeName, AddressableInstanceProperties inst) {
 		this.addWireAssign(extIf.hwToDecodeName + " = " + hwToDecodeName +  ";");
 		String groupName = inst.getBaseName() + " external field read data assigns";
 		int width = inst.getMaxRegWidth();
 		this.addVectorReg(hwToDecodeName, 0, width);  
+		// need to extract the field path from parent's which reflects field_data option
+		String prefix = SystemVerilogDefinedSignals.getPrefix(DefSignalType.H2D_DATA);
+		String suffix = SystemVerilogDefinedSignals.getSuffix(DefSignalType.H2D_DATA);
+		String parentName = hwToDecodeName.substring(0 + prefix.length(), hwToDecodeName.length() - suffix.length());  // strip prefix/suffix
 		this.addRegAssign(groupName,  hwToDecodeName + " = " + width + "'d0;");  // init all bits to zero
 		for (FieldProperties field : fieldList) {
-			this.addRegAssign(groupName, hwToDecodeName + SystemVerilogSignal.genRefArrayString(field.getLowIndex(), field.getFieldWidth()) + " = " + field.getFullSignalName(DefSignalType.H2D_DATA) + ";");
+			String fieldSignalName = prefix + parentName + field.getPrefixedId() + "_" + suffix;
+			this.addRegAssign(groupName, hwToDecodeName + SystemVerilogSignal.genRefArrayString(field.getLowIndex(), field.getFieldWidth()) + " = " + fieldSignalName + ";");
+		    //System.out.println("SystemVerilogDecodeModule genExtFieldDataReadAssigns: field data sig name=" + field.getFullSignalName(DefSignalType.H2D_DATA) + ", fieldSignalName=" + fieldSignalName  + ", parentName=" + parentName + ", contains=" + field.getFullSignalName(DefSignalType.D2H_DATA).contains(parentName));
 		}
 		
 	}

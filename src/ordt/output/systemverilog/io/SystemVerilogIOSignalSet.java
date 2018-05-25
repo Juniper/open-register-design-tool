@@ -45,20 +45,21 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 			boolean uniqueOK = (uniqueList==null) || !uniqueList.contains(childName);  // uniqueness match
 			String newChildName = rules.getRemappedName(childName, null, elem.getFrom(), elem.getTo(), true); // test for rules match
 			boolean rulesMatch = newChildName != null; // rules match
+			//if (childName.contains("lsb_field")) System.out.println("SystemVerilogIOSignalSet : childName=" + childName + ", uniqueOK=" + uniqueOK + ", rulesMatch=" + rulesMatch + ", elem.isSignalSet()=" + elem.isSignalSet() + ", elem.isVirtual()=" + elem.isVirtual());
 			// if virtual, add this set w/o checking rules
 			if (elem.isVirtual() && uniqueOK) { 
 				childList.add(((SystemVerilogIOSignalSet) elem).createCopy(rules, uniqueList, childName));  // create a copy of this IOSignalSet or child type
-				if (uniqueList!=null) uniqueList.add(childName);
+				//uniqueList.add(childName);  // do not add to list if virtual
 			}
 			// if non-virtual, add if a rule match
 			else if (elem.isSignalSet() && rulesMatch && uniqueOK) {
 				childList.add(((SystemVerilogIOSignalSet) elem).createCopy(rules, uniqueList, childName));  // create a copy of this IOSignalSet or child type
-				if (uniqueList!=null) uniqueList.add(childName);
+				uniqueList.add(childName);
 			}
 			// if a signal, add if a rule match
 			else if (!elem.isSignalSet() && rulesMatch && uniqueOK) {
 				childList.add(elem);
-				if (uniqueList!=null) uniqueList.add(childName);
+				uniqueList.add(childName);
 			}
 		}
 	}
@@ -326,10 +327,10 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 					//if (!isVirtual()) System.out.println("SystemVerilogIOSignalSet loadWrapperMapSources: hierName=" + hierName + ", signalName=" + signalName );
 					// if a match then add to mappings
 					if (signalName!=null) {
-						/*if (signalName.contains("info_event_int_status_intr") && (useHierSignalNames==true) && (addSources==false)) {
-							System.out.println("SystemVerilogIOSignalSet loadWrapperMapSources: useHierSignalNames=" + useHierSignalNames + ", addSources=" + addSources);
-							System.out.println("SystemVerilogIOSignalSet loadWrapperMapSources: rootName=" + rootName + ", hierName=" + hierName + ", fullHierPrefix=" + fullHierPrefix);
-							System.out.println("SystemVerilogIOSignalSet loadWrapperMapSources: signalName=" + signalName);
+						/*if (signalName.contains("reg_dflt") && (addSources==true)) {
+							System.out.println("SystemVerilogIOSignalSet loadWrapperMapInfo: --- useHierSignalNames=" + useHierSignalNames + ", addSources=" + addSources);
+							System.out.println("SystemVerilogIOSignalSet loadWrapperMapInfo: rootName=" + rootName + ", hierName=" + hierName + ", fullHierPrefix=" + fullHierPrefix);
+							System.out.println("SystemVerilogIOSignalSet loadWrapperMapInfo: signalName=" + signalName);
 						}*/
 						Integer elemLowIndex = ((SystemVerilogIOSignal) ioElem).getLowIndex();
 						Integer elemSize = ((SystemVerilogIOSignal) ioElem).getSize();

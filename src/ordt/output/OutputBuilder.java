@@ -473,10 +473,10 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			return;
 		}
 		// inhibit field_data option and issue a warning since rep_level and field_data are not supported concurrently TODO
-		if (regProperties.useExtFieldData()) {
-			regProperties.getExternalType().removeParm("field_data");
-			Ordt.warnMessage("External rep_level and field_data options are not supported concurrently.  field_data will be ignored in instance " + regProperties.getInstancePath()+ ".");
-		}
+		//if (regProperties.useExtFieldData()) {
+			//regProperties.getExternalType().removeParm("field_data");
+			//Ordt.warnMessage("External rep_level and field_data options are not supported concurrently.  field_data will be ignored in instance " + regProperties.getInstancePath()+ ".");
+		//}
 		// extract new path name and ancestor lists for address generation
 		String repLevelPathStr = "";
 		List<Integer> repLevelAddrBits = new ArrayList<Integer>(repLevel); // address bits of each ancestor
