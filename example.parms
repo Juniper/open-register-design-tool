@@ -6,7 +6,7 @@ global {
 	//suppress_alignment_warnings = true   // inhibit register/regfile base address alignment messages
 	//default_base_map_name = "zt"   // default address map name (replaces 'default_name' in cases where no addrmap is specified)
 	//debug_mode = "mode1 mode2"       // debug options
-	allow_unordered_addresses = true   // attempt to correct order of elements defined in non-descending order
+	allow_unordered_addresses = false   // attempt to correct order of elements defined in non-descending order
 }
 
 // jspec input parameters
@@ -54,11 +54,11 @@ output systemverilog {
     //nack_partial_writes = true     // issue nack for writes of size less than target
     //write_enable_size = 0          // size of data affected by each write enable in bits
     max_internal_reg_reps = 4096     // maximum allowed replications allowed on an internal register 
-    //wrapper_info {
-       //add_sync_stages "*swmod_o" 1 // add sync delays to these outputs (use default clock)
+    wrapper_info {
+       add_sync_stages "*intr_o" 1 // add sync delays to these outputs (use default clock)
        //add_sync_stages "*_o" 2 newClk // add 2 stage syncronizer to these outputs w/ new clock
        //add_sync_stages "*_o" 2 newClk mySyncModule // add 2 stage syncronizer to these outputs w/ new clock and module override
-    //}
+    }
     //separate_iwrap_encap_files = true // generate a separate file for each wrap encap (interface/struct) type
     generate_dv_bind_modules = true   // if true generate diagnostic dv bind modules 
     use_global_dv_bind_controls = true   // if true diagnostic dv bind module settings will be controlled by global packages 

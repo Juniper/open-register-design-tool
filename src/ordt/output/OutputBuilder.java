@@ -521,7 +521,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	public  void addRegSet(RegSetProperties rsProperties, int rep) {  
 		
 		if (rsProperties != null) {
-		   //System.out.println("OutputBuilder addRegSet: path=" + getInstancePath() + ", builder=" + builderID); // + ", id=" + regSetInst.getId());
+			//System.out.println("OutputBuilder addRegSet: path=" + getInstancePath() + ", builder=" + builderID); // + ", id=" + regSetInst.getId());
 
 		   regSetProperties = rsProperties; 
 		   
@@ -535,7 +535,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		   
 		   // set replication number
 		   regSetProperties.setRepNum(rep);
-		   //System.out.println("OutputBuilder addRegSet: --- rep=" + rep + ", regSetAddress=" + regSetAddress + ", incAddress=" + addressIncrement  + ", nextAddress=" + nextAddress);
+		   //if (regSetProperties.getInstancePath().endsWith("cas_sop_1")) System.out.println("OutputBuilder addRegSet: " + regSetProperties.getInstancePath() + ", rep=" + rep + ", regSetAddress=" + regSetAddress + ", addressModulus=" + addressModulus + ", addressShift=" + addressShift  + ", nextAddress=" + nextAddress);
  		   
 		   // if first rep, set the next address to new regset base register
 		   boolean baseAddressSpecified = false;
@@ -568,7 +568,8 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 				   baseAddressSpecified = true;
 				   updateNextAddressModulus(addressModulus);  // adjust the base address if a modulus is defined					   
 			   }
-			   
+			   //if (regSetProperties.getInstancePath().endsWith("cas_sop_1")) System.out.println("OutputBuilder addRegSet: post-mod " + regSetProperties.getInstancePath() + ", rep=" + rep + ", regSetAddress=" + regSetAddress + ", addressModulus=" + addressModulus + ", addressShift=" + addressShift  + ", nextAddress=" + nextAddress);
+
 			   // if js alignment is specified or a root external regset, shift base address of first rep 
 			   if (ExtParameters.useJsAddressAlignment() || regSetProperties.isLocalRootExternal())
 				   alignRegSetAddressToSize(regSetProperties, true, baseAddressSpecified);
@@ -693,7 +694,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			// else if no incr, get estimated size from model and align base address if root external or align is specified
 			else if ((ExtParameters.useJsAddressAlignment() && rsProperties.isReplicated())   // no address padding if not a replicated regset
 					|| (rsProperties.isLocalRootExternal() && rsProperties.isLastRep()))   // pad if last iteration of a root external
-				   alignRegSetAddressToSize(regSetProperties, true, true);
+				   alignRegSetAddressToSize(regSetProperties, true, false);  // shift address without warning
 		}		
 	}
 
@@ -707,7 +708,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		alignBytes.setNumBase(NumBase.Hex);
 		alignBytes.setNumFormat(NumFormat.Address);
 		if ((alignBytes != null) && alignBytes.isNonZero()) { 
-			//System.out.println("OutputBuilder alignRegSetAddressToSize: regset=" + this.getInstancePath() + ", align==" + alignBytes + ", addr=" + nextAddress + ", rep=" + regSetProperties.getRepCount());
+			//if (regSetProperties.getInstancePath().contains("dest_credit_cnt")) System.out.println("OutputBuilder alignRegSetAddressToSize: regset=" + this.getInstancePath() + ", align==" + alignBytes + ", addr=" + nextAddress + ", rep=" + regSetProperties.getRepCount());
 			// if this regset isn't in an external decoder and is misaligned, then align it
 			if (!nextAddress.isModulus(alignBytes) && !regSetProperties.isExternalDecode()) {
 				if (shiftAddress) {
@@ -1338,6 +1339,14 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			stride.setNumFormat(NumFormat.Address);
 			stride.setNumBase(NumBase.Hex);
 		}
+		/*
+		RegNumber calcStride = new RegNumber(getNextAddress());
+		calcStride.subtract(regSetProperties.getBaseAddress());
+		calcStride.setNumFormat(NumFormat.Address);
+		calcStride.setNumBase(NumBase.Hex);
+		System.out.println("OutputBuilder getRegSetAddressStride: " + regSetProperties.getInstancePath() + 
+				" base = " + regSetProperties.getBaseAddress() + ", computed size = " + calcStride + ", aligned size = " + regSetProperties.getAlignedSize() + ", returned size = " + stride);
+		*/
 		return stride;
 	}
 

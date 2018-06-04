@@ -109,6 +109,7 @@ public class ModRegSet extends ModComponent {
 				if (childInst.getAddressModulus() != null) newAlignedSize.roundUpToModulus(childInst.getAddressModulus()); // if child has a defined modulus then bump size
 				RegNumber childSize = childInst.getAlignedSize();
 				newAlignedSize.add(childSize);
+				//if (getId().equals("yt_fabio_switch_sopcasc1")) System.out.println("ModRegSet setAlignedSize: added child " + childInst.getId() + ", size=" + childSize + ", newAlignedSize=" + newAlignedSize);
 				// use child reg sizes to set max reg size in this regset
 				updateMaxRegWidth(childInst.regComp.getMaxRegWidth());
 			}

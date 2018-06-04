@@ -113,10 +113,14 @@ public class ModAddressableInstance extends ModInstance {
 	
 	/** return the aligned size of this instance by multiplying component aligned size or increment by reps */
 	public RegNumber getAlignedSize() {
-		if (this.getRepCount()<2) return new RegNumber(this.regComp.getAlignedSize()); // if no reps, use comp size
+		if (this.getRepCount()<2) {
+			//if (regComp.getId().equals("yt_fabio_switch_sopcasc1")) System.out.println("ModAddressableInstance setAlignedSize: repCount=" + this.getRepCount() + ", return=" + this.regComp.getAlignedSize());
+			return new RegNumber(this.regComp.getAlignedSize()); // if no reps, use comp size
+		}
 		RegNumber size = (this.getAddressIncrement() != null) ? new RegNumber(this.getAddressIncrement()) : 
             new RegNumber(this.regComp.getAlignedSize());  // compute size of this instance or use increment if specified
         size.multiply(this.getRepCount()); 
+		//if (regComp.getId().equals("yt_fabio_switch_sopcasc1")) System.out.println("ModAddressableInstance setAlignedSize: repCount[N]=" + this.getRepCount() + ", return=" + size);
         return size;
 	}
 	
