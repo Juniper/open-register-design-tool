@@ -21,6 +21,9 @@ import ordt.extract.model.ModIndexedInstance;
 import ordt.extract.model.ModInstance;
 import ordt.extract.model.ModRootComponent;
 import ordt.extract.model.ModSignal;
+import ordt.output.systemverilog.common.wrap.WrapperRemapInvertXform;
+import ordt.output.systemverilog.common.wrap.WrapperRemapSyncStagesXform;
+import ordt.output.systemverilog.common.wrap.WrapperRemapXform;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 import ordt.parse.systemrdl.SystemRDLBaseListener;
@@ -838,6 +841,38 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	 */
 	@Override public void enterSystemverilog_out_parm_assign(@NotNull SystemRDLParser.Systemverilog_out_parm_assignContext ctx) {
 		ExtParameters.assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
+	}
+	
+	/** 
+	 * Assign SystemVerilog wrapper module remap commands
+	 */
+	@Override public void enterSystemverilog_wrapper_remap_command(SystemRDLParser.Systemverilog_wrapper_remap_commandContext ctx) {
+		String cmdName = ctx.getChild(0).getText();
+		String signalPattern = ctx.getChild(1).getText();
+		WrapperRemapXform xf;
+		switch(cmdName) {
+		case ("set_passthru"): // 'set_passthru' STR
+			xf = new WrapperRemapXform();  // default is assign 
+		    ExtParameters.addWrapperXform(signalPattern, xf);
+		    //System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: adding pattern=" + signalPattern + ", " + xf.getType());
+		    break;
+		case ("set_invert"): // 'set_invert' STR
+			xf = new WrapperRemapInvertXform(); 
+		    ExtParameters.addWrapperXform(signalPattern, xf);
+			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: adding pattern=" + signalPattern + ", " + xf.getType()); 
+			break;
+		case ("add_sync_stages"): // 'add_sync_stages' STR NUM ID? ID?
+			int delayStages = Integer.valueOf(ctx.getChild(2).getText());
+		    String clkName = (ctx.getChildCount()>3)? ctx.getChild(3).getText() : null;
+		    String moduleOverride = (ctx.getChildCount()>4)? ctx.getChild(4).getText() : null;
+			xf = new WrapperRemapSyncStagesXform(delayStages, clkName, moduleOverride);  
+			ExtParameters.addWrapperXform(signalPattern, xf);
+			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: adding pattern=" + signalPattern + ", " + xf.getType());
+		    break;
+		default:
+			Ordt.errorExit("Unsupported RTL wrapper remap command (" + ctx.getText() + ") specified in parameters.");
+			break;
+		}
 	}
 	
 	/**

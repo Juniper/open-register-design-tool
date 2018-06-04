@@ -64,7 +64,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	
 	// set of systemverilog wrapper signal mapping rules
 	private static LinkedHashMap<String, WrapperRemapXform> xformMap = new LinkedHashMap<String, WrapperRemapXform>();
-			
+	
 	public ExtParameters() {
 	}
 	
@@ -781,6 +781,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	/** return rtl wrapper signal transforms */
 	public static LinkedHashMap<String, WrapperRemapXform> sysVerWrapperXformMap() {
 		return xformMap;
+	}
+
+	/** add a signal pattern/xform pair to the xformMap */
+	public static void addWrapperXform(String signalPattern, WrapperRemapXform xf) {
+		xformMap.put(signalPattern, xf);
 	}
 
 	public static boolean sysVerSeparateIwrapEncapFiles() {
