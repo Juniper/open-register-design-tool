@@ -2787,7 +2787,6 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	}
 
 	private void genExtFieldDataReadAssigns(List<FieldProperties> fieldList, ExternalInterfaceInfo extIf, String hwToDecodeName, AddressableInstanceProperties inst) {
-		this.addWireAssign(extIf.hwToDecodeName + " = " + hwToDecodeName +  ";");
 		String groupName = inst.getBaseName() + " external field read data assigns";
 		int width = inst.getMaxRegWidth();
 		this.addVectorReg(hwToDecodeName, 0, width);  

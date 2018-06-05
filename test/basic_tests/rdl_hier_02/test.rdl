@@ -1,5 +1,6 @@
 // ---- top down generation of hierarchical address maps for test
 //      adds single register child addrmaps, gated clock option
+//      also PARALLEL external options
 //
 
 // define a config reg
@@ -71,4 +72,16 @@ addrmap l1_map {
     external(SERIAL8 dly=1) singleton_rf singleton_rf_s8 @0x50000;
     external(RING16 dly=1) singleton_rf singleton_rf_r16 @0x60000;
     external(DEFAULT) singleton_rf singleton_rf_dflt @0x70000;
+     
+    // regfile replications / field data options test
+    regfile {
+       regfile {
+          external(PARALLEL field_data=YES) config_reg reg_dflt @0x0;  // create 8 separate external interfaces (1 per reg_l2*reg_l1) - no address
+          external(PARALLEL rep_level=1) config_reg reg_l1 @0x8;  // create 2 external interfaces (1 per reg_l2) - 2b address
+          external(PARALLEL field_data=YES rep_level=2) config_reg reg_l2 @0x10;  // create a single combined interface - 3b address
+          //external(PARALLEL) config_reg reg_l1 @0x8; 
+          //external(PARALLEL) config_reg reg_l2 @0x10; 
+       } rf_lvl1[4] +=0x80;
+    } rf_lvl2[2] @0x80000 +=0x1000;
+    
 } base_map;
