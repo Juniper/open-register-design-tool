@@ -104,6 +104,7 @@ output uvmregs {
     //regs_use_factory = true       // registers will be created by and registered with the factory
     //use_numeric_uvm_class_names = true // block and reg class names will use unique int rather than catenated path
 	//uvm_mem_strategy = mimic_reg_api   // set uvm_mem modeling strategy (basic | block_wrapped | mimic_reg_api)
+	base_address_override = 0x82000000   // model base address override
 }
 
 // xml output parameters

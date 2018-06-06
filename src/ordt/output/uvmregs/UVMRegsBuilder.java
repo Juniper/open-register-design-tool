@@ -1494,14 +1494,15 @@ public class UVMRegsBuilder extends OutputBuilder {
 		outputList.add(new OutputLine(indentLvl, "")); 	
 		outputList.add(new OutputLine(indentLvl++, "virtual function void build();"));
 		// set access width of block to max of full addrmap by default (<MAX_REG_BYTE_WIDTH> will be replaced with final max value)
-		String byteWidthString = "<MAX_REG_BYTE_WIDTH>"; 
+		String byteWidthString = "<MAX_REG_BYTE_WIDTH>"; // FIXME - no longer need to do substitution, use pre-calculated value
 		if (mapWidthOverride != null) byteWidthString = mapWidthOverride.toString();
 		
 		// if base block then include in map with base address offset and set hdl path
 		Boolean isBaseBlock = blockId.equals("");
 		String endianness = "UVM_LITTLE_ENDIAN";
 		if (isBaseBlock) {
-			String addr = "`UVM_REG_ADDR_WIDTH" + ExtParameters.getPrimaryBaseAddress().toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
+			String addr = "`UVM_REG_ADDR_WIDTH" + (ExtParameters.hasUvmregsBaseAddressOverride()? ExtParameters.uvmregsBaseAddressOverride().toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog) :
+				ExtParameters.getPrimaryBaseAddress().toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog));
 			OutputLine oLine = new OutputLine(indentLvl, "this.default_map = create_map(\"\", " + addr + ", " + byteWidthString + ", " + endianness + ", 1);");
 			oLine.setHasTextReplacements(true);
 			outputList.add(oLine);

@@ -180,7 +180,9 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		uvmModelMode = UVMModelModes.HEAVY; 
 		initBooleanParameter("regs_use_factory", false); 
 		initBooleanParameter("use_numeric_uvm_class_names", false); 
-		uvmMemStrategy = UvmMemStrategy.BLOCK_WRAPPED; 		
+		uvmMemStrategy = UvmMemStrategy.BLOCK_WRAPPED;
+		initRegNumberParameter("base_address_override", null); 
+
 		// ---- bench output defaults
 		initStringListParameter("add_test_command", new ArrayList<String>());
 		initBooleanParameter("generate_external_regs", false); 
@@ -930,6 +932,14 @@ public class ExtParameters extends ExtParmsBaseListener  {
 
 	public static UvmMemStrategy uvmregsMemStrategy() {
 		return uvmMemStrategy;
+	}
+	
+	public static RegNumber uvmregsBaseAddressOverride() {
+		return getRegNumberParameter("base_address_override");
+	}
+	
+	public static boolean hasUvmregsBaseAddressOverride() {
+		return uvmregsBaseAddressOverride() != null;
 	}
 	
 	// --------

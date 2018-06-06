@@ -189,6 +189,7 @@ ext_parm_defs
    | 'regs_use_factory' EQ bool
    | 'use_numeric_uvm_class_names' EQ bool
    | 'uvm_mem_strategy' EQ ('basic' | 'block_wrapped' | 'mimic_reg_api') 
+   | 'base_address_override' EQ NUM
    ;   
    
 // ------------ reglist_out_defs
