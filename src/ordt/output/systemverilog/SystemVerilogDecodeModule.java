@@ -2794,10 +2794,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String prefix = SystemVerilogDefinedSignals.getPrefix(DefSignalType.H2D_DATA);
 		String suffix = SystemVerilogDefinedSignals.getSuffix(DefSignalType.H2D_DATA);
 		String parentName = hwToDecodeName.substring(0 + prefix.length(), hwToDecodeName.length() - suffix.length());  // strip prefix/suffix
-		this.addRegAssign(groupName,  hwToDecodeName + " = " + width + "'d0;");  // init all bits to zero
+		this.addCombinAssign(groupName,  hwToDecodeName + " = " + width + "'d0;");  // init all bits to zero
 		for (FieldProperties field : fieldList) {
 			String fieldSignalName = prefix + parentName + field.getPrefixedId() + "_" + suffix;
-			this.addRegAssign(groupName, hwToDecodeName + SystemVerilogSignal.genRefArrayString(field.getLowIndex(), field.getFieldWidth()) + " = " + fieldSignalName + ";");
+			this.addCombinAssign(groupName, hwToDecodeName + SystemVerilogSignal.genRefArrayString(field.getLowIndex(), field.getFieldWidth()) + " = " + fieldSignalName + ";");
 		    //System.out.println("SystemVerilogDecodeModule genExtFieldDataReadAssigns: field data sig name=" + field.getFullSignalName(DefSignalType.H2D_DATA) + ", fieldSignalName=" + fieldSignalName  + ", parentName=" + parentName + ", contains=" + field.getFullSignalName(DefSignalType.D2H_DATA).contains(parentName));
 		}
 		
