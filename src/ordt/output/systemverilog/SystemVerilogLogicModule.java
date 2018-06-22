@@ -259,6 +259,13 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		String retExpression = fieldProperties.getRefRtlExpression(rType, false);   // create signal name from rhs
 		retExpression = resolveAsSignalOrField(retExpression);
 		addRhsSignal(retExpression, builder.getInstancePath(), fieldProperties.getRef(rType).getRawReference() );
+		// if intr or halt from a remote addrmap module then add an input
+		if (fieldProperties.getRef(rType).isRegRef() && !fieldProperties.getRef(rType).isSameAddrmap()) {
+			System.out.println("SystemVerilogBuilder resolveRhsExpression:  found remote intr/halt, retExpression=" + retExpression);
+			//FIXME - modify name or sent straight in?
+			//if (!rhsSignals.containsKey(retExpression))  // FIXME - need to only add once
+				addSimpleScalarFrom(SystemVerilogBuilder.HW, retExpression);  // HW only??
+		}
 		return retExpression;
 	}
 

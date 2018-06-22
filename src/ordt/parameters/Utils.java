@@ -3,6 +3,9 @@
  */
 package ordt.parameters;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -149,6 +152,23 @@ public class Utils {
 		boolean noUnderscore = newString1.isEmpty() || newString2.isEmpty() || newString1.endsWith("_") || newString2.startsWith("_");
 		return newString1 + (noUnderscore? "" : "_") + newString2;
 	}
+
+    /** convert a path string to a list of path elements
+     * 
+     * @param path - path string to be split
+     * @param keepIndices - if true, keep element indices
+     * @param keepWildcards - if true, keep trailing wildcard element
+     * @return list of String elements
+     */
+	public static List<String> pathToList(String path, boolean keepIndices, boolean keepWildcards) {
+		List<String> elemList = new ArrayList<String>();
+		if ((path == null) || (path.isEmpty())) return elemList;
+		String modPath = path;
+		if (!keepWildcards) modPath = modPath.replaceAll("\\.\\*\\s*$", "");
+		if (!keepIndices) modPath = modPath.replaceAll("\\[\\d+\\]", "");
+		elemList.addAll(Arrays.asList(modPath.split("\\."))); 
+		return elemList;
+	}
 	
     public static void main(String[] args) throws Exception {
     	//for (int i=1; i<34; i++) {
@@ -156,8 +176,11 @@ public class Utils {
     	//}
     	//String inStr="1033300";
     	//System.out.println("str=" + inStr + ", simple int=" + strToInteger(inStr) + ", full int=" + numStrToInteger(inStr));
-    	for(int i=0; i<10; i++)
-    	   System.out.println(i + ":" + getBits(i));
+    	//for(int i=0; i<10; i++)
+    	//   System.out.println(i + ":" + getBits(i));
+    	String inStr="bla.*.bla[2].foo.*";
+    	
+    	System.out.println("str=" + inStr + ", {t,t}=" + pathToList(inStr, true, true) + ", {f,f}=" + pathToList(inStr, false, false));
     }
 
 }

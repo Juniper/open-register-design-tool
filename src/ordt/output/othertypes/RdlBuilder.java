@@ -23,6 +23,7 @@ import ordt.output.FieldProperties;
 import ordt.output.InstanceProperties;
 import ordt.output.OutputBuilder;
 import ordt.output.OutputLine;
+import ordt.output.RhsReference;
 import ordt.parameters.ExtParameters;
 
 public class RdlBuilder extends OutputBuilder {
@@ -40,6 +41,7 @@ public class RdlBuilder extends OutputBuilder {
 	    setVisitExternalRegisters(true);  // we will visit externals 
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
 	    setEscapedIds();
+		RhsReference.setInstancePropertyStack(instancePropertyStack);  // update pointer to the instance stack for rhs reference evaluation
 	    model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
     }
 

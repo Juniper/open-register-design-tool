@@ -24,6 +24,7 @@ import ordt.output.FieldProperties;
 import ordt.output.InstanceProperties;
 import ordt.output.OutputBuilder;
 import ordt.output.OutputLine;
+import ordt.output.RhsReference;
 import ordt.parameters.ExtParameters;
 
 public class JspecBuilder extends OutputBuilder {
@@ -117,6 +118,7 @@ public class JspecBuilder extends OutputBuilder {
                 return -1;
             }
         }); 
+		RhsReference.setInstancePropertyStack(instancePropertyStack);  // update pointer to the instance stack for rhs reference evaluation
 	    model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
     }
 

@@ -13,6 +13,7 @@ import ordt.extract.Ordt;
 import ordt.extract.RegModelIntf;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
+import ordt.output.RhsReference;
 import ordt.output.drvmod.DrvModRegSetInstance.DrvModRegSetChildInfo;
 
 /** builder class for creating reg driver data structures - language independent */
@@ -37,6 +38,7 @@ public abstract class DrvModBuilder extends OutputBuilder {
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
 	    setSupportsOverlays(true);	    // support overlay files
 	    DrvModBaseInstance.setBuilder(this);  // save this builder in overlay model
+		RhsReference.setInstancePropertyStack(instancePropertyStack);  // update pointer to the instance stack for rhs reference evaluation
 	    model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
     }
     

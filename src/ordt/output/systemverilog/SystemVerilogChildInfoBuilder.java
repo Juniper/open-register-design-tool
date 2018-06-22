@@ -13,6 +13,7 @@ import ordt.output.AddressableInstanceProperties.ExtType;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.OutputBuilder;
 import ordt.output.RegSetProperties;
+import ordt.output.RhsReference;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.ExtParameters.SVChildInfoModes;
 
@@ -29,6 +30,7 @@ public class SystemVerilogChildInfoBuilder extends OutputBuilder {
 	    setVisitEachRegSet(true);   // gen code for each reg set
 	    setVisitExternalRegisters(true);  //visit externals also?
 	    setVisitEachExternalRegister(false);	    // treat external regs exactly as internals
+		RhsReference.setInstancePropertyStack(instancePropertyStack);  // update pointer to the instance stack for rhs reference evaluation
 		model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
 	}
 	

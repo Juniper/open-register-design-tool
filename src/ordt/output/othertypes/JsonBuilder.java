@@ -14,6 +14,7 @@ import ordt.extract.RegNumber.NumFormat;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
 import ordt.output.OutputLine;
+import ordt.output.RhsReference;
 import ordt.parameters.ExtParameters;
 
 public class JsonBuilder extends OutputBuilder {  
@@ -29,6 +30,7 @@ public class JsonBuilder extends OutputBuilder {
 	    setVisitEachRegSet(false);   // only need to call once for replicated reg set groups
 	    setVisitExternalRegisters(true);  // we will visit externals 
 	    setVisitEachExternalRegister(false);	    // handle externals as a group
+		RhsReference.setInstancePropertyStack(instancePropertyStack);  // update pointer to the instance stack for rhs reference evaluation
 	    model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
     }
 

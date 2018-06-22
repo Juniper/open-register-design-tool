@@ -3,11 +3,16 @@
  */
 package ordt.output;
 
+import java.util.List;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import ordt.extract.Ordt;
+import ordt.extract.model.ModComponent;
+import ordt.extract.model.ModInstance;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals;
+import ordt.parameters.Utils;
 
 /** class describing a single reference in a rhs assignment **/
 public class RhsReference {
@@ -16,6 +21,9 @@ public class RhsReference {
    private String[] instancePathElems = new String[0];  
    private int depth;   // ancestor depth from instancePath leaf where assignment occurred
    private boolean wellFormedSignalName = true;  // false if returned signal name is a complex expression 
+   private boolean sameAddrmap = true;  // true if this rhs reference is in same addrmap as lhs 
+   
+   private static Stack<InstanceProperties> instancePropertyStack;  // pointer to builder active instance path
 
    public RhsReference(String rawReference, int depth) {
 	   this.depth = depth;
@@ -88,7 +96,7 @@ public class RhsReference {
    }
 
    /** return true if this is a register reference path (no field) */
-   private boolean isRegRef() {
+   public boolean isRegRef() {
 	   return hasDeRef() && (deRef.equals("intr") || deRef.equals("halt"));
    }
 
@@ -135,33 +143,102 @@ public class RhsReference {
    public boolean isWellFormedSignalName() {
 	   return wellFormedSignalName;
    }
+
+   /** returns true if this rhs reference is in same addrmap as lhs of the assign */
+   public boolean isSameAddrmap() {
+	   return sameAddrmap;
+   }
+
+   /** set ptr to builder instancePropertyStack */
+   public static void setInstancePropertyStack(Stack<InstanceProperties> instancePropertyStack) {
+	   RhsReference.instancePropertyStack = instancePropertyStack;
+   }
    
    // ----------------- private methods -----------------
 
-   
    /** extract instance and deref from rawReference */
    private void parseRawReference(String rawReference) {  
-	   // extract the deref if there is one
+	   // extract the instancePath and deref if there is one
+	   String rawInstancePath = null;
 	   Pattern p = Pattern.compile("^\\s*(\\S+)\\s*->\\s*(\\S+)\\s*$");
 	   Matcher m = p.matcher(rawReference);
 	   if (m.matches()) {
-			this.instancePath = m.group(1); 
-			this.deRef = m.group(2);
-			if (this.deRef.equals("nextposedge") || this.deRef.equals("nextnegedge")) wellFormedSignalName = false;
+		   rawInstancePath = m.group(1); 
+		   this.deRef = m.group(2);
+		   if (this.deRef.equals("nextposedge") || this.deRef.equals("nextnegedge")) wellFormedSignalName = false;
 	   }
 	   else {
-			this.instancePath = rawReference; 
+		   rawInstancePath = rawReference; 
 	   }
-	   if (instancePath != null) {
-		   instancePath = instancePath.replace("[", "_").replace("]", "");  // replace array indices with index suffixes
-		   this.instancePathElems = instancePath.split("\\.");
-	   }
-	   //System.out.println("RhsReference parseRawReference: raw=" + rawReference + ", deRef=" + deRef + ", # instancePathElems=" + instancePathElems.length);
+	   this.instancePath = (rawInstancePath != null)? rawInstancePath.replace("[", "_").replace("]", "") : null;  // replace array indices with index suffixes
+	   if (instancePath != null) this.instancePathElems = instancePath.split("\\.");
+		   
+	   //System.out.println("RhsReference parseRawReference: raw=" + rawReference + ", deRef=" + deRef + ", depth=" + depth + ", # instancePathElems=" + instancePathElems.length);
 	   //for (int idx=0; idx<instancePathElems.length; idx++)
 		   //System.out.println("RhsReference parseRawReference:      instancePathElem=" + instancePathElems[idx]);
+	   
+	   // now use instance stack to check for a valid reference
+	   ModComponent ancModComp = getAssignAncestorComp();   // find assignment ancestor component in model
+	   // search for rhs instance in model
+	   ModInstance rhsInstance = null;
+	   if (ancModComp != null) {
+		   List<String> pathList = Utils.pathToList(rawInstancePath, false, false);
+		   rhsInstance = ancModComp.findInstance(pathList);
+		   // check for an addrmap mismatch between lhs and rhs of assign
+		   this.sameAddrmap = detectAddrmapMismatch(rawInstancePath, ancModComp);
+		   // detect addrmap mismatch between lhs and rhs
+		   if (!sameAddrmap) {
+			   if (this.isRegRef())	Ordt.warnMessage("Rhs assignment reference " + rawReference + " is in a different addrmap than lhs reference.");
+			   else	Ordt.errorMessage("Rhs assignment reference " + rawReference + " is in a different addrmap than lhs reference.");
+		   }
+	   }
+	   // if no inst found then error
+	   if (rhsInstance == null) 
+		   Ordt.errorMessage("Unable to resolve rhs assignment reference " + rawReference);
+   }
+   
+   /** check for an addrmap mismatch between lhs and rhs of assign - return false on mismatch 
+    * @param rawInstancePath - rhs reference path
+    * @param ancModComp - component at depth where assign was made
+    */
+   private boolean detectAddrmapMismatch(String rawInstancePath, ModComponent ancModComp) {
+	   // find rhs reference addrmap instance
+	   List<String> pathList = Utils.pathToList(rawInstancePath, false, false);
+	   ModInstance rhsAddrMapInst = ancModComp.findLastAddrmap(pathList);  
+	   // find rhs reference addrmap instance		   
+	   ModInstance lhsAddrMapInst = null;  
+	   int ancIndex = instancePropertyStack.size() - (depth + 1);
+	   if (ancIndex < 0) ancIndex = 0;
+	   for (int idx=ancIndex; idx<instancePropertyStack.size(); idx++) {
+		   ModInstance inst = instancePropertyStack.get(idx).getExtractInstance();
+		   if (inst.getRegComp().isAddressMap()) lhsAddrMapInst = inst;
+	   }
+	   // return false if lhs and rhs addrmap instances differ
+	   return ( ((rhsAddrMapInst == null) && (lhsAddrMapInst == null)) || ((rhsAddrMapInst != null) && rhsAddrMapInst.equals(lhsAddrMapInst)) );
    }
 
-   /** return relative reference if reg string is of register.field format. else return null  
+   /** return the model ancestor where assignment was made using the active instance stack. return null if depth is invalid relative to stace size. */
+   private ModComponent getAssignAncestorComp() {
+	   ModComponent ancModComp = null;
+	   int ancIndex = instancePropertyStack.size() - (depth + 1);
+	   // if one deeper than stack return the root instanced component
+	   if (ancIndex == -1) {
+		   if (!instancePropertyStack.isEmpty()) {
+			   InstanceProperties ancestor = instancePropertyStack.get(0);  // get stack root
+			   ModInstance ancModInst = ancestor.getExtractInstance();
+			   ancModComp = ancModInst.getParent();
+		   }
+	   }
+	   // otherwise return the model instance at assignment depth
+	   else if (ancIndex > -1) {
+		   InstanceProperties ancestor = instancePropertyStack.get(ancIndex); 
+		   ModInstance ancModInst = ancestor.getExtractInstance();
+		   ancModComp = ancModInst.getRegComp();
+	   }
+	return ancModComp;
+}
+
+/** return relative reference if reg string is of register.field format. else return null  
     *    this is used by uvmregs builder to generate reg+field references that will use common paths of lhs instance */
    private String getRelativeReferenceName(InstanceProperties instProperties) {
 	   

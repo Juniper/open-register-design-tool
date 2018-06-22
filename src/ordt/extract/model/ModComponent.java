@@ -379,8 +379,8 @@ public abstract class ModComponent extends ModBaseComponent {
 		return null;
 	}
 
-	/** search for an instance in local scope having specified path 
-	 *  @param list containing instance path 
+	/** search for an instance in local scope having specified path. note: method is destructive to input list. 
+	 *  @param instances - list containing instance path element names 
 	 */
 	public ModInstance findInstance(List<String> instances) {   
 		//System.out.println("ModComponent findInstance: *** looking for inst=" + instances + " in " + this.getId() + ", path depth=" + instances.size());
@@ -397,6 +397,26 @@ public abstract class ModComponent extends ModBaseComponent {
 		if (instances.size()==0) return regInst;  
 		// otherwise get the next instance recursively
 		return regInst.getRegComp().findInstance(instances);
+	}
+
+	/** return the last addrmap instance along specified path. note: method is destructive to input list. 
+	 *  @param instances - list containing instance path element names 
+	 */
+	public ModInstance findLastAddrmap(List<String> instances) {
+		//System.out.println("ModComponent findLastAddrmap: *** looking for inst=" + instances + " in " + this.getId() + ", path depth=" + instances.size());
+		if (instances.size()<1) return null;
+		// get first path in the list
+		String baseInstName = instances.remove(0);
+		// search for this instance locally
+		ModInstance regInst = findLocalInstance(baseInstName);
+		if (regInst == null) return null;
+		boolean isAddrmap = regInst.getRegComp().isAddressMap();
+		// if no more instances in path we're done so exit
+		if (instances.size()==0) return isAddrmap? regInst : null;
+		// otherwise get the next instance recursively
+		ModInstance childMapInstance = regInst.getRegComp().findLastAddrmap(instances);
+		return (childMapInstance != null)? childMapInstance : isAddrmap? regInst : null; // if addrmap found later in path return it
+			
 	}
 
 	/** recursively search for a enum of specified name

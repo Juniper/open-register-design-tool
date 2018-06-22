@@ -96,6 +96,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		setLegacyVerilog(false);  // rtl uses systemverilog constructs
 		initIOLists(null);  // setup IO lists for logic, decode, and top modules
 		decoder.setPrimaryInterfaceType(ExtParameters.getSysVerRootDecoderInterface()); // set root pio interface type from specified params
+		RhsReference.setInstancePropertyStack(instancePropertyStack);  // update pointer to the instance stack for rhs reference evaluation
 		model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
 	}
 	
@@ -141,6 +142,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			else if (width == 16) decoder.setPrimaryInterfaceType(SVDecodeInterfaceTypes.RING16); 
 			else if (width == 32) decoder.setPrimaryInterfaceType(SVDecodeInterfaceTypes.RING32); 			
 		}
+		RhsReference.setInstancePropertyStack(instancePropertyStack);  // update pointer to the instance stack for rhs reference evaluation
 
 	    // now generate output starting at this regmap
 		//System.out.println("SystemVerilogBuilder: pre generate - regset inst id=" + regSetProperties.getId() + ", ext=" + regSetProperties.getExternalType() + ", amap=" + regSetProperties.isAddressMap() + ", inst stack top=" + instancePropertyStack.peek().getId());
@@ -152,6 +154,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	    this.regSetProperties.setExternalType(topRegProperties.getExternalType()); // restore parent ext type now that child gen is complete
 		//System.out.println("SystemVerilogBuilder: post generate - regset inst id=" + regSetProperties.getId() + ", ext=" + regSetProperties.getExternalType() + ", amap=" + regSetProperties.isAddressMap() + ", inst stack top=" + instancePropertyStack.peek().getId());
 		//System.out.println("SystemVerilogBuilder: post generate - topreg inst id=" + topRegProperties.getId() + ", ext=" + topRegProperties.getExternalType()+ ", builderID=" + getBuilderID());
+		RhsReference.setInstancePropertyStack(parentBuilder.instancePropertyStack);  // restore pointer to the parent instance stack
 	}
 	
 	/** initialize signal lists used by generated modules 
