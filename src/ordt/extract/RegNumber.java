@@ -654,7 +654,8 @@ public class RegNumber implements Comparable<RegNumber> {
     	val = new RegNumber("0");
     	System.out.println("val=" + val + ", getHighestBit=" + val.getHighestBit()+ ", BI bitLength=" + val.getValue().bitLength());
     	*/
-    	RegNumber val = new RegNumber("na");
+    	//RegNumber val = new RegNumber("na");
+    	RegNumber val = new RegNumber("unknown");
     	System.out.println("val is null=" + (val == null) + ", isDefined=" + ((val == null)? "-" : val.isDefined()) + ", val=" +  ((val == null)? "-" : val));
     	//String [] expr = {"1", "+", "2"};
     	//String [] expr = {"1", "+", "0xf"};

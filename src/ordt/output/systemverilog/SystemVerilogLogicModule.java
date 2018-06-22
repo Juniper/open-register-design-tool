@@ -257,15 +257,15 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	 *  (this method is for resolving refs defined in fieldProperties, not signalProperties) */
 	private String resolveRhsExpression(RhsRefType rType) {
 		String retExpression = fieldProperties.getRefRtlExpression(rType, false);   // create signal name from rhs
-		retExpression = resolveAsSignalOrField(retExpression);
-		addRhsSignal(retExpression, builder.getInstancePath(), fieldProperties.getRef(rType).getRawReference() );
-		// if intr or halt from a remote addrmap module then add an input
-		if (fieldProperties.getRef(rType).isRegRef() && !fieldProperties.getRef(rType).isSameAddrmap()) {
-			System.out.println("SystemVerilogBuilder resolveRhsExpression:  found remote intr/halt, retExpression=" + retExpression);
-			//FIXME - modify name or sent straight in?
-			//if (!rhsSignals.containsKey(retExpression))  // FIXME - need to only add once
-				addSimpleScalarFrom(SystemVerilogBuilder.HW, retExpression);  // HW only??
+		retExpression = resolveAsSignalOrField(retExpression);  // FIXME - use of this method should be replaced by isSignal stored in RhsReference
+		// detect remote signals (from another logic module) that will become a new input to current module
+		boolean isRemoteSignal = !fieldProperties.getRef(rType).isSameAddrmap() && fieldProperties.getRef(rType).isRegRef();  // only halt/intr remotes allowed currently
+		if (isRemoteSignal) {
+			retExpression = "remote_" + retExpression;
+			if (!rhsSignals.containsKey(retExpression))
+				addSimpleScalarFrom(SystemVerilogBuilder.HW, retExpression);  // add remote input if not already added
 		}
+		addRhsSignal(retExpression, builder.getInstancePath(), fieldProperties.getRef(rType).getRawReference() );
 		return retExpression;
 	}
 
