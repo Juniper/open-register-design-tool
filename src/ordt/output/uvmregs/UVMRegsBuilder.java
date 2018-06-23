@@ -528,6 +528,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 		   if (!hasInstanceNameOverride && regSetProperties.isAddressMap()) {
 				subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_address_map(1);");  // tag block as an address map
 				subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});");  
+				if (ExtParameters.sysVerGenerateChildAddrmaps()) subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_tag(\"" + regSetProperties.getBaseName() + "_\");");
+				//System.out.println("UVMBuilder saveRegSetInfo: id=" + regSetProperties.getId() + ", base=" + regSetProperties.getBaseName());
 		   }
 		   else
 			   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_tag(\"" + blockId + "_\");");
@@ -536,7 +538,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".build();");
 		   subcompBuildList.addStatement(parentID, "this.default_map.add_submap(this." + escapedBlockId + ".default_map, " + addrStr + ");");			
 		}		
-		//System.out.println("UVMBuild saveRegSetInfo: " + regSetProperties.getBaseName() + ", parent=" + parentID + ", rel addr=" + regSetProperties.getRelativeBaseAddress());
+		//System.out.println("UVMBuilder saveRegSetInfo: " + regSetProperties.getBaseName() + ", parent=" + parentID + ", rel addr=" + regSetProperties.getRelativeBaseAddress());
 	}
 
 	/** get the increment string for this group of regs */
