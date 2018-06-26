@@ -20,7 +20,6 @@ import ordt.extract.model.ModEnumElement;
 import ordt.extract.model.ModIndexedInstance;
 import ordt.extract.model.ModInstance;
 import ordt.extract.model.ModRootComponent;
-import ordt.extract.model.ModSignal;
 import ordt.output.systemverilog.common.wrap.WrapperRemapInvertXform;
 import ordt.output.systemverilog.common.wrap.WrapperRemapSyncStagesXform;
 import ordt.output.systemverilog.common.wrap.WrapperRemapXform;
@@ -59,10 +58,6 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	
 	private String usrPropertyName, usrPropertyType, usrPropertyDefault;  // temp vars for capturing user defined properties
 	private List<String> usrPropertyComponents;
-
-	// structures to pre-build a list of user-defined signals
-	private List<ModSignal> usrSignals = new ArrayList<ModSignal>();  // list of all signals in the model
-	private HashSet<String> usrSignalNames = new HashSet<String>();  // full list of extracted signal names
 
 	private Stack<Integer> fieldOffsets = new Stack<Integer>(); // stack of offsets used to calculate fieldset widths
 
@@ -261,11 +256,6 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 				rElem.updateDefaultProperties(activeParent.getDefaultProperties());  // pick up defaults from parent
 			}
 						
-			// save list of defined signals - will need this to resolve rdl signals vs fields in assignments
-			if ("signal".equals(cd_type)) {
-				usrSignals.add((ModSignal) rElem);
-				//System.out.println("RdlModelExtract enterComponent_def: added signal comp id=" + rElem.getId());
-			}
 			//System.out.println(repeat(' ',ctx.depth()) + "  added new " + cd_type);
 			//System.out.println("RdlModelExtractor enterComponent_def: new comp id=" + rElem.getId() + ", type=" + rElem.getBaseComponentTypeName());
 		}
@@ -804,13 +794,6 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	 *  exiting file 
 	 */
 	@Override public void exitRoot(@NotNull SystemRDLParser.RootContext ctx) { 
-		// create list of defined signals recursively from each leaf instance since signal defines are sparse
-		for (ModSignal sig: usrSignals)
-			sig.getDefinedSignalNames(usrSignalNames); 
-		//System.out.println("RdlModelExtract exitRoot: found " + usrSignals.size() + " defined signal nodes with " + usrSignalNames.size() + " defined signals");
-		//for (String sigName: usrSignalNames)
-			//System.out.println("RdlModelExtract exitRoot: found signal " + sigName);
-		//if (sigName.contains("int_detected_cas_tx_afifo2_mem_0")) System.out.println("RdlModelExtract exitRoot: found signal " + sigName);
 	}
 
 	/**
@@ -963,12 +946,6 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/** return true if field offsets are relative to zero or max reg/fieldset width (rdl=true, jspec=false) **/
 	public boolean fieldOffsetsFromZero() {
 		return true;
-	}
-
-	@Override
-	/** return true if specified name is a user-defined signal name */
-	public boolean isUserDefinedSignal(String name) {
-		return usrSignalNames.contains(name);  
 	}
 
     // ------------------------------------------------------------------------------------------------

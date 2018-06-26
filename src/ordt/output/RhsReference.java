@@ -22,6 +22,7 @@ public class RhsReference {
    private int depth;   // ancestor depth from instancePath leaf where assignment occurred
    private boolean wellFormedSignalName = true;  // false if returned signal name is a complex expression 
    private boolean sameAddrmap = true;  // true if this rhs reference is in same addrmap as lhs 
+   private boolean userSignal = false;  // true if this rhs reference is a user-defined signal
    
    private static Stack<InstanceProperties> instancePropertyStack;  // pointer to builder active instance path
 
@@ -149,6 +150,11 @@ public class RhsReference {
 	   return sameAddrmap;
    }
 
+   /** returns true if this rhs reference is a user-defined signal */
+   public boolean isUserSignal() {
+	   return userSignal;
+   }
+
    /** set ptr to builder instancePropertyStack */
    public static void setInstancePropertyStack(Stack<InstanceProperties> instancePropertyStack) {
 	   RhsReference.instancePropertyStack = instancePropertyStack;
@@ -195,6 +201,12 @@ public class RhsReference {
 	   // if no inst found then error
 	   if (rhsInstance == null) 
 		   Ordt.errorMessage("Unable to resolve rhs assignment reference " + rawReference);
+	   // set signal
+	   if (rhsInstance.getRegComp().isSignal()) {
+		   userSignal = true;
+		   if (hasDeRef()) 
+			   Ordt.errorMessage("Invalid rhs signal reference in assignment (" + rawReference + ")");  // user signal reference with a dref is not allowed
+	   }
    }
    
    /** check for an addrmap mismatch between lhs and rhs of assign - return false on mismatch 

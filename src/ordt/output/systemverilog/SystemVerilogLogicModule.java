@@ -35,8 +35,8 @@ import ordt.parameters.Utils;
  *          at this point signalProperties is updated and signal assignment has been extracted via setAssignExpression in extractProperties
  *          signalProperties is added to module-specific userDefinedSignals using sig_* prefix string name as key 
  *          if an assignment is found, output port strings are created
- *             for each rhs reference, resolveAsSignalOrField is called, addRhsSignal is called
- *                resolveAsSignalOrField - if in userDefinedSignals, converts to name to sig_* form and marks the sig as a rhs reference << FIXME problem if sig assign order is wrong
+ *             for each rhs reference, saveUserSignalInfo is called, addRhsSignal is called
+ *                saveUserSignalInfo - if in userDefinedSignals, converts to name to sig_* form and marks the sig as a rhs reference
  *                addRhsSignal - adds signal to list of rhs signals
  *          if no assignment an input port is generated
  *    - after generate, createSignalAssigns is called, which resolves all rhs signals in assign rhs
@@ -257,7 +257,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	 *  (this method is for resolving refs defined in fieldProperties, not signalProperties) */
 	private String resolveRhsExpression(RhsRefType rType) {
 		String retExpression = fieldProperties.getRefRtlExpression(rType, false);   // create signal name from rhs
-		retExpression = resolveAsSignalOrField(retExpression);  // FIXME - use of this method should be replaced by isSignal stored in RhsReference
+		if (fieldProperties.getRef(rType).isUserSignal()) retExpression = saveUserSignalInfo(retExpression);
 		// detect remote signals (from another logic module) that will become a new input to current module
 		boolean isRemoteSignal = !fieldProperties.getRef(rType).isSameAddrmap() && fieldProperties.getRef(rType).isRegRef();  // only halt/intr remotes allowed currently
 		if (isRemoteSignal) {
@@ -774,25 +774,19 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		userDefinedSignals.put(sigName, signalProperties); 
 	}
 	
-	/** determine if a rhs reference is a signal or a field and return modified name if a signal.
-	 *  if a signal, it is tagged as a rhsReference in userDefinedSignals list. 
-	 * this method should only be called after entire signal list is created at addrmap exit */
-	public String resolveAsSignalOrField(String ref) {
-		String sigNameStr = ref.replaceFirst("rg_", "sig_");  // speculatively convert to signal prefix for lookup
-		//if (ref.contains("int_detected_cas_tx_afifo2_mem_0")) System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: ref=" + ref + ", isUserDefinedSignal(sigNameStr)=" + builder.isUserDefinedSignal(sigNameStr));
-		if ((ref.startsWith("rg_") && builder.isUserDefinedSignal(sigNameStr))) {  // check that signal is in pre-computed set  
-			// the local list may not have been populated, but can load with null to indicate that it's been seen on rhs of an assign
-			if (!userDefinedSignals.containsKey(sigNameStr)) {
-				//System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: " + sigNameStr + " was found in master list, but not in module-specific list");
-				userDefinedSignals.put(sigNameStr, null);
-			}
-			else {
-				//if (userDefinedSignals.get(sigNameStr)==null) System.out.println("SystemVerilogLogicModule resolveAsSignalOrField: marking null signal " + sigNameStr + " as rhsReference");
-				if (userDefinedSignals.get(sigNameStr)!=null) userDefinedSignals.get(sigNameStr).setRhsReference(true);  // indicate that this signal is used internally as rhs  
-			}
-			return sigNameStr;  // return signal form if found
-		}	
-		return ref;  // no name change by default
+	/** store user-defined signal as rhs reference in current module and return name with modified prefix */
+	public String saveUserSignalInfo(String rawName) {
+		String sigName = rawName.replaceFirst("rg_", "sig_");  // convert to signal prefix
+		// the local list may not have been populated, but can load with null to indicate that it's been seen on rhs of an assign
+		if (!userDefinedSignals.containsKey(sigName)) {
+			//System.out.println("SystemVerilogLogicModule saveUserSignalInfo: " + sigNameStr + " was found in master list, but not in module-specific list");
+			userDefinedSignals.put(sigName, null);
+		}
+		else {
+			//if (userDefinedSignals.get(sigNameStr)==null) System.out.println("SystemVerilogLogicModule saveUserSignalInfo: marking null signal " + sigNameStr + " as rhsReference");
+			if (userDefinedSignals.get(sigName)!=null) userDefinedSignals.get(sigName).setRhsReference(true);  // indicate that this signal is used internally as rhs  
+		}
+		return sigName;  // return signal form if found
 	}
 	
 	/** loop through user defined signals and add assign statements to set these signals - call after build when userDefinedSignals is valid */  
@@ -811,7 +805,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 					if (ref.isWellFormedSignalName()) {
 						String refName = ref.getReferenceName(sig, false); 
 						//System.out.println("SystemVerilogLogicModule createSignalAssigns: sig prop inst=" + sig.getInstancePath() + ", refName=" + refName);
-						refName = resolveAsSignalOrField(refName);  // resolve and tag any signals as rhsReference
+						if (ref.isUserSignal()) refName = saveUserSignalInfo(refName);  // tag any signals as rhsReference
 						// check for a valid signal
 						if (!this.hasDefinedSignal(refName) && (rhsSignals.containsKey(refName))) {  
 							RhsReferenceInfo rInfo = rhsSignals.get(refName);

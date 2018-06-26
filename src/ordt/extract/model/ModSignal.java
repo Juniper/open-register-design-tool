@@ -10,6 +10,11 @@ import ordt.output.SignalProperties;
 
 public class ModSignal extends ModComponent {
 	
+	public ModSignal() {
+		super();
+		compType = CompType.SIGNAL;
+	}
+	
 	/** create a new indexed model instance of this component */
 	@Override
 	public ModIndexedInstance createNewInstance() {

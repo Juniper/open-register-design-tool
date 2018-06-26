@@ -29,7 +29,7 @@ public abstract class ModComponent extends ModBaseComponent {
 	protected List<ModEnum> enums;   // enums contained in this component
 	protected CompParameterLists postPropertyAssignLists;  // list of post property assignments for descendent instances  
 	protected boolean isRoot = false;   // root component
-	public enum CompType { DEFAULT, ADDRMAP, REG, REGSET, FIELD, FIELDSET }  // subset of comp types used for annotation check and addrmap indication
+	public enum CompType { DEFAULT, ADDRMAP, REG, REGSET, FIELD, FIELDSET, SIGNAL }  // subset of comp types used for annotation check and addrmap indication
 	protected CompType compType = CompType.DEFAULT;
 	
 	protected ModComponent() {
@@ -165,6 +165,11 @@ public abstract class ModComponent extends ModBaseComponent {
 	/** return true if this component is tagged as a field */
 	public boolean isField() {
 		return (compType == CompType.FIELD);
+	}
+
+	/** return true if this component is tagged as a signal */
+	public boolean isSignal() {
+		return (compType == CompType.SIGNAL);
 	}
 
 	/** return true if this component is tagged as a fieldset */

@@ -798,11 +798,6 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 		return false;
 	}
 
-	@Override
-	public boolean isUserDefinedSignal(String name) {
-		return false;  // always return false since jspec does not allow user-defined signals
-	}
-
     // ------------------------------------------------------------------------------------------------
 	
 	/** set the width and offset for current field/fieldset instance
