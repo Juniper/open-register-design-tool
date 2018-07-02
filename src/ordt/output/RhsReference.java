@@ -194,8 +194,9 @@ public class RhsReference {
 		   this.sameAddrmap = detectAddrmapMismatch(rawInstancePath, ancModComp);
 		   // detect addrmap mismatch between lhs and rhs
 		   if (!sameAddrmap) {
-			   if (this.isRegRef())	Ordt.warnMessage("Rhs assignment reference " + rawReference + " is in a different addrmap than lhs reference.");
-			   else	Ordt.errorMessage("Rhs assignment reference " + rawReference + " is in a different addrmap than lhs reference.");
+			   Ordt.warnMessage("Rhs assignment reference " + rawReference + " is in a different addrmap than lhs reference.");
+			   //if (this.isRegRef())	Ordt.warnMessage("Rhs assignment reference " + rawReference + " is in a different addrmap than lhs reference.");
+			   //else	Ordt.errorMessage("Rhs assignment reference " + rawReference + " is in a different addrmap than lhs reference.");
 		   }
 	   }
 	   // if no inst found then error
