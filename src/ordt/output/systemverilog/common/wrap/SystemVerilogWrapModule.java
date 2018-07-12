@@ -583,19 +583,20 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 	 */
 	public void writeXformModules(boolean separateXformFiles, String outPrefix, String outSuffix, String commentPrefix) { 
 		// write define for each xform used in this wrapper
-		for (WrapperRemapXform xform: xformsDefined.values()) {
-			OutputWriterIntf xformWriter = writer;  // use the builder/writer by default
-			if (separateXformFiles) {
-				String outFile = outPrefix + xform.getModuleName() + outSuffix;
-				xformWriter = new SimpleOutputWriter(outFile, "wrapper xform");  // override writers
-		    	//writer.writeHeader(commentPrefix); // write the file header  TODO - move all these write methods to static?
+		for (WrapperRemapXform xform: xformsDefined.values()) { 
+			if (!xform.hasBeenWritten()) {  // only allow each module to be written once
+				OutputWriterIntf xformWriter = writer;  // use the builder/writer by default
+				if (separateXformFiles) {
+					String outFile = outPrefix + xform.getModuleName() + outSuffix;
+					xformWriter = new SimpleOutputWriter(outFile, "wrapper xform");  // override writers
+			    	//writer.writeHeader(commentPrefix); // write the file header  TODO - move all these write methods to static?
+				}
+				xformWriter.writeStmt(0, "");
+				//xformWriter.writeStmt(0, "// this is module " + xform.getModuleName());
+				xformWriter.writeStmts(0, xform.getXformModuleDef());
+				if (separateXformFiles) xformWriter.close();
 			}
-			xformWriter.writeStmt(0, "");
-			//xformWriter.writeStmt(0, "// this is module " + xform.getModuleName());
-			xformWriter.writeStmts(0, xform.getXformModuleDef());
-			if (separateXformFiles) xformWriter.close();
-		}
-		
+		}	
 	}
 
 	public static void main(String[] args) {

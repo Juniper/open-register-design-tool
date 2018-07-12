@@ -154,6 +154,7 @@ ext_parm_defs
    | 'generate_dv_bind_modules' EQ bool 
    | 'use_global_dv_bind_controls' EQ bool 
    | 'include_addr_monitor' EQ bool 
+   | 'generate_iwrap_xform_modules' EQ bool 
    ;
    
  systemverilog_wrapper_info

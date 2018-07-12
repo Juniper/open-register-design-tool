@@ -949,7 +949,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		// create wrapper module 
 		SystemVerilogWrapModule intfWrapper = createTopWrapperModule(useInterfaces);
 		// write xform modules
-		intfWrapper.writeXformModules(separateXformFiles, outPrefix, outSuffix, commentPrefix); 
+		if (ExtParameters.sysVerGenerateIwrapXformModules()) intfWrapper.writeXformModules(separateXformFiles, outPrefix, outSuffix, commentPrefix); 
 		// write wrapper module
 		intfWrapper.write();
 

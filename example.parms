@@ -63,6 +63,7 @@ output systemverilog {
     generate_dv_bind_modules = true   // if true generate diagnostic dv bind modules 
     use_global_dv_bind_controls = true   // if true diagnostic dv bind module settings will be controlled by global packages 
     //include_addr_monitor = true       // generate io to monitor decoder transactions to a specified address range 
+    generate_iwrap_xform_modules = false // generate common wrapper transform modules
 }
 
 // jspec output parameters

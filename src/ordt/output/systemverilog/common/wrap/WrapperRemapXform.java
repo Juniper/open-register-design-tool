@@ -6,7 +6,7 @@ import java.util.List;
 /** remap transform base class (simple assign) */
 public class WrapperRemapXform {
 	public enum WrapperRemapType { PASSTHRU, INVERT, SYNC_STAGES }
-
+	
 	WrapperRemapType type = WrapperRemapType.PASSTHRU;
 	
 	public WrapperRemapType getType() {
@@ -26,5 +26,9 @@ public class WrapperRemapXform {
 	/** return module name for this xform */
 	public String getModuleName() {
 		return null;
+	}
+
+	public boolean hasBeenWritten() {
+		return true;  // default xform has no module, so mark as written
 	}
 }

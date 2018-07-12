@@ -11,6 +11,7 @@ public class WrapperRemapSyncStagesXform extends WrapperRemapXform {
 	protected String moduleOverride;
 	static int instanceCount = 0;
 	static String moduleName = "ordt_wrap_sync_stages";
+    private static boolean hasBeenWritten = false;
 	
 	public WrapperRemapSyncStagesXform(int delayStages, String clkName, String moduleOverride) {
 		super();
@@ -36,6 +37,7 @@ public class WrapperRemapSyncStagesXform extends WrapperRemapXform {
 	/** Return List of String statements defining this xform module */
 	@Override
 	public List<String> getXformModuleDef() {
+		hasBeenWritten = true;  // mark transform as written once its module define is retrieved
 		List<String> outList = new ArrayList<String>();
 		outList.add("//---------- module " + moduleName);
 		outList.add("module " + moduleName);
@@ -56,6 +58,11 @@ public class WrapperRemapSyncStagesXform extends WrapperRemapXform {
 		outList.add("  assign out_sig = dly[STAGES];");
 		outList.add("endmodule");
 		return outList;  
+	}
+
+	@Override
+	public boolean hasBeenWritten() {
+		return hasBeenWritten;
 	}
 
 	/** return module name for this xform */
