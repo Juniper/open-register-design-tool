@@ -4042,7 +4042,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 					if (elem.hasExtAddress()) {
 						String addressDefault = "";
 						if (elem.hasExternalRepLevel()) 
-							addressDefault = "{" + elem.getExternalType().getRepLevelAddrWidth() + "'d0, pio_dec_address_d1 " + SystemVerilogSignal.genRefArrayString(elem.getExtLowBit(), elem.getExtInstAddressWidth()) + "}"; // zero ancestor bits
+							if (elem.getExtInstAddressWidth() > 0) addressDefault = "{" + elem.getExternalType().getRepLevelAddrWidth() + "'d0, pio_dec_address_d1 " + SystemVerilogSignal.genRefArrayString(elem.getExtLowBit(), elem.getExtInstAddressWidth()) + "}"; // zero ancestor bits w/ instance address
+							else addressDefault = elem.getExternalType().getRepLevelAddrWidth() + "'d0"; // zero ancestor bits w/ no instance address
 						else
 							addressDefault = "pio_dec_address_d1 " + elem.getExtAddressArrayString(); 
 						writeStmt(indentLevel, elem.getFullSignalName(DefSignalType.D2H_ADDR) + "_next = " + addressDefault + ";");  // address is resistered value from pio
