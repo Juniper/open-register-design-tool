@@ -3,6 +3,7 @@ package ordt.output.systemverilog;
 import java.util.HashMap;
 
 import ordt.output.systemverilog.SystemVerilogDefinedSignal.DefSignalAssoc;
+import ordt.output.systemverilog.common.SystemVerilogLocationMap;
 
 /** class of static members to manage generated systemverilog signal names - these have hierarchy dependent names */
 public class SystemVerilogDefinedSignals {
@@ -28,12 +29,11 @@ public class SystemVerilogDefinedSignals {
 	};
 	
 	// define io locations
-	public static final Integer ANY = null;
-	public static final Integer NONE = 0;
-	public static final Integer HW = 1;
-	public static final Integer LOGIC = 2;
-	public static final Integer DECODE = 4;
-	public static final Integer PIO = 8;
+	public static final Integer NONE = SystemVerilogLocationMap.getId("NONE");
+	public static final Integer HW = SystemVerilogLocationMap.add("HW");
+	public static final Integer LOGIC = SystemVerilogLocationMap.add("LOGIC");
+	public static final Integer DECODE = SystemVerilogLocationMap.add("DECODE");
+	public static final Integer PIO = SystemVerilogLocationMap.add("PIO");
 
 	private static HashMap<DefSignalType, SystemVerilogDefinedSignal> sigSet = initDefinedSignals();  // set of defined signals by type
 	private static HashMap<String, DefSignalType> rhsSigSet = initRhsSignals();  // set of signal types allowed in rhs assign by deref
@@ -44,8 +44,8 @@ public class SystemVerilogDefinedSignals {
 	private static HashMap<DefSignalType, SystemVerilogDefinedSignal> initDefinedSignals() {
 		HashMap<DefSignalType, SystemVerilogDefinedSignal> newList = new HashMap<DefSignalType, SystemVerilogDefinedSignal>();
 		
-		newList.put(DefSignalType.FIELD, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, NONE, NONE, "rg_", null));
-		newList.put(DefSignalType.FIELD_NEXT, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, NONE, NONE, "reg_", "next"));
+		newList.put(DefSignalType.FIELD, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, LOGIC, LOGIC, "rg_", null));
+		newList.put(DefSignalType.FIELD_NEXT, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, LOGIC, LOGIC, "reg_", "next"));
 		
 		newList.put(DefSignalType.L2H_DATA, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, LOGIC, HW, "l2h_", "r"));
 		newList.put(DefSignalType.L2H_SWACC, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, LOGIC, HW, "l2h_", "swacc_o"));
@@ -73,9 +73,9 @@ public class SystemVerilogDefinedSignals {
 		newList.put(DefSignalType.H2L_INCRVALUE, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, HW, LOGIC, "h2l_", "incrvalue"));
 		newList.put(DefSignalType.H2L_DECRVALUE, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, HW, LOGIC, "h2l_", "decrvalue"));
 		
-		newList.put(DefSignalType.PREVINTR, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, NONE, NONE, "intr_", "previntr"));
-		newList.put(DefSignalType.CNTR_NEXT, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, NONE, NONE, "cntr_", "next"));
-		newList.put(DefSignalType.INTR_DLY, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, NONE, NONE, "intr_", "delay"));
+		newList.put(DefSignalType.PREVINTR, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, LOGIC, LOGIC, "intr_", "previntr"));
+		newList.put(DefSignalType.CNTR_NEXT, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, LOGIC, LOGIC, "cntr_", "next"));
+		newList.put(DefSignalType.INTR_DLY, new SystemVerilogDefinedSignal(DefSignalAssoc.FIELD, LOGIC, LOGIC, "intr_", "delay"));
 		
 		newList.put(DefSignalType.D2L_DATA, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, DECODE, LOGIC, "d2l_", "w"));
 		newList.put(DefSignalType.D2L_ENABLE, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, DECODE, LOGIC, "d2l_", "w_enable"));
@@ -97,9 +97,9 @@ public class SystemVerilogDefinedSignals {
 		
 		newList.put(DefSignalType.L2H_INTR, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, LOGIC, HW, "l2h_", "intr_o"));
 		newList.put(DefSignalType.L2H_HALT, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, LOGIC, HW, "l2h_", "halt_o"));
-		newList.put(DefSignalType.INTR_CLEAR, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, NONE, NONE, "intr_", "clear"));
+		newList.put(DefSignalType.INTR_CLEAR, new SystemVerilogDefinedSignal(DefSignalAssoc.REG, LOGIC, LOGIC, "intr_", "clear"));
 		
-		newList.put(DefSignalType.USR_SIGNAL, new SystemVerilogDefinedSignal(DefSignalAssoc.SIGNAL, NONE, NONE, "sig_", null));  // default to no from/to
+		newList.put(DefSignalType.USR_SIGNAL, new SystemVerilogDefinedSignal(DefSignalAssoc.SIGNAL, LOGIC, LOGIC, "sig_", null));  // default to no from/to
 		newList.put(DefSignalType.SIGSET, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, NONE, NONE, null, null));
 		newList.put(DefSignalType.LH_INTERFACE, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, LOGIC, HW, "lh_", null)); 
 		newList.put(DefSignalType.DH_INTERFACE, new SystemVerilogDefinedSignal(DefSignalAssoc.ANY, DECODE, HW, "dh_", null)); 
