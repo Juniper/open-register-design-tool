@@ -22,6 +22,7 @@ import ordt.output.OutputBuilder;
 import ordt.output.RegProperties;
 import ordt.output.RhsReference;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.common.SystemVerilogLocationMap;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.common.wrap.SystemVerilogWrapModule;
@@ -73,7 +74,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	// module defines  
 	protected SystemVerilogDecodeModule decoder = new SystemVerilogDecodeModule(this, DECODE, decodeClk);
 	protected SystemVerilogLogicModule logic = new SystemVerilogLogicModule(this, LOGIC, logicClk);
-	protected SystemVerilogModule top = new SystemVerilogModule(this, 0, defaultClk, getDefaultReset());  // TODO was DECODE|LOGIC
+	protected SystemVerilogModule top = new SystemVerilogModule(this, 0, defaultClk, getDefaultReset());
 	
 	private  List<String> tempAssignList = new ArrayList<String>();    // temp list of assign statements for current register (used in finishReg)
 
@@ -968,14 +969,16 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	 * @param outPrefix - prefix to be used on generated xform modules if using separate files
 	 * @param outSuffix- suffix to be used on generated xform modules if using separate files 
 	 */
-	protected  SystemVerilogWrapModule createTopWrapperModule(boolean useInterfaces) {		
-		SystemVerilogWrapModule intfWrapper = new SystemVerilogWrapModule(this, 0, defaultClk, getDefaultReset());
+	protected  SystemVerilogWrapModule createTopWrapperModule(boolean useInterfaces) {	
+		int WRAPPER = SystemVerilogLocationMap.getId("WRAPPER");
+		SystemVerilogWrapModule intfWrapper = new SystemVerilogWrapModule(this, WRAPPER, defaultClk, getDefaultReset());
 		intfWrapper.setName(getModuleName() + "_pio_iwrap");
 		intfWrapper.setUseInterfaces(useInterfaces);
 		// add pio_top instance
 		intfWrapper.addInstance(top, "pio");
         // create wrapper
 		intfWrapper.generateWrapperInfo();
+		//System.out.println("SystemVerilogWrapModule createTopWrapperModule: internal locs=" + intfWrapper.getInsideLocs() + ", outside locs=" + intfWrapper.getOutsideLocs());
 		return intfWrapper;
 	}
 

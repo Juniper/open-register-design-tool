@@ -117,7 +117,7 @@ public class SystemVerilogModule {
 
 	/** return encoded integer of all locations outside this module and its children */
 	public Integer getOutsideLocs() {
-		return ~getInsideLocs();
+		return SystemVerilogLocationMap.notLocations(getInsideLocs());
 	}
 
 	public void setUseInterfaces(boolean useInterfaces) {

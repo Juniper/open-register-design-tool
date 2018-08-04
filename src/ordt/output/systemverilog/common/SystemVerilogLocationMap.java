@@ -43,6 +43,18 @@ public class SystemVerilogLocationMap {
 		return (map == null)? null : map.getId();
 	}
 
+	/** return encoded value of all defined locations */
+	public static int allLocations() {
+		if ((nextAvailableId == null) || (nextAvailableId < 2)) return 0;
+		return nextAvailableId - 1;
+	}
+
+	/** return the not of a defined location encoding */
+	public static Integer notLocations(Integer loc) {
+		if (loc == null) return null;
+		return allLocations() ^ loc;
+	}
+	
 	protected SystemVerilogModule getModule() {
 		return module;
 	}

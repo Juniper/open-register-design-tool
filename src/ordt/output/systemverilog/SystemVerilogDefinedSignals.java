@@ -34,6 +34,7 @@ public class SystemVerilogDefinedSignals {
 	public static final Integer LOGIC = SystemVerilogLocationMap.add("LOGIC");
 	public static final Integer DECODE = SystemVerilogLocationMap.add("DECODE");
 	public static final Integer PIO = SystemVerilogLocationMap.add("PIO");
+	public static final Integer WRAPPER = SystemVerilogLocationMap.add("WRAPPER");
 
 	private static HashMap<DefSignalType, SystemVerilogDefinedSignal> sigSet = initDefinedSignals();  // set of defined signals by type
 	private static HashMap<String, DefSignalType> rhsSigSet = initRhsSignals();  // set of signal types allowed in rhs assign by deref
