@@ -55,7 +55,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	protected List<IntrDiagInfo> intrInfoList = new ArrayList<IntrDiagInfo>();  // saved list of interrupt signal info for diagnostic module gen
 	
 	public SystemVerilogLogicModule(SystemVerilogBuilder builder, int insideLocs, String defaultClkName) {
-		super(builder, insideLocs, defaultClkName, builder.getDefaultReset());
+		super(builder, insideLocs, defaultClkName, builder.getDefaultReset(), ExtParameters.sysVerUseAsyncResets());
 		this.builder = builder;  // save reference to calling builder
 	}
 	
@@ -901,7 +901,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 
 	/** create an interrupt assertion bind module */
 	public SystemVerilogModule createIntrBindModule() {
-		SystemVerilogModule intrBindMod = new SystemVerilogModule(builder, getInsideLocs(), defaultClkName, builder.getDefaultReset());
+		SystemVerilogModule intrBindMod = new SystemVerilogModule(builder, getInsideLocs(), defaultClkName, builder.getDefaultReset(), ExtParameters.sysVerUseAsyncResets());
 		String intrBindModName = getName() + "_intr_bind";
 		intrBindMod.setName(intrBindModName);
 		Integer defaultOutputLoc = getOutsideLocs();
@@ -1001,7 +1001,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	}
 
 	public SystemVerilogModule createCoverBindModule() {
-		SystemVerilogModule coverBindMod = new SystemVerilogModule(builder, getInsideLocs(), defaultClkName, builder.getDefaultReset());
+		SystemVerilogModule coverBindMod = new SystemVerilogModule(builder, getInsideLocs(), defaultClkName, builder.getDefaultReset(), ExtParameters.sysVerUseAsyncResets());
 		String bindModName = getName() + "_cover_bind";
 		coverBindMod.setName(bindModName);
 		Integer defaultOutputLoc = getOutsideLocs();

@@ -18,7 +18,6 @@ import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.common.RemapRuleList.RemapRuleType;
 import ordt.output.systemverilog.common.io.SystemVerilogIOSignalList;
-import ordt.parameters.ExtParameters;
 
 public class SystemVerilogWrapModule extends SystemVerilogModule {
 
@@ -32,8 +31,8 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 	 * @param defaultClkName - default clock name used for generated registers
 	 */
 	public SystemVerilogWrapModule(OutputWriterIntf writer, int insideLocs, String defaultClkName,
-			String coverageResetName) {
-		super(writer, insideLocs, defaultClkName, coverageResetName);
+			String coverageResetName, boolean useAsyncResets) {
+		super(writer, insideLocs, defaultClkName, coverageResetName, useAsyncResets);
 	}
 
 	// ------------------- override child instance methods/classes  -----------------------
@@ -471,8 +470,8 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 	
 	// ------------------- wrapper IO/signal generation  -----------------------
 	
-    /** generate IOs, signals, and assignments for this wrap module.  Must be called after child instances are added */
-	public void generateWrapperInfo() {  
+    /** generate IOs, signals, and assignments for this wrap module using specidied xform map.  Must be called after child instances are added */
+	public void generateWrapperInfo(LinkedHashMap<String, WrapperRemapXform> xformMap) {  
 		generateIOListFromChildren();  // gen wrapper IO list
 		inheritChildParameters();  // use child parameters
 		// create signal mappings
@@ -481,7 +480,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 		setIODestinationSignals(useInterfaces);
 		setChildDestinationSignals();
 		// get xform overrides from parameters
-		wrapMappings.setRemapTransforms(ExtParameters.sysVerWrapperXformMap());
+		wrapMappings.setRemapTransforms(xformMap);
 		// create wire/reg defs and assigns for mapping
 		wrapMappings.generateMapOutput();	
 		//wrapMappings.display(); 

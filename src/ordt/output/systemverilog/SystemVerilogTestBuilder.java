@@ -32,8 +32,8 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 	protected SystemVerilogIOSignalList benchSigList = new SystemVerilogIOSignalList("bench");   // signals specific to the bench
 	protected SystemVerilogIOSignalList primaryBfmToDecoderSigList = new SystemVerilogIOSignalList("primary bfm - decode");   // signals specific to the bench
 	// module defines  
-	protected SystemVerilogModule primaryBfm = new SystemVerilogModule(this, PIO, defaultClk, getDefaultReset());  // primary pio interface bfm
-	protected SystemVerilogModule benchtop = new SystemVerilogModule(this, 0, defaultClk, getDefaultReset());  // bench top module
+	protected SystemVerilogModule primaryBfm = new SystemVerilogModule(this, PIO, defaultClk, getDefaultReset(), ExtParameters.sysVerUseAsyncResets());  // primary pio interface bfm
+	protected SystemVerilogModule benchtop = new SystemVerilogModule(this, 0, defaultClk, getDefaultReset(), ExtParameters.sysVerUseAsyncResets());  // bench top module
 
 	public SystemVerilogTestBuilder(RegModelIntf model) {
 		super(model);

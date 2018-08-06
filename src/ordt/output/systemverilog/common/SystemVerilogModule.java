@@ -52,11 +52,11 @@ public class SystemVerilogModule {
 	 * @param insideLocs - ORed Integer of locations in top level in this module (not including children) 
 	 * @param defaultClkName - default clock name used for generated registers
 	 */
-	public SystemVerilogModule(OutputWriterIntf writer, int insideLocs, String defaultClkName, String coverageResetName) {
+	public SystemVerilogModule(OutputWriterIntf writer, int insideLocs, String defaultClkName, String coverageResetName, boolean useAsyncResets) {
 		this.writer = writer;  // save reference to calling writer
 		setTerminalInsideLocs(insideLocs);  // locations inside this module
 		this.defaultClkName = defaultClkName;
-		registers = new SystemVerilogRegisters(writer, defaultClkName);
+		registers = new SystemVerilogRegisters(writer, defaultClkName, useAsyncResets);
 		wireDefList = new SystemVerilogSignalList();
 		regDefList = new SystemVerilogSignalList();
 		coverGroups = new SystemVerilogCoverGroups(writer, defaultClkName, coverageResetName);  // TODO - need to change cover reset if separate logic reset is being used

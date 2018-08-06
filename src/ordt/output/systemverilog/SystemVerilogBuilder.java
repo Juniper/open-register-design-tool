@@ -74,7 +74,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	// module defines  
 	protected SystemVerilogDecodeModule decoder = new SystemVerilogDecodeModule(this, DECODE, decodeClk);
 	protected SystemVerilogLogicModule logic = new SystemVerilogLogicModule(this, LOGIC, logicClk);
-	protected SystemVerilogModule top = new SystemVerilogModule(this, 0, defaultClk, getDefaultReset());
+	protected SystemVerilogModule top = new SystemVerilogModule(this, 0, defaultClk, getDefaultReset(), ExtParameters.sysVerUseAsyncResets());
 	
 	private  List<String> tempAssignList = new ArrayList<String>();    // temp list of assign statements for current register (used in finishReg)
 
@@ -971,13 +971,13 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	 */
 	protected  SystemVerilogWrapModule createTopWrapperModule(boolean useInterfaces) {	
 		int WRAPPER = SystemVerilogLocationMap.getId("WRAPPER");
-		SystemVerilogWrapModule intfWrapper = new SystemVerilogWrapModule(this, WRAPPER, defaultClk, getDefaultReset());
+		SystemVerilogWrapModule intfWrapper = new SystemVerilogWrapModule(this, WRAPPER, defaultClk, getDefaultReset(), ExtParameters.sysVerUseAsyncResets());
 		intfWrapper.setName(getModuleName() + "_pio_iwrap");
 		intfWrapper.setUseInterfaces(useInterfaces);
 		// add pio_top instance
 		intfWrapper.addInstance(top, "pio");
         // create wrapper
-		intfWrapper.generateWrapperInfo();
+		intfWrapper.generateWrapperInfo(ExtParameters.sysVerWrapperXformMap());
 		//System.out.println("SystemVerilogWrapModule createTopWrapperModule: internal locs=" + intfWrapper.getInsideLocs() + ", outside locs=" + intfWrapper.getOutsideLocs());
 		return intfWrapper;
 	}

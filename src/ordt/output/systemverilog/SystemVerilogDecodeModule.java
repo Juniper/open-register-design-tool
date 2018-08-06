@@ -49,7 +49,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	protected SystemVerilogBuilder builder;  // builder creating this module
 
 	public SystemVerilogDecodeModule(SystemVerilogBuilder builder, int insideLocs, String clkName) {
-		super(builder, insideLocs, clkName, builder.getDefaultReset());
+		super(builder, insideLocs, clkName, builder.getDefaultReset(), ExtParameters.sysVerUseAsyncResets());
 		this.builder = builder;  // save reference to calling builder
 	}
 
