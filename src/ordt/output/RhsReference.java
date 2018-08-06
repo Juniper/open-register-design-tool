@@ -8,7 +8,7 @@ import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.model.ModComponent;
 import ordt.extract.model.ModInstance;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals;
@@ -194,19 +194,19 @@ public class RhsReference {
 		   this.sameAddrmap = detectAddrmapMismatch(rawInstancePath, ancModComp);
 		   // detect addrmap mismatch between lhs and rhs
 		   if (!sameAddrmap) {
-			   Ordt.warnMessage("Rhs assignment reference " + rawReference + " is in a different addrmap than lhs reference.");
-			   //if (this.isRegRef())	Ordt.warnMessage("Rhs assignment reference " + rawReference + " is in a different addrmap than lhs reference.");
-			   //else	Ordt.errorMessage("Rhs assignment reference " + rawReference + " is in a different addrmap than lhs reference.");
+			   MsgUtils.warnMessage("Rhs assignment reference " + rawReference + " is in a different addrmap than lhs reference.");
+			   //if (this.isRegRef())	MsgUtils.warnMessage("Rhs assignment reference " + rawReference + " is in a different addrmap than lhs reference.");
+			   //else	MsgUtils.errorMessage("Rhs assignment reference " + rawReference + " is in a different addrmap than lhs reference.");
 		   }
 	   }
 	   // if no inst found then error
 	   if (rhsInstance == null) 
-		   Ordt.errorMessage("Unable to resolve rhs assignment reference " + rawReference);
+		   MsgUtils.errorMessage("Unable to resolve rhs assignment reference " + rawReference);
 	   // set signal
 	   if (rhsInstance.getRegComp().isSignal()) {
 		   userSignal = true;
 		   if (hasDeRef()) 
-			   Ordt.errorMessage("Invalid rhs signal reference in assignment (" + rawReference + ")");  // user signal reference with a dref is not allowed
+			   MsgUtils.errorMessage("Invalid rhs signal reference in assignment (" + rawReference + ")");  // user signal reference with a dref is not allowed
 	   }
    }
    
@@ -309,7 +309,7 @@ public class RhsReference {
 	   String resName = SystemVerilogDefinedSignals.getResolvedRhsSignalExpression(deRef, instancePath, addPrefix);
 	   if (resName != null) return resName;
 	   // if not supported flag an error
-	   Ordt.errorExit("unsupported right hand assignment reference: " + getRawReference());
+	   MsgUtils.errorExit("unsupported right hand assignment reference: " + getRawReference());
 	   return null;
    }
 

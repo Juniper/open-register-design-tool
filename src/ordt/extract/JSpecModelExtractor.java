@@ -23,6 +23,7 @@ import ordt.extract.model.ModIndexedInstance;
 import ordt.extract.model.ModInstance;
 import ordt.extract.model.ModRegister;
 import ordt.extract.model.ModRootComponent;
+import ordt.output.common.MsgUtils;
 import ordt.extract.model.ModComponent.CompType;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
@@ -99,18 +100,18 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
         	ParseTreeWalker walker = new ParseTreeWalker(); // create standard
         	walker.walk(this, tree); // initiate walk of tree with listener
         	if (parser.getNumberOfSyntaxErrors() > 0) {
-        		Ordt.errorExit("Jspec parser errors detected.");  
+        		MsgUtils.errorExit("Jspec parser errors detected.");  
         	}
 
         	// if typedefs are specified for processing, find each and create an instance  
         	if (ExtParameters.hasJspecProcessTypedefs()) processTypedefs();
         	else if (root.getFirstChildInstance() == null)
-        		Ordt.errorExit("No jspec structures instanced or typedefs specified for processing.");
+        		MsgUtils.errorExit("No jspec structures instanced or typedefs specified for processing.");
 
         	//root.display(true);
 
         } catch (FileNotFoundException e) {
-        	Ordt.errorExit("jspec file not found. "  + e.getMessage());
+        	MsgUtils.errorExit("jspec file not found. "  + e.getMessage());
         } catch (IOException e) {
             e.printStackTrace();
         }		
@@ -140,7 +141,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
     			root.addCompInstance(newInstance);   // add this instance to root or container
     			newInstance.setParent(root);
     		}
-    		else Ordt.errorExit("Unable to find specified typedef (" + typedefName + ") for processing.");        			
+    		else MsgUtils.errorExit("Unable to find specified typedef (" + typedefName + ") for processing.");        			
 			
 		}
 		// otherwise more than one typedef so create a container component
@@ -170,7 +171,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
         			tdefContainer.addCompInstance(newInstance);   // add this instance to root or container
         			newInstance.setParent(tdefContainer);
         		}
-        		else Ordt.errorExit("Unable to find specified typedef (" + typedefName + ") for processing.");        			
+        		else MsgUtils.errorExit("Unable to find specified typedef (" + typedefName + ") for processing.");        			
     		}
     	}
 	}
@@ -218,7 +219,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 		// extract the field width and store in component
 		String fieldWidthStr = ctx.getChild(arrayIdx).getChild(1).getText();
 		RegNumber fieldWidth = resolveNumExpresion(fieldWidthStr);
-		if (fieldWidth == null)  Ordt.errorExit("Width of field " + activeCompDefs.peek().getId() +
+		if (fieldWidth == null)  MsgUtils.errorExit("Width of field " + activeCompDefs.peek().getId() +
 				" (value=" + fieldWidthStr + ") in " + activeCompDefs.peek().getParent().getId() + " could not be resolved.");
 		activeCompDefs.peek().setProperty("fieldwidth", 
 				fieldWidth.toFormat(RegNumber.NumBase.Dec, RegNumber.NumFormat.Int), 0);  // save width to component (also used to indicate field comp)
@@ -333,7 +334,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 		// extract the field width and store in component
 		String fieldWidthStr = ctx.getChild(arrayIdx).getChild(1).getText();
 		RegNumber fieldWidth = resolveNumExpresion(fieldWidthStr);
-		if (fieldWidth == null)  Ordt.errorExit("Width of field " + activeCompDefs.peek().getId() +
+		if (fieldWidth == null)  MsgUtils.errorExit("Width of field " + activeCompDefs.peek().getId() +
 				" (value=" + fieldWidthStr + ") in " + activeCompDefs.peek().getParent().getId() + " could not be resolved.");
 		activeCompDefs.peek().setProperty("fieldwidth", 
 				fieldWidth.toFormat(RegNumber.NumBase.Dec, RegNumber.NumFormat.Int), 0);  // save width to component  (also used to indicate field comp)
@@ -361,7 +362,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 		RegNumber fieldWidth = resolveNumExpresion(fieldWidthStr);
 		// update  field indices with no update for nop (relative - finel vals resolved at builder)
 		if (fieldWidth != null) updateFieldIndexInfo(fieldWidth.toInteger(), false);
-		else Ordt.errorExit("Width of nop field (value=" + fieldWidthStr + ") in " + activeCompDefs.peek().getId() + " could not be resolved.");
+		else MsgUtils.errorExit("Width of nop field (value=" + fieldWidthStr + ") in " + activeCompDefs.peek().getId() + " could not be resolved.");
 		
 	}
 	
@@ -402,9 +403,9 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
         			numConstants.get(activeConstantId).setVectorLen(lastResolvedArrayIndex);
         			//System.out.println("JSpecModelExtractor: exitNum_constant_def, setting width of " + activeConstantId +  " to " + lastResolvedArrayIndex);
         		}
-        		else Ordt.warnMessage("Width of integer constant " + activeConstantId + " could not be resolved");
+        		else MsgUtils.warnMessage("Width of integer constant " + activeConstantId + " could not be resolved");
         	}
-        	else Ordt.warnMessage("Value of integer constant " + activeConstantId + " could not be resolved");
+        	else MsgUtils.warnMessage("Value of integer constant " + activeConstantId + " could not be resolved");
         }
 		// otherwise save accumulated_constant_width
         else if (accumulated_constant_width > 0) {
@@ -461,7 +462,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
         		accumulated_constant_width += fldWidth;
    				//System.out.println("JSpecModelExtractor exitWidth_constant_assign: setting width of " + activeConstantId +  " to " + accumulated_constant_width);
         	}
-        	else Ordt.warnMessage("Width of field/fieldset " + fldId + " in constant " + activeConstantId + " could not be resolved"); 
+        	else MsgUtils.warnMessage("Width of field/fieldset " + fldId + " in constant " + activeConstantId + " could not be resolved"); 
         }       
 		// otherwise if an integer assign then set value and resolve width
         else if (isIntConstant) {
@@ -469,7 +470,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
             		accumulated_constant_width += lastResolvedArrayIndex;
         			//System.out.println("JSpecModelExtractor: exitWidth_constant_assign, setting width of " + activeConstantId +  " to " + accumulated_constant_width);
         		}
-        		else Ordt.warnMessage("Width of integer constant " + activeConstantId + " could not be resolved");
+        		else MsgUtils.warnMessage("Width of integer constant " + activeConstantId + " could not be resolved");
         }
 		// otherwise if an enum constant then set value to zero and resolve width
         else if (isEnumConstant) {
@@ -477,7 +478,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
             		accumulated_constant_width += lastResolvedArrayIndex;
         			//System.out.println("JSpecModelExtractor: exitWidth_constant_assign, setting width of " + activeConstantId +  " to " + accumulated_constant_width);
         		}
-        		else Ordt.warnMessage("Width of enum constant " + activeConstantId + " could not be resolved");
+        		else MsgUtils.warnMessage("Width of enum constant " + activeConstantId + " could not be resolved");
         }	
 	}
 
@@ -610,7 +611,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	@Override public void enterString_constant_def(@NotNull JSpecParser.String_constant_defContext ctx) { 
 		//System.out.println("JSpecModelExtractor: enterString_constant_def: --------  def=" + ctx.getText() );
 		String constID = ctx.getChild(1).getText();
-		Ordt.warnMessage("Definition of non-integer constant " + constID + " will be ignored");
+		MsgUtils.warnMessage("Definition of non-integer constant " + constID + " will be ignored");
 		
 	}
 	
@@ -653,7 +654,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	
 	/** issue unsupported msg for transaction */
 	@Override public void enterTransaction_def(@NotNull JSpecParser.Transaction_defContext ctx) {
-		Ordt.warnMessage("Jspec transaction definition not supported (line " + ctx.getStart().getLine() + ")"); 
+		MsgUtils.warnMessage("Jspec transaction definition not supported (line " + ctx.getStart().getLine() + ")"); 
 	}
 
 	/**
@@ -725,7 +726,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 			}
 
 		}
-		else Ordt.errorExit("unable to find component " + compId + " instanced in " + activeCompDefs.peek().getId());
+		else MsgUtils.errorExit("unable to find component " + compId + " instanced in " + activeCompDefs.peek().getId());
 	}
 	
 	/**
@@ -999,7 +1000,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 			    break;
 			default: 
 				swVal = "rw";
-	            Ordt.warnMessage("Assignment of jspec access_mode to " + value + " not supported. rw assumed.");		
+	            MsgUtils.warnMessage("Assignment of jspec access_mode to " + value + " not supported. rw assumed.");		
 			}
 			
 			if (isTypeDefInstance) {  // set as default if not an instance
@@ -1049,7 +1050,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 			
 		// otherwise issue a warning message unless in the ignore list
 		else if (!ignoredParameters.contains(parm)) {
-			Ordt.warnMessage("Unsupported jspec assignment: " + parm + " = " + value + " in component " + activeCompDefs.peek().getId());
+			MsgUtils.warnMessage("Unsupported jspec assignment: " + parm + " = " + value + " in component " + activeCompDefs.peek().getId());
 			//System.out.println("JSpecModelExtractor saveJSpecParam, unknown assignment: " + parm + " = " + value + " in " + activeCompDefs.peek().getFullId());
 		}
 		//if ((lastResolvedNum != null) && !value.equals(lastResolvedNum.toString())) 
@@ -1099,7 +1100,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	 */
 	private void verifyNonNullAssignValue(Object value, String parm, String valueStr) {
 		if (value == null)
-			Ordt.errorExit("Unable to resolve assignment: " + parm + " = " + valueStr);
+			MsgUtils.errorExit("Unable to resolve assignment: " + parm + " = " + valueStr);
 		
 	}
 	
@@ -1199,7 +1200,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 			return rElem;
 		}
 		else {
-			Ordt.errorExit("component_def type=" + cType + " not implemented");
+			MsgUtils.errorExit("component_def type=" + cType + " not implemented");
 		}		
 		typeDefFound = false;   // done with this so set to false for next component def
 		return null;
@@ -1351,7 +1352,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 			        	}
 			        	// no match found so exit with error 
 						else {
-							if (!inhibitCheck) Ordt.warnMessage("WIDTH(" + constId + ") could not be resolved."); 
+							if (!inhibitCheck) MsgUtils.warnMessage("WIDTH(" + constId + ") could not be resolved."); 
 							return null;
 						}
 
@@ -1392,7 +1393,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 					newExpArray[idx] = constVal.toString();
 				}
 				else {
-					if (!inhibitCheck) Ordt.errorMessage("Constant " + elem + " could not be resolved.");  
+					if (!inhibitCheck) MsgUtils.errorMessage("Constant " + elem + " could not be resolved.");  
 					return null;
 				}
 			}

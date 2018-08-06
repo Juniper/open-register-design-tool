@@ -5,9 +5,9 @@ package ordt.extract.model;
 
 import java.util.HashMap;
 
-import ordt.extract.Ordt;
 import ordt.extract.PropertyList;
 import ordt.extract.PropertyList.PropertyValue;
+import ordt.output.common.MsgUtils;
 
 /** model base class (ModComponent and ModInstance are child types) */
 public abstract class ModBaseComponent {
@@ -161,7 +161,7 @@ public abstract class ModBaseComponent {
 		}
 		else {
 			String id = this.getId().startsWith("aNON") ? "(anonymous)" : this.getId();
-			Ordt.warnMessage("assignment of property " + name + " will be ignored in " + getBaseComponentTypeName() + " " + id + this.getInputLineString(" near line ", ""));
+			MsgUtils.warnMessage("assignment of property " + name + " will be ignored in " + getBaseComponentTypeName() + " " + id + this.getInputLineString(" near line ", ""));
 		}
 		//System.out.println("ModBaseComponent " + this.getFullId() + ": updated key=" + name + " with value=" + value);
 	}

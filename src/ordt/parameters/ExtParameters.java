@@ -21,7 +21,7 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import ordt.annotate.AnnotateCommand;
 import ordt.annotate.AnnotateSetCommand;
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegNumber;
 import ordt.extract.model.ModComponent.CompType;
 import ordt.output.systemverilog.common.wrap.WrapperRemapInvertXform;
@@ -78,13 +78,13 @@ public class ExtParameters extends ExtParmsBaseListener  {
 				Integer intval = Utils.strToInteger(valStr);
 				if (intval != null) {
 					if (!Utils.isPowerOf2(intval) || !Utils.isInRange(intval, 8, 128))  
-						Ordt.errorMessage("Invalid minimum data size (" + intval + ").  Must be power of 2 between 8 and 128.");
+						MsgUtils.errorMessage("Invalid minimum data size (" + intval + ").  Must be power of 2 between 8 and 128.");
 					else {
 						value = intval;
 						if (value > 32) ModRegister.setDefaultWidth(value);  // if min size exceeds 32, change default
 					}
 				} 
-				else Ordt.errorMessage("Invalid minimum data size specified (" + value + ").");
+				else MsgUtils.errorMessage("Invalid minimum data size specified (" + value + ").");
 			}
 		});
 		initRegNumberParameter("base_address", new RegNumber(0)); 
@@ -104,7 +104,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 			public void set(String valStr) {
 				if ((valStr != null) && !valStr.isEmpty()) {
 					value = valStr;
-					Ordt.warnMessage("debug_mode parameter is set (value = " + value + ").  Non-standard ordt behavior can occur.");
+					MsgUtils.warnMessage("debug_mode parameter is set (value = " + value + ").  Non-standard ordt behavior can occur.");
 				} 
 			}
 		});
@@ -263,7 +263,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		// save the parameter input file names
 		parmFiles = inputParmFiles;
 		
-    	if (parmFiles.isEmpty()) Ordt.warnMessage("No parameters file specified.  Default or inline defined parameters will be used.");
+    	if (parmFiles.isEmpty()) MsgUtils.warnMessage("No parameters file specified.  Default or inline defined parameters will be used.");
 
 		// read parameters from each file in list
 		for (String inputFile: parmFiles) {
@@ -296,13 +296,13 @@ public class ExtParameters extends ExtParmsBaseListener  {
         	ParseTreeWalker walker = new ParseTreeWalker(); // create standard
         	walker.walk(inParms, tree); // initiate walk of tree with listener
         	if (parser.getNumberOfSyntaxErrors() > 0) {
-        		Ordt.errorExit("Parameter file parser errors detected.");  
+        		MsgUtils.errorExit("Parameter file parser errors detected.");  
         	}
         	
         	//root.display(true);
 
         } catch (FileNotFoundException e) {
-        	Ordt.errorExit("parameter file not found. "  + e.getMessage());
+        	MsgUtils.errorExit("parameter file not found. "  + e.getMessage());
         } catch (IOException e) {
             e.printStackTrace();
         }		
@@ -387,7 +387,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: adding pattern=" + signalPattern + ", " + xf.getType());
 		    break;
 		default:
-			Ordt.errorExit("Unsupported RTL wrapper remap command (" + ctx.getText() + ") specified in parameters.");
+			MsgUtils.errorExit("Unsupported RTL wrapper remap command (" + ctx.getText() + ") specified in parameters.");
 			break;
 		}
 	}
@@ -463,7 +463,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		// ---- not a match for std types, so check others		
 		else if (name.equals("root_has_leaf_interface")) {  // DEPRECATED 
 			sysVerRootDecoderInterface = value.equals("true") ? SVDecodeInterfaceTypes.LEAF : SVDecodeInterfaceTypes.PARALLEL;
-			Ordt.warnMessage("Use of control parameter 'root_has_leaf_interface' is deprecated. Use 'root_decoder_interface = leaf' instead.");
+			MsgUtils.warnMessage("Use of control parameter 'root_has_leaf_interface' is deprecated. Use 'root_decoder_interface = leaf' instead.");
 		}
 		else if (name.equals("root_decoder_interface")) {  
 			if (value.equals("leaf")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.LEAF;
@@ -487,7 +487,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		}
 		else if (name.equals("use_external_select")) {  // DEPRECATED 
 			systemverilogBlockSelectMode = value.equals("true") ? SVBlockSelectModes.EXTERNAL : SVBlockSelectModes.INTERNAL;
-			Ordt.warnMessage("Use of control parameter 'use_external_select' is deprecated. Use 'block_select_mode' instead.");
+			MsgUtils.warnMessage("Use of control parameter 'use_external_select' is deprecated. Use 'block_select_mode' instead.");
 		}
 		else if (name.equals("block_select_mode")) {  
 			if (value.equals("internal")) systemverilogBlockSelectMode = SVBlockSelectModes.INTERNAL;
@@ -501,7 +501,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		}
 
 		else if (name.equals("external_decode_is_root")) {   // DEPRECATED 
-			Ordt.warnMessage("Use of control parameter 'external_decode_is_root' is deprecated.");
+			MsgUtils.warnMessage("Use of control parameter 'external_decode_is_root' is deprecated.");
 		}
 
 		else if (name.equals("uvm_model_mode")) {  
@@ -517,7 +517,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		}
 		
 		//else
-		//	Ordt.errorMessage("invalid parameter detected (" + name + ").");
+		//	MsgUtils.errorMessage("invalid parameter detected (" + name + ").");
 	}
 
 	/** get parmFile

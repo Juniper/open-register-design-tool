@@ -6,7 +6,7 @@ package ordt.extract.model;
 import java.util.ArrayList;
 import java.util.List;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 
 /** enum class type
  *  @author snellenbach      
@@ -55,7 +55,7 @@ public class ModEnum extends ModComponent {
 			}
 			else {
 				if ((elemWidth != null) && (elemWidth != width)) 
-					Ordt.errorMessage("non-matching enum value widths in " + this.getFullId());
+					MsgUtils.errorMessage("non-matching enum value widths in " + this.getFullId());
 			}
 			enumElements.add(regEnumElem);		
 		}

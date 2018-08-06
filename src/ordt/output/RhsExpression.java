@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegNumber;
 
 /** class describing a rhs expression which includes operators and rhs references */
@@ -62,7 +62,7 @@ public class RhsExpression {
 				   baseExpression += expression;
 				   baseExpression = baseExpression.trim();
 			   }
-			   else Ordt.errorMessage("parse of rhs expression (" + rawExpression + ") failed.");
+			   else MsgUtils.errorMessage("parse of rhs expression (" + rawExpression + ") failed.");
 		   }   
 	   }  // while
 	   /*System.out.println("rawExpression=" + rawExpression);

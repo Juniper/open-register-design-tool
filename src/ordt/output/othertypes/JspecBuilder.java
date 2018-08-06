@@ -12,7 +12,7 @@ import java.util.HashSet;
 
 import ordt.extract.DefinedProperties;
 import ordt.extract.DefinedProperty;
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.PropertyList;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
@@ -23,8 +23,8 @@ import ordt.extract.model.ModRegister;
 import ordt.output.FieldProperties;
 import ordt.output.InstanceProperties;
 import ordt.output.OutputBuilder;
-import ordt.output.OutputLine;
 import ordt.output.RhsReference;
+import ordt.output.common.OutputLine;
 import ordt.parameters.ExtParameters;
 
 public class JspecBuilder extends OutputBuilder {
@@ -139,7 +139,7 @@ public class JspecBuilder extends OutputBuilder {
 	public void addField() {
 		// if name is a reserved keyword then exit
 		if (reservedWords.contains(fieldProperties.getPrefixedId()))
-			Ordt.errorMessage("field name " + fieldProperties.getPrefixedId() + " is a jspec reserved word");
+			MsgUtils.errorMessage("field name " + fieldProperties.getPrefixedId() + " is a jspec reserved word");
 	}
 
 	@Override
@@ -152,7 +152,7 @@ public class JspecBuilder extends OutputBuilder {
 	public void addFieldSet() {
 		// if name is a reserved keyword then exit
 		if (reservedWords.contains(fieldSetProperties.getId()))
-			Ordt.errorMessage("field_set name " + fieldSetProperties.getId() + " is a jspec reserved word");
+			MsgUtils.errorMessage("field_set name " + fieldSetProperties.getId() + " is a jspec reserved word");
 		// compute absolute offsets and store fieldset info
 		if (!ExtParameters.jspecKeepFsetHierarchy() || (fieldSetProperties.getFieldSetWidth()==0)) return;
 		currentBaseOffset += fieldSetProperties.getOffset();
@@ -185,7 +185,7 @@ public class JspecBuilder extends OutputBuilder {
 			
 			// check for misaligned base address here since jspec doesn't like
 			if (!regProperties.getBaseAddress().isModulus(regArraySize.getNextHighestPowerOf2())) 
-				   Ordt.errorMessage("register array " + regProperties.getInstancePath() + 
+				   MsgUtils.errorMessage("register array " + regProperties.getInstancePath() + 
 						   " base address (" + regProperties.getBaseAddress() +") is not aligned on " + regArraySize.getNextHighestPowerOf2() +" boundary for jspec"); 
 			//if (!regProperties.getRelativeBaseAddress().isModulus(regStride))  // TODO - is this check needed?? 
 			//   Jrdl.errorMessage("replicated register " + regProperties.getInstancePath() + 
@@ -240,16 +240,16 @@ public class JspecBuilder extends OutputBuilder {
 
 			// check for empty register set
 			if (!regSetSize.isGreaterThan(new RegNumber(0))) 
-				   Ordt.warnMessage("register set " + regSetProperties.getInstancePath() + 
+				   MsgUtils.warnMessage("register set " + regSetProperties.getInstancePath() + 
 						   " has size 0B"); 
 			else {
 				// check for misaligned base address here since jspec doesn't like
 				if (!regSetProperties.getBaseAddress().isModulus(regSetSize.getNextHighestPowerOf2())) 
-					Ordt.errorMessage("register set " + regSetProperties.getInstancePath() + 
+					MsgUtils.errorMessage("register set " + regSetProperties.getInstancePath() + 
 							" base address (" + regSetProperties.getBaseAddress() +") is not aligned on " + regSetSize.getNextHighestPowerOf2() +" boundary for jspec"); 
 				// check for misaligned base addr 
 				if (regSetProperties.isReplicated() && !regSetProperties.getRelativeBaseAddress().isModulus(regSetSize)) 
-					Ordt.errorMessage("replicated register set " + regSetProperties.getInstancePath() + 
+					MsgUtils.errorMessage("replicated register set " + regSetProperties.getInstancePath() + 
 							" jspec relative base address (" + regSetProperties.getRelativeBaseAddress() +") is not aligned with increment value (" + regSetSize +")"); 
 			}
 			
@@ -600,7 +600,7 @@ public class JspecBuilder extends OutputBuilder {
 		Integer encodeWidth = field.getEncoding().getWidth();
 		//System.out.println("-- buildEnumField: encoding id=" + field.getEncoding().getId() + ", enumElems=" + field.getEncoding().getEnumElements().size());
 		if ((encodeWidth != null && encodeWidth != field.getFieldWidth())) 
-			Ordt.errorMessage("Encoding width ("+ encodeWidth + ") does not match field width (" + field.getFieldWidth() + ") in " + field.getInstancePath());
+			MsgUtils.errorMessage("Encoding width ("+ encodeWidth + ") does not match field width (" + field.getFieldWidth() + ") in " + field.getInstancePath());
 		else {
 			for (ModEnumElement enumElem : field.getEncoding().getEnumElements()) {
 				enumElem.getValue().setNumFormat(RegNumber.NumFormat.Address);

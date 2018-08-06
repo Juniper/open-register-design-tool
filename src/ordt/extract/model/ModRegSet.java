@@ -7,6 +7,7 @@ import java.util.HashSet;
 
 import ordt.extract.DefinedProperties;
 import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegNumber;
 import ordt.extract.Ordt.InputType;
 import ordt.output.OutputBuilder;
@@ -140,7 +141,7 @@ public class ModRegSet extends ModComponent {
 		int repCount = callingInst.getRepCount();  // get non-null repCount  
 		// check for replicated addrmaps
 		if (isAddressMap() && (repCount > 1)) {
-			Ordt.errorMessage("Replicated address maps are not allowed (map name = " + callingInst.getId() + ")");
+			MsgUtils.errorMessage("Replicated address maps are not allowed (map name = " + callingInst.getId() + ")");
 			repCount = 1;
 		}
 		

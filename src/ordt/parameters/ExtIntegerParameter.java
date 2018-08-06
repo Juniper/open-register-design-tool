@@ -3,7 +3,7 @@
  */
 package ordt.parameters;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 
 public class ExtIntegerParameter extends ExtParameter<Integer> {
 
@@ -18,7 +18,7 @@ public class ExtIntegerParameter extends ExtParameter<Integer> {
 			this.value = intval;
 			//System.out.println("ExtParameters.ExtIntegerParameter : " + name + " = " + valStr + ", resolved to " + intval);
 		} 
-		else Ordt.errorMessage("invalid " + name + " parameter value specified (" + value + ").");
+		else MsgUtils.errorMessage("invalid " + name + " parameter value specified (" + value + ").");
 	}
 
 	@Override

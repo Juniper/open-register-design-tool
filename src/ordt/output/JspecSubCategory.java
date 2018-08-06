@@ -5,7 +5,7 @@ package ordt.output;
 
 import java.util.HashMap;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 
 public class JspecSubCategory {
 	private int value = 0;  // encoded category value
@@ -23,7 +23,7 @@ public class JspecSubCategory {
 				if (map.containsKey(cat)) value += map.get(cat);  // add to encoded value
 				// otherwise issue a warning and add the new category
 				else {
-					Ordt.warnMessage("Unknown sub_category value " + cat + " detected.  Adding to sub_category list.");
+					MsgUtils.warnMessage("Unknown sub_category value " + cat + " detected.  Adding to sub_category list.");
 					map.put(cat, nextValue); nextValue *= 2;
 					value += map.get(cat);  // add to encoded value
 				}

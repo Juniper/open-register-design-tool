@@ -8,8 +8,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-import ordt.extract.Ordt;
-import ordt.output.OutputWriterIntf;
+import ordt.output.common.MsgUtils;
+import ordt.output.common.OutputWriterIntf;
 import ordt.parameters.ExtParameters;
 
 /** class to hold/generate systemverilog info associated with a set of registers (for a module)
@@ -110,10 +110,10 @@ public class SystemVerilogRegisters {
 		public void addResetAssign(String reset, String stmt) {
 			// if reset isn't defined then issue error message
 			if (resetActiveLow.isEmpty())  {
-				Ordt.errorExit("No registers defined in addrmap " + writer.getWriterName());
+				MsgUtils.errorExit("No registers defined in addrmap " + writer.getWriterName());
 			}
 			else if (!resetActiveLow.containsKey(reset))  {
-				Ordt.errorExit("reset signal " + reset + " is not defined before use"); // + ", name=" + name + ", stmt=" + stmt);
+				MsgUtils.errorExit("reset signal " + reset + " is not defined before use"); // + ", name=" + name + ", stmt=" + stmt);
 			}
 			// new reset signal so add it
 			if (resetAssignList.get(reset) == null) {

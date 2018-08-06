@@ -1,4 +1,4 @@
-package ordt.output.systemverilog.io;
+package ordt.output.systemverilog.common.io;
 
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.parameters.Utils;

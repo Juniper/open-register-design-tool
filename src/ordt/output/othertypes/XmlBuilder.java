@@ -7,6 +7,7 @@ import java.io.BufferedWriter;
 import java.util.ArrayList;
 import java.util.List;
 
+import ordt.output.common.MsgUtils;
 import ordt.extract.Ordt;
 import ordt.extract.PropertyList;
 import ordt.extract.RegModelIntf;
@@ -17,9 +18,9 @@ import ordt.extract.model.ModEnum;
 import ordt.extract.model.ModEnumElement;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
-import ordt.output.OutputLine;
 import ordt.output.RhsReference;
 import ordt.output.FieldProperties.RhsRefType;
+import ordt.output.common.OutputLine;
 import ordt.output.InstanceProperties;
 import ordt.parameters.ExtParameters;
 
@@ -50,7 +51,7 @@ public class XmlBuilder extends OutputBuilder {
 		if (textName == null) textName = fieldProperties.getPrefixedId() + " field";
 		textName = cleanXmlText(textName);
 		if (textName.length() > 255) {
-			Ordt.warnMessage("Field " + fieldProperties.getInstancePath() + " short text description exceeds 255 characters and will be truncated in xml.");
+			MsgUtils.warnMessage("Field " + fieldProperties.getInstancePath() + " short text description exceeds 255 characters and will be truncated in xml.");
 			textName = textName.substring(0, 255);
 		}
 		addXmlElement("shorttext", textName);
@@ -104,7 +105,7 @@ public class XmlBuilder extends OutputBuilder {
 		if (textName == null) textName = regProperties.getId() + " register";
 		textName = cleanXmlText(textName);
 		if (textName.length() > 255) {
-			Ordt.warnMessage("Register " + regProperties.getInstancePath() + " short text description exceeds 255 characters and will be truncated in xml.");
+			MsgUtils.warnMessage("Register " + regProperties.getInstancePath() + " short text description exceeds 255 characters and will be truncated in xml.");
 			textName = textName.substring(0, 255);
 		}
 		addXmlElement("shorttext", textName);
@@ -162,7 +163,7 @@ public class XmlBuilder extends OutputBuilder {
 		if (textName == null) textName = regSetProperties.getId() + " registers";
 		textName = cleanXmlText(textName);
 		if (textName.length() > 255) {
-			Ordt.warnMessage("Register set " + regSetProperties.getInstancePath() + " short text description exceeds 255 characters and will be truncated in xml.");
+			MsgUtils.warnMessage("Register set " + regSetProperties.getInstancePath() + " short text description exceeds 255 characters and will be truncated in xml.");
 			textName = textName.substring(0, 255);
 		}
 		addXmlElement("shorttext", textName);
@@ -200,7 +201,7 @@ public class XmlBuilder extends OutputBuilder {
 	public void addRegMap() {
 		// issue warning message if non-aligned
 		if (!ExtParameters.useJsAddressAlignment())
-			Ordt.warnMessage("use of non-jspec alignment mode may cause incorrect addresses in xml model.");
+			MsgUtils.warnMessage("use of non-jspec alignment mode may cause incorrect addresses in xml model.");
 		addXmlElementStart("map", "version", Ordt.getVersion());
 		addXmlElement("id", getAddressMapName());
 		addXmlElement("baseaddr", ExtParameters.getPrimaryBaseAddress().toString());
@@ -208,7 +209,7 @@ public class XmlBuilder extends OutputBuilder {
 		if (textName == null) textName = getAddressMapName() + " registers";
 		textName = cleanXmlText(textName);
 		if (textName.length() > 255) {
-			Ordt.warnMessage("Address map " + getAddressMapName() + " short text description exceeds 255 characters and will be truncated in xml.");
+			MsgUtils.warnMessage("Address map " + getAddressMapName() + " short text description exceeds 255 characters and will be truncated in xml.");
 			textName = textName.substring(0, 255);
 		}
 		addXmlElement("shorttext", textName);
@@ -473,7 +474,7 @@ public class XmlBuilder extends OutputBuilder {
 		Integer encodeWidth = enumDef.getWidth();
 		//System.out.println("XmlBuilder addFieldEncodeInfo: encoding id=" + enumDef.getId() + ", enumElems=" + enumDef.getEnumElements().size());
 		if ((encodeWidth != null && encodeWidth != fieldProperties.getFieldWidth())) 
-			Ordt.errorMessage("Encoding width ("+ encodeWidth + ") does not match field width (" + fieldProperties.getFieldWidth() + ") in " + fieldProperties.getInstancePath());
+			MsgUtils.errorMessage("Encoding width ("+ encodeWidth + ") does not match field width (" + fieldProperties.getFieldWidth() + ") in " + fieldProperties.getInstancePath());
 		else {
 			for (ModEnumElement enumElem : enumDef.getEnumElements()) {
 				addXmlElementStart("enc_elem");

@@ -11,6 +11,7 @@ import java.util.List;
 import ordt.annotate.AnnotateCommand;
 import ordt.extract.model.ModRegister;
 import ordt.output.OutputBuilder;
+import ordt.output.common.MsgUtils;
 import ordt.output.cppmod.CppModBuilder;
 import ordt.output.drvmod.cpp.CppDrvModBuilder;
 import ordt.output.othertypes.JsonBuilder;
@@ -51,11 +52,7 @@ public class Ordt {
 	
     private static RegModelIntf model;
     
-    private static int returnCode = 0;
-    private final static int ERROR_EXIT_RC = 8;
-    private final static int ERROR_CONTINUE_RC = 4;
-
-	/**
+    /**
 	 * @param args
 	 */
     public static void main(String[] args) throws Exception {
@@ -118,7 +115,7 @@ public class Ordt {
         	}
 
 	    	System.out.println("Ordt complete " + new Date());
-	    	System.exit(returnCode);
+	    	System.exit(MsgUtils.getReturnCode());
 		} catch (Exception e) {
 			//errorMessage("Read of rdl file " + inputFile + " failed");
 			e.printStackTrace();
@@ -198,7 +195,7 @@ public class Ordt {
 			   return new JspecBuilder(model); 
 		   case RALF: 
 			   //return new RalfBuilder(model);
-			   Ordt.warnMessage("Ralf output is disabled");
+			   MsgUtils.warnMessage("Ralf output is disabled");
 			   return null;
 		   case RDL: 
 			   return new RdlBuilder(model);
@@ -235,7 +232,7 @@ public class Ordt {
     private static boolean verifyRootAddressMap(RegModelIntf model, OutputType type) {
 		   if (model.getRootInstancedComponent() != null) {
 			   if (!model.getRootInstancedComponent().isAddressMap()) {
-				   Ordt.errorMessage("A root addrmap is required for " + outputNames.get(type) + " generation");
+				   MsgUtils.errorMessage("A root addrmap is required for " + outputNames.get(type) + " generation");
 			       return false;
 			   }
 		   }
@@ -268,7 +265,7 @@ public class Ordt {
     	// process any model annotate cmds
     	for (AnnotateCommand cmd: ExtParameters.getAnnotations()) {
     		newModel.getRoot().processAnnotation(cmd, 0);
-    		Ordt.infoMessage("Annotate command: " + cmd.getSignature() + " processed " + cmd.getChangeCount() + " elements");
+    		MsgUtils.infoMessage("Annotate command: " + cmd.getSignature() + " processed " + cmd.getChangeCount() + " elements");
     	}
     	return newModel;
 	}
@@ -371,29 +368,6 @@ public class Ordt {
     
     // ------------------------ common static methods ---------------------------
     
-	/** display error message */
-	public static void infoMessage(String msg) {
-		System.out.println("*** INFO ***: " + msg);		
-	}
-
-	/** display error message */
-	public static void warnMessage(String msg) {
-		System.err.println("*** WARNING ***: " + msg);		
-	}
-
-	/** display error message */
-	public static void errorMessage(String msg) {
-		System.err.println("*** ERROR ***: " + msg);
-		returnCode = ERROR_CONTINUE_RC;
-	}
-
-	/** display error message and exit */
-	public static void errorExit(String msg) {
-		errorMessage(msg);	
-    	System.out.println("Ordt exited due to error " + new Date());
-		System.exit(ERROR_EXIT_RC);
-	}
-
 	/** return ordt version */
 	public static String getVersion() {
 		return version;

@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Stack;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegModelIntf;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
@@ -136,7 +136,7 @@ public abstract class DrvModBuilder extends OutputBuilder {
 	    	//	System.out.println("DrvModBuilder finishRegSet: duplicate id=" + regSetProperties.getId() + ", reps=" + regSetProperties.getRepCount() + ", base=" + regSetProperties.getFullBaseAddress() + ", high=" + regSetProperties.getFullHighAddress() + ", stride=" + regSetProperties.getExtractInstance().getAddressIncrement());
 		}
 		if (regSetProperties.isRootInstance())  
-			Ordt.infoMessage("Overlay " + overlayCount + " total processed instances=" + addedInstances + ", unique instances=" + uniqueInstances + ", duplicate instances=" + (addedInstances - uniqueInstances));
+			MsgUtils.infoMessage("Overlay " + overlayCount + " total processed instances=" + addedInstances + ", unique instances=" + uniqueInstances + ", duplicate instances=" + (addedInstances - uniqueInstances));
 	}
 
 	/** process root address map */

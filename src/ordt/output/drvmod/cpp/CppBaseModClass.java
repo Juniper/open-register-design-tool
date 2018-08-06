@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ordt.extract.Ordt;
-import ordt.output.OutputLine;
+import ordt.output.common.MsgUtils;
+import ordt.output.common.OutputLine;
 
 public class CppBaseModClass {
    protected String name;
@@ -118,7 +118,7 @@ public class CppBaseModClass {
    /** add an init call to the active constructor */
    public void addInitCall(String iCall) {
 	   if (activeConstructor == null) {
-		   Ordt.errorExit("active c++ constructor is null in addInitCall");
+		   MsgUtils.errorExit("active c++ constructor is null in addInitCall");
 	   }
 	   activeConstructor.addInitCall(iCall);
    }
@@ -126,7 +126,7 @@ public class CppBaseModClass {
    /** add a statement to the active constructor */
    public void addConstructorStatement(String stmt) {
 	   if (activeConstructor == null) {
-		   Ordt.errorExit("active c++ constructor is null in addConstructorStatement");
+		   MsgUtils.errorExit("active c++ constructor is null in addConstructorStatement");
 	   }
 	   activeConstructor.addStatement(stmt);
    }
@@ -195,7 +195,7 @@ public class CppBaseModClass {
 				   //System.out.println("CppModClass getMethod: old=" + this.signature);
 				   //System.out.println("CppModClass getMethod: new=" + newSignature);
 			   }
-			   else Ordt.errorMessage("parse of C++ method signature='" + this.getSignature() + "' failed");	        	
+			   else MsgUtils.errorMessage("parse of C++ method signature='" + this.getSignature() + "' failed");	        	
 		   }	  
 		   // add constructor init calls if needed
 		   if (initCalls.isEmpty()) {

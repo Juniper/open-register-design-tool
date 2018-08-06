@@ -16,13 +16,16 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Stack;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
+import ordt.extract.Ordt;
 import ordt.extract.Ordt.InputType;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.extract.model.ModInstance;
+import ordt.output.common.OutputLine;
+import ordt.output.common.OutputWriterIntf;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 
@@ -170,7 +173,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		   }
 		   
 		   // check for invalid field parameters
-		   if (fieldProperties.isInvalid()) Ordt.errorMessage("invalid rw access to field " + fieldProperties.getInstancePath());
+		   if (fieldProperties.isInvalid()) MsgUtils.errorMessage("invalid rw access to field " + fieldProperties.getInstancePath());
 		   		    
 		   if (regProperties != null) {
 			   // handle field output for alias vs non-alias regs
@@ -299,9 +302,9 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			    regSetProperties.updateChildHash(regProperties.hashCode(true)); // add this reg's hashcode to parent including id
 			    // issue warning if register has no fields or isn't sw accessible
 			    if (!regProperties.hasFields())
-					Ordt.warnMessage("register "+ regProperties.getInstancePath() + " has no fields");
+					MsgUtils.warnMessage("register "+ regProperties.getInstancePath() + " has no fields");
 			    else if (!regProperties.isSwWriteable() && !regProperties.isSwReadable()) 
-					Ordt.warnMessage("register "+ regProperties.getInstancePath() + " is neither readable nor writeable");
+					MsgUtils.warnMessage("register "+ regProperties.getInstancePath() + " is neither readable nor writeable");
 				finishRegister();   
 			}
 			regIsActive = false;
@@ -369,9 +372,9 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			    regSetProperties.updateChildHash(regProperties.hashCode(true)); // add this reg's hashcode to parent including id
 			    // issue warning if register has no fields or isn't sw accessible
 			    if (!regProperties.hasFields())
-					Ordt.warnMessage("register "+ regProperties.getInstancePath() + " has no fields");
+					MsgUtils.warnMessage("register "+ regProperties.getInstancePath() + " has no fields");
 			    else if (!regProperties.isSwWriteable() && !regProperties.isSwReadable()) 
-					Ordt.warnMessage("register "+ regProperties.getInstancePath() + " is neither readable nor writeable");
+					MsgUtils.warnMessage("register "+ regProperties.getInstancePath() + " is neither readable nor writeable");
 				finishRegister();   // only first rset rep here (only one call for all reg reps)
 			}
 			regIsActive = false;	
@@ -440,7 +443,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		if (regProperties.hasExternalRepLevel()) {
 			// issue warning if this is a regfile ext region
 			//if (newRegProperties != null)
-			//	Ordt.warnMessage("External rep_level option is only supported on registers currently. Will be ignored in instance " + regProperties.getInstancePath());
+			//	MsgUtils.warnMessage("External rep_level option is only supported on registers currently. Will be ignored in instance " + regProperties.getInstancePath());
             // otherwise extract info needed for rep_level processing
 			//else
 				extractExternalRepLevelInfo();
@@ -469,13 +472,13 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		int maxRepLevel = instancePropertyStack.size() - 1; 
 		if ((repLevel > maxRepLevel) || (repLevel < 1)) {
 			regProperties.getExternalType().removeParm("rep_level");
-			Ordt.warnMessage("Invalid external rep_level option specified in instance " + regProperties.getInstancePath() + ".  rep_level will be ignored.");
+			MsgUtils.warnMessage("Invalid external rep_level option specified in instance " + regProperties.getInstancePath() + ".  rep_level will be ignored.");
 			return;
 		}
 		// inhibit field_data option and issue a warning since rep_level and field_data are not supported concurrently TODO
 		//if (regProperties.useExtFieldData()) {
 			//regProperties.getExternalType().removeParm("field_data");
-			//Ordt.warnMessage("External rep_level and field_data options are not supported concurrently.  field_data will be ignored in instance " + regProperties.getInstancePath()+ ".");
+			//MsgUtils.warnMessage("External rep_level and field_data options are not supported concurrently.  field_data will be ignored in instance " + regProperties.getInstancePath()+ ".");
 		//}
 		// extract new path name and ancestor lists for address generation
 		String repLevelPathStr = "";
@@ -552,7 +555,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 
 				   // detect address errors and save next address
 				   if (newBaseAddr.isLessThan(nextAddress)) {  // check for bad address here
-					   Ordt.errorExit("out of order register set address specified in " + getInstancePath() );
+					   MsgUtils.errorExit("out of order register set address specified in " + getInstancePath() );
 				   }
 				   setNextAddress(newBaseAddr);  //  save computed next address   
 			    }
@@ -713,11 +716,11 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			if (!nextAddress.isModulus(alignBytes) && !regSetProperties.isExternalDecode()) {
 				if (shiftAddress) {
 					if (warnOnShift && !ExtParameters.suppressAlignmentWarnings()) 
-						Ordt.warnMessage("base address for register set " + regSetProperties.getInstancePath() + " shifted to be " + alignBytes + "B aligned.");
+						MsgUtils.warnMessage("base address for register set " + regSetProperties.getInstancePath() + " shifted to be " + alignBytes + "B aligned.");
 					updateNextAddressModulus(new RegNumber(alignBytes));  // adjust the address to align register set					   
 				}
 				else if (!ExtParameters.suppressAlignmentWarnings()) 
-						   Ordt.warnMessage("base address for register set " + regSetProperties.getInstancePath() + " is not " + alignBytes + "B aligned.");
+						   MsgUtils.warnMessage("base address for register set " + regSetProperties.getInstancePath() + " is not " + alignBytes + "B aligned.");
 			}
 		}
 		
@@ -792,7 +795,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			   
 			   if (regProperties.isFirstRep()) {
 				   if (newBaseAddress.isLessThan(nextAddress)) {  // check for bad address here
-					   Ordt.errorMessage("out of order register address specified in " + regProperties.getInstancePath());
+					   MsgUtils.errorMessage("out of order register address specified in " + regProperties.getInstancePath());
 					   //System.out.println("OutputBuilder updateRegBaseAddress:   path=" + regProperties.getInstancePath() + 
 					   //	      ", regAddress=" + regAddress  + ", parent addr=" + getRegSetParentAddress() + ", nextAddress=" + nextAddress + ", newBaseAddress=" + newBaseAddress);
 					   //System.exit(0);
@@ -821,11 +824,11 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		   if (!nextAddress.isModulus(alignBytes) && !regProperties.isExternalDecode()) {
 			   if (!ExtParameters.suppressAlignmentWarnings()) {
 				   if (isFirstReplicatedExternal) 
-					   Ordt.warnMessage("base address for external " + regBytes + "B register group " + regProperties.getInstancePath() + " shifted to be " + alignBytes + "B aligned.");
+					   MsgUtils.warnMessage("base address for external " + regBytes + "B register group " + regProperties.getInstancePath() + " shifted to be " + alignBytes + "B aligned.");
 				   else if (doNotShift)   
-					   Ordt.warnMessage("base address for " + regBytes + "B external register " + regProperties.getInstancePath() + " is not " + alignBytes + "B aligned.");
+					   MsgUtils.warnMessage("base address for " + regBytes + "B external register " + regProperties.getInstancePath() + " is not " + alignBytes + "B aligned.");
 				   else 
-					   Ordt.warnMessage("base address for " + regBytes + "B register " + regProperties.getInstancePath() + " shifted to be " + alignBytes + "B aligned.");
+					   MsgUtils.warnMessage("base address for " + regBytes + "B register " + regProperties.getInstancePath() + " shifted to be " + alignBytes + "B aligned.");
 			   }
 			   // if an external and not root external, just display a warn message
 			   if (!doNotShift) updateNextAddressModulus(new RegNumber(alignBytes));  // adjust the address to align register					   
@@ -834,7 +837,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		   // issue warning for non aligned reg arrays
 		   boolean doReplicatedAlignCheck = ExtParameters.useJsAddressAlignment() && regProperties.isReplicated() && regProperties.isFirstRep() && !regProperties.isRootExternal(); 
 		   if (doReplicatedAlignCheck && !ExtParameters.suppressAlignmentWarnings() && !nextAddress.isModulus(arrayAlignBytes) && !regProperties.isExternalDecode()) {
-		      Ordt.warnMessage("base address for " + regProperties.getRepCount() + " x " + regBytes + "B register array " + regProperties.getInstancePath() + " is not " + arrayAlignBytes + "B aligned.");
+		      MsgUtils.warnMessage("base address for " + regProperties.getRepCount() + " x " + regBytes + "B register array " + regProperties.getInstancePath() + " is not " + arrayAlignBytes + "B aligned.");
 		   }
 
 		   // ----
@@ -1000,7 +1003,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		}
 		
 		//if (inst.isExternal() && !inst.isLocalExternal())
-		//	Ordt.errorMessage("OutputBuilder " + getBuilderID() + ": setExternalInstanceProperties, found local internal type for inst=" + inst.getId() + " : " + inst.getExternalType());
+		//	MsgUtils.errorMessage("OutputBuilder " + getBuilderID() + ": setExternalInstanceProperties, found local internal type for inst=" + inst.getId() + " : " + inst.getExternalType());
 		
 		// -- now determine if instance is root external
 		
@@ -1017,7 +1020,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 		}	
 		
 		//if (!inst.isRootExternal() && inst.isLocalRootExternal())
-		//	Ordt.errorMessage("OutputBuilder " + getBuilderID() + ": setExternalInstanceProperties, found local root external type for inst=" + inst.getId() + " : " + inst.getExternalType());
+		//	MsgUtils.errorMessage("OutputBuilder " + getBuilderID() + ": setExternalInstanceProperties, found local root external type for inst=" + inst.getId() + " : " + inst.getExternalType());
 	}
 	
 	/** return number of addressmaps in current hierarchy
@@ -1322,7 +1325,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 			stride.setNumBase(NumBase.Hex);
 			// error if increment specified is too small
 			if (regSetProperties.isReplicated() && stride.isLessThan(regSetProperties.getAlignedSize()))
-				Ordt.errorMessage("register set " + regSetProperties.getInstancePath() + 
+				MsgUtils.errorMessage("register set " + regSetProperties.getInstancePath() + 
 						" address increment (" + stride +") is smaller than its min size (" + regSetProperties.getAlignedSize().toFormat(NumBase.Hex, NumFormat.Address) +")"); 
 		}
 		// otherwise use computed regset size
@@ -1567,7 +1570,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
     		return bw;
 
     	} catch (IOException e) {
-    		Ordt.errorMessage("Create of " + description + " file " + outFile.getAbsoluteFile() + " failed.");
+    		MsgUtils.errorMessage("Create of " + description + " file " + outFile.getAbsoluteFile() + " failed.");
     		return null;
     	}
     }
@@ -1579,7 +1582,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
     		bw.close();
 
     	} catch (IOException e) {
-    		Ordt.errorMessage("File close failed.");
+    		MsgUtils.errorMessage("File close failed.");
     	}
     }
 

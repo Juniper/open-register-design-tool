@@ -10,7 +10,7 @@ import java.util.List;
 
 import ordt.extract.DefinedProperties;
 import ordt.extract.DefinedProperty;
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.PropertyList;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
@@ -22,8 +22,8 @@ import ordt.output.AddressableInstanceProperties;
 import ordt.output.FieldProperties;
 import ordt.output.InstanceProperties;
 import ordt.output.OutputBuilder;
-import ordt.output.OutputLine;
 import ordt.output.RhsReference;
+import ordt.output.common.OutputLine;
 import ordt.parameters.ExtParameters;
 
 public class RdlBuilder extends OutputBuilder {
@@ -327,7 +327,7 @@ public class RdlBuilder extends OutputBuilder {
 			if (resetVal.isDefined()) {
 				instanceStr += " =" + resetVal.toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.Address);
 			}
-			else Ordt.warnMessage("Unable to resolve reset value for field " + field.getInstancePath() + ", value=" + field.getReset());
+			else MsgUtils.warnMessage("Unable to resolve reset value for field " + field.getInstancePath() + ", value=" + field.getReset());
 		}
 		outputList.add(new OutputLine(--indentLvl, "} " + instanceStr + ";"));
 		outputList.add(new OutputLine(indentLvl, ""));	

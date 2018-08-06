@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import ordt.output.OutputLine;
+import ordt.output.common.OutputLine;
 
 public class SystemVerilogFunction {
    protected String name;

@@ -1,10 +1,11 @@
-package ordt.output;
+package ordt.output.common;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+import ordt.output.OutputBuilder;
 import ordt.parameters.Utils;
 
 public class SimpleOutputWriter implements OutputWriterIntf {

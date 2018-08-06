@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 
 /** utilities class */
 public class Utils {
@@ -65,7 +65,7 @@ public class Utils {
 			intval = Integer.valueOf(intStr, radix);
 			return intval;
 		} catch (NumberFormatException e) {
-			if (messageSuffix != null ) Ordt.errorMessage("Unable to convert " + intStr + " to integer" +  messageSuffix);
+			if (messageSuffix != null ) MsgUtils.errorMessage("Unable to convert " + intStr + " to integer" +  messageSuffix);
 			return null;
 		}
 	}

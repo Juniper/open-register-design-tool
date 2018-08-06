@@ -3,7 +3,7 @@
  */
 package ordt.output;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 
 import ordt.extract.DefinedProperties;
 import ordt.extract.PropertyList;
@@ -65,7 +65,7 @@ public class RegProperties extends AddressableInstanceProperties {
     @Override
 	public void extractProperties(PropertyList pList) {
 		super.extractProperties(pList);  // extract common parameters
-		//Ordt.infoMessage("RegProperties: id=" + getId() + ", pList=" + pList);
+		//MsgUtils.infoMessage("RegProperties: id=" + getId() + ", pList=" + pList);
 
 	    // go directly to extractInstance to get reg width, external, and alias parms
 		
@@ -144,7 +144,7 @@ public class RegProperties extends AddressableInstanceProperties {
         int minRegWidth = ExtParameters.getMinDataSize();
         int maxRegWidth = minRegWidth * 16;
 		if (!Utils.isInRange(regWidth, minRegWidth, maxRegWidth))   
-			Ordt.errorMessage("Invalid register width (" + regWidth + ") specified in " + extractInstance.getFullId() + ".  Size should be between " + minRegWidth + " and " + maxRegWidth + ".");	
+			MsgUtils.errorMessage("Invalid register width (" + regWidth + ") specified in " + extractInstance.getFullId() + ".  Size should be between " + minRegWidth + " and " + maxRegWidth + ".");	
 	}
 	
 	/** set the width of register directly
@@ -154,7 +154,7 @@ public class RegProperties extends AddressableInstanceProperties {
 		// check for valid regwidth
         int minRegWidth = ExtParameters.getMinDataSize();
 		if ((regWidth % minRegWidth) != 0) {
-			Ordt.errorMessage("Invalid register width (" + regWidth + ") specified in " + extractInstance.getFullId() + ".  Size must be a multiple of min_data_size (" + minRegWidth + ").");
+			MsgUtils.errorMessage("Invalid register width (" + regWidth + ") specified in " + extractInstance.getFullId() + ".  Size must be a multiple of min_data_size (" + minRegWidth + ").");
 		}
 	}
 
@@ -385,7 +385,7 @@ public class RegProperties extends AddressableInstanceProperties {
 		//System.out.println("RegProperties addFieldSet: incoming state (highAvailableIdx=" + highAvailableIdx + ",fieldSetOffset=" + fieldSetOffset + ", minValidOffset=" + minValidOffset + ")");
 		// adjust current fieldset offset
 		fieldSetOffset = (fsOffset==null)? highAvailableIdx : parentFsOffset + fsOffset;  // TODO null offset is correct only if packing from low to high since highAvailableIdx is absolute
-		if (fieldSetOffset<parentFsOffset) Ordt.errorExit("Unable to fit fieldset " + fieldSetProperties.getId() + " in register " + getInstancePath());
+		if (fieldSetOffset<parentFsOffset) MsgUtils.errorExit("Unable to fit fieldset " + fieldSetProperties.getId() + " in register " + getInstancePath());
         // set the min allowed register offset including any padding
 		Integer bitPaddingOffset = ((ModRegister) getExtractInstance().getRegComp()).getPadBits();
 		int newMinValidOffset = bitPaddingOffset + fieldSetOffset;
@@ -435,7 +435,7 @@ public class RegProperties extends AddressableInstanceProperties {
 		else lowFieldIndex = addFloatingField(width);  // FIXME - fieldsetoffset and padding should constrain valid ranges (min valid has these)
 		// now create the output array index string
 		if (lowFieldIndex == null) {
-			Ordt.errorExit("Unable to fit all fields in " + getRegWidth() + "b register instance " + getInstancePath());
+			MsgUtils.errorExit("Unable to fit all fields in " + getRegWidth() + "b register instance " + getInstancePath());
 		}
 		//if (getId().equals("scfg_data")) System.out.println("RegProperties addField: id=" + fieldProperties.getInstancePath() + ", adding at reg lowFieldIndex=" + lowFieldIndex);
 		fieldCount++;  // bump the field count

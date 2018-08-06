@@ -9,11 +9,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
-import ordt.extract.Ordt;
-import ordt.output.OutputWriterIntf;
-import ordt.output.systemverilog.io.SystemVerilogIOElement;
-import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
-import ordt.output.systemverilog.io.SystemVerilogIOSignalSet;
+import ordt.output.common.MsgUtils;
+import ordt.output.common.OutputWriterIntf;
+import ordt.output.systemverilog.common.io.SystemVerilogIOElement;
+import ordt.output.systemverilog.common.io.SystemVerilogIOSignalList;
+import ordt.output.systemverilog.common.io.SystemVerilogIOSignalSet;
 
 /** system verilog module generation class
  *  
@@ -223,7 +223,7 @@ public class SystemVerilogModule {
 	 *  returns true on success                          */
 	public boolean addDefinedSignal(String name) {
 		if (definedSignals.contains(name)) {
-			if (showDuplicateSignalErrors) Ordt.errorMessage("Duplicate SystemVerilog signal " + name + " detected (possibly due to a repeated instance name)");
+			if (showDuplicateSignalErrors) MsgUtils.errorMessage("Duplicate SystemVerilog signal " + name + " detected (possibly due to a repeated instance name)");
 			//if (name.startsWith("leaf_dec")) System.out.println("SystemVerilogModule addDefinedSignal: not adding " + name + " to module " + getName() + " signal list");
 		}
 		else {

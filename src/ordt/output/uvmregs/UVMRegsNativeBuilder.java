@@ -7,8 +7,7 @@ import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 
 import ordt.output.FieldProperties;
-import ordt.output.OutputLine;
-
+import ordt.output.common.OutputLine;
 import ordt.parameters.ExtParameters;
 
 /** native uvm regs model -

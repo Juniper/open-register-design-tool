@@ -11,20 +11,18 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.output.systemverilog.common.RemapRuleList;
 import ordt.output.systemverilog.common.RemapRuleList.RemapRuleType;
+import ordt.output.systemverilog.common.io.SystemVerilogIOElement;
+import ordt.output.systemverilog.common.io.SystemVerilogIOSignal;
+import ordt.output.systemverilog.common.io.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
-import ordt.output.systemverilog.io.SystemVerilogIOElement;
-//import ordt.output.systemverilog.oldio.SystemVerilogIOSignal;
-//import ordt.output.systemverilog.oldio.SystemVerilogIOSignalList;
-import ordt.output.systemverilog.io.SystemVerilogIOSignal;
-import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.ExtParameters.SVDecodeInterfaceTypes;
 
@@ -53,7 +51,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		bufferedWriter = bw;
 
 		// before starting write, check that this addrmap is valid
-		if (decoder.getDecodeList().isEmpty()) Ordt.errorExit("Minimum allowed address map size is " + this.getMinRegByteWidth() + "B (addrmap=" + getAddressMapName() + ")");
+		if (decoder.getDecodeList().isEmpty()) MsgUtils.errorExit("Minimum allowed address map size is " + this.getMinRegByteWidth() + "B (addrmap=" + getAddressMapName() + ")");
 				
 		// set bufferedwriter in all child builders so we can write to same file
 		setChildBufferedWriters(bw);
@@ -309,7 +307,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 			}
 			
 			//System.out.println(this);
-			if (!isValid()) Ordt.warnMessage("invalid test command found: " + cmdStr);
+			if (!isValid()) MsgUtils.warnMessage("invalid test command found: " + cmdStr);
 		}
 
 		public void addStatements() {
@@ -498,7 +496,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		// create parallel or leaf type bfm
     	if (ExtParameters.getSysVerRootDecoderInterface()==SVDecodeInterfaceTypes.PARALLEL) createParallelBfm();
     	else if (ExtParameters.getSysVerRootDecoderInterface()==SVDecodeInterfaceTypes.LEAF) createLeafBfm();
-    	else Ordt.errorExit("Testbench does not support " + ExtParameters.getSysVerRootDecoderInterface().name() + " root interface type.");
+    	else MsgUtils.errorExit("Testbench does not support " + ExtParameters.getSysVerRootDecoderInterface().name() + " root interface type.");
 	}
 
 	/** create the parallel bfm module */   

@@ -11,8 +11,8 @@ import java.util.List;
 import ordt.extract.RegModelIntf;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
-import ordt.output.OutputLine;
 import ordt.output.RhsReference;
+import ordt.output.common.OutputLine;
 import ordt.parameters.ExtParameters;
 
 /**

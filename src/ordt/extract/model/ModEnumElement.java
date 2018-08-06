@@ -3,7 +3,7 @@
  */
 package ordt.extract.model;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegNumber;
 
 /** class containing info for an enum value within a RegENum */
@@ -37,7 +37,7 @@ public class ModEnumElement {
 	public void setValue(String valueString) {
 		this.value = new RegNumber(valueString);
 		//System.out.println("enum value specified : " + valueString + ", converted to " + this.value);
-		if (this.value == null) Ordt.errorMessage("invalid enum value specified : " + valueString);
+		if (this.value == null) MsgUtils.errorMessage("invalid enum value specified : " + valueString);
 	}
 	
 	/** get name

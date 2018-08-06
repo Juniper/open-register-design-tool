@@ -5,8 +5,9 @@ package ordt.output;
 
 import java.util.HashMap;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.DefinedProperties;
+import ordt.extract.Ordt;
 import ordt.extract.PropertyList;
 import ordt.extract.RegNumber;
 import ordt.extract.model.ModComponent;
@@ -173,7 +174,7 @@ public class FieldProperties extends InstanceProperties {
 			ModComponent parent = getExtractInstance().getParent();
 			if (parent != null) {
 				ModEnum enumComp = parent.findEnum(pList.getProperty("encode"));
-				if (enumComp == null) Ordt.errorMessage("Unable to find enum encoding " + pList.getProperty("encode") + " for field " + getId());
+				if (enumComp == null) MsgUtils.errorMessage("Unable to find enum encoding " + pList.getProperty("encode") + " for field " + getId());
                 setEncoding(enumComp);
 			}
 		}
@@ -331,7 +332,7 @@ public class FieldProperties extends InstanceProperties {
 			}
 		}
 		else if (pList.hasProperty("halt")) {
-			Ordt.warnMessage("halt property ignored on non-interrupt field " + getId());
+			MsgUtils.warnMessage("halt property ignored on non-interrupt field " + getId());
 		}
 		
 		// set other sw read/write properties (these override sw= setting)

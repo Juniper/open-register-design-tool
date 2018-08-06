@@ -7,6 +7,7 @@ import java.util.HashSet;
 
 import ordt.extract.DefinedProperties;
 import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegNumber;
 import ordt.extract.Ordt.InputType;
 import ordt.output.OutputBuilder;
@@ -181,8 +182,8 @@ public class ModRegister extends ModComponent  {
 		// otherwise loop through each instance
 		else {
 			// check for invalid internal reps
-			if ((repCount > ExtParameters.sysVerMaxInternalRegReps()) && !regProperties.isExternal()) Ordt.warnMessage("Register replication exceeded max for internal register, instance=" + callingInst.getId() + ", reps=" + repCount);
-			//else Ordt.infoMessage("generateVerilog: register replication for internal register, instance=" + callingInst.getId() + ", reps=" + repCount);
+			if ((repCount > ExtParameters.sysVerMaxInternalRegReps()) && !regProperties.isExternal()) MsgUtils.warnMessage("Register replication exceeded max for internal register, instance=" + callingInst.getId() + ", reps=" + repCount);
+			//else MsgUtils.infoMessage("generateVerilog: register replication for internal register, instance=" + callingInst.getId() + ", reps=" + repCount);
 				
 			// call once per replicated register
 		    for (int rep=0; rep<repCount; rep++) {

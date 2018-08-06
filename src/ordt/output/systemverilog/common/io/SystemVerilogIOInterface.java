@@ -1,4 +1,4 @@
-package ordt.output.systemverilog.io;
+package ordt.output.systemverilog.common.io;
 
 import java.util.ArrayList;
 import java.util.HashSet;

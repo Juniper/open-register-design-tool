@@ -1,4 +1,4 @@
-package ordt.output;
+package ordt.output.common;
 
 import java.util.List;
 

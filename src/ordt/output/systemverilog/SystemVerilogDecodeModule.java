@@ -7,14 +7,14 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
-import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
+import ordt.output.systemverilog.common.io.SystemVerilogIOSignalList;
 import ordt.output.AddressableInstanceProperties;
 import ordt.output.FieldProperties;
 //import ordt.output.RegProperties;
@@ -56,7 +56,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	/** add a register or external interface to the decoder */ 
 	public void addToDecode(AddressableInstanceProperties instProperties) {
 		if ((instProperties.getRepCount() > ExtParameters.sysVerMaxInternalRegReps()) && !instProperties.isExternal()) 
-			Ordt.errorExit("Replication count (" + instProperties.getRepCount() + ") exceeded max for internal register " + instProperties.getInstancePath() + ".  Set max_internal_reg_reps to override.");
+			MsgUtils.errorExit("Replication count (" + instProperties.getRepCount() + ") exceeded max for internal register " + instProperties.getInstancePath() + ".  Set max_internal_reg_reps to override.");
 
 		decoderList.add(instProperties);
 		//if (regProperties.isExternal()) System.out.println("SystemVerilogDecoder addToDecode: adding ext " + regProperties.getInstancePath() + " at base=" + regProperties.getBaseAddress());
@@ -140,7 +140,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.PARALLEL_PULSED)) this.genParallelPioInterface(topRegProperties, true, true);
 		else {
 			String instStr = (topRegProperties == null)? "root" : topRegProperties.getInstancePath();
-			Ordt.errorExit("invalid decoder primary interface type specified for addrmap instance " + instStr);
+			MsgUtils.errorExit("invalid decoder primary interface type specified for addrmap instance " + instStr);
 		}
 	}
 
@@ -158,7 +158,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.ENGINE1)) this.genEngine1Interface(topRegProperties);
 		else {
 			String instStr = (topRegProperties == null)? "root" : topRegProperties.getInstancePath();
-			Ordt.errorExit("invalid decoder secondary interface type specified for addrmap instance " + instStr);
+			MsgUtils.errorExit("invalid decoder secondary interface type specified for addrmap instance " + instStr);
 		}
 	}
 
@@ -195,7 +195,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (hasWriteEnables()) {
 			if ( (ExtParameters.getMinDataSize() <= ExtParameters.sysVerWriteEnableSize()) ||
 					((ExtParameters.getMinDataSize() % ExtParameters.sysVerWriteEnableSize()) != 0) ) 
-				Ordt.errorExit("Invalid write enable size (" + ExtParameters.sysVerWriteEnableSize() + ") specified - must be a factor of min_data_size (" + ExtParameters.getMinDataSize() + ")");
+				MsgUtils.errorExit("Invalid write enable size (" + ExtParameters.sysVerWriteEnableSize() + ") specified - must be a factor of min_data_size (" + ExtParameters.getMinDataSize() + ")");
 			this.addVectorReg("pio_dec_write_enable_d1", 0, getWriteEnableWidth());  // input write enable capture register (max width)
 			this.addVectorReg("pio_dec_write_enable_full", 0, builder.getMaxRegWidth());  // expanded enable vector for internals
 			this.addRegAssign("pio i/f",  "pio_dec_write_enable_d1 <= #1  " + pioInterfaceWriteEnableName + ";"); // capture write enable if new transaction
@@ -733,7 +733,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	/** generate an assist engine (not valid for primary interface) */
 	private void genEngine1Interface(AddressableInstanceProperties topRegProperties) {
 		// exit with error if this addrmap has only a single address
-		if (!mapHasMultipleAddresses()) Ordt.errorExit("Assist engine can only be used in addrmaps with multiple addresses");
+		if (!mapHasMultipleAddresses()) MsgUtils.errorExit("Assist engine can only be used in addrmaps with multiple addresses");
 		
 		boolean isPrimary = false;  // engine1 is always secondary
 		// set internal interface names
@@ -892,7 +892,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// tie off enables
 		if (hasWriteEnables()) {
-			Ordt.warnMessage("Assist engine decoder interface will not generate write data enables.");
+			MsgUtils.warnMessage("Assist engine decoder interface will not generate write data enables.");
 			this.addVectorWire(pioInterfaceWriteEnableName, 0, getWriteEnableWidth()); 
 			this.addWireAssign(pioInterfaceWriteEnableName + " = " + SystemVerilogBuilder.getHexOnesString(getWriteEnableWidth()) + ";");
 		}
@@ -1355,7 +1355,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// tie off enables
 		if (hasWriteEnables()) {
-			Ordt.warnMessage("Leaf decoder interface will not generate write data enables.");
+			MsgUtils.warnMessage("Leaf decoder interface will not generate write data enables.");
 			this.addVectorWire(pioInterfaceWriteEnableName, 0, getWriteEnableWidth()); 
 			this.addWireAssign(pioInterfaceWriteEnableName + " = " + SystemVerilogBuilder.getHexOnesString(getWriteEnableWidth()) + ";");
 		}
@@ -1403,7 +1403,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int addrSize = builder.getMapAddressWidth();    
 		RegNumber lowBaseBits = baseAddr.getSubVector(lowAddrBit, addrSize);
 		if ((lowBaseBits != null) && (lowBaseBits.isNonZero()))  
-			Ordt.warnMessage("Non zero base address value below bit " + (lowAddrBit + addrSize) + " will be ignored");
+			MsgUtils.warnMessage("Non zero base address value below bit " + (lowAddrBit + addrSize) + " will be ignored");
 				
 		// create external block select if specified
 		if (ExtParameters.getSystemverilogBlockSelectMode() == SVBlockSelectModes.EXTERNAL) {
@@ -1573,11 +1573,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// check for valid serial8 width
 		int transactionsInWord = ExtParameters.getMinDataSize()/8;
 		boolean multiTransactionWord = (transactionsInWord>1);
-		if (!multiTransactionWord) Ordt.errorExit("Serial8 interface type does not support 8b max width regions.  Use parallel interface instead.");
+		if (!multiTransactionWord) MsgUtils.errorExit("Serial8 interface type does not support 8b max width regions.  Use parallel interface instead.");
 		
 		// tie off enables
 		if (hasWriteEnables()) {
-			Ordt.warnMessage("Serial8 decoder interface will not generate write data enables.");
+			MsgUtils.warnMessage("Serial8 decoder interface will not generate write data enables.");
 			this.addVectorWire(pioInterfaceWriteEnableName, 0, getWriteEnableWidth()); 
 			this.addWireAssign(pioInterfaceWriteEnableName + " = " + SystemVerilogBuilder.getHexOnesString(getWriteEnableWidth()) + ";");
 		}
@@ -1918,11 +1918,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// check for valid ring width
 		int transactionsInWord = ExtParameters.getMinDataSize()/ringWidth;
-		if (ringWidth > ExtParameters.getMinDataSize()) Ordt.errorExit(ringWidth + "b ring interface type does not support min data size less than " + ringWidth + "b.");
+		if (ringWidth > ExtParameters.getMinDataSize()) MsgUtils.errorExit(ringWidth + "b ring interface type does not support min data size less than " + ringWidth + "b.");
 		
 		// tie off enables
 		if (hasWriteEnables()) {
-			Ordt.warnMessage("Ring decoder interface will not generate write data enables.");
+			MsgUtils.warnMessage("Ring decoder interface will not generate write data enables.");
 			this.addVectorWire(pioInterfaceWriteEnableName, 0, getWriteEnableWidth()); 
 			this.addWireAssign(pioInterfaceWriteEnableName + " = " + SystemVerilogBuilder.getHexOnesString(getWriteEnableWidth()) + ";");
 		}
@@ -1989,7 +1989,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int addressWidth = builder.getMapAddressWidth();
 		int addressableBits = ringWidth * maxAddrXferCount;
 		if (addressableBits < addressWidth) 
-			Ordt.errorExit("Insufficient address bits in " + ringWidth + "b ring decoder interface (" + addressableBits + ") for " + addressWidth +"b region " + topRegProperties.getInstancePath());
+			MsgUtils.errorExit("Insufficient address bits in " + ringWidth + "b ring decoder interface (" + addressableBits + ") for " + addressWidth +"b region " + topRegProperties.getInstancePath());
 		//System.out.println("SystemVerilogDecodeModule genRingPioInterface: addressWidth=" + addressWidth + ", maxAddrXferCount=" + maxAddrXferCount + ", addrXferCountBits=" + addrXferCountBits);
 				
 		// compute max transaction size in 32b words and number of bits to represent (4 max) 
@@ -2001,7 +2001,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// error if insufficient data count bits for max reg width
 		if (regWordBits > maxRegWordBits)
-			Ordt.errorExit("Unable to access " + regWidth + "b registers within " + ringWidth + "b ring decoder for region " + topRegProperties.getInstancePath());
+			MsgUtils.errorExit("Unable to access " + regWidth + "b registers within " + ringWidth + "b ring decoder for region " + topRegProperties.getInstancePath());
 
 		// now create state machine vars		
 		String groupName = getGroupPrefix(isPrimary) + "ring" + ringWidth + " i/f";  
@@ -3089,7 +3089,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	public void generateExternalInterface_SRAM(AddressableInstanceProperties addrInstProperties) {
 		// warn if this is an external with field_data option set
 		if (addrInstProperties.useExtFieldData())
-		    Ordt.warnMessage("field_data option is currently not supported in SRAM external regions - will be ignored in " + addrInstProperties.getInstancePath());
+		    MsgUtils.warnMessage("field_data option is currently not supported in SRAM external regions - will be ignored in " + addrInstProperties.getInstancePath());
 
 		// generate common external interface constructs
 		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
@@ -3131,7 +3131,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		//System.out.println("SystemVerilogBuilder gen.._SRAM: reg word width=" + regProperties.getRegWordWidth() + ", bits=" + Utils.getBits(regProperties.getRegWordWidth()));
 
 		// check that at least 2 regs in SRAM address space
-		if (srAddrBits < 1) Ordt.errorExit("External SRAM-type regfile must have at least 2 registers, inst=" + addrInstProperties.getInstancePath());
+		if (srAddrBits < 1) MsgUtils.errorExit("External SRAM-type regfile must have at least 2 registers, inst=" + addrInstProperties.getInstancePath());
 		// create address output
 		this.addSimpleVectorTo(SystemVerilogBuilder.HW, decodeToSrAddrName, regWordBits + addrInstProperties.getExtLowBit(), srAddrBits);    // address  
 		
@@ -3288,7 +3288,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// check for valid serial8 width
 		int transactionsInWord = ExtParameters.getMinDataSize()/8;
 		boolean multiTransactionWord = (transactionsInWord>1);
-		if (!multiTransactionWord) Ordt.errorExit("Serial8 external region (" + addrInstProperties.getInstancePath() + ") does not support 8b max width regions.  Use parallel interface instead.");
+		if (!multiTransactionWord) MsgUtils.errorExit("Serial8 external region (" + addrInstProperties.getInstancePath() + ") does not support 8b max width regions.  Use parallel interface instead.");
 		
 		// generate common external interface constructs
 		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
@@ -3590,7 +3590,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		// check for valid ring width
 		int transactionsInWord = ExtParameters.getMinDataSize()/ringWidth;
-		if (ringWidth > ExtParameters.getMinDataSize()) Ordt.errorExit(ringWidth + "b ring external region (" + addrInstProperties.getInstancePath() + ") does not support min data size less than " + ringWidth + "b.");
+		if (ringWidth > ExtParameters.getMinDataSize()) MsgUtils.errorExit(ringWidth + "b ring external region (" + addrInstProperties.getInstancePath() + ") does not support min data size less than " + ringWidth + "b.");
 		
 		// generate common external interface constructs
 		ExternalInterfaceInfo extIf = generateBaseExternalInterface(addrInstProperties);
@@ -3659,7 +3659,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			//System.out.println("SystemVerilogBuilder generateExternalInterface_ring: addr width=" + regProperties.getExtAddressWidth() + ", addr count=" + addrXferCount);
 			// error if insufficient bits to address this region 
 			if (addrXferCount > maxAddrXferCount) 
-				Ordt.errorExit("Insufficient address bits to access " + ringWidth + "b ring external region " + addrInstProperties.getInstancePath());
+				MsgUtils.errorExit("Insufficient address bits to access " + ringWidth + "b ring external region " + addrInstProperties.getInstancePath());
 		}
 		int addrXferCountBits = Utils.getBits(addrXferCount);
 
@@ -3669,7 +3669,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		boolean useTransactionSize = addrInstProperties.hasExtSize();  // if transaction sizes need to be sent/received
 		// error if max reg size is too big for this region 
 		if (regWordBits > maxRegWordBits) 
-			Ordt.errorExit("Max register width (" + addrInstProperties.getMaxRegWidth() + ") is too large for " + ringWidth + "b ring external region " + addrInstProperties.getInstancePath());
+			MsgUtils.errorExit("Max register width (" + addrInstProperties.getMaxRegWidth() + ") is too large for " + ringWidth + "b ring external region " + addrInstProperties.getInstancePath());
 		
 		// now create state machine vars
 		String ringStateName = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_state";                      
@@ -4203,7 +4203,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			if (!botBits.equals(Utils.repeat('0', extAddrWidth))) {
 				RegNumber align = new RegNumber(2);
 				align.pow(extAddrWidth + elem.getExtLowBit());
-			    Ordt.errorMessage("external " + elem.getInstancePath() + " base address (" + elem.getBaseAddress() + 
+			    MsgUtils.errorMessage("external " + elem.getInstancePath() + " base address (" + elem.getBaseAddress() + 
 			    		") is not aligned on " + align.toFormat(NumBase.Hex, NumFormat.Address) + " boundary");
 			}
 			return topBits + Utils.repeat('?', extAddrWidth);

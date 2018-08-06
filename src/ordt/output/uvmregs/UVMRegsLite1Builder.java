@@ -2,13 +2,12 @@ package ordt.output.uvmregs;
 
 import java.util.Iterator;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 
 import ordt.output.FieldProperties;
-import ordt.output.OutputLine;
-
+import ordt.output.common.OutputLine;
 import ordt.parameters.ExtParameters;
 
 /** lightweight uvm regs model -
@@ -107,7 +106,7 @@ public class UVMRegsLite1Builder extends UVMRegsNativeBuilder {
 			if (accessType == null) accessType = getFieldAccessType(field); // save first field access type
 			else if (!accessType.equals(getFieldAccessType(field))) {
 				if (getFieldAccessType(field).contains("W")) accessType = getFieldAccessType(field);
-				Ordt.warnMessage("Multiple field access types found in register=" + regProperties.getInstancePath() + ", lite model assumes a single type per register.");
+				MsgUtils.warnMessage("Multiple field access types found in register=" + regProperties.getInstancePath() + ", lite model assumes a single type per register.");
 			}
 			if  (field.hwChangesValue() || field.isDontCompare()) isVolatile = "1";
 			if (field.isSwWriteable()) isRand = "1";				

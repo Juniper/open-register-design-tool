@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import ordt.extract.DefinedProperty.DefinedPropertyType;
+import ordt.output.common.MsgUtils;
 import ordt.parameters.ExtParameters;
 
 /** class containing the set of defined model properties (extension of rdl property set) */
@@ -240,7 +241,7 @@ public class DefinedProperties {
 	 */
 	private static void addProperty(HashMap<String, DefinedProperty> propSet, String name, DefinedPropertyType type, String defaultValue, int usage, boolean hidden, boolean userDefined, boolean jsPassthru) {
         if (propSet.containsKey(name))
-        	Ordt.warnMessage("User-defined property " + name + " is already defined.  First definition will be used.");
+        	MsgUtils.warnMessage("User-defined property " + name + " is already defined.  First definition will be used.");
         else putProperty(propSet, name, type, defaultValue, usage, hidden, userDefined, jsPassthru);
 	}
 	
@@ -248,7 +249,7 @@ public class DefinedProperties {
 	public static void addUserProperty(String name, String typeStr, String defaultValue, List<String> components) {
 		// if restricted names are specified, then compare and exit if not compliant
 		if (ExtParameters.rdlRestrictDefinedPropertyNames() && !(name.startsWith("p_") || name.startsWith("js_"))) {
-			Ordt.errorMessage("user-defined property (" + name + ") must begin with 'p_' or 'js_' when restrict_defined_property_names is set");
+			MsgUtils.errorMessage("user-defined property (" + name + ") must begin with 'p_' or 'js_' when restrict_defined_property_names is set");
 			return;
 		}
         // generate usage encoding

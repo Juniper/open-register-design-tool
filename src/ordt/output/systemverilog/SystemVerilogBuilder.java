@@ -11,7 +11,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
@@ -25,9 +25,9 @@ import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.output.systemverilog.common.SystemVerilogLocationMap;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
+import ordt.output.systemverilog.common.io.SystemVerilogIOSignalList;
+import ordt.output.systemverilog.common.io.SystemVerilogIOSignalSet;
 import ordt.output.systemverilog.common.wrap.SystemVerilogWrapModule;
-import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
-import ordt.output.systemverilog.io.SystemVerilogIOSignalSet;
 import ordt.output.AddressableInstanceProperties.ExtType;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
@@ -210,7 +210,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		
 		// set as a default reset if specified (exit if specified since these are handled separately from other sigs)
 		if (signalProperties.isDefaultReset()) {
-			if (resetsLocked) Ordt.errorMessage("cpuif_reset property ignored for signal " + signalProperties.getInstancePath());
+			if (resetsLocked) MsgUtils.errorMessage("cpuif_reset property ignored for signal " + signalProperties.getInstancePath());
 			else {
 				defaultReset = signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL);
 				defaultResetActiveLow = signalProperties.isActiveLow();
@@ -218,7 +218,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			}
 		}
 		else if (signalProperties.isLogicReset()) {
-			if (resetsLocked) Ordt.errorMessage("field_reset property ignored for signal " + signalProperties.getInstancePath());
+			if (resetsLocked) MsgUtils.errorMessage("field_reset property ignored for signal " + signalProperties.getInstancePath());
 			else {
 				logicReset = signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL);
 				logicResetActiveLow = signalProperties.isActiveLow();
@@ -382,7 +382,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		   // for now, inhibit encap of all except PARALLEL
 		   if (!regProperties.hasExternalType(ExtType.PARALLEL) && (regProperties.useInterface() || regProperties.useStruct())) {
 			   regProperties.setUseInterface(false);regProperties.setUseStruct(false);
-			   Ordt.warnMessage("Interface and structure encaps are not currently supported on non-PARALLEL external interfaces, inst= " + regProperties.getInstancePath());
+			   MsgUtils.warnMessage("Interface and structure encaps are not currently supported on non-PARALLEL external interfaces, inst= " + regProperties.getInstancePath());
 		   }
 		   
 		   // if a rep level external, change IO ancestors to remove reps
@@ -465,7 +465,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	/** finish a register map for a particular output */
 	@Override
 	public  void finishRegMap() {	
-		//Ordt.warnMessage("SystemVerilogBuilder: finishRegMap, builder=" + getBuilderID());
+		//MsgUtils.warnMessage("SystemVerilogBuilder: finishRegMap, builder=" + getBuilderID());
 		//System.out.println("SystemVerilogBuilder: finishRegMap: rqto_err_log_padoody2 #0 isRhs=" + definedSignals.get("rqto_err_log_padoody2").isRhsReference());
 		//logic.resolveNames();
 		//System.out.println("SystemVerilogBuilder: finishRegMap: rqto_err_log_padoody2 #1 isRhs=" + definedSignals.get("rqto_err_log_padoody2").isRhsReference());
@@ -817,7 +817,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	@Override
 	public void write(String outName, String description, String commentPrefix) {		
 		// before starting write, check that this addrmap is valid
-		if (decoder.getDecodeList().isEmpty()) Ordt.errorExit("Minimum allowed address map size is " + this.getMinRegByteWidth() + "B (addrmap=" + getAddressMapName() + ")");
+		if (decoder.getDecodeList().isEmpty()) MsgUtils.errorExit("Minimum allowed address map size is " + this.getMinRegByteWidth() + "B (addrmap=" + getAddressMapName() + ")");
 
 		// determine if a single output file or multiple
 		boolean multipleOutputFiles = outName.endsWith("/");
@@ -992,7 +992,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		
 		// before starting write, check that this addrmap is valid
 		//int mapSize = this.getMapAddressWidth();
-		if (decoder.getDecodeList().isEmpty()) Ordt.errorExit("Minimum allowed address map size is " + this.getMinRegByteWidth() + "B (addrmap=" + getAddressMapName() + ")");
+		if (decoder.getDecodeList().isEmpty()) MsgUtils.errorExit("Minimum allowed address map size is " + this.getMinRegByteWidth() + "B (addrmap=" + getAddressMapName() + ")");
 		//System.out.println("SystemVerilogBuilder write: Minimum allowed address map size is " + (this.getMinRegByteWidth() * 2) + "B, mapSize=" + getCurrentMapSize() + " - " + mapSize + "b (addrmap=" + getAddressMapName() + ")");
 		//System.out.println("SystemVerilogBuilder write:   Decoder elements= " + decoder.getDecodeList().size());
 

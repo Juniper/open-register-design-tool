@@ -20,6 +20,7 @@ import ordt.extract.model.ModEnumElement;
 import ordt.extract.model.ModIndexedInstance;
 import ordt.extract.model.ModInstance;
 import ordt.extract.model.ModRootComponent;
+import ordt.output.common.MsgUtils;
 import ordt.output.systemverilog.common.wrap.WrapperRemapInvertXform;
 import ordt.output.systemverilog.common.wrap.WrapperRemapSyncStagesXform;
 import ordt.output.systemverilog.common.wrap.WrapperRemapXform;
@@ -95,18 +96,18 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
         	ParseTreeWalker walker = new ParseTreeWalker(); // create standard
         	walker.walk(this, tree); // initiate walk of tree with listener
         	if (parser.getNumberOfSyntaxErrors() > 0) {
-        		Ordt.errorExit("RDL parser errors detected.");  
+        		MsgUtils.errorExit("RDL parser errors detected.");  
         	}
         	
         	// if components are specified for processing, find each and create an instance  
         	if (ExtParameters.hasRdlProcessComponents()) processComponents();
         	else if (root.getFirstChildInstance() == null)
-        		Ordt.errorExit("No rdl structures instanced or typedefs specified for processing.");
+        		MsgUtils.errorExit("No rdl structures instanced or typedefs specified for processing.");
 
         	//root.display(true);
 
         } catch (FileNotFoundException e) {
-        	Ordt.errorExit("rdl file not found. "  + e.getMessage());
+        	MsgUtils.errorExit("rdl file not found. "  + e.getMessage());
         } catch (IOException e) {
             e.printStackTrace();
         }		
@@ -135,7 +136,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
     			//processComp.addInstanceOf(newInstance);
     			//System.out.println("RdlModelExtract processComponents: id=" + typedefName + ", isRootInstance=" + newInstance.isRootInstance());
     		}
-    		else Ordt.errorExit("Unable to find specified component (" + typedefName + ") for processing.");        			
+    		else MsgUtils.errorExit("Unable to find specified component (" + typedefName + ") for processing.");        			
 			
 		}
 		// otherwise more than one typedef so create a container component
@@ -165,7 +166,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
         			tdefContainer.addCompInstance(newInstance);   // add this instance to root or container
         			newInstance.setParent(tdefContainer);
         		}
-        		else Ordt.errorExit("Unable to find specified component (" + typedefName + ") for processing.");        			
+        		else MsgUtils.errorExit("Unable to find specified component (" + typedefName + ") for processing.");        			
     		}
     	}
 	}
@@ -260,7 +261,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			//System.out.println("RdlModelExtractor enterComponent_def: new comp id=" + rElem.getId() + ", type=" + rElem.getBaseComponentTypeName());
 		}
 		else {
-			Ordt.errorExit("component_def type=" + cd_type + " not implemented");
+			MsgUtils.errorExit("component_def type=" + cd_type + " not implemented");
 		}
 
 	}
@@ -282,7 +283,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			if (currentWidth == null)
 			    pe.setProperty("fieldstructwidth", childOffset.toString(), 0);  // save the fieldset width as a property in the component
 			else if (childOffset>currentWidth)
-				Ordt.errorExit("Specified fieldstructwidth (" + currentWidth + ") in fieldstruct " + pe.getId() + " is smaller than total of child widths (" + childOffset + ")");
+				MsgUtils.errorExit("Specified fieldstructwidth (" + currentWidth + ") in fieldstruct " + pe.getId() + " is smaller than total of child widths (" + childOffset + ")");
 			else
 				pe.setProperty("fieldstructwidth", currentWidth.toString(), 0);  // save the fieldset width as a property in the component
 			//System.out.println("RdlModelExtractor exitComponent_def: Fieldstruct " + pe.getId() + ", width=" + pe.getIntegerProperty("fieldstructwidth")); 
@@ -344,7 +345,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 				activeInstance.updateProperties(parentDef.getDefaultProperties());   // default properties from ancestors 
 			}
 		}
-		else Ordt.errorMessage("unable to find component " + compId + ((parentDef != null) ? " instanced in " + parentDef.getId() : ""));
+		else MsgUtils.errorMessage("unable to find component " + compId + ((parentDef != null) ? " instanced in " + parentDef.getId() : ""));
 
 	}
 	
@@ -361,7 +362,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	 * Concat
 	 */
 	@Override public void enterConcat(@NotNull SystemRDLParser.ConcatContext ctx) { 
-		Ordt.warnMessage("concat not implemented");
+		MsgUtils.warnMessage("concat not implemented");
 	}
 	
 	/**
@@ -432,7 +433,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 		// create a new enumElement
 		ModEnumElement newEnumElement = new ModEnumElement();
 		// extract id and value of this element
-		if (ctx.getChildCount()<3) Ordt.errorExit("Error parsing enum near line " + ctx.getStart().getLine());
+		if (ctx.getChildCount()<3) MsgUtils.errorExit("Error parsing enum near line " + ctx.getStart().getLine());
 		newEnumElement.setId(ctx.getChild(0).getText());
 		newEnumElement.setValue(ctx.getChild(2).getText()); 
 		// extract name and description
@@ -506,7 +507,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			}
 			
 		}
-		else Ordt.warnMessage("explicit property assignment form not supported: " + ctx.getText());   
+		else MsgUtils.warnMessage("explicit property assignment form not supported: " + ctx.getText());   
 	}
 	
 	/**
@@ -558,7 +559,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
     			//Jrdl.infoMessage("found alias target instance " + aliasId + " in local context");   
         	}
         	else {
-    			Ordt.errorMessage("unable to find alias target instance " + aliasId + " in local context");
+    			MsgUtils.errorMessage("unable to find alias target instance " + aliasId + " in local context");
         	}
         }
         // otherwise save the component Id
@@ -611,7 +612,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 		//System.out.println("RdlModelExtractor enterPost_property_assign: dref instance " + instPathStr + ", property=" + property + ", wildcards=" + lhsInstanceRef.hasWildcard()); 
 		// exit with error if an array indexed value is used on lhs	
 		if ((instPathStr!=null) && instPathStr.contains("[")) {
-			Ordt.errorMessage("property assignment using indexed values in lhs not supported: " + ctx.getText());
+			MsgUtils.errorMessage("property assignment using indexed values in lhs not supported: " + ctx.getText());
 			return;
 		}
 		
@@ -622,7 +623,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			//System.out.println("RegExtractor: post prop assign active component =" + comp.getId()); 
 			ModInstance regInst = comp.findInstance(lhsInstanceRef.getInstPath());   // search for specified instance recursively  
 			if (regInst == null)
-				Ordt.errorMessage("unable to find lhs instance in property assignment: " + ctx.getText());
+				MsgUtils.errorMessage("unable to find lhs instance in property assignment: " + ctx.getText());
 		    // if this instance is found 
 			else {
 				//System.out.println("RdlModelExtractor enterPost_property_assign: found lhs instance "+ instPathStr); 
@@ -653,7 +654,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			//System.out.println("RegExtractor: post prop assign active component =" + comp.getId()); 
 			ModInstance regInst = comp.findInstance(lhsInstanceRef.getInstPath());   // search for specified instance recursively  
 			if (regInst == null)
-				Ordt.errorMessage("unable to find lhs instance or property in assignment: " + ctx.getText());
+				MsgUtils.errorMessage("unable to find lhs instance or property in assignment: " + ctx.getText());
 		    // if this instance is found in local component then save the prop assignment
 			else {
 				//System.out.println("RdlModelExtractor enterPost_property_assign: found lhs instance "+ instPathStr); 
@@ -664,7 +665,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 
 		// unsupported 
 		else {
-			Ordt.warnMessage("instance_ref " + ctx.getChild(0).getText() + " not supported");			
+			MsgUtils.warnMessage("instance_ref " + ctx.getChild(0).getText() + " not supported");			
 		}
 	}
 
@@ -681,7 +682,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			//System.out.println("RegExtractor: post prop assign active component =" + comp.getId()); 
 			ModInstance regInst = comp.findInstance(rhsInstanceRef.getInstPath());   // search for specified instance recursively  
 			if (regInst == null)
-				Ordt.errorMessage("unable to find rhs instance in dynamic property assignment: " + ctx.getText());
+				MsgUtils.errorMessage("unable to find rhs instance in dynamic property assignment: " + ctx.getText());
 			//else
 			//	Jrdl.infoMessage("found rhs instance in dynamic property assignment: " + ctx.getText());
 		}
@@ -800,7 +801,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	 * Detect unimplemented properties
 	 */
 	@Override public void enterUnimplemented_property(@NotNull SystemRDLParser.Unimplemented_propertyContext ctx) {
-		Ordt.warnMessage("property " + ctx.getText() + " not implemented");
+		MsgUtils.warnMessage("property " + ctx.getText() + " not implemented");
 	}
 
 	// ------------------- inline parameter define methods
@@ -853,7 +854,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			//System.out.println("ExtParameters enterSystemverilog_wrapper_remap_command: adding pattern=" + signalPattern + ", " + xf.getType());
 		    break;
 		default:
-			Ordt.errorExit("Unsupported RTL wrapper remap command (" + ctx.getText() + ") specified in parameters.");
+			MsgUtils.errorExit("Unsupported RTL wrapper remap command (" + ctx.getText() + ") specified in parameters.");
 			break;
 		}
 	}
@@ -1087,7 +1088,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 					fieldOffsets.push(indexedWidth);  // use width implied by indexed component
 				else
 					fieldOffsets.push(parentOffset);  // just restore previous value
-				//	Ordt.errorExit("Instance " + activeInst.getId() + " does not fit in fieldstruct " + activeInst.getParent().getId());
+				//	MsgUtils.errorExit("Instance " + activeInst.getId() + " does not fit in fieldstruct " + activeInst.getParent().getId());
 			}
 			else
 				fieldOffsets.push(parentOffset + activeInstWidth * activeInst.getRepCount());

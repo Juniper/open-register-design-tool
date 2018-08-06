@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-import ordt.output.OutputWriterIntf;
+import ordt.output.common.OutputWriterIntf;
 
 /** class to hold/generate systemverilog info associated with a set of coverage groups
  *  @author snellenbach      

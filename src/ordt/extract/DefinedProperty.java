@@ -3,6 +3,8 @@ package ordt.extract;
 import java.util.HashMap;
 import java.util.List;
 
+import ordt.output.common.MsgUtils;
+
 public class DefinedProperty {
 	private String name;
 	private DefinedPropertyType type;
@@ -134,7 +136,7 @@ public class DefinedProperty {
 	public static int getUsageEncoding(String name, List<String> components) {
 		int usage = 0;
 		for (String comp : components) {
-			if (!compEncodings.containsKey(comp)) Ordt.errorMessage("invalid usage type " + comp + " specified in definition of user-defined property" + name);
+			if (!compEncodings.containsKey(comp)) MsgUtils.errorMessage("invalid usage type " + comp + " specified in definition of user-defined property" + name);
 			else usage += compEncodings.get(comp);
 		}
 		return usage;
@@ -143,7 +145,7 @@ public class DefinedProperty {
 	/** get property type encoding from  string */
 	public static DefinedPropertyType getTypeEncoding(String name, String typeStr) {
 		if (!typeEncodings.containsKey(typeStr)) 
-			Ordt.errorExit("invalid type " + typeStr + " specified in definition of user-defined property " + name);
+			MsgUtils.errorExit("invalid type " + typeStr + " specified in definition of user-defined property " + name);
 		return typeEncodings.get(typeStr);
 	}
 
@@ -180,7 +182,7 @@ public class DefinedProperty {
 			typeName="boolean";
 			break;
 		default:
-			Ordt.errorMessage("User defined rdl property " + name + " has an unsupported type.  Default string type will be used.");
+			MsgUtils.errorMessage("User defined rdl property " + name + " has an unsupported type.  Default string type will be used.");
 		}
 		return "type=" + typeName + ";";
 	}
@@ -220,7 +222,7 @@ public class DefinedProperty {
 			typeName="boolean";
 			break;
 		default:
-			Ordt.errorMessage("User defined jspec parameter " + name + " has an unsupported type.  Default string type will be used.");
+			MsgUtils.errorMessage("User defined jspec parameter " + name + " has an unsupported type.  Default string type will be used.");
 		}
 		return typeName;
 	}

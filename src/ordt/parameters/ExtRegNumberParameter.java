@@ -1,6 +1,6 @@
 package ordt.parameters;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegNumber;
 
 public class ExtRegNumberParameter extends ExtParameter<RegNumber> {
@@ -16,7 +16,7 @@ public class ExtRegNumberParameter extends ExtParameter<RegNumber> {
 			this.value = val;
 			//System.out.println("ExtParameters.ExtRegNumberParameter : " + name + " = " + valStr + ", resolved to " + val);
 		} 
-		else Ordt.errorMessage("invalid " + name + " parameter value specified (" + value + ").");
+		else MsgUtils.errorMessage("invalid " + name + " parameter value specified (" + value + ").");
 	}
 
 	@Override

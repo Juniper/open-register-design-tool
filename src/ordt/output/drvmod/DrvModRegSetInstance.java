@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 
 public class DrvModRegSetInstance extends DrvModBaseInstance {
 	
@@ -67,7 +67,7 @@ public class DrvModRegSetInstance extends DrvModBaseInstance {
 		// exit if not a dup and allowAdd false
 		if (!allowAdd && (currentMap == null)) {
 			//System.out.println("DrvModRegSetInstance updateChild: adding new child to " + getName() + " that should be a dup, child.getName=" + cInfo.child.getName() + ", mapId=" + mapId + ", my hash=" + hashCode() + ", new child hash=" + cInfo.child.hashCode());
-			Ordt.errorExit("Problem detected in overlay file processing");
+			MsgUtils.errorExit("Problem detected in overlay file processing");
 		}
 		// compute new map encoding
 		int newMap = (currentMap == null)? (1<<mapId) : currentMap | (1<<mapId);

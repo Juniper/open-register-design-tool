@@ -3,7 +3,7 @@
  */
 package ordt.extract.model;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.output.OutputBuilder;
 
 public class ModRootComponent extends ModComponent {
@@ -52,7 +52,7 @@ public class ModRootComponent extends ModComponent {
 		// issue warning if more than one root instance detected
 		ModInstance inst = this.getFirstChildInstance();
 		if (getChildInstances().size() > 1) {
-			Ordt.warnMessage("More than one root instance found in input file. Only first instance ("+ inst.getId() + ") will be processed.");
+			MsgUtils.warnMessage("More than one root instance found in input file. Only first instance ("+ inst.getId() + ") will be processed.");
 		}
 		
 		// recursively generate output

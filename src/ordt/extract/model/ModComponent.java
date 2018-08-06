@@ -14,6 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import ordt.annotate.AnnotateCommand;
+import ordt.output.common.MsgUtils;
 import ordt.extract.Ordt;
 import ordt.extract.PropertyList;
 import ordt.extract.RegNumber;
@@ -284,7 +285,7 @@ public abstract class ModComponent extends ModBaseComponent {
 	 *  @param ModComponent to add as child
 	 */
 	public void addChildComponent(ModComponent regComp) {
-		if (findLocalCompDef(regComp.getId()) != null) Ordt.errorMessage("Duplicate component (" + regComp.getId() + ") declared in component " + getId());
+		if (findLocalCompDef(regComp.getId()) != null) MsgUtils.errorMessage("Duplicate component (" + regComp.getId() + ") declared in component " + getId());
 		childComponents.add(regComp);		
 	}
 	
@@ -306,7 +307,7 @@ public abstract class ModComponent extends ModBaseComponent {
 	 *  @param component instance to add as child
 	 */
 	public void addCompInstance(ModInstance regInst) {
-		if (findLocalInstance(regInst.getId()) != null) Ordt.errorMessage("Duplicate instance (" + regInst.getId() + ") declared in component " + getId());
+		if (findLocalInstance(regInst.getId()) != null) MsgUtils.errorMessage("Duplicate instance (" + regInst.getId() + ") declared in component " + getId());
 		getChildInstances().add(regInst);		
 	}
 
@@ -314,7 +315,7 @@ public abstract class ModComponent extends ModBaseComponent {
 	 *  @param regenum to add as child
 	 */
 	public void addCompEnum(ModEnum regEnum) {
-		if (findLocalEnum(regEnum.getId()) != null) Ordt.errorMessage("Duplicate enum (" + regEnum.getId() + ") declared in component " + getId());
+		if (findLocalEnum(regEnum.getId()) != null) MsgUtils.errorMessage("Duplicate enum (" + regEnum.getId() + ") declared in component " + getId());
 		enums.add(regEnum);		
 	}
 	

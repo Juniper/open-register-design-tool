@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
@@ -18,7 +18,7 @@ import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.output.systemverilog.common.SystemVerilogCoverGroups;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
-import ordt.output.systemverilog.io.SystemVerilogIOSignalList;
+import ordt.output.systemverilog.common.io.SystemVerilogIOSignalList;
 import ordt.output.FieldProperties.RhsRefType;
 import ordt.output.JspecSubCategory;
 import ordt.output.RegProperties;
@@ -117,7 +117,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 					   addVectorWire(fieldRegisterName, 0, fieldProperties.getFieldWidth());  // add field to wire define list
 					   addWireAssign(fieldRegisterName + " = " + getResetValueString() + ";");
 				   }
-				   else Ordt.errorMessage("invalid field constant - no reset value for non-writable field " + fieldProperties.getInstancePath());
+				   else MsgUtils.errorMessage("invalid field constant - no reset value for non-writable field " + fieldProperties.getInstancePath());
 			   }
 		   }
 	}
@@ -140,12 +140,12 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 				   resetSignalActiveLow = false;  // user defined resets are active high 
 				   resetSignalName = resolveRhsExpression(RhsRefType.RESET_SIGNAL);
 				   if (!(definedSignals.contains(resetSignalName) || userDefinedSignals.containsKey(resetSignalName)))
-					   Ordt.errorMessage("reset signal " + resetSignalName + " for field " + fieldProperties.getInstancePath() + " has not been defined");
+					   MsgUtils.errorMessage("reset signal " + resetSignalName + " for field " + fieldProperties.getInstancePath() + " has not been defined");
 			   }
 			   addReset(resetSignalName, resetSignalActiveLow);
 			   addResetAssign(regProperties.getBaseName(), resetSignalName, fieldRegisterName + " <= #1 " + getResetValueString() + ";");  // ff reset assigns			   
 		   }
-		   else if (!ExtParameters.sysVerSuppressNoResetWarnings()) Ordt.warnMessage("field " + fieldProperties.getInstancePath() + " has no reset defined");
+		   else if (!ExtParameters.sysVerSuppressNoResetWarnings()) MsgUtils.warnMessage("field " + fieldProperties.getInstancePath() + " has no reset defined");
 		   
 		   addRegAssign(regProperties.getBaseName(),  fieldRegisterName + " <= #1  " + fieldRegisterNextName + ";");  // assign next to flop
 	}
@@ -810,7 +810,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 						if (!this.hasDefinedSignal(refName) && (rhsSignals.containsKey(refName))) {  
 							RhsReferenceInfo rInfo = rhsSignals.get(refName);
 							//System.out.println("SystemVerilogLogicModule createSignalAssigns: refName=" + refName + ", hasDefinedSignal=" + this.hasDefinedSignal(refName) + ", rhsSignals.containsKey=" + rhsSignals.containsKey(refName));
-							Ordt.errorMessage("unable to resolve " + rInfo.getRhsRefString() + " referenced in rhs dynamic property assignment for " + rInfo.getLhsInstance()); 
+							MsgUtils.errorMessage("unable to resolve " + rInfo.getRhsRefString() + " referenced in rhs dynamic property assignment for " + rInfo.getLhsInstance()); 
 						}						
 					}
 				}
@@ -831,7 +831,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 				else {
 					// if not used internally, issue an error
 					if (!sig.isRhsReference())
-						Ordt.errorMessage("user defined signal " + sig.getFullSignalName(DefSignalType.USR_SIGNAL) + " is not used");		
+						MsgUtils.errorMessage("user defined signal " + sig.getFullSignalName(DefSignalType.USR_SIGNAL) + " is not used");		
 				}
 			}
 		}
@@ -856,10 +856,10 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			if (rhsSignals.containsKey(preResolveName)) {
 				RhsReferenceInfo rInfo = rhsSignals.get(preResolveName);
 				//System.out.println("SystemVerilogLogicModule checkSignalName: preResolveName=" + preResolveName + " found in rhsSignals, but postResolveName=" + postResolveName + " not found in definedSignals");
-				Ordt.errorMessage("unable to resolve " + rInfo.getRhsRefString() + " referenced in rhs dynamic property assignment for " + rInfo.getLhsInstance()); 
+				MsgUtils.errorMessage("unable to resolve " + rInfo.getRhsRefString() + " referenced in rhs dynamic property assignment for " + rInfo.getLhsInstance()); 
 			}
 			else
-				Ordt.errorMessage("unable to resolve signal " + postResolveName + " inferred in rhs dynamic property assignment" ); 
+				MsgUtils.errorMessage("unable to resolve signal " + postResolveName + " inferred in rhs dynamic property assignment" ); 
 		}
 	}
 	

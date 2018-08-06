@@ -3,7 +3,7 @@
  */
 package ordt.output.cppmod;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
@@ -178,7 +178,7 @@ public class CppModClass extends CppBaseModClass {
 	   if ("ordt_data".equals(fieldType)) { // special call if a wide field
 		   if (((resetVal == null) || !resetVal.isDefined())) initStr = "0"; // default to reset value of 0
 		   else if (resetVal.isNonZero()) { 
-			   Ordt.warnMessage("C++ model does not support non-zero init values for wide fields, field=" + instName);
+			   MsgUtils.warnMessage("C++ model does not support non-zero init values for wide fields, field=" + instName);
 		       initStr="0";
 		   }
 		   else initStr = resetVal.toFormat(NumBase.Hex, NumFormat.Address);

@@ -3,7 +3,7 @@
  */
 package ordt.extract.model;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
 
@@ -47,7 +47,7 @@ public class ModField extends ModComponent {
 		
 		// generate each direct instance in this component
 		for (ModInstance regInst : getChildInstances()) {
-			Ordt.errorExit("Rdl fields are not allowed to have child components, field=" + callingInst.getId());
+			MsgUtils.errorExit("Rdl fields are not allowed to have child components, field=" + callingInst.getId());
 			regInst.generateOutput(outputBuilder);
 		}
 		outputBuilder.popInstance();

@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ordt.extract.Ordt;
+import ordt.output.common.MsgUtils;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
@@ -312,7 +312,7 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 			this.externalType.addParm("width", width);
 			this.externalType.addParm("delay", delay);
 		}
-		else Ordt.errorExit("Invalid external interface type (" + externalStr + ") detected in instance " + getId());
+		else MsgUtils.errorExit("Invalid external interface type (" + externalStr + ") detected in instance " + getId());
 		//System.out.println("InstanceProperties setExternal: input=" + externalStr + ", new val=" + this.externalType + ", inst=" + getId());
 	}
 
@@ -556,7 +556,7 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 	 */
 	@Override
 	public int hashCode() {
-		Ordt.errorExit("AddressableInstanceProperty hash is being called directly for id=" + getId());
+		MsgUtils.errorExit("AddressableInstanceProperty hash is being called directly for id=" + getId());
 		return hashCode(false);
 	}
 

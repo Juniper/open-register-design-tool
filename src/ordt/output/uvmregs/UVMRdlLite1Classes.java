@@ -2,7 +2,7 @@ package ordt.output.uvmregs;
 
 import java.util.List;
 
-import ordt.output.OutputLine;
+import ordt.output.common.OutputLine;
 import ordt.output.systemverilog.common.SystemVerilogFunction;
 
 public class UVMRdlLite1Classes extends UVMRegsCommon {

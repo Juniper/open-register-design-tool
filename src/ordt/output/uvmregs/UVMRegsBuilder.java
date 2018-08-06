@@ -14,6 +14,7 @@ import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import ordt.output.common.MsgUtils;
 import ordt.extract.Ordt;
 import ordt.extract.PropertyList;
 import ordt.extract.RegModelIntf;
@@ -23,12 +24,12 @@ import ordt.extract.RegNumber.NumFormat;
 import ordt.output.FieldProperties;
 import ordt.output.InstanceProperties;
 import ordt.output.OutputBuilder;
-import ordt.output.OutputLine;
 import ordt.output.RegProperties;
 import ordt.output.RegSetProperties;
 import ordt.output.RhsReference;
 import ordt.output.UniqueNameSet;
 import ordt.output.UniqueNameSet.UniqueNameSetInfo;
+import ordt.output.common.OutputLine;
 import ordt.output.FieldProperties.RhsRefType;
 import ordt.output.systemverilog.common.SystemVerilogFunction;
 import ordt.output.systemverilog.common.SystemVerilogTask;
@@ -312,7 +313,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 		}
 		// issue warning if no category defined
 		if (!regProperties.hasCategory() && !ExtParameters.uvmregsSuppressNoCategoryWarnings()) 
-			Ordt.warnMessage("register " + regProperties.getInstancePath() + " has no category defined");
+			MsgUtils.warnMessage("register " + regProperties.getInstancePath() + " has no category defined");
 		//System.out.println("UVMBuild saveRegInfo: " + regProperties.getBaseName() + ", parent=" + parentID + ", rel addr=" + regProperties.getRelativeBaseAddress());
 	}
 	
@@ -412,7 +413,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 
 		// issue warning if no category defined
 		if (includeExtendedInfo && !regProperties.hasCategory() && !ExtParameters.uvmregsSuppressNoCategoryWarnings()) 
-			Ordt.warnMessage("register " + regProperties.getInstancePath() + " has no category defined");
+			MsgUtils.warnMessage("register " + regProperties.getInstancePath() + " has no category defined");
 
 		// add the memory to the address map  (no offset if in a wrapper block)
 		String addrString = blockWrapped? "`UVM_REG_ADDR_WIDTH'h0" :
@@ -1183,7 +1184,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 						if (isEnable != null) {
 							String enTypeStr = isEnable ? "enable" : "mask";
 							String maskIntBitsStr = field.isMaskIntrBits()? "maskintrbits " : "";
-							Ordt.warnMessage("UVM model does not support " + maskIntBitsStr + "property assign for " + enTypeStr + "=" + eRef.getRawReference() + " in field=" + field.getInstancePath());							
+							MsgUtils.warnMessage("UVM model does not support " + maskIntBitsStr + "property assign for " + enTypeStr + "=" + eRef.getRawReference() + " in field=" + field.getInstancePath());							
 						}
 					}
 					else {
@@ -1221,7 +1222,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 					if ((isEnable == null) || eRef.hasDeRef() || (eRef.getPathCount() < 2)) {  // rhs must reference a field so reflen must be >= 2
 						if (isEnable != null) {
 							String enTypeStr = isEnable ? "enable" : "mask";
-							Ordt.warnMessage("UVM model does not support property assign for " + enTypeStr + "=" + eRef.getRawReference() + " in field=" + field.getInstancePath());							
+							MsgUtils.warnMessage("UVM model does not support property assign for " + enTypeStr + "=" + eRef.getRawReference() + " in field=" + field.getInstancePath());							
 						}
 					}
 					else {
@@ -1242,7 +1243,7 @@ public class UVMRegsBuilder extends OutputBuilder {
 					else if (field.hasRef(RhsRefType.INTR)) eRef = field.getRef(RhsRefType.INTR);
 					// check for invalid form
 					if (!(eRef.hasDeRef("intr") || eRef.hasDeRef("halt")) || (eRef.getPathCount() < 1)) {  // rhs must reference a reg so reflen must be >= 1
-							Ordt.warnMessage("UVM model does not support property assign " + eRef.getRawReference() + " in field=" + field.getInstancePath());							
+							MsgUtils.warnMessage("UVM model does not support property assign " + eRef.getRawReference() + " in field=" + field.getInstancePath());							
 							//System.out.println("UVMRegsBuilder buildRegAddCallbacksFunction: eRef=" + eRef.getRegName() + ", depth=" + eRef.getDepth() );
 					}
 					else {
