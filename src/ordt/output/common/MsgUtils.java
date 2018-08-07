@@ -7,12 +7,12 @@ public class MsgUtils {
 	private final static int ERROR_CONTINUE_RC = 4;
 	private final static int ERROR_EXIT_RC = 8;
 	private static int returnCode = 0;
-	private static String codeName = "Ordt";
+	private static String progName = "Ordt";
 
 	/** display error message and exit */
 	public static void errorExit(String msg) {
 		errorMessage(msg);	
-		System.out.println(codeName + " exited due to error " + new Date());
+		System.out.println(progName + " exited due to error " + new Date());
 		System.exit(ERROR_EXIT_RC);
 	}
 
@@ -37,8 +37,21 @@ public class MsgUtils {
 		return returnCode;
 	}
 
-	protected static void setCodeName(String codeName) {
-		MsgUtils.codeName = codeName;
+	/** set name of this program for display */
+	public static void setProgName(String progName) {
+		MsgUtils.progName = progName;
+	}
+
+	/** get name of this program for display */
+	public static String getProgName() {
+		return progName;
+	}
+
+	/** generate string of spaces of specified length */
+	public static String repeat (char c, int num) {
+		String retstr = "";
+		for (int i=0; i<num; i++)  retstr = retstr + c;
+	   return retstr;	
 	}
 
 }

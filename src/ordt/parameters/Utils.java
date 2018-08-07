@@ -138,13 +138,6 @@ public class Utils {
 		return numStrToPosInteger (numStr, null);
 	}
 
-	/** generate string of spaces of specified length */
-	public static String repeat (char c, int num) {
-		String retstr = "";
-		for (int i=0; i<num; i++)  retstr = retstr + c;
-	   return retstr;	
-	}
-	
 	/** catenate 2 strings with a single underscore between */
 	public static String usCatenate(String string1, String string2) {
 		String newString1 = (string1 == null)? "" : string1;

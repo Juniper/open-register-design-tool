@@ -1,18 +1,17 @@
 package ordt.output.common;
 
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
-
-import ordt.output.OutputBuilder;
-import ordt.parameters.Utils;
 
 public class SimpleOutputWriter implements OutputWriterIntf {
 	protected BufferedWriter bw;
 	
 	public SimpleOutputWriter(String fileName, String description) {
-    	bw = OutputBuilder.openBufferedWriter(fileName, description);
+    	bw = openBufferedWriter(fileName, description);
 	}
 
 	/** return BufferedWriter */
@@ -31,7 +30,7 @@ public class SimpleOutputWriter implements OutputWriterIntf {
 	/** close this writer */
 	@Override
 	public void close() {
-		OutputBuilder.closeBufferedWriter(bw);
+		closeBufferedWriter(bw);
 	}
 
 	@Override
@@ -43,7 +42,7 @@ public class SimpleOutputWriter implements OutputWriterIntf {
 	public void writeStmt(int indentLevel, String stmt) {
 		   //System.out.println("OutputBuilder: bufnull=" + (bufferedWriter == null) + ", indent=" + ",Stmt=" + stmt);
 		   try {
-			bw.write(Utils.repeat(' ', indentLevel*2) + stmt +"\n");
+			bw.write(MsgUtils.repeat(' ', indentLevel*2) + stmt +"\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -54,4 +53,40 @@ public class SimpleOutputWriter implements OutputWriterIntf {
 		Iterator<String> iter = outputLines.iterator();
 		while (iter.hasNext()) writeStmt(indentLevel, iter.next());	
 	}	
+	
+	/** validate output file and create buffered writer
+     */
+    public static BufferedWriter openBufferedWriter(String outName, String description) {
+    	File outFile = null;
+    	try {	  			
+    		outFile = new File(outName); 
+
+    		System.out.println(MsgUtils.getProgName() + ": writing " + description + " file " + outFile + "...");
+
+    		// if file doesnt exists, then create it
+    		if (!outFile.exists()) {
+    			outFile.createNewFile();
+    		}
+
+    		FileWriter fw = new FileWriter(outFile.getAbsoluteFile());
+    		BufferedWriter bw = new BufferedWriter(fw);
+    		return bw;
+
+    	} catch (IOException e) {
+    		MsgUtils.errorMessage("Create of " + description + " file " + outFile.getAbsoluteFile() + " failed.");
+    		return null;
+    	}
+    }
+    
+    /** validate output file and create buffered writer
+     */
+    public static void closeBufferedWriter(BufferedWriter bw) {
+    	try {	  
+    		bw.close();
+
+    	} catch (IOException e) {
+    		MsgUtils.errorMessage("File close failed.");
+    	}
+    }
+
 }

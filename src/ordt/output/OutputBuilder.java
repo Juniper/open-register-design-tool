@@ -1405,7 +1405,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
 	public  void writeStmt(BufferedWriter bw, int indentLevel, String stmt) {
 		   //System.out.println("OutputBuilder: bufnull=" + (bufferedWriter == null) + ", indent=" + ",Stmt=" + stmt);
 		   try {
-			bw.write(Utils.repeat(' ', indentLevel*2) + stmt +"\n");
+			bw.write(MsgUtils.repeat(' ', indentLevel*2) + stmt +"\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -1558,7 +1558,7 @@ public abstract class OutputBuilder implements OutputWriterIntf{
     	try {	  			
     		outFile = new File(outName); 
 
-    		System.out.println("Ordt: writing " + description + " file " + outFile + "...");
+    		System.out.println(MsgUtils.getProgName() + ": writing " + description + " file " + outFile + "...");
 
     		// if file doesnt exists, then create it
     		if (!outFile.exists()) {

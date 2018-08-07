@@ -4200,13 +4200,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			//Jrdl.infoMessage("SystemVerilogDocoder getExtDecodeAddressString: elem.getBaseAddress()=" + elem.getBaseAddress() + ", builder.getExtBase=" + builder.getExternalBaseAddress() );
 			//Jrdl.infoMessage("SystemVerilogDocoder getExtDecodeAddressString: intStr=" + intString + ", decodeAddrWidth=" + decodeAddrWidth + ", extAddrWidth=" + extAddrWidth  + ", top=" + topBits + ", bot=" + botBits + ", repeat=" + Jrdl.repeat('0', extAddrWidth));
 
-			if (!botBits.equals(Utils.repeat('0', extAddrWidth))) {
+			if (!botBits.equals(MsgUtils.repeat('0', extAddrWidth))) {
 				RegNumber align = new RegNumber(2);
 				align.pow(extAddrWidth + elem.getExtLowBit());
 			    MsgUtils.errorMessage("external " + elem.getInstancePath() + " base address (" + elem.getBaseAddress() + 
 			    		") is not aligned on " + align.toFormat(NumBase.Hex, NumFormat.Address) + " boundary");
 			}
-			return topBits + Utils.repeat('?', extAddrWidth);
+			return topBits + MsgUtils.repeat('?', extAddrWidth);
 		}
 		else return intString;  // no external address needed, so just use base address
 	}

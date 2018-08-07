@@ -17,7 +17,6 @@ import ordt.extract.model.ModInstance;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals;
 import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.parameters.ExtParameters;
-import ordt.parameters.Utils;
 
 /** class of properties needed for display of active field instance */
 public class FieldProperties extends InstanceProperties { 
@@ -248,7 +247,7 @@ public class FieldProperties extends InstanceProperties {
 		if (pList.hasProperty("donttest")) {
 			RegNumber mask;
 			if (pList.hasTrueProperty("donttest"))  // entire field is donttest
-			   mask = new RegNumber(getFieldWidth() + "'b" + Utils.repeat('1', getFieldWidth()));
+			   mask = new RegNumber(getFieldWidth() + "'b" + MsgUtils.repeat('1', getFieldWidth()));
 			else
 			   mask = new RegNumber(pList.getProperty("donttest"));
 			if (mask.isDefined()) {
@@ -259,7 +258,7 @@ public class FieldProperties extends InstanceProperties {
 		else if (pList.hasProperty("dontcompare")) {
 			RegNumber mask;
 			if (pList.hasTrueProperty("dontcompare"))  // entire field is dontcompare
-			   mask = new RegNumber(getFieldWidth() + "'b" + Utils.repeat('1', getFieldWidth()));
+			   mask = new RegNumber(getFieldWidth() + "'b" + MsgUtils.repeat('1', getFieldWidth()));
 			else
 			   mask = new RegNumber(pList.getProperty("dontcompare"));
 			if (mask.isDefined()) {
@@ -408,7 +407,7 @@ public class FieldProperties extends InstanceProperties {
 			
 			if (pList.hasProperty("incrsaturate")) {
 				if (pList.hasTrueProperty("incrsaturate")) {
-					setIncrSatValue(new RegNumber(fieldWidth + "'b" + Utils.repeat('1', fieldWidth))); // default to max count
+					setIncrSatValue(new RegNumber(fieldWidth + "'b" + MsgUtils.repeat('1', fieldWidth))); // default to max count
 				}
 				else {
 					RegNumber regNum = new RegNumber(pList.getProperty("incrsaturate"));
@@ -436,7 +435,7 @@ public class FieldProperties extends InstanceProperties {
 			// extract incr threshold settings
 			if (pList.hasProperty("threshold")) pList.copyProperty("threshold", "incrthreshold");  // handle threshold alias
 			if (pList.hasProperty("incrthreshold")) {
-				if (pList.hasTrueProperty("incrthreshold")) setIncrTholdValue(new RegNumber(fieldWidth + "'b" + Utils.repeat('1', fieldWidth))); // default to max count
+				if (pList.hasTrueProperty("incrthreshold")) setIncrTholdValue(new RegNumber(fieldWidth + "'b" + MsgUtils.repeat('1', fieldWidth))); // default to max count
 				else {
 					RegNumber regNum = new RegNumber(pList.getProperty("incrthreshold"));
 					if (regNum.isDefined()) {

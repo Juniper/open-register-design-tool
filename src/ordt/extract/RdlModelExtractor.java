@@ -1105,11 +1105,11 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/** display children of context */
 	@SuppressWarnings("unused")
 	private static void displayCtxChildren(ParserRuleContext ctx) {
-		System.out.println(Utils.repeat(' ', ctx.depth()) + "node children:" + ctx.getChildCount());
+		System.out.println(MsgUtils.repeat(' ', ctx.depth()) + "node children:" + ctx.getChildCount());
 		for (int i=0; i<ctx.getChildCount(); i++ ) {
-			System.out.println(Utils.repeat(' ', ctx.depth()) + "   "+ i + ": " + ctx.getChild(i).getText());
+			System.out.println(MsgUtils.repeat(' ', ctx.depth()) + "   "+ i + ": " + ctx.getChild(i).getText());
 				for (int j=0; j<ctx.getChild(i).getChildCount(); j++ ) {
-					System.out.println(Utils.repeat(' ', ctx.depth()) + "     "+ j + ": " + ctx.getChild(i).getChild(j).getText());
+					System.out.println(MsgUtils.repeat(' ', ctx.depth()) + "     "+ j + ": " + ctx.getChild(i).getChild(j).getText());
 				}
 		}	
 	}

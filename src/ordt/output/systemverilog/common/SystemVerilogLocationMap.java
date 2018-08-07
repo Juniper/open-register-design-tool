@@ -67,4 +67,14 @@ public class SystemVerilogLocationMap {
 		return id;
 	}
 
+	/** return the id of the generic internal location */
+	public static Integer getInternalId() {
+		return getId("INTERNAL");
+	}
+
+	/** return the id of the generic external location */
+	public static Integer getExternalId() {
+		return getId("EXTERNAL");
+	}
+
 }

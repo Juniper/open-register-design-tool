@@ -23,7 +23,6 @@ import ordt.output.FieldProperties.RhsRefType;
 import ordt.output.JspecSubCategory;
 import ordt.output.RegProperties;
 import ordt.parameters.ExtParameters;
-import ordt.parameters.Utils;
 
 /** derived class for logic module 
  *  note: this class is tightly coupled with builder - uses several builder methods
@@ -329,7 +328,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		   // if a sw read set
 		   if (fieldProperties.isRset()) {
 			   addPrecCombinAssign(regBaseName, swPrecedence, "if (" + decodeToLogicReName + swWeStr + ") " + fieldRegisterNextName + " = " + 
-		           fieldProperties.getFieldWidth() + "'b" + Utils.repeat('1', fieldProperties.getFieldWidth()) + ";");
+		           fieldProperties.getFieldWidth() + "'b" + MsgUtils.repeat('1', fieldProperties.getFieldWidth()) + ";");
 		   }
 		   // if sw rclr 
 		   else if (fieldProperties.isRclr()) {

@@ -11,9 +11,9 @@ import java.util.regex.Pattern;
 import ordt.output.common.MsgUtils;
 import ordt.output.common.OutputWriterIntf;
 import ordt.output.common.SimpleOutputWriter;
-import ordt.output.systemverilog.SystemVerilogDefinedSignals;
 import ordt.output.systemverilog.common.RemapRuleList;
 import ordt.output.systemverilog.common.SystemVerilogInstance;
+import ordt.output.systemverilog.common.SystemVerilogLocationMap;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.common.RemapRuleList.RemapRuleType;
@@ -417,7 +417,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
     		            	String overrideClkName = ((WrapperRemapSyncStagesXform) xform).getClkName();
     		            	if ((overrideClkName!=null) && !overrideClkName.isEmpty() && !definedSignals.contains(overrideClkName)) {
     		            		MsgUtils.infoMessage("New clock specified in wrapper (" + overrideClkName + ") will be added to IO.");
-    		            		addSimpleScalarFrom(SystemVerilogDefinedSignals.HW, overrideClkName);
+    		            		addSimpleScalarFrom(SystemVerilogLocationMap.getExternalId(), overrideClkName);
     		            		//System.out.println("SystemVerilogWrapModule generateMapOutput: ioHash size=" + ioHash.size());
     		            	}
             				statements.add(xform.getXformString(srcName, dstName, dst.getSize(), optionalParms));  // add the sync stages instance
@@ -513,7 +513,7 @@ public class SystemVerilogWrapModule extends SystemVerilogModule {
 			}
 		}
         // add these child IOs to this modules IO list
-		useIOList(newList, SystemVerilogDefinedSignals.HW);
+		useIOList(newList, SystemVerilogLocationMap.getExternalId());
 	}
 	
 	/** load wrapMappings w/ source signals from external inputs */

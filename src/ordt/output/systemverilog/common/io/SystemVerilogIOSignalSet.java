@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import ordt.output.common.MsgUtils;
 import ordt.output.systemverilog.common.RemapRuleList;
 import ordt.output.systemverilog.common.wrap.SystemVerilogWrapModule.WrapperSignalMap;
-import ordt.parameters.Utils;
 
 public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	enum SignalSetType {SIGNALSET, INTERFACE, STRUCT}
@@ -349,7 +349,7 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 
     @Override
 	public void display(int indentLvl) {
-		System.out.println(Utils.repeat(' ', indentLvl*4) + "SystemVerilogIOSignalSet: name=" + name  + ", from=" + from + ", to=" + to + ", tagPrefix=" + tagPrefix+ ", reps=" + reps + ", signalSetType=" + signalSetType + ", childList size=" + childList.size() + ", ext type=" + type + ", hasExtType=" + hasExtType);
+		System.out.println(MsgUtils.repeat(' ', indentLvl*4) + "SystemVerilogIOSignalSet: name=" + name  + ", from=" + from + ", to=" + to + ", tagPrefix=" + tagPrefix+ ", reps=" + reps + ", signalSetType=" + signalSetType + ", childList size=" + childList.size() + ", ext type=" + type + ", hasExtType=" + hasExtType);
 	    for (SystemVerilogIOElement child : childList) child.display(indentLvl+1);				
 	}
 	
