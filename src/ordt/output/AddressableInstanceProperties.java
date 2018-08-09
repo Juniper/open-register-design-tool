@@ -14,8 +14,8 @@ import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
 import ordt.extract.model.ModAddressableInstance;
 import ordt.extract.model.ModInstance;
-import ordt.output.systemverilog.SystemVerilogDefinedSignals;
-import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.SystemVerilogDefinedOrdtSignals;
+import ordt.output.systemverilog.SystemVerilogDefinedOrdtSignals.DefSignalType;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
 
@@ -76,7 +76,7 @@ public abstract class AddressableInstanceProperties extends InstanceProperties {
 	 *  This is a catenation of prefix, input pathStr, and suffix */
 	@Override
 	public String getFullSignalName(DefSignalType sigType) {
-		return SystemVerilogDefinedSignals.getFullName(sigType, getExtBaseName(), true);
+		return SystemVerilogDefinedOrdtSignals.getFullName(sigType, getExtBaseName(), true);
 	}
 
 	/** return the instance path derived name including alternate ancestor names if instance has rep_level is specified */

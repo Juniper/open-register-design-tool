@@ -13,8 +13,8 @@ import ordt.extract.PropertyList;
 import ordt.extract.PropertyList.PropertyValue;
 import ordt.extract.model.ModComponent;
 import ordt.extract.model.ModInstance;
-import ordt.output.systemverilog.SystemVerilogDefinedSignals;
-import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.SystemVerilogDefinedOrdtSignals;
+import ordt.output.systemverilog.SystemVerilogDefinedOrdtSignals.DefSignalType;
 
 /** extracted properties of an instance created during model walk */
 public class InstanceProperties {
@@ -209,7 +209,7 @@ public class InstanceProperties {
 	/** return the name for specified defined signal type using the current instance path
 	 *  This is a catenation of prefix, input pathStr, and suffix */
 	public String getFullSignalName(DefSignalType sigType) {
-		return SystemVerilogDefinedSignals.getFullName(sigType, getBaseName(), true);
+		return SystemVerilogDefinedOrdtSignals.getFullName(sigType, getBaseName(), true);
 	}
 	
 	/** get instancePath

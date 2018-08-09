@@ -14,7 +14,7 @@ import ordt.extract.RegNumber.NumFormat;
 import ordt.output.FieldProperties;
 import ordt.output.RhsReference;
 import ordt.output.SignalProperties;
-import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.SystemVerilogDefinedOrdtSignals.DefSignalType;
 import ordt.output.systemverilog.common.SystemVerilogCoverGroups;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;

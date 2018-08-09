@@ -6,9 +6,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 
-import ordt.output.systemverilog.SystemVerilogDefinedSignals;
-import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
 import ordt.output.systemverilog.common.RemapRuleList;
+import ordt.output.systemverilog.common.SystemVerilogDefSignalTypeIntf;
+import ordt.output.systemverilog.common.SystemVerilogDefinedSignalMap;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.common.wrap.SystemVerilogWrapModule.WrapperSignalMap;
 
@@ -52,11 +52,14 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		return outStr += " ]";
 	}*/
 
-	/** copy the activeStack contents from specified list to the current list */
-	public void copyActiveSetStack(SystemVerilogIOSignalList sigList) {
+	/** copy the activeStack contents from specified list to the current list 
+	 * @param sigSet - signalList whose active stack will be recreated in current signalList
+	 * @param sigSetType - signal type that represents a general signal set in this application 
+	 */
+	public void copyActiveSetStack(SystemVerilogIOSignalList sigList, SystemVerilogDefSignalTypeIntf sigSetType) {
 		for (SystemVerilogIOSignalSet sigSet: sigList.getActiveSetStack()) {
 			//System.out.println("SystemVerilogIOSIgnalList copyActiveSetStack: adding sigSet " + sigSet.getName());
-			this.pushIOSignalSet(DefSignalType.SIGSET, sigSet.getName(), 1, true, null, null);
+			this.pushIOSignalSet(sigSetType, sigSet.getName(), 1, true, null, null);
 		}
 	}
 	
@@ -79,17 +82,17 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	}
 
 	/** add a new vector signal to the active list */
-	public void addVector(Integer from, Integer to, DefSignalType sigType, int lowIndex, int size) {
-		String prefix = SystemVerilogDefinedSignals.getPrefix(sigType);
-		String name = SystemVerilogDefinedSignals.getSuffix(sigType);
+	public void addVector(Integer from, Integer to, SystemVerilogDefSignalTypeIntf sigType, int lowIndex, int size) {
+		String prefix = SystemVerilogDefinedSignalMap.getPrefix(sigType);
+		String name = SystemVerilogDefinedSignalMap.getSuffix(sigType);
 		addVector(from, to, prefix, name, lowIndex, size);
 		//System.out.println("SystemVerilogIOSignalList addVector: adding " + sigType + ", from=" + from + ", to=" + to + ", stack empty=" + activeSetStack.isEmpty());
 	}
 
 	/** add a new vector signal to the active list using defined signal locations */
-	public void addVector(DefSignalType sigType, int lowIndex, int size) {
-		Integer from = SystemVerilogDefinedSignals.getFrom(sigType);
-		Integer to = SystemVerilogDefinedSignals.getTo(sigType);
+	public void addVector(SystemVerilogDefSignalTypeIntf sigType, int lowIndex, int size) {
+		Integer from = SystemVerilogDefinedSignalMap.getFrom(sigType);
+		Integer to = SystemVerilogDefinedSignalMap.getTo(sigType);
 		addVector(from, to, sigType, lowIndex, size);
 		//System.out.println("SystemVerilogIOSignalList addVector: adding " + sigType + ", from=" + from + ", to=" + to + ", stack empty=" + activeSetStack.isEmpty());
 	}
@@ -101,10 +104,10 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	}
 
 	/** add a new simple vector to the root child list (no prefix) */
-	public void addSimpleVector(DefSignalType sigType, String namePrefix, int lowIndex, int size) {
-		Integer from = SystemVerilogDefinedSignals.getFrom(sigType);
-		Integer to = SystemVerilogDefinedSignals.getTo(sigType);
-		String fullName = SystemVerilogDefinedSignals.getFullName(sigType, namePrefix, true);
+	public void addSimpleVector(SystemVerilogDefSignalTypeIntf sigType, String namePrefix, int lowIndex, int size) {
+		Integer from = SystemVerilogDefinedSignalMap.getFrom(sigType);
+		Integer to = SystemVerilogDefinedSignalMap.getTo(sigType);
+		String fullName = SystemVerilogDefinedSignalMap.getFullName(sigType, namePrefix, true);
 		addSimpleVector(from, to, fullName, lowIndex, size);
 	}
 	
@@ -117,16 +120,16 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	}
 	
 	/** add a new scalar signal to the active list */
-	public void addScalar(Integer from, Integer to, DefSignalType sigType) {
-		String prefix = SystemVerilogDefinedSignals.getPrefix(sigType);
-		String name = SystemVerilogDefinedSignals.getSuffix(sigType);
+	public void addScalar(Integer from, Integer to, SystemVerilogDefSignalTypeIntf sigType) {
+		String prefix = SystemVerilogDefinedSignalMap.getPrefix(sigType);
+		String name = SystemVerilogDefinedSignalMap.getSuffix(sigType);
 		addVector(from, to, prefix, name, 0, 1);
 	}
 	
 	/** add a new scalar signal to the active list  using defined signal locations */
-	public void addScalar(DefSignalType sigType) {
-		Integer from = SystemVerilogDefinedSignals.getFrom(sigType);
-		Integer to = SystemVerilogDefinedSignals.getTo(sigType);
+	public void addScalar(SystemVerilogDefSignalTypeIntf sigType) {
+		Integer from = SystemVerilogDefinedSignalMap.getFrom(sigType);
+		Integer to = SystemVerilogDefinedSignalMap.getTo(sigType);
 		addVector(from, to, sigType, 0, 1);
 		//System.out.println("SystemVerilogIOSignalList addVector: adding " + sigType + ", from=" + from + ", to=" + to + ", stack empty=" + activeSetStack.isEmpty());
 	}
@@ -137,7 +140,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	}
 
 	/** add a new simple vector to the root child list (no prefix) */
-	public void addSimpleScalar(DefSignalType sigType, String namePrefix) {
+	public void addSimpleScalar(SystemVerilogDefSignalTypeIntf sigType, String namePrefix) {
 		addSimpleVector(sigType, namePrefix, 0, 1);
 	}
 
@@ -201,10 +204,10 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	}
 
 	/** if initial rep, create a new signal set class, add it to active stack */
-	public SystemVerilogIOSignalSet pushIOSignalSet(DefSignalType sigType, String name, int reps, boolean isFirstRep, String extType, String compId) {
-		Integer from = SystemVerilogDefinedSignals.getFrom(sigType);
-		Integer to = SystemVerilogDefinedSignals.getTo(sigType);
-		String prefix = SystemVerilogDefinedSignals.getPrefix(sigType);
+	public SystemVerilogIOSignalSet pushIOSignalSet(SystemVerilogDefSignalTypeIntf sigType, String name, int reps, boolean isFirstRep, String extType, String compId) {
+		Integer from = SystemVerilogDefinedSignalMap.getFrom(sigType);
+		Integer to = SystemVerilogDefinedSignalMap.getTo(sigType);
+		String prefix = SystemVerilogDefinedSignalMap.getPrefix(sigType);
 		return pushIOSignalSet(from, to, prefix, name,  reps,  isFirstRep,  sigType.isInterface(), sigType.isStruct(), extType, compId);  
 	}
 
@@ -289,6 +292,7 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		super.display(0);
 	}
 	
+	/*
     public static void main (String[] args) {
         // create some locations
     	Integer HW = 1;
@@ -341,6 +345,6 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
     	System.out.println("Define strings:");
     	for (String str : strList) System.out.println("  " + str);
     	
-    }
+    }*/
 
 }

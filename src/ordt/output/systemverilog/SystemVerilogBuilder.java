@@ -21,7 +21,7 @@ import ordt.output.InstanceProperties;
 import ordt.output.OutputBuilder;
 import ordt.output.RegProperties;
 import ordt.output.RhsReference;
-import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.SystemVerilogDefinedOrdtSignals.DefSignalType;
 import ordt.output.systemverilog.common.SystemVerilogLocationMap;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
@@ -59,10 +59,10 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	private static ValidAddressRanges addressRanges;
 	
 	// define io locations
-	protected static final Integer HW = SystemVerilogDefinedSignals.HW;
-	protected static final Integer LOGIC = SystemVerilogDefinedSignals.LOGIC;
-	protected static final Integer DECODE = SystemVerilogDefinedSignals.DECODE;
-	protected static final Integer PIO = SystemVerilogDefinedSignals.PIO;
+	protected static final Integer HW = SystemVerilogDefinedOrdtSignals.HW;
+	protected static final Integer LOGIC = SystemVerilogDefinedOrdtSignals.LOGIC;
+	protected static final Integer DECODE = SystemVerilogDefinedOrdtSignals.DECODE;
+	protected static final Integer PIO = SystemVerilogDefinedOrdtSignals.PIO;
 	protected boolean usesInterfaces = false;  // detect if sv interfaces are needed  
 
     // define common IO lists
@@ -98,6 +98,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		initIOLists(null);  // setup IO lists for logic, decode, and top modules
 		decoder.setPrimaryInterfaceType(ExtParameters.getSysVerRootDecoderInterface()); // set root pio interface type from specified params
 		RhsReference.setInstancePropertyStack(instancePropertyStack);  // update pointer to the instance stack for rhs reference evaluation
+		SystemVerilogDefinedOrdtSignals.initDefinedSignalMap();  // load the mapping of pre-defined systemverilog signals
 		model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
 	}
 	
@@ -175,7 +176,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		top.useIOList(hwSigList, HW);
 		top.useIOList(pioSigList, PIO); 
 		// copy the hw signal list stack
-		if (parentBuilder != null) hwSigList.copyActiveSetStack(parentBuilder.hwSigList);
+		if (parentBuilder != null) hwSigList.copyActiveSetStack(parentBuilder.hwSigList, DefSignalType.SIGSET);
 	}
 	
 	/** set legacyVerilog

@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 import ordt.output.common.MsgUtils;
 import ordt.extract.model.ModComponent;
 import ordt.extract.model.ModInstance;
-import ordt.output.systemverilog.SystemVerilogDefinedSignals;
+import ordt.output.systemverilog.SystemVerilogDefinedOrdtSignals;
 import ordt.parameters.Utils;
 
 /** class describing a single reference in a rhs assignment **/
@@ -306,7 +306,7 @@ public class RhsReference {
    /** return the signal name according to deRef type of this RhsReference */
    private String getResolvedSignalName(String instancePath, boolean addPrefix) {
 	   // no deref so signal name is field itself (or signal)
-	   String resName = SystemVerilogDefinedSignals.getResolvedRhsSignalExpression(deRef, instancePath, addPrefix);
+	   String resName = SystemVerilogDefinedOrdtSignals.getResolvedRhsSignalExpression(deRef, instancePath, addPrefix);
 	   if (resName != null) return resName;
 	   // if not supported flag an error
 	   MsgUtils.errorExit("unsupported right hand assignment reference: " + getRawReference());

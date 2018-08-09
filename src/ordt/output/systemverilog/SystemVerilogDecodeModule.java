@@ -11,7 +11,7 @@ import ordt.output.common.MsgUtils;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
-import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.SystemVerilogDefinedOrdtSignals.DefSignalType;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.common.io.SystemVerilogIOSignalList;
@@ -2766,8 +2766,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	/** assign field data outputs for external region with field_data option set */
 	private void genExtFieldDataWriteAssigns(List<FieldProperties> fieldList, ExternalInterfaceInfo extIf, String hwToDecodeName) {
 		// need to extract the field path from parent's which reflects field_data option
-		String prefix = SystemVerilogDefinedSignals.getPrefix(DefSignalType.D2H_DATA);
-		String suffix = SystemVerilogDefinedSignals.getSuffix(DefSignalType.D2H_DATA);
+		String prefix = SystemVerilogDefinedOrdtSignals.getPrefix(DefSignalType.D2H_DATA);
+		String suffix = SystemVerilogDefinedOrdtSignals.getSuffix(DefSignalType.D2H_DATA);
 		String parentName = hwToDecodeName.substring(0 + prefix.length(), hwToDecodeName.length() - suffix.length());  // strip prefix/suffix
 		for (FieldProperties field : fieldList) {
 			String fieldSignalName = prefix + parentName + field.getPrefixedId() + "_" + suffix;
@@ -2791,8 +2791,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int width = inst.getMaxRegWidth();
 		this.addVectorReg(hwToDecodeName, 0, width);  
 		// need to extract the field path from parent's which reflects field_data option
-		String prefix = SystemVerilogDefinedSignals.getPrefix(DefSignalType.H2D_DATA);
-		String suffix = SystemVerilogDefinedSignals.getSuffix(DefSignalType.H2D_DATA);
+		String prefix = SystemVerilogDefinedOrdtSignals.getPrefix(DefSignalType.H2D_DATA);
+		String suffix = SystemVerilogDefinedOrdtSignals.getSuffix(DefSignalType.H2D_DATA);
 		String parentName = hwToDecodeName.substring(0 + prefix.length(), hwToDecodeName.length() - suffix.length());  // strip prefix/suffix
 		this.addCombinAssign(groupName,  hwToDecodeName + " = " + width + "'d0;");  // init all bits to zero
 		for (FieldProperties field : fieldList) {

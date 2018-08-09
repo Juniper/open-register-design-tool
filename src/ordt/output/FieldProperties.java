@@ -14,8 +14,8 @@ import ordt.extract.model.ModComponent;
 import ordt.extract.model.ModEnum;
 import ordt.extract.model.ModIndexedInstance;
 import ordt.extract.model.ModInstance;
-import ordt.output.systemverilog.SystemVerilogDefinedSignals;
-import ordt.output.systemverilog.SystemVerilogDefinedSignals.DefSignalType;
+import ordt.output.systemverilog.SystemVerilogDefinedOrdtSignals;
+import ordt.output.systemverilog.SystemVerilogDefinedOrdtSignals.DefSignalType;
 import ordt.parameters.ExtParameters;
 
 /** class of properties needed for display of active field instance */
@@ -613,11 +613,11 @@ public class FieldProperties extends InstanceProperties {
 	}
 
 	public static String getFieldRegisterName(String fieldPath, boolean addPrefix) {
-		return SystemVerilogDefinedSignals.getFullName(DefSignalType.FIELD, fieldPath, addPrefix);   
+		return SystemVerilogDefinedOrdtSignals.getFullName(DefSignalType.FIELD, fieldPath, addPrefix);   
 	}
 	
 	public static String getFieldRegisterNextName(String fieldPath, boolean addPrefix) {
-		return SystemVerilogDefinedSignals.getFullName(DefSignalType.FIELD_NEXT, fieldPath, addPrefix);   
+		return SystemVerilogDefinedOrdtSignals.getFullName(DefSignalType.FIELD_NEXT, fieldPath, addPrefix);   
 	}
 
 	// -------------------------- field property methods ------------------------------
