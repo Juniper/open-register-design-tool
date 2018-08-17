@@ -39,7 +39,7 @@ Changes:
 
 grammar SystemRDL;
 
-import ExtParms;
+import CommonExtParms;
 
 @header {
   package ordt.parse.systemrdl;
