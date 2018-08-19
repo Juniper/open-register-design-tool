@@ -1,14 +1,5 @@
 // Gradle build file for ordt
 
-// things to try..
-// set antlr lib path - not really since this is inst gen-src dir
-/*generateGrammarSource {
-      arguments << "-lib" << "src/main/antlr/kanekotic/specflow/rider"
-  }*/
-// set grammar output directory
-//  generateGrammarSource {
-//     outputDirectory = file("src/main/java/com/example/parser")
-//  }
 description = 'Tool to generate register RTL, models, and docs using ' +
               'SystemRDL or JSpec input'
 
@@ -110,27 +101,29 @@ task distclean {
 
 // eclipse ide expects java source files to be in directories corresponding to their package.
 // the generateEclipseGrammarSource generates the antlr output and moves output java files into 
-// their respective package directories
+// their respective package directories (note that not all grammars need to be copied)
 task generateEclipseGrammarSource {
     dependsOn generateGrammarSource
     doLast {
-        moveAntlrGeneratedFilesToTheirPackages(antlrSrc, antlrGen, 'src')
+        final destFolder = 'src'
+        moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'ExtParms', antlrGen, destFolder)
+        moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'JSpec', antlrGen, destFolder)
+        moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'SystemRDL', antlrGen, destFolder)
+        //moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'SimpleSVLexer', antlrGen, destFolder)
+        //moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'SimpleSVParser', antlrGen, destFolder)
+        moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'SimpleSV', antlrGen, destFolder)
     }
 }
 
-def moveAntlrGeneratedFilesToTheirPackages(antlrSrc, antlrGen, destFolder) {
-    final grammarFiles = fileTree(antlrSrc)
-    grammarFiles.each {File file ->
-        final grammarName = file.name.lastIndexOf('.') >= 0 ? file.name[0 .. file.name.lastIndexOf('.') - 1] : file.name
-        final grammarPackage = extractPackageNameFromGrammerFile(file)
-        copy {
-            from antlrGen
-            include "${grammarName}*.*"
-            exclude "CommonExtParms*.*"
-            into destFolder + "/" + grammarPackage.replaceAll("\\.", "/")
-        }
+def moveAntlrGeneratedFilesToTheirPackages(grammarFolder, grammarName, genFolder, destFolder) {
+    File grammarFile = file("${grammarFolder}/${grammarName}.g4")
+    final grammarPackage = extractPackageNameFromGrammerFile(grammarFile)
+    copy {
+        from genFolder
+        include "${grammarName}*.*"
+        into destFolder + "/" + grammarPackage.replaceAll("\\.", "/")
     }
-    project.delete fileTree(antlrGen).include('*.*')
+    project.delete fileTree(genFolder).include("${grammarName}*.*")
 }
 
 def extractPackageNameFromGrammerFile(File grammarFile) {
