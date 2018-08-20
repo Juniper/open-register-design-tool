@@ -5,7 +5,7 @@ SimpleSV grammar - parse of basic systemverilog module header info
 grammar SimpleSV;
 
 @header {
-  package ordt.parse.simplesv;
+  package ordt.output.systemverilog.common.parse.simplesv;
 }
 
 root
@@ -16,23 +16,29 @@ module_declaration
  : 'module' module_identifier (parameter_port_list)?
    (list_of_ports (port_declaration)* | list_of_port_declarations)
    not_module 
-   'endmodule' (COLON ID)?
+   end_module
+ ;
+ 
+end_module
+ : 'endmodule' (COLON ID)?
  ;
 
 list_of_ports
  : LPAREN
    port (COMMA port)*
    RPAREN
+   SEMI
  ;
  
 list_of_port_declarations
  : LPAREN
    port_def (COMMA port_def)*
    RPAREN
+   SEMI
  ;
 
 port_def
- : ID ID (array)*  // TODO - need parameterized array
+ : ID (array)? ID  // TODO - need parameterized array
  ;
  
 port_declaration
@@ -139,6 +145,8 @@ STAR   : '*' ;
 HASH   : '#' ;
 QMARK  : '?' ;
 PLUS   : '+' ;
+DOLLAR : '$' ;
+EXCL   : '!' ;
 
 NB_EQ  : '<=' ;
 EQ     : '=' ;
@@ -148,4 +156,3 @@ LT     : '<';
 GT     : '>';
 CARET  : '^';
 TILDE  : '~';
- 

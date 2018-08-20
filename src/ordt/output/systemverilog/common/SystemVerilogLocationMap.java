@@ -8,6 +8,8 @@ public class SystemVerilogLocationMap {
     private static Map<String, SystemVerilogLocationMap> locations = new HashMap<String, SystemVerilogLocationMap>();
     private int id = 0;
     private SystemVerilogModule module;  // module associated with this location
+    private static final int DEFAULT_INTERNAL_ID = 1;
+    private static final int DEFAULT_EXTERNAL_ID = 2;
     
 	public SystemVerilogLocationMap(int id, SystemVerilogModule module) {
 		this.id = id;
@@ -23,8 +25,8 @@ public class SystemVerilogLocationMap {
 		// if next id is uninitialized, add predefined locations
 		if (nextAvailableId == null) {
 			locations.put("NONE", new SystemVerilogLocationMap(0));
-			locations.put("INTERNAL", new SystemVerilogLocationMap(1));
-			locations.put("EXTERNAL", new SystemVerilogLocationMap(2));
+			locations.put("INTERNAL", new SystemVerilogLocationMap(DEFAULT_INTERNAL_ID));
+			locations.put("EXTERNAL", new SystemVerilogLocationMap(DEFAULT_EXTERNAL_ID));
 			nextAvailableId = 4;
 		}
 		// now add the new location
@@ -69,12 +71,12 @@ public class SystemVerilogLocationMap {
 
 	/** return the id of the generic internal location */
 	public static Integer getInternalId() {
-		return getId("INTERNAL");
+		return DEFAULT_INTERNAL_ID;
 	}
 
 	/** return the id of the generic external location */
 	public static Integer getExternalId() {
-		return getId("EXTERNAL");
+		return DEFAULT_EXTERNAL_ID;
 	}
 
 }

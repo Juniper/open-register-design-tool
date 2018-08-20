@@ -20,7 +20,7 @@ hs_err_pid*
 /src/ordt/parse/jspec/
 /src/ordt/parse/parameters/
 /src/ordt/parse/systemrdl/
-/src/ordt/parse/simplesv/
+/src/ordt/output/systemverilog/common/parse/simplesv/
 
 # keep user-specific MyDebugController out of repo
 /src/ordt/extract/MyDebugController.java
