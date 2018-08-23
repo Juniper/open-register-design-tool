@@ -33,7 +33,7 @@ import ordt.parameters.ExtParameters.UVMModelModes;
 
 public class Ordt {
 
-	private static String version = "180820.01"; 
+	private static String version = "180823.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -76,12 +76,12 @@ public class Ordt {
         			inputParmFiles.add(args[args.length - remainingArgs]);
             		remainingArgs -= 2;
         		}
-        		// overlay file / form: -overlay file tag parent
+        		// overlay file / form: -overlay tag file
         		else if (arg.equals("-overlay") && (remainingArgs>2)) {
         			String olayTag = args[args.length - remainingArgs];
         			String olayName = args[args.length - remainingArgs + 1];
         			overlayFiles.add(new OverlayFileInfo(olayName, olayTag));
-            		remainingArgs -= 4;
+            		remainingArgs -= 3;
         		}
         		else showUsage();
         	}

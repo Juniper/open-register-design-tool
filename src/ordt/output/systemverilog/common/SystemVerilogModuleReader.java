@@ -26,7 +26,9 @@ public class SystemVerilogModuleReader extends SimpleSVBaseListener {
 	protected Map<String, SystemVerilogIOSignal> portList = new LinkedHashMap<String, SystemVerilogIOSignal>();
 	private String moduleName;
 	private boolean moduleFound = false;
+	@SuppressWarnings("unused")
 	private int portsFound = 0;
+	@SuppressWarnings("unused")
 	private int portDefsFound = 0;
 
 	public SystemVerilogModuleReader(String svInputFile, String moduleName) {
