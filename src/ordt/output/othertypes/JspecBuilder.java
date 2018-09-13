@@ -283,7 +283,7 @@ public class JspecBuilder extends OutputBuilder {
 		// start address is 0
 		outputList.add(new OutputLine(indentLvl, "address = 0x0;"));
 		// set default reg width
-	    outputList.add(new OutputLine(indentLvl, "register_width = " + regSetProperties.getMaxRegWidth() + ";")); // make default width max for this regset (was ModRegister.defaultWidth)
+	    outputList.add(new OutputLine(indentLvl, "register_width = " + ModRegister.defaultWidth + ";"));
 		// add description for this reg set
 		if (textDescription != null) { 
 		   outputList.add(new OutputLine(indentLvl, "description = \"{"));

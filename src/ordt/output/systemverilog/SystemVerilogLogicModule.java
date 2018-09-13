@@ -916,27 +916,27 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			intrBindMod.addStatement("//------- which includes the following for intr control:");
 			intrBindMod.addStatement("//package ordt_dv_bind_controls;");
 			intrBindMod.addStatement("//   bit enable_intr_check; // if 0 shut down all intr assertions");
-			intrBindMod.addStatement("//   bit allow_intr;        // if 1 and use_intr_subcategories isn't set, all intr outputs will be warning, not error");
+			intrBindMod.addStatement("//   bit allow_intr;        // if 1 and use_subcategories isn't set, all intr outputs will be warning, not error");
 			intrBindMod.addStatement("//   bit use_subcategories; // if 1 specified subcategory will be used to set assert severity (only if info currently)");
 			intrBindMod.addStatement("//   bit use_enable_mask;   // if 1 intr will only assert if its enable or mask value is set");
-			intrBindMod.addStatement("//   bit use_halt;          // if 1 halt mask/enable will be used when use_enable_or_mask is set");
+			intrBindMod.addStatement("//   bit use_halt;          // if 1 halt mask/enable will be used when use_enable_mask is set");
 			intrBindMod.addStatement("//endpackage");
 			intrBindMod.addStatement("//ordt_dv_bind_controls::enable_intr_check = 1'b1; // if 0 shut down all intr assertions");
-			intrBindMod.addStatement("//ordt_dv_bind_controls::allow_intr = 1'b0;        // if 1 and use_intr_subcategories isn't set, all intr outputs will be warning, not error");
+			intrBindMod.addStatement("//ordt_dv_bind_controls::allow_intr = 1'b0;        // if 1 and use_subcategories isn't set, all intr outputs will be warning, not error");
 			intrBindMod.addStatement("//ordt_dv_bind_controls::use_subcategories = 1'b1; // if 1 specified subcategory will be used to set assert severity (only if info currently)");
 			intrBindMod.addStatement("//ordt_dv_bind_controls::use_enable_mask = 1'b0;   // if 1 intr will only assert if its enable or mask value is set");
-			intrBindMod.addStatement("//ordt_dv_bind_controls::use_halt = 1'b0;          // if 1 halt mask/enable will be used when use_enable_or_mask is set");
+			intrBindMod.addStatement("//ordt_dv_bind_controls::use_halt = 1'b0;          // if 1 halt mask/enable will be used when use_enable_mask is set");
 			pkgPrefix = "ordt_dv_bind_controls::";
 		}
 		else {
 			intrBindMod.addStatement("//------- intr detect controls");
 			intrBindMod.addStatement("bit enable_intr_check = 1'b1; // if 0 shut down all intr assertions");
-			intrBindMod.addStatement("bit allow_intr = 1'b0;        // if 1 intr will be flagged as warning, not error");
+			intrBindMod.addStatement("bit allow_intr = 1'b0;        // if 1 and use_subcategories isn't set, all intr outputs will be warning, not error");
 			intrBindMod.addStatement("bit use_subcategories = 1'b1; // if 1 specified subcategory will be used to set assert severity (only if info currently)");
 			intrBindMod.addStatement("bit use_enable_mask = 1'b0;   // if 1 intr will only assert if its enable or mask value is set");
-			intrBindMod.addStatement("bit use_halt = 1'b0;          // if 1 halt mask/enable will be used when use_enable_or_mask is set");
+			intrBindMod.addStatement("bit use_halt = 1'b0;          // if 1 halt mask/enable will be used when use_enable_mask is set");
 		}
-		// add severity function 
+		// add get_severity function 
 		intrBindMod.addStatement("");
 		intrBindMod.addStatement("//------- intr severity settings");
 		intrBindMod.addStatement("typedef enum {INFO, WARN, ERROR} intr_sev_t;");
@@ -946,21 +946,18 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		intrBindMod.addStatement("  else if (" + pkgPrefix + "allow_intr) get_severity=WARN;");
 		intrBindMod.addStatement("  else get_severity=ERROR;");
 		intrBindMod.addStatement("endfunction : get_severity");
-		// add display function
+		// add get_message function
 		intrBindMod.addStatement("");
-		intrBindMod.addStatement("//------- intr display function");
-		intrBindMod.addStatement("function void intr_display (string subcat, string sigpath, logic sig, string intr_type, logic intr_en, string halt_type, logic halt_en);");
-		intrBindMod.addStatement("  string message, bstr, istr, hstr;");
+		intrBindMod.addStatement("//------- intr output message function");
+		intrBindMod.addStatement("function string get_message (string subcat, string sigpath, logic sig, string intr_type, logic intr_en, string halt_type, logic halt_en);");
+		intrBindMod.addStatement("  string bstr, istr, hstr;");
 		intrBindMod.addStatement("  intr_sev_t sev;");
 		intrBindMod.addStatement("  sev = get_severity(subcat);");
 		intrBindMod.addStatement("  bstr = $sformatf(\"Interrupt %s fired (sub-category = %s). Value = %h.\", sigpath, subcat, sig);");
 		intrBindMod.addStatement("  if (intr_type != \"none\") istr = $sformatf(\" %s value = %h.\", intr_type, intr_en);");
 		intrBindMod.addStatement("  if (halt_type != \"none\") hstr = $sformatf(\" Halt(poll) %s value = %h.\", halt_type, halt_en);");
-		intrBindMod.addStatement("  message = {bstr, istr, hstr};");
-		intrBindMod.addStatement("  if (sev==INFO) $info(message);");
-		intrBindMod.addStatement("  else if (sev==WARN) $warning(message);");
-		intrBindMod.addStatement("  else $error(message);");
-		intrBindMod.addStatement("endfunction : intr_display");	
+		intrBindMod.addStatement("  get_message = {bstr, istr, hstr};");
+		intrBindMod.addStatement("endfunction : get_message");	
 		// add property define
 		intrBindMod.addStatement("");
 		intrBindMod.addStatement("//------- intr detect property");
@@ -989,7 +986,15 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			intrBindMod.addStatement("intr_assert_" + assert_cnt++ + " : assert property (no_rising_intr("+ sigName + ", " + intrMaskName + ", " + haltMaskName + "))");
 			String intrEnStr = intrInfo.hasIntrEnableOrMask()? "\"" + intrInfo.getIntrEnableType() + "\", " + intrInfo.getIntrEnableName() : "\"none\", " + sigName;
 			String haltEnStr = intrInfo.hasHaltEnableOrMask()? ", \"" + intrInfo.getHaltEnableType() + "\", " + intrInfo.getHaltEnableName() : ", \"none\", " + sigName;
-			intrBindMod.addStatement("else intr_display(\""+ intrInfo.getSubCategory() + "\", \"" + intrInfo.getSigPath() + "\", " + intrInfo.getSigName() + ", " + intrEnStr + haltEnStr + ");");
+			intrBindMod.addStatement("else begin");
+			intrBindMod.addStatement("  string message;");
+			intrBindMod.addStatement("  intr_sev_t sev;");
+			intrBindMod.addStatement("  sev = get_severity(\""+ intrInfo.getSubCategory() + "\");");
+			intrBindMod.addStatement("  message = get_message(\""+ intrInfo.getSubCategory() + "\", \"" + intrInfo.getSigPath() + "\", " + intrInfo.getSigName() + ", " + intrEnStr + haltEnStr + ");");
+			intrBindMod.addStatement("  if (sev==INFO) $info(message);");
+			intrBindMod.addStatement("  else if (sev==WARN) $warning(message);");
+			intrBindMod.addStatement("  else $error(message);");
+			intrBindMod.addStatement("end");
 		}
 		// print a usage message
 		intrBindMod.addStatement("");
