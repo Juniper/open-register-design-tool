@@ -915,26 +915,29 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			intrBindMod.addStatement("//------- intr detect controls are set in global package ordt_dv_bind_controls");
 			intrBindMod.addStatement("//------- which includes the following for intr control:");
 			intrBindMod.addStatement("//package ordt_dv_bind_controls;");
-			intrBindMod.addStatement("//   bit enable_intr_check; // if 0 shut down all intr assertions");
-			intrBindMod.addStatement("//   bit allow_intr;        // if 1 and use_subcategories isn't set, all intr outputs will be warning, not error");
-			intrBindMod.addStatement("//   bit use_subcategories; // if 1 specified subcategory will be used to set assert severity (only if info currently)");
-			intrBindMod.addStatement("//   bit use_enable_mask;   // if 1 intr will only assert if its enable or mask value is set");
-			intrBindMod.addStatement("//   bit use_halt;          // if 1 halt mask/enable will be used when use_enable_mask is set");
+			intrBindMod.addStatement("//   bit enable_intr_check;  // if 0 shut down all intr assertions");
+			intrBindMod.addStatement("//   bit only_error_asserts; // if 1 shut down all non-error intr assertions");
+			intrBindMod.addStatement("//   bit allow_intr;         // if 1 and use_subcategories isn't set, all intr outputs will be warning, not error");
+			intrBindMod.addStatement("//   bit use_subcategories;  // if 1 specified subcategory will be used to set assert severity (only if info currently)");
+			intrBindMod.addStatement("//   bit use_enable_mask;    // if 1 intr will only assert if its enable or mask value is set");
+			intrBindMod.addStatement("//   bit use_halt;           // if 1 halt mask/enable will be used when use_enable_mask is set");
 			intrBindMod.addStatement("//endpackage");
-			intrBindMod.addStatement("//ordt_dv_bind_controls::enable_intr_check = 1'b1; // if 0 shut down all intr assertions");
-			intrBindMod.addStatement("//ordt_dv_bind_controls::allow_intr = 1'b0;        // if 1 and use_subcategories isn't set, all intr outputs will be warning, not error");
-			intrBindMod.addStatement("//ordt_dv_bind_controls::use_subcategories = 1'b1; // if 1 specified subcategory will be used to set assert severity (only if info currently)");
-			intrBindMod.addStatement("//ordt_dv_bind_controls::use_enable_mask = 1'b0;   // if 1 intr will only assert if its enable or mask value is set");
-			intrBindMod.addStatement("//ordt_dv_bind_controls::use_halt = 1'b0;          // if 1 halt mask/enable will be used when use_enable_mask is set");
+			intrBindMod.addStatement("//ordt_dv_bind_controls::enable_intr_check = 1'b1;  // if 0 shut down all intr assertions");
+			intrBindMod.addStatement("//ordt_dv_bind_controls::only_error_asserts = 1'b0; // if 1 shut down all non-error intr assertions");
+			intrBindMod.addStatement("//ordt_dv_bind_controls::allow_intr = 1'b0;         // if 1 and use_subcategories isn't set, all intr outputs will be warning, not error");
+			intrBindMod.addStatement("//ordt_dv_bind_controls::use_subcategories = 1'b1;  // if 1 specified subcategory will be used to set assert severity (only if info currently)");
+			intrBindMod.addStatement("//ordt_dv_bind_controls::use_enable_mask = 1'b0;    // if 1 intr will only assert if its enable or mask value is set");
+			intrBindMod.addStatement("//ordt_dv_bind_controls::use_halt = 1'b0;           // if 1 halt mask/enable will be used when use_enable_mask is set");
 			pkgPrefix = "ordt_dv_bind_controls::";
 		}
 		else {
 			intrBindMod.addStatement("//------- intr detect controls");
-			intrBindMod.addStatement("bit enable_intr_check = 1'b1; // if 0 shut down all intr assertions");
-			intrBindMod.addStatement("bit allow_intr = 1'b0;        // if 1 and use_subcategories isn't set, all intr outputs will be warning, not error");
-			intrBindMod.addStatement("bit use_subcategories = 1'b1; // if 1 specified subcategory will be used to set assert severity (only if info currently)");
-			intrBindMod.addStatement("bit use_enable_mask = 1'b0;   // if 1 intr will only assert if its enable or mask value is set");
-			intrBindMod.addStatement("bit use_halt = 1'b0;          // if 1 halt mask/enable will be used when use_enable_mask is set");
+			intrBindMod.addStatement("bit enable_intr_check = 1'b1;  // if 0 shut down all intr assertions");
+			intrBindMod.addStatement("bit only_error_asserts = 1'b0; // if 1 shut down all non-error intr assertions");
+			intrBindMod.addStatement("bit allow_intr = 1'b0;         // if 1 and use_subcategories isn't set, all intr outputs will be warning, not error");
+			intrBindMod.addStatement("bit use_subcategories = 1'b1;  // if 1 specified subcategory will be used to set assert severity (only if info currently)");
+			intrBindMod.addStatement("bit use_enable_mask = 1'b0;    // if 1 intr will only assert if its enable or mask value is set");
+			intrBindMod.addStatement("bit use_halt = 1'b0;           // if 1 halt mask/enable will be used when use_enable_mask is set");
 		}
 		// add get_severity function 
 		intrBindMod.addStatement("");
@@ -961,29 +964,39 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		// add property define
 		intrBindMod.addStatement("");
 		intrBindMod.addStatement("//------- intr detect property");
-		intrBindMod.addStatement("property no_rising_intr (logic sig, logic intr_mask, logic halt_mask);");
+		intrBindMod.addStatement("property no_rising_intr (logic sig, logic inhibit, logic intr_mask, logic halt_mask);");
 		intrBindMod.addStatement("  @(posedge "+ defaultClkName + ")");
-		intrBindMod.addStatement("  disable iff (!" + pkgPrefix + "enable_intr_check || "+ builder.getDefaultReset() + " || (" + pkgPrefix + "use_enable_mask && ((!" + pkgPrefix + "use_halt && intr_mask) || (" + pkgPrefix + "use_halt && halt_mask))))");
+		intrBindMod.addStatement("  disable iff (inhibit || (" + pkgPrefix + "use_enable_mask && ((!" + pkgPrefix + "use_halt && intr_mask) || (" + pkgPrefix + "use_halt && halt_mask))))");
 		intrBindMod.addStatement("    not $rose(sig);");
 		intrBindMod.addStatement("endproperty : no_rising_intr");	
-		// add all leaf interrupts to to monitored
+		// add interrupts inputs and inhibit signals
 		intrBindMod.addStatement("");
-		intrBindMod.addStatement("//------- intr detect assertions");
+		intrBindMod.addStatement("//------- intr inhibits");
 		intrBindMod.setShowDuplicateSignalErrors(false);  // could be leaf interrupts being used as masks/enables
-		int assert_cnt=0;
 		for(IntrDiagInfo intrInfo: intrInfoList) {
 			// add signal inputs from reg logic module
 			intrBindMod.addSimpleVectorFrom(defaultOutputLoc, intrInfo.getSigName(), 0, intrInfo.getWidth());
 			if (intrInfo.hasIntrEnableOrMask()) intrBindMod.addSimpleVectorFrom(defaultOutputLoc, intrInfo.getIntrEnableName(), 0, intrInfo.getWidth());
 			if (intrInfo.hasHaltEnableOrMask()) intrBindMod.addSimpleVectorFrom(defaultOutputLoc, intrInfo.getHaltEnableName(), 0, intrInfo.getWidth());
+			// define inhibit and assign
+			String inhibitName = "inhibit_" + intrInfo.getSigName();
+			intrBindMod.addScalarWire(inhibitName);
+			intrBindMod.addWireAssign(inhibitName + " = !" + pkgPrefix + "enable_intr_check || "+ builder.getDefaultReset() + " || (" + pkgPrefix + "only_error_asserts && (get_severity(\""+ intrInfo.getSubCategory() + "\") != ERROR));");
+		}
+		// add all leaf interrupts to to monitored
+		intrBindMod.addStatement("");
+		intrBindMod.addStatement("//------- intr detect assertions");
+		int assert_cnt=0;
+		for(IntrDiagInfo intrInfo: intrInfoList) {
 			// add assertions 
 			String redPfix = intrInfo.isVector()? "|" : ""; // use or reduction on vectors
 			String sigName = redPfix + intrInfo.getSigName();
+			String inhibitName = "inhibit_" + intrInfo.getSigName();
 			String invPfix = (intrInfo.hasIntrEnableOrMask() && intrInfo.getIntrEnableType().startsWith("En"))? "!" : ""; // invert if an enable
 			String intrMaskName = intrInfo.hasIntrEnableOrMask()? invPfix + redPfix + intrInfo.getIntrEnableName() : "1'b0";
 			invPfix = (intrInfo.hasHaltEnableOrMask() && intrInfo.getHaltEnableType().startsWith("en"))? "!" : ""; // invert if an enable
 			String haltMaskName = intrInfo.hasHaltEnableOrMask()? invPfix + redPfix + intrInfo.getHaltEnableName() : "1'b0";
-			intrBindMod.addStatement("intr_assert_" + assert_cnt++ + " : assert property (no_rising_intr("+ sigName + ", " + intrMaskName + ", " + haltMaskName + "))");
+			intrBindMod.addStatement("intr_assert_" + assert_cnt++ + " : assert property (no_rising_intr(" + sigName + ", "  + inhibitName + ", " + intrMaskName + ", " + haltMaskName + "))");
 			String intrEnStr = intrInfo.hasIntrEnableOrMask()? "\"" + intrInfo.getIntrEnableType() + "\", " + intrInfo.getIntrEnableName() : "\"none\", " + sigName;
 			String haltEnStr = intrInfo.hasHaltEnableOrMask()? ", \"" + intrInfo.getHaltEnableType() + "\", " + intrInfo.getHaltEnableName() : ", \"none\", " + sigName;
 			intrBindMod.addStatement("else begin");
@@ -995,9 +1008,9 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			intrBindMod.addStatement("  else if (sev==WARN) $warning(message);");
 			intrBindMod.addStatement("  else $error(message);");
 			intrBindMod.addStatement("end");
+			intrBindMod.addStatement("");
 		}
 		// print a usage message
-		intrBindMod.addStatement("");
 		intrBindMod.addStatement("//------- " + intrBindModName + " interrupt debug module.  Use by binding as follows in tb:");
 		intrBindMod.addStatement("//        bind " + getName() + " " + intrBindModName + " intr_bind_inst(.*);");
 		// return the module
