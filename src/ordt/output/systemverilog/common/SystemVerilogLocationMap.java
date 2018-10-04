@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SystemVerilogLocationMap {
-    private static Integer nextAvailableId = null;
-    private static Map<String, SystemVerilogLocationMap> locations = new HashMap<String, SystemVerilogLocationMap>();
+    private static int nextAvailableId = 4;  // next available id after defaults
+    private static Map<String, SystemVerilogLocationMap> locations = initLocations();
     private int id = 0;
     private SystemVerilogModule module;  // module associated with this location
     private static final int DEFAULT_INTERNAL_ID = 1;
@@ -15,20 +15,22 @@ public class SystemVerilogLocationMap {
 		this.id = id;
 		this.module = module;
 	}
-	
+
 	public SystemVerilogLocationMap(int id) {
 		this(id, null);
+	}
+	
+	/** add a default locations to the map */
+	private static Map<String, SystemVerilogLocationMap> initLocations() {
+		HashMap<String, SystemVerilogLocationMap> locs = new HashMap<String, SystemVerilogLocationMap>();
+		locs.put("NONE", new SystemVerilogLocationMap(0));
+		locs.put("INTERNAL", new SystemVerilogLocationMap(DEFAULT_INTERNAL_ID));
+		locs.put("EXTERNAL", new SystemVerilogLocationMap(DEFAULT_EXTERNAL_ID));
+		return locs;
 	}
 
 	/** add a new location to the map and assign it a unique power 2 integer id.  id is returned (null returned if add failed) */
 	public static Integer add(String name) {
-		// if next id is uninitialized, add predefined locations
-		if (nextAvailableId == null) {
-			locations.put("NONE", new SystemVerilogLocationMap(0));
-			locations.put("INTERNAL", new SystemVerilogLocationMap(DEFAULT_INTERNAL_ID));
-			locations.put("EXTERNAL", new SystemVerilogLocationMap(DEFAULT_EXTERNAL_ID));
-			nextAvailableId = 4;
-		}
 		// now add the new location
 		Integer newId = locations.containsKey(name)? null : nextAvailableId;
 		if (newId != null) {
@@ -47,7 +49,7 @@ public class SystemVerilogLocationMap {
 
 	/** return encoded value of all defined locations */
 	public static int allLocations() {
-		if ((nextAvailableId == null) || (nextAvailableId < 2)) return 0;
+		if (nextAvailableId < 2) return 0;
 		return nextAvailableId - 1;
 	}
 
