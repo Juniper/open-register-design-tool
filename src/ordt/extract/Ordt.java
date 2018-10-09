@@ -14,6 +14,7 @@ import ordt.output.OutputBuilder;
 import ordt.output.common.MsgUtils;
 import ordt.output.cppmod.CppModBuilder;
 import ordt.output.drvmod.cpp.CppDrvModBuilder;
+import ordt.output.drvmod.py.PyDrvModBuilder;
 import ordt.output.othertypes.JsonBuilder;
 import ordt.output.othertypes.JspecBuilder;
 import ordt.output.othertypes.RdlBuilder;
@@ -33,7 +34,7 @@ import ordt.parameters.ExtParameters.UVMModelModes;
 
 public class Ordt {
 
-	private static String version = "181003.01"; 
+	private static String version = "181009.01"; 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -44,7 +45,7 @@ public class Ordt {
 	private static List<String> inputParmFiles = new ArrayList<String>();
 
 	public enum OutputType { VERILOG, SYSTEMVERILOG, JSPEC, RALF, RDL, REGLIST, SVBENCH, VBENCH, 
-		                     UVMREGS, UVMREGSPKG, XML, CPPMOD, CPPDRVMOD, JSON, SVCHILDINFO };
+		                     UVMREGS, UVMREGSPKG, XML, CPPMOD, CPPDRVMOD, PYDRVMOD, JSON, SVCHILDINFO };
 	private static HashMap<OutputType, String> outputNames = new HashMap<OutputType, String>();
 	private static HashMap<OutputType, String> commentChars = new HashMap<OutputType, String>();
 	private static HashMap<OutputType, String> outputFileNames = new HashMap<OutputType, String>();
@@ -140,6 +141,7 @@ public class Ordt {
 		outputArgs.put("-xml", OutputType.XML);
 		outputArgs.put("-cppmod", OutputType.CPPMOD);
 		outputArgs.put("-cppdrvmod", OutputType.CPPDRVMOD);
+		outputArgs.put("-pydrvmod", OutputType.PYDRVMOD);
 		outputArgs.put("-json", OutputType.JSON);
 		outputArgs.put("-svchildinfo", OutputType.SVCHILDINFO);
 	}
@@ -159,6 +161,7 @@ public class Ordt {
 		outputNames.put(OutputType.XML, "xml");
 		outputNames.put(OutputType.CPPMOD, "C++ model");
 		outputNames.put(OutputType.CPPDRVMOD, "C++ driver model");
+		outputNames.put(OutputType.PYDRVMOD, "python driver model");
 		outputNames.put(OutputType.JSON, "json");
 		outputNames.put(OutputType.SVCHILDINFO, "systemverilog child map info");
 	}
@@ -178,6 +181,7 @@ public class Ordt {
 		commentChars.put(OutputType.XML, "<!--");
 		commentChars.put(OutputType.CPPMOD, "//");
 		commentChars.put(OutputType.CPPDRVMOD, "//");
+		commentChars.put(OutputType.PYDRVMOD, "#");
 		commentChars.put(OutputType.JSON, null);
 		commentChars.put(OutputType.SVCHILDINFO, (ExtParameters.getSysVerChildInfoMode() == SVChildInfoModes.MODULE)? "//" : "#");
 	}
@@ -217,6 +221,8 @@ public class Ordt {
 			   return new CppModBuilder(model);
 		   case CPPDRVMOD: 
 			   return new CppDrvModBuilder(model);
+		   case PYDRVMOD: 
+			   return new PyDrvModBuilder(model);
 		   case JSON: 
 			   return new JsonBuilder(model);
 		   case SVCHILDINFO: 
@@ -337,6 +343,8 @@ public class Ordt {
     	System.out.println("       <filename> will be created containing jspec output");
     	System.out.println("   -overlay <tag> <input_filename>");
     	System.out.println("       <input_filename> will be processed as an overlay input with specified tag");
+    	System.out.println("   -pydrvmod <filename>");
+    	System.out.println("       <filename> will be created containing python driver model");
     	System.out.println("   -reglist <filename>");
     	System.out.println("       <filename> will be created containing a text listing of accessible registers");
     	//System.out.println("   -ralf <filename>");
