@@ -11,6 +11,7 @@ import java.util.List;
 
 import ordt.output.common.MsgUtils;
 import ordt.output.common.OutputWriterIntf;
+import ordt.output.common.SimpleOutputWriter;
 import ordt.output.systemverilog.common.io.SystemVerilogIOElement;
 import ordt.output.systemverilog.common.io.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.common.io.SystemVerilogIOSignalSet;
@@ -32,7 +33,9 @@ public class SystemVerilogModule {
 	
 	protected List<SystemVerilogIOSignalList> ioList = new ArrayList<SystemVerilogIOSignalList>();  // list of IO lists in this module
 	protected HashMap<Integer, SystemVerilogIOSignalList> ioHash = new HashMap<Integer, SystemVerilogIOSignalList>();  // set of writable IO lists in this module
-
+    protected SystemVerilogIOSignalList defaultIOList = new SystemVerilogIOSignalList("default list");;
+    protected boolean usesDefaultIOList = false;  // no default list used in module unless signals are added without previously assigning a list by location
+	
 	protected String defaultClkName; // default clock name for this module
 	protected HashSet<String> otherClocks; // TODO - need to define this
 	protected SystemVerilogSignalList wireDefList;    // list of wires   
@@ -333,8 +336,20 @@ public class SystemVerilogModule {
 	 */
 	public void useIOList(SystemVerilogIOSignalList sigList, Integer remoteLocation) {
 		//System.out.println("SystemVerilogModule useIOList: adding io siglist with " + sigList.size());
-		ioList.add(sigList);
+		if (!sigList.equals(defaultIOList) || !usesDefaultIOList) ioList.add(sigList);  // only add the defaultIOList once
 		if (remoteLocation != null) ioHash.put(remoteLocation, sigList);
+	}
+	
+	/** get the IO list to be used for signal addition based on remote location */
+	public SystemVerilogIOSignalList getIOList(int remLoc) {
+		SystemVerilogIOSignalList sigList = ioHash.get(remLoc);  // get the siglist
+		if (sigList == null) {
+			MsgUtils.warnMessage("Using default IO list in module " + getName() + " since no list specified for location " + remLoc);
+			useIOList(defaultIOList, remLoc);
+			usesDefaultIOList = true;
+			return defaultIOList;
+		}
+		return sigList;
 	}
 
 	/** return a single combined IO List for the module */
@@ -455,51 +470,51 @@ public class SystemVerilogModule {
 	// simple non-hierarchical IO adds
 	
 	/** add a new simple scalar IO signal to the specified external location list */
-	public void addSimpleScalarTo(Integer to, String name) {
+	public void addSimpleScalarTo(int to, String name) {
 		this.addSimpleVectorTo(to, name, 0, 1);
 	}
 
 	/** add a new simple scalar IO signal from the specified external location list */
-	public void addSimpleScalarFrom(Integer from, String name) {
+	public void addSimpleScalarFrom(int from, String name) {
 		this.addSimpleVectorFrom(from, name, 0, 1);
 	}
 
 	/** add a new simple vector IO signal to the specified external location list */
-	public void addSimpleVectorTo(Integer to, String name, int lowIndex, int size) {
-		SystemVerilogIOSignalList sigList = ioHash.get(to);  // get the siglist
+	public void addSimpleVectorTo(int to, String name, int lowIndex, int size) {
+		SystemVerilogIOSignalList sigList = getIOList(to);  // get the siglist
 		if (sigList == null) return;
 		sigList.addSimpleVector(getInsideLocs(), to, name, lowIndex, size); 
 	}
 
 	/** add a new simple vector IO signal from the specified external location list */
-	public void addSimpleVectorFrom(Integer from, String name, int lowIndex, int size) {
-		SystemVerilogIOSignalList sigList = ioHash.get(from);  // get the siglist
+	public void addSimpleVectorFrom(int from, String name, int lowIndex, int size) {
+		SystemVerilogIOSignalList sigList = getIOList(from);  // get IO list
 		if (sigList == null) return;
 		if (addDefinedSignal(name)) sigList.addSimpleVector(from, getInsideLocs(), name, lowIndex, size); 
 	}
-	
+
 	// hierarchical IO adds
 	
 	/** add a new scalar IO signal to the specified external location list */
-	public void addScalarTo(Integer to, String prefix, String name) {
+	public void addScalarTo(int to, String prefix, String name) {
 		this.addVectorTo(to, prefix, name, 0, 1);
 	}
 
 	/** add a new scalar IO signal from the specified external location list */
-	public void addScalarFrom(Integer from, String prefix, String name) {
+	public void addScalarFrom(int from, String prefix, String name) {
 		this.addVectorFrom(from, prefix, name, 0, 1);
 	}
 	
 	/** add a new vector IO signal to the specified external location list */
-	public void addVectorTo(Integer to, String prefix, String name, int lowIndex, int size) {
-		SystemVerilogIOSignalList sigList = ioHash.get(to);  // get the siglist
+	public void addVectorTo(int to, String prefix, String name, int lowIndex, int size) {
+		SystemVerilogIOSignalList sigList = getIOList(to);  // get the siglist
 		if (sigList == null) return;
 		sigList.addVector(getInsideLocs(), to, prefix, name, lowIndex, size);
 	}
 	
 	/** add a new vector IO signal from the specified external location list */
-	public void addVectorFrom(Integer from, String prefix, String name, int lowIndex, int size) {
-		SystemVerilogIOSignalList sigList = ioHash.get(from);  // get the siglist
+	public void addVectorFrom(int from, String prefix, String name, int lowIndex, int size) {
+		SystemVerilogIOSignalList sigList = getIOList(from);  // get the siglist
 		if (sigList == null) return;
 		sigList.addVector(from, getInsideLocs(), prefix, name, lowIndex, size);
 	}
@@ -507,19 +522,21 @@ public class SystemVerilogModule {
 	/** push IO hierarchy to active stack in specified list
 	 *   @param useFrom - if true the from location will be used to look up signal list to be updated, otherwise to location is used
 	 */
-	public SystemVerilogIOSignalSet pushIOSignalSet(boolean useFrom, Integer from, Integer to, String namePrefix, String name, int reps, boolean isFirstRep, boolean isIntf, boolean isStruct, String extType, String compId) {
+	public SystemVerilogIOSignalSet pushIOSignalSet(boolean useFrom, int from, int to, String namePrefix, String name, int reps, boolean isFirstRep, boolean isIntf, boolean isStruct, String extType, String compId) {
 		Integer locidx = useFrom? from : to;
-		SystemVerilogIOSignalList sigList = ioHash.get(locidx);  // get the siglist
+		SystemVerilogIOSignalList sigList = getIOList(locidx);  // get the siglist
 		if (sigList == null) return null;
 		return sigList.pushIOSignalSet(from, to, namePrefix, name,  reps,  isFirstRep,  isIntf, isStruct, extType, compId); 
 	}
 	
 	/** pop IO hierarchy from active stack in specified list */
-	public void popIOSignalSet(Integer loc) {
-		SystemVerilogIOSignalList sigList = ioHash.get(loc);  // get the siglist
+	public void popIOSignalSet(int loc) {
+		SystemVerilogIOSignalList sigList = getIOList(loc);  // get the siglist
 		if (sigList == null) return;
 		sigList.popIOSignalSet(); 
 	}
+	
+	// -------------------
 	
     /** add a freeform statement to this module */
 	public void addStatement(String stmt) { 
@@ -733,5 +750,26 @@ public class SystemVerilogModule {
 		// write the coverage groups
 		writeCoverGroups(indentLevel);
 	}
+	
+    public static void main(String[] args) throws Exception {
+		String outFile = "/Users/snellenbach/Documents/jrdl_work/foo.v";
+		OutputWriterIntf writer = new SimpleOutputWriter(outFile, "foo");  // override writers
+		SystemVerilogModule mod = new SystemVerilogModule(writer, SystemVerilogLocationMap.getInternalId(), "clk", "reset", false);
+		SystemVerilogModule.setLegacyVerilog(true);  // TODO fix module syntax when no IO defined
+        int defaultOutputLoc = SystemVerilogLocationMap.getExternalId();
+        mod.addParameter("WIDTH", "8");
+        mod.addParameter("LENGTH", "16");
+        mod.addSimpleScalarFrom(defaultOutputLoc, "clk");
+        mod.addSimpleScalarFrom(defaultOutputLoc, "reset");
+        mod.addSimpleVectorFrom(defaultOutputLoc, "in1", 0, 10);
+        mod.addSimpleVectorTo(defaultOutputLoc, "out1", 0, 10); // TODO also warn if a list is redefined
+        //mod.addSimpleVectorFrom(defaultOutputLoc, "in2", "LENGTH-1:0"); // TODO add
+        //mod.addSimpleVectorTo(defaultOutputLoc, "out2", "LENGTH-1:0"); // TODO add
+        //mod.addSimpleVectorArrayFrom(defaultOutputLoc, "arr1", "WIDTH-1:0", "LENGTH-1:0");// TODO add
+        //mod.addSimpleVectorArrayTo(defaultOutputLoc, "arr1", "WIDTH-1:0", "LENGTH-1:0");// TODO add
+        // TODO add reg/wire defines
+        mod.write();
+        writer.close();
+    }
 
 }
