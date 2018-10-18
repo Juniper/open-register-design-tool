@@ -112,12 +112,24 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 		this.addVector(from, to, namePrefix, name, 0, 1);
 	}
 	
-	/** add a new vector signal to the child list 
-	 */
+	/** add a new vector signal to the child list  */
 	protected void addVector(Integer from, Integer to, String namePrefix, String name, int lowIndex, int size) {
 		SystemVerilogIOSignal sig = new SystemVerilogIOSignal(from, to, namePrefix, name, lowIndex, size);
 		childList.add(sig);
 		//System.out.println("SystemVerilogIOSignalSet addVector: adding " + name + " to set " + getName());
+	}
+
+	/** add a new vector signal with freeform slice string to the child list  */
+	public void addVector(Integer from, Integer to, String namePrefix, String name, String slice) {
+		SystemVerilogIOSignal sig = new SystemVerilogIOSignal(from, to, namePrefix, name, slice);
+		childList.add(sig);
+		//System.out.println("SystemVerilogIOSignalSet addVector: adding " + name + " to set " + getName());
+	}
+	
+	/** add a new simple 2d vector array with freeform slice strings to the child list */
+	public void addVectorArray(Integer from, Integer to, String namePrefix, String name, String packedSlice, String unpackedSlice) {
+		SystemVerilogIOSignal sig = new SystemVerilogIO2DSignal(from, to, namePrefix, name, packedSlice, unpackedSlice);
+		childList.add(sig);
 	}
 	
 	/** add children of another IOsignallist to this list

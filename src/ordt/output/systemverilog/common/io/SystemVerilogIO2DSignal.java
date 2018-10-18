@@ -5,72 +5,36 @@ import ordt.output.systemverilog.common.SystemVerilogParameterizedRange;
 import ordt.output.systemverilog.common.SystemVerilogRange;
 import ordt.output.systemverilog.common.SystemVerilogResolvedRange;
 
-public class SystemVerilogIOSignal extends SystemVerilogIOElement {
-	protected SystemVerilogRange range;
-
-	/** create io signal using low index and size (assumes msb left) */
-	public SystemVerilogIOSignal(Integer from, Integer to, String tagPrefix, String name, int lowIndex, int size) {   
-		this.name = name;
-		this.tagPrefix = tagPrefix;
-		this.range = new SystemVerilogResolvedRange(lowIndex, size);
-		this.from = from;
-		this.to = to;
-		this.reps = 1;  // signal rep count is always 1
-	}
+public class SystemVerilogIO2DSignal extends SystemVerilogIOSignal {
+	protected SystemVerilogRange unpackedRange;  // 2d sigmal adds an unpacked range
 	
-	/** create io signal using a range */
-	public SystemVerilogIOSignal(Integer from, Integer to, String tagPrefix, String name, SystemVerilogRange range) {
-		this.name = name;
-		this.tagPrefix = tagPrefix;
-		this.from = from;
-		this.to = to;
-		this.reps = 1;  // signal rep count is always 1
-		this.range = range;
-	}
-	
-	/** create io signal using a slice string */
-	public SystemVerilogIOSignal(Integer from, Integer to, String tagPrefix, String name, String slice) {
-		this.name = name;
-		this.tagPrefix = tagPrefix;
-		this.from = from;
-		this.to = to;
-		this.reps = 1;  // signal rep count is always 1
-		// save slice as resolved if an integer range else store as parameterized
-		SystemVerilogRange temprange = new SystemVerilogResolvedRange(slice);
-		if (temprange.isValid()) this.range = temprange;
-		else this.range = new SystemVerilogParameterizedRange(slice);
+	/** add a new simple 2d vector array with freeform slice strings to the child list */ 
+	public SystemVerilogIO2DSignal(Integer from, Integer to, String tagPrefix, String name, SystemVerilogRange range, SystemVerilogRange unpackedRange) {
+		super(from, to, tagPrefix, name, range);
+		this.unpackedRange = unpackedRange;
 	}
 
-	// ----- 
-
-	/** get lowIndex for this io signal */
-	public int getLowIndex() {
-		return range.getLowIndex();
-	}
-
-	/** get size in bits of this io signal */
-	public int getSize() {
-		return range.getSize();
+	/** add a new simple 2d vector array with freeform slice strings to the child list */ 
+	public SystemVerilogIO2DSignal(Integer from, Integer to, String tagPrefix, String name, String packedSlice, String unpackedSlice) {
+		super(from, to, tagPrefix, name, packedSlice);
+		// save unpacked slice as resolved if an integer range else store as parameterized
+		SystemVerilogRange temprange = new SystemVerilogResolvedRange(unpackedSlice);
+		if (temprange.isValid()) this.unpackedRange = temprange;
+		else this.unpackedRange = new SystemVerilogParameterizedRange(unpackedSlice);
 	}
 	
 	/** return the array string used for definitions */
-	public String getDefArray() {
-		return range.getDefArray();
+	public String getUnpackedDefArray() {
+		return unpackedRange.getDefArray();
 	}
 
     // ------------ methods overriding super
-
-    /** return type of this signal - always "logic" */
-	@Override
-	public String getType() {
-		return "logic";
-	}
 
 	/** return sv string instancing this element - assumes element name is full instance name */
 	@Override
 	public String getInstanceString(boolean addTagPrefix) {
         //System.out.println("SystemVerilogIOSignal getInstanceString: addTagPrefix=" + addTagPrefix + ", fullName=" + getFullName(null, addTagPrefix));
-		return getType() + " " + getDefArray() + getFullName(null, addTagPrefix) + ";";
+		return getType() + " " + getDefArray() + getFullName(null, addTagPrefix) + getUnpackedDefArray() + ";";
 	}
 	
 	/** return sv string used in definition of this element in input/output lists - assumes element name is full instance name 
@@ -79,7 +43,7 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 	 *   @param sigIOType - this string will be used as IO define type for IOSignals */
 	@Override
 	public String getIODefString(boolean addTagPrefix, String sigIOType) {
-		return sigIOType + " " + getDefArray() + getFullName(null, addTagPrefix);
+		return sigIOType + " " + getDefArray() + getFullName(null, addTagPrefix) + getUnpackedDefArray();
 	}
 
 	/** return a simple IOElement with full generated name */
@@ -87,7 +51,7 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 	public SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix) {
 		String newTagPrefix = addTagPrefix? tagPrefix : "";
         //System.out.println("SystemVerilogIOSignal getFullNameIOElement: addTagPrefix=" + addTagPrefix + ", newTagPrefix=" + newTagPrefix + ", pathPrefix=" + pathPrefix);
-		return new SystemVerilogIOSignal(from, to, newTagPrefix, pathPrefix + name, range);
+		return new SystemVerilogIO2DSignal(from, to, newTagPrefix, pathPrefix + name, range, unpackedRange);
 	}
 
     @Override
@@ -138,5 +102,6 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
     	newsig = new SystemVerilogIOSignal(0, 0, null, null, "N*7 : WIDTH-2");
     	System.out.println("newsig" + newsig.getDefArray());
     }
+	
 
 }

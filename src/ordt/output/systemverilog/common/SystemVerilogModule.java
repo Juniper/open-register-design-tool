@@ -493,6 +493,34 @@ public class SystemVerilogModule {
 		if (addDefinedSignal(name)) sigList.addSimpleVector(from, getInsideLocs(), name, lowIndex, size); 
 	}
 
+	/** add a new simple vector IO signal with freeform slice string to the specified external location list */
+	private void addSimpleVectorTo(int to, String name, String slice) {
+		SystemVerilogIOSignalList sigList = getIOList(to);  // get the siglist
+		if (sigList == null) return;
+		sigList.addSimpleVector(getInsideLocs(), to, name, slice); 
+	}
+
+	/** add a new simple vector IO signal with freeform slice string from the specified external location list */
+	private void addSimpleVectorFrom(int from, String name, String slice) {
+		SystemVerilogIOSignalList sigList = getIOList(from);  // get IO list
+		if (sigList == null) return;
+		if (addDefinedSignal(name)) sigList.addSimpleVector(from, getInsideLocs(), name, slice); 
+	}
+
+	/** add a new simple vector array (2d) IO signal with freeform slice strings to the specified external location list */
+	private void addSimpleVectorArrayTo(int to, String name, String packedSlice, String unpackedSlice) {
+		SystemVerilogIOSignalList sigList = getIOList(to);  // get the siglist
+		if (sigList == null) return;
+		sigList.addSimpleVectorArray(getInsideLocs(), to, name, packedSlice, unpackedSlice); 
+	}
+
+	/** add a new simple vector array (2d) IO signal with freeform slice strings from the specified external location list */
+	private void addSimpleVectorArrayFrom(int from, String name, String packedSlice, String unpackedSlice) {
+		SystemVerilogIOSignalList sigList = getIOList(from);  // get IO list
+		if (sigList == null) return;
+		if (addDefinedSignal(name)) sigList.addSimpleVectorArray(from, getInsideLocs(), name, packedSlice, unpackedSlice); 
+	}
+
 	// hierarchical IO adds
 	
 	/** add a new scalar IO signal to the specified external location list */
@@ -763,10 +791,10 @@ public class SystemVerilogModule {
         mod.addSimpleScalarFrom(defaultOutputLoc, "reset");
         mod.addSimpleVectorFrom(defaultOutputLoc, "in1", 0, 10);
         mod.addSimpleVectorTo(defaultOutputLoc, "out1", 0, 10); // TODO also warn if a list is redefined
-        //mod.addSimpleVectorFrom(defaultOutputLoc, "in2", "LENGTH-1:0"); // TODO add
-        //mod.addSimpleVectorTo(defaultOutputLoc, "out2", "LENGTH-1:0"); // TODO add
-        //mod.addSimpleVectorArrayFrom(defaultOutputLoc, "arr1", "WIDTH-1:0", "LENGTH-1:0");// TODO add
-        //mod.addSimpleVectorArrayTo(defaultOutputLoc, "arr1", "WIDTH-1:0", "LENGTH-1:0");// TODO add
+        mod.addSimpleVectorFrom(defaultOutputLoc, "in2", "LENGTH-1:0"); 
+        mod.addSimpleVectorTo(defaultOutputLoc, "out2", "LENGTH-1:0"); 
+        mod.addSimpleVectorArrayFrom(defaultOutputLoc, "arr1", "WIDTH-1:0", "LENGTH-1:0");
+        mod.addSimpleVectorArrayTo(defaultOutputLoc, "arr1", "WIDTH-1:0", "LENGTH-1:0");
         // TODO add reg/wire defines
         mod.write();
         writer.close();

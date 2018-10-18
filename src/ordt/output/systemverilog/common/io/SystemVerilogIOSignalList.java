@@ -103,12 +103,22 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 		//System.out.println("SystemVerilogIOSignalList addSimpleVector: adding " + name + ", from=" + from + ", to=" + to + ", list=" + getListName());
 	}
 
+	/** add a new simple vector with freeform slice string to the root child list (no prefix) */
+	public void addSimpleVector(Integer from, Integer to, String name, String slice) {
+		super.addVector(from, to, null, name, slice);
+	}
+
 	/** add a new simple vector to the root child list (no prefix) */
 	public void addSimpleVector(SystemVerilogDefSignalTypeIntf sigType, String namePrefix, int lowIndex, int size) {
 		Integer from = SystemVerilogDefinedSignalMap.getFrom(sigType);
 		Integer to = SystemVerilogDefinedSignalMap.getTo(sigType);
 		String fullName = SystemVerilogDefinedSignalMap.getFullName(sigType, namePrefix, true);
 		addSimpleVector(from, to, fullName, lowIndex, size);
+	}
+
+	/** add a new simple 2d vector array with freeform slice strings to the root child list (no prefix) */
+	public void addSimpleVectorArray(Integer from, Integer to, String name, String packedSlice, String unpackedSlice) {
+		super.addVectorArray(from, to, null, name, packedSlice, unpackedSlice);
 	}
 	
 	// --- add scalars
