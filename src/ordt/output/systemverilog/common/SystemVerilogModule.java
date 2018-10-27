@@ -179,7 +179,7 @@ public class SystemVerilogModule {
 	}
 
 	/** add a wire define */
-	private void addVectorWire(String name, int idx, Integer width, boolean signed) {
+	public void addVectorWire(String name, int idx, Integer width, boolean signed) {
 		if (addDefinedSignal(name)) wireDefList.addVector(name, idx, width, signed);	
 	}
 	
@@ -490,7 +490,7 @@ public class SystemVerilogModule {
 	}
 
 	/** add a new simple vector IO signal to the specified external location list */
-	private void addSimpleVectorTo(int to, String name, int lowIndex, int size, boolean signed) {
+	public void addSimpleVectorTo(int to, String name, int lowIndex, int size, boolean signed) {
 		SystemVerilogIOSignalList sigList = getIOList(to);  // get the siglist
 		if (sigList == null) return;
 		sigList.addSimpleVector(getInsideLocs(), to, name, lowIndex, size, signed); 
