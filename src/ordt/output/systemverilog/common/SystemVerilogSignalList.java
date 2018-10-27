@@ -28,17 +28,19 @@ public  class SystemVerilogSignalList {
 		return outList;
 	}
 	
-	/** add a new scalar signal to the list
-	 */
+	/** add a new scalar signal to the list */
 	public void addScalar(String name) {
 		this.addVector(name, 0, 1);
 	}
 	
-	/** add a new vector signal to the list
-	 */
+	/** add a new vector signal to the list */
+	public void addVector(String name, int lowIndex, int size, boolean signed) {
+		signalList.add(new SystemVerilogSignal(name, lowIndex, size, signed));
+	}
+	
+	/** add a new unsigned vector signal to the list */
 	public void addVector(String name, int lowIndex, int size) {
-		//this.add(name, genDefArrayString(lowIndex, size));
-		signalList.add(new SystemVerilogSignal(name, lowIndex, size));
+		addVector(name, lowIndex, size, false);
 	}
 	
 	/** add a list of signals to this list
@@ -50,6 +52,7 @@ public  class SystemVerilogSignalList {
 	public void addAll(List<SystemVerilogSignal> addList) {
 		signalList.addAll(addList);		
 	}
+
 
 }
 

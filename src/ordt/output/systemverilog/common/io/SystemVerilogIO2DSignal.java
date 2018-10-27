@@ -10,7 +10,7 @@ public class SystemVerilogIO2DSignal extends SystemVerilogIOSignal {
 	
 	/** add a new simple 2d vector array with freeform slice strings to the child list */ 
 	public SystemVerilogIO2DSignal(Integer from, Integer to, String tagPrefix, String name, SystemVerilogRange range, SystemVerilogRange unpackedRange) {
-		super(from, to, tagPrefix, name, range);
+		super(from, to, tagPrefix, name, range, false);
 		this.unpackedRange = unpackedRange;
 	}
 

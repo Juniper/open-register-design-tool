@@ -7,25 +7,28 @@ import ordt.output.systemverilog.common.SystemVerilogResolvedRange;
 
 public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 	protected SystemVerilogRange range;
-
-	/** create io signal using low index and size (assumes msb left) */
-	public SystemVerilogIOSignal(Integer from, Integer to, String tagPrefix, String name, int lowIndex, int size) {   
-		this.name = name;
-		this.tagPrefix = tagPrefix;
-		this.range = new SystemVerilogResolvedRange(lowIndex, size);
-		this.from = from;
-		this.to = to;
-		this.reps = 1;  // signal rep count is always 1
-	}
+	protected boolean signed = false;
 	
 	/** create io signal using a range */
-	public SystemVerilogIOSignal(Integer from, Integer to, String tagPrefix, String name, SystemVerilogRange range) {
+	public SystemVerilogIOSignal(Integer from, Integer to, String tagPrefix, String name, SystemVerilogRange range, boolean signed) {
 		this.name = name;
 		this.tagPrefix = tagPrefix;
 		this.from = from;
 		this.to = to;
 		this.reps = 1;  // signal rep count is always 1
 		this.range = range;
+		this.signed = signed;
+	}
+
+	/** create io signal using low index and size (assumes msb left) */
+	public SystemVerilogIOSignal(Integer from, Integer to, String tagPrefix, String name, int lowIndex, int size, boolean signed) {
+		this(from, to, tagPrefix, name, null, signed);
+		this.range = new SystemVerilogResolvedRange(lowIndex, size);
+	}
+	
+	/** create an unsigned io signal using low index and size (assumes msb left) */
+	public SystemVerilogIOSignal(Integer from, Integer to, String tagPrefix, String name, int lowIndex, int size) {   
+		this(from, to, tagPrefix, name, lowIndex, size, false);
 	}
 	
 	/** create io signal using a slice string */
@@ -79,7 +82,9 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 	 *   @param sigIOType - this string will be used as IO define type for IOSignals */
 	@Override
 	public String getIODefString(boolean addTagPrefix, String sigIOType) {
-		return sigIOType + " " + getDefArray() + getFullName(null, addTagPrefix);
+		String pfix = this.signed? "signed " : " ";
+        //System.out.println("SystemVerilogIOSignal getIODefString: " + sigIOType + pfix + getDefArray() + getFullName(null, addTagPrefix));
+		return sigIOType + pfix + getDefArray() + getFullName(null, addTagPrefix);
 	}
 
 	/** return a simple IOElement with full generated name */
@@ -87,7 +92,7 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 	public SystemVerilogIOElement getFullNameIOElement(String pathPrefix, boolean addTagPrefix) {
 		String newTagPrefix = addTagPrefix? tagPrefix : "";
         //System.out.println("SystemVerilogIOSignal getFullNameIOElement: addTagPrefix=" + addTagPrefix + ", newTagPrefix=" + newTagPrefix + ", pathPrefix=" + pathPrefix);
-		return new SystemVerilogIOSignal(from, to, newTagPrefix, pathPrefix + name, range);
+		return new SystemVerilogIOSignal(from, to, newTagPrefix, pathPrefix + name, range, signed);
 	}
 
     @Override

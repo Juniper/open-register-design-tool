@@ -801,13 +801,6 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		}
 	
 	}	
-	
-	/** return string list of signal names from verilogsig list */
-	protected static List<String> getNameList (List<SystemVerilogSignal> sigList) {
-		List<String> retStr = new ArrayList<String>();
-		for (SystemVerilogSignal vsig : sigList) retStr.add(vsig.getDefName());
-		return retStr;
-	}
 		
 	//---------------------------- methods to output verilog ----------------------------------------
 

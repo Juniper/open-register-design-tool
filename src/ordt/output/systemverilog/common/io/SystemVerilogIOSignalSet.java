@@ -113,10 +113,15 @@ public class SystemVerilogIOSignalSet extends SystemVerilogIOElement {
 	}
 	
 	/** add a new vector signal to the child list  */
-	protected void addVector(Integer from, Integer to, String namePrefix, String name, int lowIndex, int size) {
-		SystemVerilogIOSignal sig = new SystemVerilogIOSignal(from, to, namePrefix, name, lowIndex, size);
+	protected void addVector(Integer from, Integer to, String namePrefix, String name, int lowIndex, int size, boolean signed) {
+		SystemVerilogIOSignal sig = new SystemVerilogIOSignal(from, to, namePrefix, name, lowIndex, size, signed);
 		childList.add(sig);
 		//System.out.println("SystemVerilogIOSignalSet addVector: adding " + name + " to set " + getName());
+	}
+	
+	/** add a new unsigned vector signal to the child list  */
+	protected void addVector(Integer from, Integer to, String namePrefix, String name, int lowIndex, int size) {
+		addVector(from, to, namePrefix, name, lowIndex, size, false);
 	}
 
 	/** add a new vector signal with freeform slice string to the child list  */

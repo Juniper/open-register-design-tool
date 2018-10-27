@@ -179,8 +179,13 @@ public class SystemVerilogModule {
 	}
 
 	/** add a wire define */
+	private void addVectorWire(String name, int idx, Integer width, boolean signed) {
+		if (addDefinedSignal(name)) wireDefList.addVector(name, idx, width, signed);	
+	}
+	
+	/** add an unsigned wire define */
 	public void addVectorWire(String name, int idx, Integer width) {
-		if (addDefinedSignal(name)) wireDefList.addVector(name, idx, width);	
+		addVectorWire(name, idx, width, false);	
 	}
 
 	/** add a scalar wire define */
@@ -199,8 +204,13 @@ public class SystemVerilogModule {
 	}
 
 	/** add a reg define */
+	public void addVectorReg(String name, int idx, Integer width, boolean signed) {
+		if (addDefinedSignal(name)) regDefList.addVector(name, idx, width, signed);	
+	}
+	
+	/** add an unsigned reg define */
 	public void addVectorReg(String name, int idx, Integer width) {
-		if (addDefinedSignal(name)) regDefList.addVector(name, idx, width);	
+		addVectorReg(name, idx, width, false);	
 	}
 
 	/** add a scalar reg define */
@@ -480,42 +490,51 @@ public class SystemVerilogModule {
 	}
 
 	/** add a new simple vector IO signal to the specified external location list */
-	public void addSimpleVectorTo(int to, String name, int lowIndex, int size) {
+	private void addSimpleVectorTo(int to, String name, int lowIndex, int size, boolean signed) {
 		SystemVerilogIOSignalList sigList = getIOList(to);  // get the siglist
 		if (sigList == null) return;
-		sigList.addSimpleVector(getInsideLocs(), to, name, lowIndex, size); 
+		sigList.addSimpleVector(getInsideLocs(), to, name, lowIndex, size, signed); 
+	}
+	
+	/** add a new simple unsigned vector IO signal to the specified external location list */
+	public void addSimpleVectorTo(int to, String name, int lowIndex, int size) {
+		addSimpleVectorTo(to, name, lowIndex, size, false);
 	}
 
 	/** add a new simple vector IO signal from the specified external location list */
-	public void addSimpleVectorFrom(int from, String name, int lowIndex, int size) {
+	public void addSimpleVectorFrom(int from, String name, int lowIndex, int size, boolean signed) {
 		SystemVerilogIOSignalList sigList = getIOList(from);  // get IO list
 		if (sigList == null) return;
-		if (addDefinedSignal(name)) sigList.addSimpleVector(from, getInsideLocs(), name, lowIndex, size); 
+		if (addDefinedSignal(name)) sigList.addSimpleVector(from, getInsideLocs(), name, lowIndex, size, signed); 
+	}
+	/** add a new simple unsigned vector IO signal from the specified external location list */
+	public void addSimpleVectorFrom(int from, String name, int lowIndex, int size) {
+		addSimpleVectorFrom(from, name, lowIndex, size, false); 
 	}
 
 	/** add a new simple vector IO signal with freeform slice string to the specified external location list */
-	private void addSimpleVectorTo(int to, String name, String slice) {
+	public void addSimpleVectorTo(int to, String name, String slice) {
 		SystemVerilogIOSignalList sigList = getIOList(to);  // get the siglist
 		if (sigList == null) return;
 		sigList.addSimpleVector(getInsideLocs(), to, name, slice); 
 	}
 
 	/** add a new simple vector IO signal with freeform slice string from the specified external location list */
-	private void addSimpleVectorFrom(int from, String name, String slice) {
+	public void addSimpleVectorFrom(int from, String name, String slice) {
 		SystemVerilogIOSignalList sigList = getIOList(from);  // get IO list
 		if (sigList == null) return;
 		if (addDefinedSignal(name)) sigList.addSimpleVector(from, getInsideLocs(), name, slice); 
 	}
 
 	/** add a new simple vector array (2d) IO signal with freeform slice strings to the specified external location list */
-	private void addSimpleVectorArrayTo(int to, String name, String packedSlice, String unpackedSlice) {
+	public void addSimpleVectorArrayTo(int to, String name, String packedSlice, String unpackedSlice) {
 		SystemVerilogIOSignalList sigList = getIOList(to);  // get the siglist
 		if (sigList == null) return;
 		sigList.addSimpleVectorArray(getInsideLocs(), to, name, packedSlice, unpackedSlice); 
 	}
 
 	/** add a new simple vector array (2d) IO signal with freeform slice strings from the specified external location list */
-	private void addSimpleVectorArrayFrom(int from, String name, String packedSlice, String unpackedSlice) {
+	public void addSimpleVectorArrayFrom(int from, String name, String packedSlice, String unpackedSlice) {
 		SystemVerilogIOSignalList sigList = getIOList(from);  // get IO list
 		if (sigList == null) return;
 		if (addDefinedSignal(name)) sigList.addSimpleVectorArray(from, getInsideLocs(), name, packedSlice, unpackedSlice); 
@@ -793,9 +812,14 @@ public class SystemVerilogModule {
         mod.addSimpleVectorTo(defaultOutputLoc, "out1", 0, 10); // TODO also warn if a list is redefined
         mod.addSimpleVectorFrom(defaultOutputLoc, "in2", "LENGTH-1:0"); 
         mod.addSimpleVectorTo(defaultOutputLoc, "out2", "LENGTH-1:0"); 
-        mod.addSimpleVectorArrayFrom(defaultOutputLoc, "arr1", "WIDTH-1:0", "LENGTH-1:0");
-        mod.addSimpleVectorArrayTo(defaultOutputLoc, "arr1", "WIDTH-1:0", "LENGTH-1:0");
-        // TODO add reg/wire defines
+        //mod.addSimpleVectorArrayFrom(defaultOutputLoc, "arrin1", "WIDTH-1:0", "0:20");
+        //mod.addSimpleVectorArrayTo(defaultOutputLoc, "arrout1", "WIDTH-1:0", "0:20");
+        //mod.addSimpleVectorArrayFrom(defaultOutputLoc, "arrin1", "WIDTH-1:0", "LENGTH-1:0");
+        //mod.addSimpleVectorArrayTo(defaultOutputLoc, "arrout1", "WIDTH-1:0", "LENGTH-1:0");
+        mod.addSimpleVectorTo(defaultOutputLoc, "data1", 0, 8, true);
+        mod.addSimpleVectorFrom(defaultOutputLoc, "TEMP", 0, 8, true);
+        mod.addVectorReg("data2", 0, 8, true);
+        mod.addVectorWire("data3", 0, 8, true);
         mod.write();
         writer.close();
     }

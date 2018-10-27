@@ -6,16 +6,19 @@ package ordt.output.systemverilog.common;
 /** class to hold basic info (name, idx, size) for verilog signals */
 public class SystemVerilogSignal {
 	protected String name;
-	protected int lowIndex;
+	protected int lowIndex;  // TODO use SystemVerilogRange
 	protected int size;
-	/**
-	 * @param name
-	 * @param array
-	 */
-	public SystemVerilogSignal(String name, int lowIndex, int size) {
+	protected boolean signed = false;
+
+	public SystemVerilogSignal(String name, int lowIndex, int size, boolean signed) {
 		this.name = name;
 		this.lowIndex = lowIndex;
 		this.size = size;
+		this.signed = signed;
+	}
+	
+	public SystemVerilogSignal(String name, int lowIndex, int size) {
+		this(name, lowIndex, size, false);
 	}
 	
 	/* copy constructor */
@@ -25,9 +28,10 @@ public class SystemVerilogSignal {
 		this.size = orig.getSize();
 	}
 
-	/** return the name used for definitions (includes) prefixed array string */
+	/** return the name used for definitions w/ prefixed 'signed' keyword and array string  */
 	public String getDefName() {
-		return genDefArrayString(lowIndex, size) + name;
+		String pfix = signed? "signed " : "";
+		return pfix + genDefArrayString(lowIndex, size) + name;
 	}
 	
 	/** return the array string used for definitions  */

@@ -98,8 +98,13 @@ public class SystemVerilogIOSignalList extends SystemVerilogIOSignalSet {
 	}
 
 	/** add a new simple vector to the root child list (no prefix) */
+	public void addSimpleVector(Integer from, Integer to, String name, int lowIndex, int size, boolean signed) {
+		super.addVector(from, to, null, name, lowIndex, size, signed);
+	}
+	
+	/** add a new simple unsigned vector to the root child list (no prefix) */
 	public void addSimpleVector(Integer from, Integer to, String name, int lowIndex, int size) {
-		super.addVector(from, to, null, name, lowIndex, size);
+		addSimpleVector(from, to, name, lowIndex, size, false);
 		//System.out.println("SystemVerilogIOSignalList addSimpleVector: adding " + name + ", from=" + from + ", to=" + to + ", list=" + getListName());
 	}
 
