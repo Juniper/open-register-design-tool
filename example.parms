@@ -106,6 +106,7 @@ output uvmregs {
     //use_numeric_uvm_class_names = true // block and reg class names will use unique int rather than catenated path
 	//uvm_mem_strategy = mimic_reg_api   // set uvm_mem modeling strategy (basic | block_wrapped | mimic_reg_api)
 	base_address_override = 0x82000000   // model base address override
+	use_module_path_defines = true   // use defines for setting root module paths
 }
 
 // xml output parameters

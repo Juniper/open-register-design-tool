@@ -183,6 +183,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("use_numeric_uvm_class_names", false); 
 		uvmMemStrategy = UvmMemStrategy.BLOCK_WRAPPED;
 		initRegNumberParameter("base_address_override", null); 
+		initBooleanParameter("use_module_path_defines", true); 
 
 		// ---- bench output defaults
 		initStringListParameter("add_test_command", new ArrayList<String>());
@@ -927,7 +928,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static Boolean uvmregsUseNumericUvmClassNames() {
 		return getBooleanParameter("use_numeric_uvm_class_names");
 	}
-		
+	
+	public static Boolean uvmregsUseModulePathDefines() {
+		return getBooleanParameter("use_module_path_defines");
+	}
+			
 	public static int uvmregsMaxRegCoverageBins() {
 		return getIntegerParameter("max_reg_coverage_bins");
 	}

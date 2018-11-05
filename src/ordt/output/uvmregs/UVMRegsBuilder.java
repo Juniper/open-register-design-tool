@@ -513,7 +513,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 			subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].configure(this, \"\");");  
 			if (regSetProperties.isAddressMap()) {
 				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].set_rdl_address_map(1);");  // tag block as an address map
-				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});");  // TODO
+				if (ExtParameters.uvmregsUseModulePathDefines()) subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});");
+				else subcompBuildList.addStatement(parentID, "  // CALL THE FOLLOWING TO SET UP HDL PATHS: this." + escapedBlockId + "[i].set_rdl_address_map_hdl_path(<PIO_MODULE_INSTANCE_PATH>.pio_logic);");
 			}
 			else
 				subcompBuildList.addStatement(parentID, "  this." + escapedBlockId + "[i].set_rdl_tag($psprintf(\"" + blockId + "_%0d_\",i));");
@@ -528,7 +529,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 		   subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".configure(this, \"\");"); 
 		   if (!hasInstanceNameOverride && regSetProperties.isAddressMap()) {
 				subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_address_map(1);");  // tag block as an address map
-				subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});");  
+				if (ExtParameters.uvmregsUseModulePathDefines()) subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});");
+				else subcompBuildList.addStatement(parentID, "// CALL THE FOLLOWING TO SET UP HDL PATHS: this." + escapedBlockId + ".set_rdl_address_map_hdl_path(<PIO_MODULE_INSTANCE_PATH>.pio_logic);");
 				if (ExtParameters.sysVerGenerateChildAddrmaps()) subcompBuildList.addStatement(parentID, "this." + escapedBlockId + ".set_rdl_tag(\"" + regSetProperties.getBaseName() + "_\");");
 				//System.out.println("UVMBuilder saveRegSetInfo: id=" + regSetProperties.getId() + ", base=" + regSetProperties.getBaseName());
 		   }
@@ -1511,7 +1513,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 			oLine.setHasTextReplacements(true);
 			outputList.add(oLine);
 			outputList.add(new OutputLine(indentLvl, "this.set_rdl_address_map(1);"));  			
-			outputList.add(new OutputLine(indentLvl, "this.set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});"));  			
+			if (ExtParameters.uvmregsUseModulePathDefines()) outputList.add(new OutputLine(indentLvl, "this.set_rdl_address_map_hdl_path({`" + getParentAddressMapName().toUpperCase() + "_PIO_INSTANCE_PATH, \".pio_logic\"});"));  			
+			else outputList.add(new OutputLine(indentLvl, "// CALL THE FOLLOWING TO SET UP HDL PATHS: this.set_rdl_address_map_hdl_path(<PIO_MODULE_INSTANCE_PATH>.pio_logic);"));  			
 		}
 		else {
 			OutputLine oLine = new OutputLine(indentLvl, "this.default_map = create_map(\"\", 0, " + byteWidthString + ", " + endianness + ", 1);");
