@@ -986,7 +986,6 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		// add all leaf interrupts to to monitored
 		intrBindMod.addStatement("");
 		intrBindMod.addStatement("//------- intr detect assertions");
-		int assert_cnt=0;
 		for(IntrDiagInfo intrInfo: intrInfoList) {
 			// add assertions 
 			String redPfix = intrInfo.isVector()? "|" : ""; // use or reduction on vectors
@@ -996,7 +995,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			String intrMaskName = intrInfo.hasIntrEnableOrMask()? invPfix + redPfix + intrInfo.getIntrEnableName() : "1'b0";
 			invPfix = (intrInfo.hasHaltEnableOrMask() && intrInfo.getHaltEnableType().startsWith("en"))? "!" : ""; // invert if an enable
 			String haltMaskName = intrInfo.hasHaltEnableOrMask()? invPfix + redPfix + intrInfo.getHaltEnableName() : "1'b0";
-			intrBindMod.addStatement("intr_assert_" + assert_cnt++ + " : assert property (no_rising_intr(" + sigName + ", "  + inhibitName + ", " + intrMaskName + ", " + haltMaskName + "))");
+			intrBindMod.addStatement("intr_assert_" + intrInfo.getSigName() + " : assert property (no_rising_intr(" + sigName + ", "  + inhibitName + ", " + intrMaskName + ", " + haltMaskName + "))");
 			String intrEnStr = intrInfo.hasIntrEnableOrMask()? "\"" + intrInfo.getIntrEnableType() + "\", " + intrInfo.getIntrEnableName() : "\"none\", " + sigName;
 			String haltEnStr = intrInfo.hasHaltEnableOrMask()? ", \"" + intrInfo.getHaltEnableType() + "\", " + intrInfo.getHaltEnableName() : ", \"none\", " + sigName;
 			intrBindMod.addStatement("else begin");
