@@ -54,9 +54,9 @@ regfile estats {
 		reg{
 		field {sw=r;hw=na;}  version[31:30] = 2'd2;
 		field {sw=r;hw=na;}  syn_logged[9:9] = 1'd0;
-		field {sw=r;hw=na;}  wdth[8:4] = 5'd7;
-		field {sw=r;hw=na;}  generator[3:3] = 1'd1;
-		field {sw=r;hw=na;}  checker[2:2] = 1'd1;
+		field {sw=r;hw=na;ored;}  wdth[8:4] = 5'd7;
+		field {sw=r;hw=na;anded;}  generator[3:3] = 1'd1;
+		field {sw=r;hw=na;xored;}  checker[2:2] = 1'd1;
 		field {sw=r;hw=na;}  correctable[1:1] = 1'd0;
 		field {sw=r;hw=na;}  adr_logged[0:0] = 1'd1;
 		} features;
