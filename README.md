@@ -7,7 +7,7 @@ Ordt is a tool for automation of IC register definition and documentation.  It c
 The tool can generate several outputs from SystemRDL or JSpec, including:
   - SystemVerilog/Verilog RTL code description of registers
   - UVM model of the registers
-  - C++ models of the registers
+  - C++ and python models of the registers
   - XML and text file register descriptions
   - SystemRDL and JSpec (conversion)
 
