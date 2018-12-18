@@ -14,8 +14,10 @@ import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
+import ordt.extract.model.ModComponent;
 import ordt.extract.model.ModEnum;
 import ordt.extract.model.ModEnumElement;
+import ordt.extract.model.ModInstance;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
 import ordt.output.RhsReference;
@@ -55,6 +57,7 @@ public class XmlBuilder extends OutputBuilder {
 			textName = textName.substring(0, 255);
 		}
 		addXmlElement("shorttext", textName);
+		if (ExtParameters.xmlIncludeComponentInfo()) addComponentPath(fieldProperties);
 		addXmlElement("access", getFieldAccessType());
 		if (fieldProperties.isSinglePulse()) addXmlElement("singlepulse", "");
 		if (ExtParameters.xmlIncludeFieldHwInfo()) addHwInfo();  // include field hw info
@@ -109,6 +112,7 @@ public class XmlBuilder extends OutputBuilder {
 			textName = textName.substring(0, 255);
 		}
 		addXmlElement("shorttext", textName);
+		if (ExtParameters.xmlIncludeComponentInfo()) addComponentPath(regProperties);
 		addXmlElement("baseaddr", regProperties.getFullBaseAddress().toString());
 		addXmlElement("width", regProperties.getRegWidth().toString());
 		if (regProperties.isReplicated()) {
@@ -167,6 +171,7 @@ public class XmlBuilder extends OutputBuilder {
 			textName = textName.substring(0, 255);
 		}
 		addXmlElement("shorttext", textName);
+		if (ExtParameters.xmlIncludeComponentInfo()) addComponentPath(regSetProperties);
 		// address
 		if (regSetProperties.isRootInstance())
 			addXmlElement("baseaddr", ExtParameters.getPrimaryBaseAddress().toString());
@@ -213,6 +218,7 @@ public class XmlBuilder extends OutputBuilder {
 			textName = textName.substring(0, 255);
 		}
 		addXmlElement("shorttext", textName);
+		if (ExtParameters.xmlIncludeComponentInfo()) addComponentPath(regSetProperties);
 		if (regSetProperties.getTextDescription() != null) 
 			addXmlElement("longtext", wrapXmlText(regSetProperties.getTextDescription()));
 	}
@@ -225,6 +231,19 @@ public class XmlBuilder extends OutputBuilder {
 	}
 	
 	//--------------------------------------------------------------------
+
+	/** if instance has a non-anonymous component type, then add its path to output */
+	private void addComponentPath(InstanceProperties instProperties) {
+		ModInstance inst = instProperties.getExtractInstance();
+		ModComponent comp = inst.getRegComp();
+		String cid = comp.getId();
+		// if component id is set then output path
+		if ((cid != null) && !cid.startsWith("aNON")) {
+			//System.out.println("XmlBuilder addComponentPath: cid=" + comp.getId() + ", cpath=" + comp.getFullId());
+			addXmlElement("component", cleanXmlText(comp.getFullId()));
+		}
+		
+	}
 
 	/** write new element start with an attribute/value */
 	private void addXmlElementStart(String elemName, String attrName, String attrVal) {

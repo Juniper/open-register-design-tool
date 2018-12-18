@@ -112,6 +112,7 @@ output uvmregs {
 // xml output parameters
 output xml {
 	include_field_hw_info = true   // include field hw characteristics 
+	include_component_info = false   // include component type info in xml output for each instance 
 }
 
 // model annotation commands

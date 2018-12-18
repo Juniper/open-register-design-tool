@@ -230,6 +230,7 @@ ext_parm_defs
    
  xml_out_parm_assign
    : 'include_field_hw_info' EQ bool 
+   | 'include_component_info' EQ bool 
    ;
    
 /*   

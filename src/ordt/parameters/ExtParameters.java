@@ -193,6 +193,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		
 		// ---- xml output defaults
 		initBooleanParameter("include_field_hw_info", true);
+		initBooleanParameter("include_component_info", false);
 	}
 	
 	static void initBooleanParameter(String name, Boolean value) {
@@ -978,6 +979,10 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return getBooleanParameter("include_field_hw_info");
 	}
 	
+	public static Boolean xmlIncludeComponentInfo() {
+		return getBooleanParameter("include_component_info");
+	}
+		
 	/**
 	 * @param args
 	 */
