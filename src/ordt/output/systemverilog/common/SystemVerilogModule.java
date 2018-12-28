@@ -96,7 +96,7 @@ public class SystemVerilogModule {
 		}
 	}
 	
-	protected void setWriter(OutputWriterIntf writer) {
+	public void setWriter(OutputWriterIntf writer) {
 		this.writer = writer;
 	}
 
