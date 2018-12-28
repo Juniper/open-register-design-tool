@@ -791,28 +791,28 @@ public class SystemVerilogModule {
 	public void writeChildInstances(int indentLevel) {
 		for (SystemVerilogInstance inst : instanceList) {
 			//System.out.println("SystemVerilogModule writeChildInstances: inst=" + inst.getName());
-			inst.getMod().writeInstance(indentLevel, inst);
+			inst.getMod().writeInstance(indentLevel, writer, inst);
 		}		
 	}
 
-	/** write an instance of this module */
-	public void writeInstance(int indentLevel, SystemVerilogInstance inst) {
+	/** write an instance of this module - as this isn't included in this module's definition, allow an alternate writer as input */
+	public void writeInstance(int indentLevel, OutputWriterIntf altWriter, SystemVerilogInstance inst) {
 		List<SystemVerilogIOElement> childList = this.getInputOutputList();
 		if (childList.isEmpty()) return;
 	    if (isLegacyVerilog || inst.hasRemapRules()) {
-			writer.writeStmt(indentLevel++, this.getName() + " " + getParameterInstanceString() + inst.getName() + " (");   // more elements so use comma
+			altWriter.writeStmt(indentLevel++, this.getName() + " " + getParameterInstanceString() + inst.getName() + " (");   // more elements so use comma
 			Iterator<SystemVerilogIOElement> it = childList.iterator();
 			while (it.hasNext()) {
 				SystemVerilogIOElement elem = it.next();
 				String suffix = it.hasNext()? ")," : ") );";
 				String remappedSignal = inst.getRemappedSignal(elem.getFullName(), elem.getFrom(), elem.getTo());
-				writer.writeStmt(indentLevel, "." + elem.getFullName() + "(" + remappedSignal + suffix); 
+				altWriter.writeStmt(indentLevel, "." + elem.getFullName() + "(" + remappedSignal + suffix); 
 			}		   		    	
 	    }
 	    else {
-			writer.writeStmt(indentLevel++, this.getName() + " " + getParameterInstanceString() + inst.getName() + " ( .* );");   // more elements so use comma	    	
+			altWriter.writeStmt(indentLevel++, this.getName() + " " + getParameterInstanceString() + inst.getName() + " ( .* );");   // more elements so use comma	    	
 	    }
-		writer.writeStmt(indentLevel--, "");   
+		altWriter.writeStmt(indentLevel--, "");   
 	}
 
 	/** write any free form statements */
