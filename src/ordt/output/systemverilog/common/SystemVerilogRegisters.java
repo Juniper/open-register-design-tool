@@ -32,6 +32,10 @@ public class SystemVerilogRegisters {
 		this.useAsyncResets = useAsyncResets;
 	}
 
+	public void setWriter(OutputWriterIntf writer) {
+		this.writer = writer;
+	}
+
 	/** retrieve a register or add if a new name **/
 	public VerilogRegInfo get(String name) {
 		VerilogRegInfo regInfo = this.registers.get(name);

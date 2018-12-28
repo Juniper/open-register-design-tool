@@ -41,6 +41,10 @@ public class SystemVerilogCoverGroups {
 		}
 		return regInfo;
 	}
+
+	public void setWriter(OutputWriterIntf writer) {
+		this.writer = writer;
+	}
 	
 	/** return true if no coverpoints */
 	public boolean isEmpty() {

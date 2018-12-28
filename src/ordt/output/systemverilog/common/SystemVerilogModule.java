@@ -98,6 +98,8 @@ public class SystemVerilogModule {
 	
 	public void setWriter(OutputWriterIntf writer) {
 		this.writer = writer;
+		registers.setWriter(writer);
+		coverGroups.setWriter(writer);
 	}
 
 	public static boolean isLegacyVerilog() {
