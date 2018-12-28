@@ -95,6 +95,10 @@ public class SystemVerilogModule {
 			if (name != null) addUniqueModule(name, this);
 		}
 	}
+	
+	protected void setWriter(OutputWriterIntf writer) {
+		this.writer = writer;
+	}
 
 	public static boolean isLegacyVerilog() {
 		return isLegacyVerilog;
