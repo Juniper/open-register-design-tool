@@ -171,7 +171,7 @@ public class SystemVerilogModule {
 	
 	/** return ordered list of modules in uniqueModules map */
 	public static List<SystemVerilogModule> getUniqueModules() {
-		return (List<SystemVerilogModule>) uniqueModules.values();
+		return new ArrayList<SystemVerilogModule>(uniqueModules.values());
 	}
 	
 	/** add module of specified name to uniqueModules map */
