@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import ordt.output.common.MsgUtils;
@@ -27,15 +28,18 @@ public class SystemVerilogModule {
 	protected boolean useInterfaces = false;  // will interfaces be used in module io
 	protected List<SystemVerilogParameter> parameterList = new ArrayList<SystemVerilogParameter>(); // list of parameters for this module
 	
-	
 	protected List<SystemVerilogInstance> instanceList = new ArrayList<SystemVerilogInstance>();  // list of child instances
 	protected HashMap<String, Integer> childModuleCounts = new HashMap<String, Integer>(); // maintain count of instances by module name
+	
+	protected static LinkedHashMap<String, SystemVerilogModule> uniqueModules = new LinkedHashMap<String, SystemVerilogModule>();  // optional store of all generated modules by name
+	private static boolean createUniqueModuleMap = false;
 	
 	protected List<SystemVerilogIOSignalList> ioList = new ArrayList<SystemVerilogIOSignalList>();  // list of IO lists in this module
 	protected HashMap<Integer, SystemVerilogIOSignalList> ioHash = new HashMap<Integer, SystemVerilogIOSignalList>();  // set of writable IO lists in this module
     protected SystemVerilogIOSignalList defaultIOList = new SystemVerilogIOSignalList("default list");;
     protected boolean usesDefaultIOList = false;  // no default list used in module unless signals are added without previously assigning a list by location
-	
+	private static boolean showDefaultIOListWarnings = true;
+    
 	protected String defaultClkName; // default clock name for this module
 	protected HashSet<String> otherClocks; // TODO - need to define this
 	protected SystemVerilogSignalList wireDefList;    // list of wires   
@@ -52,17 +56,28 @@ public class SystemVerilogModule {
 	    
 	/** create a module
 	 * @param writer - OutputWriterIntf to be used for output generation 
+	 * @param name - name of this module
 	 * @param insideLocs - ORed Integer of locations in top level in this module (not including children) 
 	 * @param defaultClkName - default clock name used for generated registers
 	 */
-	public SystemVerilogModule(OutputWriterIntf writer, int insideLocs, String defaultClkName, String coverageResetName, boolean useAsyncResets) {
+	public SystemVerilogModule(OutputWriterIntf writer, String name, int insideLocs, String defaultClkName, String coverageResetName, boolean useAsyncResets) {
 		this.writer = writer;  // save reference to calling writer
 		setTerminalInsideLocs(insideLocs);  // locations inside this module
+		setName(name);
 		this.defaultClkName = defaultClkName;
 		registers = new SystemVerilogRegisters(writer, defaultClkName, useAsyncResets);
 		wireDefList = new SystemVerilogSignalList();
 		regDefList = new SystemVerilogSignalList();
 		coverGroups = new SystemVerilogCoverGroups(writer, defaultClkName, coverageResetName);  // TODO - need to change cover reset if separate logic reset is being used
+	}
+	
+	/** create a module with no name
+	 * @param writer - OutputWriterIntf to be used for output generation 
+	 * @param insideLocs - ORed Integer of locations in top level in this module (not including children) 
+	 * @param defaultClkName - default clock name used for generated registers
+	 */
+	public SystemVerilogModule(OutputWriterIntf writer, int insideLocs, String defaultClkName, String coverageResetName, boolean useAsyncResets) {
+		this(writer, null, insideLocs, defaultClkName, coverageResetName, useAsyncResets);
 	}
 
 	// ------------------- get/set -----------------------
@@ -71,8 +86,14 @@ public class SystemVerilogModule {
 		return name;
 	}
 
+	/** set name of this module and optionally update the uniqueModules map */
 	public void setName(String name) {
+		String oldName = this.name;
 		this.name = name;
+		if (createUniqueModuleMap && (name != null)) {
+			if (oldName != null) removeUniqueModule(oldName);
+			if (name != null) addUniqueModule(name, this);
+		}
 	}
 
 	public static boolean isLegacyVerilog() {
@@ -127,6 +148,44 @@ public class SystemVerilogModule {
 		this.useInterfaces = useInterfaces;
 	}
 
+	public static void showDefaultIOListWarnings(boolean showDefaultIOListWarnings) {
+		SystemVerilogModule.showDefaultIOListWarnings = showDefaultIOListWarnings;
+	}
+
+	/** sets optional storage of all created SystemVerilogModules by name */
+	public static void createUniqueModuleMap(boolean createUniqueModuleMap) {
+		SystemVerilogModule.createUniqueModuleMap = createUniqueModuleMap;
+	}
+
+	// ------------------- unique module methods -----------------------
+	
+	/** return true if module of specified name is in uniqueModules map */
+	public static boolean uniqueModuleExists(String name) {
+		return uniqueModules.containsKey(name);
+	}
+	
+	/** return module of specified name from uniqueModules map */
+	public static SystemVerilogModule getUniqueModule(String name) {
+		return uniqueModules.get(name);
+	}
+	
+	/** return ordered list of modules in uniqueModules map */
+	public static List<SystemVerilogModule> getUniqueModules() {
+		return (List<SystemVerilogModule>) uniqueModules.values();
+	}
+	
+	/** add module of specified name to uniqueModules map */
+	public static void addUniqueModule(String name, SystemVerilogModule module) {
+		if (name == null) return;
+		uniqueModules.put(name, module);
+	}
+	
+	/** remove module of specified name from uniqueModules map */
+	public static void removeUniqueModule(String name) {
+		if (name == null) return;
+		uniqueModules.remove(name);
+	}
+	
 	// ------------------- wire/reg assign methods -----------------------
 
 	/** add a wire assign statement */
@@ -354,7 +413,7 @@ public class SystemVerilogModule {
 	public SystemVerilogIOSignalList getIOList(int remLoc) {
 		SystemVerilogIOSignalList sigList = ioHash.get(remLoc);  // get the siglist
 		if (sigList == null) {
-			MsgUtils.warnMessage("Using default IO list in module " + getName() + " since no list specified for location " + remLoc);
+			if (showDefaultIOListWarnings) MsgUtils.warnMessage("Using default IO list in module " + getName() + " since no list specified for location " + remLoc);
 			useIOList(defaultIOList, remLoc);
 			usesDefaultIOList = true;
 			return defaultIOList;

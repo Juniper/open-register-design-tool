@@ -233,7 +233,7 @@ public class PropertyList {
 	}
 		
 	/** return a subset PropertyList given a set of names
-	 *  @param name of the property value to get
+	 *  @param names of the property value to get
 	 *  @return the a new list containing properties with specified name
 	 */
 	public PropertyList getSubsetList(Set<String> names) {

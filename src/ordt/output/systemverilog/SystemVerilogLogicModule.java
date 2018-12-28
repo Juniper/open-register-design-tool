@@ -900,9 +900,8 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 
 	/** create an interrupt assertion bind module */
 	public SystemVerilogModule createIntrBindModule() {
-		SystemVerilogModule intrBindMod = new SystemVerilogModule(builder, getInsideLocs(), defaultClkName, builder.getDefaultReset(), ExtParameters.sysVerUseAsyncResets());
 		String intrBindModName = getName() + "_intr_bind";
-		intrBindMod.setName(intrBindModName);
+		SystemVerilogModule intrBindMod = new SystemVerilogModule(builder, intrBindModName, getInsideLocs(), defaultClkName, builder.getDefaultReset(), ExtParameters.sysVerUseAsyncResets());
 		Integer defaultOutputLoc = getOutsideLocs();
 		SystemVerilogIOSignalList bindIOList = new SystemVerilogIOSignalList("default");
 		intrBindMod.useIOList(bindIOList, defaultOutputLoc);
@@ -1017,9 +1016,8 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	}
 
 	public SystemVerilogModule createCoverBindModule() {
-		SystemVerilogModule coverBindMod = new SystemVerilogModule(builder, getInsideLocs(), defaultClkName, builder.getDefaultReset(), ExtParameters.sysVerUseAsyncResets());
 		String bindModName = getName() + "_cover_bind";
-		coverBindMod.setName(bindModName);
+		SystemVerilogModule coverBindMod = new SystemVerilogModule(builder, bindModName, getInsideLocs(), defaultClkName, builder.getDefaultReset(), ExtParameters.sysVerUseAsyncResets());
 		Integer defaultOutputLoc = getOutsideLocs();
 		SystemVerilogIOSignalList bindIOList = new SystemVerilogIOSignalList("default");
 		coverBindMod.useIOList(bindIOList, defaultOutputLoc);
