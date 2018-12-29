@@ -1,5 +1,8 @@
 package ordt.output.systemverilog.common;
 
+import ordt.output.common.OutputWriterIntf;
+import ordt.output.systemverilog.common.io.SystemVerilogIOSignalList;
+
 public class SystemVerilogInstance {
 	private SystemVerilogModule mod;
 	private String name;
@@ -39,5 +42,14 @@ public class SystemVerilogInstance {
 		return hasRemapRules()? rules.getRemappedName(oldName, sigFrom, sigTo) : oldName;
 	}
 
+	/** write an instance of this module using specified writer */
+	public void write(int indentLevel, OutputWriterIntf writer) {
+		getMod().writeInstance(indentLevel, writer, this);
+	}
+
+	/** return a IOSignalList for this instance w/ remapped signals */
+	public SystemVerilogIOSignalList getIOSignalList() {
+		return getMod().getInstanceIOSignalList(this);
+	}
 
 }

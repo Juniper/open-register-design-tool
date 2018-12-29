@@ -14,6 +14,7 @@ import ordt.output.common.MsgUtils;
 import ordt.output.common.OutputWriterIntf;
 import ordt.output.common.SimpleOutputWriter;
 import ordt.output.systemverilog.common.io.SystemVerilogIOElement;
+import ordt.output.systemverilog.common.io.SystemVerilogIOSignal;
 import ordt.output.systemverilog.common.io.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.common.io.SystemVerilogIOSignalSet;
 
@@ -648,6 +649,51 @@ public class SystemVerilogModule {
 		sigList.popIOSignalSet(); 
 	}
 	
+	/** inherit io and internal signals from this module's children - IOs are added to the default list and duplicate signals are ignored (assumes flat child IO structure currently) */
+	public void inheritChildSignals() {
+		HashSet<String> uniqueSigs = new HashSet<String>();  // save list of unique sigs/IOs and omit any dups
+		//Integer insideLocs = this.getInsideLocs();  // get in and out locations including children
+		Integer outsideLocs = this.getOutsideLocs();
+		for (SystemVerilogInstance inst: instanceList) {
+			// get remapped IO signals for this child instance
+			SystemVerilogIOSignalList childIOList = inst.getIOSignalList();
+			for (SystemVerilogIOElement elem: childIOList.getIOElementList(null, null)) {  // loop through full list
+				if (!elem.isSignalSet()) {  // ignore hierarchical elements
+					SystemVerilogIOSignal sig = (SystemVerilogIOSignal) elem;
+					boolean isInput = elem.isFrom(outsideLocs);
+					boolean isOutput = elem.isTo(outsideLocs);
+					String sigName = elem.getName();
+					if (!uniqueSigs.contains(sigName)) {  // skip dups
+						uniqueSigs.add(sigName);
+						// if an IO add it
+						if (isInput || isOutput)
+							defaultIOList.addSimpleVector(sig.getFrom(), sig.getTo(), defaultClkName, sig.getLowIndex(), sig.getSize());  // directly add to default list so from/to are retained
+						if (!isInput)
+							this.addVectorWire(sigName, sig.getLowIndex(), sig.getSize());
+					}
+				}
+			}
+		}
+	}
+
+	/** return a IOSignalList for specified instance of this module w/ remapped signals */
+	public SystemVerilogIOSignalList getInstanceIOSignalList(SystemVerilogInstance inst) {
+		SystemVerilogIOSignalList outList = new SystemVerilogIOSignalList("remapped inst list");
+		List<SystemVerilogIOElement> childList = this.getInputOutputList();
+		if (childList.isEmpty()) return outList;
+		Iterator<SystemVerilogIOElement> it = childList.iterator();
+		while (it.hasNext()) {
+			SystemVerilogIOElement elem = it.next();
+			String remappedSignal = inst.getRemappedSignal(elem.getFullName(), elem.getFrom(), elem.getTo());
+			// if a simple signal, non-hierarchical signal 
+			if (remappedSignal.matches("[a-zA-Z_][a-zA-Z0-9_]+") && !elem.isSignalSet()) {
+				SystemVerilogIOSignal sig = (SystemVerilogIOSignal) elem;
+				outList.addSimpleVector(sig.getFrom(), sig.getTo(), remappedSignal, sig.getLowIndex(), sig.getSize());
+			}
+		}		   		    	
+		return outList;
+	}
+
 	// -------------------
 	
     /** add a freeform statement to this module */
@@ -791,17 +837,17 @@ public class SystemVerilogModule {
 	public void writeChildInstances(int indentLevel) {
 		for (SystemVerilogInstance inst : instanceList) {
 			//System.out.println("SystemVerilogModule writeChildInstances: inst=" + inst.getName());
-			inst.getMod().writeInstance(indentLevel, writer, inst);
+			inst.write(indentLevel, writer);
 		}		
 	}
 
 	/** write an instance of this module - as this isn't included in this module's definition, allow an alternate writer as input */
 	public void writeInstance(int indentLevel, OutputWriterIntf altWriter, SystemVerilogInstance inst) {
-		List<SystemVerilogIOElement> childList = this.getInputOutputList();
-		if (childList.isEmpty()) return;
+		List<SystemVerilogIOElement> ioList = this.getInputOutputList();
+		if (ioList.isEmpty()) return;
 	    if (isLegacyVerilog || inst.hasRemapRules()) {
 			altWriter.writeStmt(indentLevel++, this.getName() + " " + getParameterInstanceString() + inst.getName() + " (");   // more elements so use comma
-			Iterator<SystemVerilogIOElement> it = childList.iterator();
+			Iterator<SystemVerilogIOElement> it = ioList.iterator();
 			while (it.hasNext()) {
 				SystemVerilogIOElement elem = it.next();
 				String suffix = it.hasNext()? ")," : ") );";
@@ -814,7 +860,7 @@ public class SystemVerilogModule {
 	    }
 		altWriter.writeStmt(indentLevel--, "");   
 	}
-
+	
 	/** write any free form statements */
 	public void writeStatements(int indentLevel) {
 		for (String stmt : statements) writer.writeStmt(indentLevel, stmt);
