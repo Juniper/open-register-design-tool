@@ -37,8 +37,8 @@ public class SystemVerilogModule {
 	
 	protected List<SystemVerilogIOSignalList> ioList = new ArrayList<SystemVerilogIOSignalList>();  // list of IO lists in this module
 	protected HashMap<Integer, SystemVerilogIOSignalList> ioHash = new HashMap<Integer, SystemVerilogIOSignalList>();  // set of writable IO lists in this module
-    protected SystemVerilogIOSignalList defaultIOList = new SystemVerilogIOSignalList("default list");;
-    protected boolean usesDefaultIOList = false;  // no default list used in module unless signals are added without previously assigning a list by location
+    protected SystemVerilogIOSignalList defaultIOList = new SystemVerilogIOSignalList("defaultIOList");;
+    protected boolean defaultIOListIsRegistered = false;  // flag to prevent default list from being re-registered
 	private static boolean showDefaultIOListWarnings = true;
     
 	protected String defaultClkName; // default clock name for this module
@@ -405,24 +405,31 @@ public class SystemVerilogModule {
 
 	// ------------------- IO methods  -----------------------
 
-	/** add an IO list to be used by this module
+	/** add an IO list to be used by this module and optionally associate it with a remote location encoding
 	 * 
 	 * @param sigList - list to be added
-	 * @param remoteLocation - optional location, created signals to/from this loc will be added to this list
+	 * @param remoteLocation - optional location, if non-null created signals to/from this loc will be added to this list
 	 */
 	public void useIOList(SystemVerilogIOSignalList sigList, Integer remoteLocation) {
-		//System.out.println("SystemVerilogModule useIOList: adding io siglist with " + sigList.size());
-		if (!sigList.equals(defaultIOList) || !usesDefaultIOList) ioList.add(sigList);  // only add the defaultIOList once
+		//System.out.println("SystemVerilogModule useIOList: adding io siglist with size=" + sigList.size());
+		ioList.add(sigList);  // only add the defaultIOList once
 		if (remoteLocation != null) ioHash.put(remoteLocation, sigList);
+	}
+	
+	/** add the default IO list to active IO used by this module
+	 */
+	public void useDefaultIOList() {
+		//System.out.println("SystemVerilogModule useDefaultIOList: adding default io siglist");
+		if (!defaultIOListIsRegistered) ioList.add(defaultIOList);  // only add the defaultIOList once
+		defaultIOListIsRegistered = true;
 	}
 	
 	/** get the IO list to be used for signal addition based on remote location */
 	public SystemVerilogIOSignalList getIOList(int remLoc) {
 		SystemVerilogIOSignalList sigList = ioHash.get(remLoc);  // get the siglist
-		if (sigList == null) {
+		if (sigList == null) {  // if no list returned from ioHash, use the default for this remote location
 			if (showDefaultIOListWarnings) MsgUtils.warnMessage("Using default IO list in module " + getName() + " since no list specified for location " + remLoc);
-			useIOList(defaultIOList, remLoc);
-			usesDefaultIOList = true;
+			useDefaultIOList();
 			return defaultIOList;
 		}
 		return sigList;
@@ -667,7 +674,7 @@ public class SystemVerilogModule {
 						uniqueSigs.add(sigName);
 						// if an IO add it
 						if (isInput || isOutput)
-							defaultIOList.addSimpleVector(sig.getFrom(), sig.getTo(), defaultClkName, sig.getLowIndex(), sig.getSize());  // directly add to default list so from/to are retained
+							defaultIOList.addSimpleVector(sig.getFrom(), sig.getTo(), sigName, sig.getLowIndex(), sig.getSize());  // directly add to default list so from/to are retained
 						if (!isInput)
 							this.addVectorWire(sigName, sig.getLowIndex(), sig.getSize());
 					}
