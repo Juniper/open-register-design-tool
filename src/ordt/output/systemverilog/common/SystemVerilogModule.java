@@ -342,7 +342,7 @@ public class SystemVerilogModule {
 	// ------------------- parameter classes/methods  -----------------------
 	
 	// nested parameter class
-	private class SystemVerilogParameter {
+	public class SystemVerilogParameter {
 		private String name;
 		private String defaultValue;
 		
@@ -373,20 +373,8 @@ public class SystemVerilogModule {
 		parameterList.add(new SystemVerilogParameter(name, defaultValue));
 	}
 
-	protected List<SystemVerilogParameter> getParameterList() {
+	public List<SystemVerilogParameter> getParameterList() {
 		return parameterList;
-	}
-
-	/** return parameter instance string for this module (assumes parms are passed up to parent level) */
-	private String getParameterInstanceString() {
-		String retStr = (!parameterList.isEmpty())? "#(" : "";
-		Iterator<SystemVerilogParameter> iter = parameterList.iterator();
-		while(iter.hasNext()) {
-			String parmName = iter.next().getName();
-			String suffix = iter.hasNext()? ", " : ") ";
-			retStr += parmName + suffix;
-		}
-		return retStr;
 	}
 	
 	/** inherit unique parameters from this module's children */
@@ -846,26 +834,6 @@ public class SystemVerilogModule {
 			//System.out.println("SystemVerilogModule writeChildInstances: inst=" + inst.getName());
 			inst.write(indentLevel, writer);
 		}		
-	}
-
-	/** write an instance of this module - as this isn't included in this module's definition, allow an alternate writer as input */
-	public void writeInstance(int indentLevel, OutputWriterIntf altWriter, SystemVerilogInstance inst) {
-		List<SystemVerilogIOElement> ioList = this.getInputOutputList();
-		if (ioList.isEmpty()) return;
-	    if (isLegacyVerilog || inst.hasRemapRules()) {
-			altWriter.writeStmt(indentLevel++, this.getName() + " " + getParameterInstanceString() + inst.getName() + " (");   // more elements so use comma
-			Iterator<SystemVerilogIOElement> it = ioList.iterator();
-			while (it.hasNext()) {
-				SystemVerilogIOElement elem = it.next();
-				String suffix = it.hasNext()? ")," : ") );";
-				String remappedSignal = inst.getRemappedSignal(elem.getFullName(), elem.getFrom(), elem.getTo());
-				altWriter.writeStmt(indentLevel, "." + elem.getFullName() + "(" + remappedSignal + suffix); 
-			}		   		    	
-	    }
-	    else {
-			altWriter.writeStmt(indentLevel++, this.getName() + " " + getParameterInstanceString() + inst.getName() + " ( .* );");   // more elements so use comma	    	
-	    }
-		altWriter.writeStmt(indentLevel--, "");   
 	}
 	
 	/** write any free form statements */
