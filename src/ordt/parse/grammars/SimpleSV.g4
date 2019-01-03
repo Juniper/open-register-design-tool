@@ -14,7 +14,7 @@ root
 
 module_declaration
  : 'module' module_identifier (parameter_port_list)?
-   (list_of_ports (port_declaration)* | list_of_port_declarations)
+   (list_of_ports (port_declaration | parameter_declaration)* | list_of_port_declarations)
    not_module 
    end_module
  ;
@@ -55,13 +55,16 @@ port_identifier
  
 parameter_port_list
  : HASH LPAREN
-   (parameter_port (COMMA parameter_port)? )?
+   (parameter_def (COMMA parameter_def)? )?
    RPAREN
  ;
  
-parameter_port  // TODO
+parameter_def
  : 'parameter' parameter_identifier (array)? (EQ NUM)?
-   RPAREN
+ ;
+ 
+parameter_declaration
+ : parameter_def SEMI
  ;
  
 parameter_identifier

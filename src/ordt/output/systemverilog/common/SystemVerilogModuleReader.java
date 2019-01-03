@@ -4,8 +4,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,7 +15,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import ordt.output.common.MsgUtils;
-import ordt.output.systemverilog.common.io.SystemVerilogIOSignal;
+import ordt.output.systemverilog.common.SystemVerilogModule.SystemVerilogParameter;
 import ordt.output.systemverilog.common.io.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.common.parse.simplesv.SimpleSVBaseListener;
 import ordt.output.systemverilog.common.parse.simplesv.SimpleSVLexer;
@@ -23,24 +23,44 @@ import ordt.output.systemverilog.common.parse.simplesv.SimpleSVParser;
 import ordt.output.systemverilog.common.parse.simplesv.SimpleSVParser.Module_identifierContext;
 
 public class SystemVerilogModuleReader extends SimpleSVBaseListener {
-	protected Map<String, SystemVerilogIOSignal> portList = new LinkedHashMap<String, SystemVerilogIOSignal>();
+	protected Set<String> portListSet = new HashSet<String>();  // set of ports in a legacy format header list
 	private String moduleName;
 	private boolean moduleFound = false;
-	@SuppressWarnings("unused")
-	private int portsFound = 0;
-	@SuppressWarnings("unused")
-	private int portDefsFound = 0;
+	private SystemVerilogModule readModule = null;
+	private int insideLocs = SystemVerilogLocationMap.getInternalId();  // default internal locs
+	private int outsideLocs = SystemVerilogLocationMap.getExternalId();  // default external locs
 
-	public SystemVerilogModuleReader(String svInputFile, String moduleName) {
+	/** extract a SystemVerilogModule from an input file
+	 * 
+	 * @param svInputFile - input file name
+	 * @param moduleName - module name to be extracted from file
+	 * @param insideLocs - optional location encoding to be used for module internals
+	 * @param outsideLocs - optional location encoding to be used for module externals
+	 */
+	public SystemVerilogModuleReader(String svInputFile, String moduleName, boolean headersOnly, Integer insideLocs, Integer outsideLocs) {
 		this.moduleName = moduleName;
-		readModuleHeaders(svInputFile);
+    	if (insideLocs != null) this.insideLocs = insideLocs;
+    	if (outsideLocs != null) this.outsideLocs = outsideLocs;
+		readModule(svInputFile, headersOnly);
+    	if (readModule == null) MsgUtils.errorExit("Unable to read module " + moduleName + " in file " + svInputFile + ".");
+	}
+	
+	/** extract a SystemVerilogModule from an input file using default locations
+	 * 
+	 * @param svInputFile - input file name
+	 * @param moduleName - module name to be extracted from file
+	 * @param headersOnly - if true, only module header will be extracted
+	 */
+	public SystemVerilogModuleReader(String svInputFile, String moduleName, boolean headersOnly) {
+		this(svInputFile, moduleName, headersOnly, null, null);
 	}
 	
 	/**
 	 * read parameters from specified file  
 	 */
-	public void readModuleHeaders(String svInputFile) {		
-    	System.out.println("Ordt: extracting header info for module " + moduleName + " from " + svInputFile + "...");
+	public void readModule(String svInputFile, boolean headersOnly) {		
+    	System.out.println("Ordt: extracting " + (headersOnly? "header " : "") + "info for module " + moduleName + " from " + svInputFile + "...");
+    	if (!headersOnly) MsgUtils.errorMessage("Only header read of systemverilog module is supported currently");  // FIXME only supporting header read currently
         try {
         	
         	InputStream is = System.in;
@@ -65,7 +85,7 @@ public class SystemVerilogModuleReader extends SimpleSVBaseListener {
         	//root.display(true);
 
         } catch (FileNotFoundException e) {
-        	MsgUtils.errorExit("parameter file not found. "  + e.getMessage());
+        	MsgUtils.errorExit("file not found. "  + e.getMessage());
         } catch (IOException e) {
             e.printStackTrace();
         }		
@@ -78,7 +98,12 @@ public class SystemVerilogModuleReader extends SimpleSVBaseListener {
 	@Override 
 	public void enterModule_identifier(Module_identifierContext ctx) { 
 		String parsedModuleName = ctx.getText();
-		if (parsedModuleName.equals(moduleName)) moduleFound = true;
+		if (parsedModuleName.equals(moduleName)) {
+			moduleFound = true;
+			readModule = new SystemVerilogModule(null, parsedModuleName, insideLocs, "clk", "reset", false); // create a new module - use generic names
+			readModule.useDefaultIOList();
+			SystemVerilogModule.showDefaultIOListWarnings(false);
+		}
 		//System.out.println("SystemVerilogModuleReader enterModuleIdentifier: " + ctx.getText() + (moduleFound? " *" : ""));
 	}
 	
@@ -91,19 +116,33 @@ public class SystemVerilogModuleReader extends SimpleSVBaseListener {
 	}
 	
 	/**
+     parameter_def
+       : 'parameter' parameter_identifier (array)? (EQ NUM)?
+	 */
+	@Override 
+	public void enterParameter_def(SimpleSVParser.Parameter_defContext ctx)	{	
+		if (!moduleFound) return;
+		//System.out.println("SystemVerilogModuleReader enterParameter_def:    " + ctx.getText());
+		String parmName = ctx.getChild(1).getText();
+		boolean hasArrayDef = ctx.getText().contains("[");
+		boolean hasDefault = ctx.getText().contains("=");
+		String defaultValue = hasDefault? (hasArrayDef? ctx.getChild(4).getText() : ctx.getChild(3).getText()) : null;
+		readModule.addParameter(parmName, defaultValue);
+	}
+	
+	/** simple list of ports w/o type
 	 */
 	@Override 
 	public void enterPort(SimpleSVParser.PortContext ctx) { 
 		if (!moduleFound) return;
-		//System.out.println("SystemVerilogModuleReader enterPort:          " + ctx.getText());
+		//System.out.println("SystemVerilogModuleReader enterPort:    " + ctx.getText());
 		// add an empty SystemVerilogSignal to the port list, info must be loaded in port define (non-ansi header)
 		String portName = ctx.getText();
 		if (portName.contains("[")) {
 			MsgUtils.errorExit("Unsupported port name (" + portName + ") found in parse of module " + moduleName);
 			return;
 		}
-		portsFound ++;
-		portList.put(portName, null);
+		portListSet.add(portName);
 	}
 	
 	/**
@@ -137,12 +176,16 @@ public class SystemVerilogModuleReader extends SimpleSVBaseListener {
 		}
 		// store  // TODO - handle interfaces
 		if ("input".equals(portType)) { 
-			portDefsFound ++;
-			portList.put(portName, new SystemVerilogIOSignal(SystemVerilogLocationMap.getExternalId(), SystemVerilogLocationMap.getInternalId(), null, portName, lowIdx, width));
+			//System.out.println("SystemVerilogModuleReader enterPort_def: found input " + portName + ", idx=" + lowIdx + ", width=" + width + ", outsideLocs=" + outsideLocs);
+			readModule.addSimpleVectorFrom(outsideLocs, portName, lowIdx, width);
 		}
 		else if ("output".equals(portType)) {
-			portDefsFound ++;
-			portList.put(portName, new SystemVerilogIOSignal(SystemVerilogLocationMap.getInternalId(), SystemVerilogLocationMap.getExternalId(), null, portName, lowIdx, width));
+			//System.out.println("SystemVerilogModuleReader enterPort_def: found output " + portName + ", idx=" + lowIdx + ", width=" + width);
+			readModule.addSimpleVectorTo(outsideLocs, portName, lowIdx, width);
+		}
+		else if ((portListSet.isEmpty()) || ((portListSet.contains(portName) && !"wire reg logic".contains(portType))) ) {   // check for unsupported port types 
+			//System.out.println("SystemVerilogModuleReader enterPort_def: portList empty=" + portListSet.isEmpty() + ", portListSet.contains(portName)=" + portListSet.contains(portName) + ", portType=" + portType);
+			MsgUtils.errorExit("Port definition (" + portType + " " + portName + ") is not currently supported in parse of module " + moduleName);
 		}
 	}
 	
@@ -154,24 +197,22 @@ public class SystemVerilogModuleReader extends SimpleSVBaseListener {
 
 	// -------
 
-	/** return a SystemVerilogIOSignalList for the parsed module header */  // TODO - move to SystemVerilogIOSignalList as constructor
-	private SystemVerilogIOSignalList getIOSignalList(String listName) {
-		SystemVerilogIOSignalList newList = new SystemVerilogIOSignalList(listName);
-		for (String name : portList.keySet()) {
-			SystemVerilogIOSignal sig = portList.get(name);
-			if (sig == null)
-				MsgUtils.errorExit("Definition of port " + name + " not able to be resolved in parse of module " + moduleName);
-            newList.addSimpleVector(sig.getFrom(), sig.getTo(), sig.getName(), sig.getLowIndex(), sig.getSize());
-		}
-		return newList;
+	/** return the read module */
+	public SystemVerilogModule getModule() {
+		return readModule;
 	}
 
 	// -------
 	
 	public static void main(String[] args) {
-		SystemVerilogModuleReader rdr = new SystemVerilogModuleReader("/Users/snellenbach/Documents/jrdl_work/output1.v", "alt_sipfo0_jrdl_logic");
-		SystemVerilogIOSignalList newList = rdr.getIOSignalList("mylist");
+		SystemVerilogModuleReader rdr = new SystemVerilogModuleReader("/Users/snellenbach/Documents/jrdl_work/output2.v", "simple1_jrdl_logic", true, 7, 8);
+		//SystemVerilogModuleReader rdr = new SystemVerilogModuleReader("/Users/snellenbach/Documents/jrdl_work/output2.v", "foo_jrdl_logic");  // bad module
+		SystemVerilogModule readMod = rdr.getModule();
+		System.out.println("------- ports:");
+		SystemVerilogIOSignalList newList = readMod.getFullIOSignalList();
 		newList.display();
+		System.out.println("------- parameters:");
+		for (SystemVerilogParameter parm: readMod.getParameterList()) System.out.println(parm.toString());
 	}
 
 }

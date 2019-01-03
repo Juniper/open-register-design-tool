@@ -362,6 +362,11 @@ public class SystemVerilogModule {
 		public String getName() {
 			return name;
 		}
+		
+		/** return the default of this parameter (null if no default) */
+		public String getDefaultValue() {
+			return defaultValue;
+		}
 	}
 
 	/** add a parameter to this module
@@ -383,7 +388,8 @@ public class SystemVerilogModule {
 		// add unique child parameters to this module
 		for (SystemVerilogInstance inst: instanceList) {
 			for (SystemVerilogParameter parm: inst.getMod().getParameterList()) {
-				if (!uniqueParms.contains(parm.getName())) {
+				String parmName = parm.getName();
+				if (!uniqueParms.contains(parmName) && !inst.hasParameterValue(parmName)) {  // if a unique parameter found and instance isn't setting value, add to parent
 					uniqueParms.add(parm.getName());  // save parameter in unique list
 					parameterList.add(parm); // add parm to the list
 				}
