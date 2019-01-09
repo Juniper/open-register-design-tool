@@ -60,7 +60,7 @@ public class SystemVerilogModuleReader extends SimpleSVBaseListener {
 	 */
 	public void readModule(String svInputFile, boolean headersOnly) {		
     	System.out.println("Ordt: extracting " + (headersOnly? "header " : "") + "info for module " + moduleName + " from " + svInputFile + "...");
-    	if (!headersOnly) MsgUtils.errorMessage("Only header read of systemverilog module is supported currently");  // FIXME only supporting header read currently
+    	if (!headersOnly) MsgUtils.errorMessage("Only header read of systemverilog module is supported currently");  // FIXME
         try {
         	
         	InputStream is = System.in;
@@ -117,16 +117,16 @@ public class SystemVerilogModuleReader extends SimpleSVBaseListener {
 	
 	/**
      parameter_def
-       : 'parameter' parameter_identifier (array)? (EQ NUM)?
+       : parameter_identifier (array)? (EQ NUM)?
 	 */
 	@Override 
 	public void enterParameter_def(SimpleSVParser.Parameter_defContext ctx)	{	
 		if (!moduleFound) return;
 		//System.out.println("SystemVerilogModuleReader enterParameter_def:    " + ctx.getText());
-		String parmName = ctx.getChild(1).getText();
+		String parmName = ctx.getChild(0).getText();
 		boolean hasArrayDef = ctx.getText().contains("[");
 		boolean hasDefault = ctx.getText().contains("=");
-		String defaultValue = hasDefault? (hasArrayDef? ctx.getChild(4).getText() : ctx.getChild(3).getText()) : null;
+		String defaultValue = hasDefault? (hasArrayDef? ctx.getChild(3).getText() : ctx.getChild(2).getText()) : null;
 		readModule.addParameter(parmName, defaultValue);
 	}
 	
@@ -163,25 +163,25 @@ public class SystemVerilogModuleReader extends SimpleSVBaseListener {
 		boolean hasRange = ctx.getChildCount() > 2;
 		String portName = hasRange? ctx.getChild(2).getText() : ctx.getChild(1).getText();
         // extract range
-		int lowIdx = 0;
-		int width = 1;
+		String sliceStr = "0:0";  // default is a scalar range
 		if (hasRange) {
-			Pattern pat = Pattern.compile("^\\[(\\d+)\\:(\\d+)\\]$");  // TODO hanle parameterized widths
+			Pattern pat = Pattern.compile("^\\[(\\S+\\:\\S+)\\]$");  // extract slice string to handle parameterized widths
 			Matcher m = pat.matcher(ctx.getChild(1).getText());
-			if (m.matches()) {
-				int highIdx = Integer.valueOf(m.group(1));  // extract id root
-				lowIdx = Integer.valueOf(m.group(2));  // extract low index
-				width = highIdx - lowIdx + 1;
-			}
+			if (m.matches()) 
+				sliceStr = m.group(1);  // extract range
+			else
+				MsgUtils.errorExit("SystemVerilogModuleReader is unable to extract slice of form=" + ctx.getChild(1).getText());
 		}
 		// store  // TODO - handle interfaces
 		if ("input".equals(portType)) { 
 			//System.out.println("SystemVerilogModuleReader enterPort_def: found input " + portName + ", idx=" + lowIdx + ", width=" + width + ", outsideLocs=" + outsideLocs);
-			readModule.addSimpleVectorFrom(outsideLocs, portName, lowIdx, width);
+			//readModule.addSimpleVectorFrom(outsideLocs, portName, lowIdx, width);
+			readModule.addSimpleVectorFrom(outsideLocs, portName, sliceStr);
 		}
 		else if ("output".equals(portType)) {
 			//System.out.println("SystemVerilogModuleReader enterPort_def: found output " + portName + ", idx=" + lowIdx + ", width=" + width);
-			readModule.addSimpleVectorTo(outsideLocs, portName, lowIdx, width);
+			//readModule.addSimpleVectorTo(outsideLocs, portName, lowIdx, width);
+			readModule.addSimpleVectorTo(outsideLocs, portName, sliceStr);
 		}
 		else if ((portListSet.isEmpty()) || ((portListSet.contains(portName) && !"wire reg logic".contains(portType))) ) {   // check for unsupported port types 
 			//System.out.println("SystemVerilogModuleReader enterPort_def: portList empty=" + portListSet.isEmpty() + ", portListSet.contains(portName)=" + portListSet.contains(portName) + ", portType=" + portType);

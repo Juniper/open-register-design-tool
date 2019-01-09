@@ -58,6 +58,12 @@ public class SystemVerilogResolvedRange extends SystemVerilogRange {
 		return size;
 	}
 	
+	/** return true if this io signal range is greater than 1 */
+	@Override
+	public boolean isVector() {
+		return getSize() > 1;
+	}
+	
 	/** return the array string used for definitions */
 	@Override
 	public String getDefArray() {

@@ -21,6 +21,9 @@ public abstract class SystemVerilogRange {
 	/** get size in bits of this io signal range */
 	abstract public int getSize();
 	
+	/** return true if this io signal range is greater than 1 */
+	abstract public boolean isVector();
+	
 	/** return the array string used for definitions (includes) prefixed array string */
 	abstract public String getDefArray();
 

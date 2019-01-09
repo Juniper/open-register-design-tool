@@ -65,6 +65,12 @@ public class SystemVerilogParameterizedRange extends SystemVerilogRange {
 		allDone(); // TODO
 		return 0;
 	}
+	
+	/** return true if this io signal range is greater than 1 */
+	@Override
+	public boolean isVector() {
+		return true;  // TODO - default is vector, but can set post-resolve
+	}
 
 	@Override
 	public String getDefArray() {

@@ -38,7 +38,7 @@ list_of_port_declarations
  ;
 
 port_def
- : ID (array)? ID  // TODO - need parameterized array
+ : ID (array)? ID
  ;
  
 port_declaration
@@ -46,7 +46,7 @@ port_declaration
  ;
    
 port
- : port_identifier (LSQ ~(LSQ | RSQ)+ RSQ)?  // TODO
+ : port_identifier (LSQ ~(LSQ | RSQ)+ RSQ)?
  ;
  
 port_identifier
@@ -55,16 +55,20 @@ port_identifier
  
 parameter_port_list
  : HASH LPAREN
-   (parameter_def (COMMA parameter_def)? )?
+   parameter_def_list?
    RPAREN
  ;
  
+parameter_def_list
+ : 'parameter' parameter_def (COMMA parameter_def)*
+ ;
+ 
 parameter_def
- : 'parameter' parameter_identifier (array)? (EQ NUM)?
+ :  parameter_identifier (array)? (EQ NUM)?
  ;
  
 parameter_declaration
- : parameter_def SEMI
+ : 'parameter' parameter_def SEMI
  ;
  
 parameter_identifier
@@ -72,9 +76,16 @@ parameter_identifier
  ;
  
 array
-  : LSQ NUM
-    (COLON NUM)?
+  : LSQ array_num
+    (COLON array_num)?
     RSQ
+  ;
+  
+array_num  // allow simple parameter equations
+  : LPAREN array_num RPAREN
+   | array_num (PLUS | MINUS | STAR | LSHIFT | RSHIFT) array_num
+   | ID
+   | NUM
   ;
  
 module_identifier
@@ -148,6 +159,7 @@ STAR   : '*' ;
 HASH   : '#' ;
 QMARK  : '?' ;
 PLUS   : '+' ;
+MINUS  : '-' ;
 DOLLAR : '$' ;
 EXCL   : '!' ;
 

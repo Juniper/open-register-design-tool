@@ -97,7 +97,7 @@ public class SystemVerilogIOSignal extends SystemVerilogIOElement {
 
     @Override
 	public void display(int indentLvl) {
-		System.out.println(MsgUtils.repeat(' ', indentLvl*4) + "SystemVerilogIOSignal: name=" + name + ", tagPrefix=" + tagPrefix+ ", reps=" + reps + ", lowIndex=" + range.getLowIndex() + ", size=" + range.getSize() + ", from=" + from + ", to=" + to);
+		System.out.println(MsgUtils.repeat(' ', indentLvl*4) + "SystemVerilogIOSignal: name=" + name + ", tagPrefix=" + tagPrefix+ ", reps=" + reps + ", range=" + (range.isVector()? range.getDefArray() : "scalar") + ", from=" + from + ", to=" + to);
 	}
 
 	// hashCode/Equals overrides - super.name and super.reps are added to match
