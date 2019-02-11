@@ -18,20 +18,51 @@ public class RemapRuleList {
 	 * REGEX_GROUPS - change to regex template specified by opStr on match
 	 */
 
-	
-	/** add a pattern only rule to the list - first in list is highest match priority */
+	/** add a pattern only rule to end of the list - first in list is highest match priority */
 	public void addRule(String pattern, RemapRuleType remapType, String opStr) {
 		rules.add(new RemapRule(pattern, null, null, remapType, opStr));
 	}
 	
-	/** add a location only rule to the list - first in list is highest match priority */
+	/** add a location only rule to end of the list - first in list is highest match priority */
 	public void addRule(Integer from, Integer to, RemapRuleType remapType, String opStr) {
 		rules.add(new RemapRule(null, from, to, remapType, opStr));
 	}
 	
-	/** add a pattern/location rule to the list - first in list is highest match priority */
+	/** add a pattern/location rule to end of the list - first in list is highest match priority */
 	public void addRule(String pattern, Integer from, Integer to, RemapRuleType remapType, String opStr) {
 		rules.add(new RemapRule(pattern, from, to, remapType, opStr));
+	}
+	
+	/** add a pattern only rule to start of the list - first in list is highest match priority */
+	public void addFirstRule(String pattern, RemapRuleType remapType, String opStr) {
+		rules.add(0, new RemapRule(pattern, null, null, remapType, opStr));
+	}
+	
+	/** add a location only rule to start of the list - first in list is highest match priority */
+	public void addFirstRule(Integer from, Integer to, RemapRuleType remapType, String opStr) {
+		rules.add(0, new RemapRule(null, from, to, remapType, opStr));
+	}
+	
+	/** add a pattern/location rule to start of the list - first in list is highest match priority */
+	public void addFirstRule(String pattern, Integer from, Integer to, RemapRuleType remapType, String opStr) {
+		rules.add(0, new RemapRule(pattern, from, to, remapType, opStr));
+	}
+	
+	/** remove all matching occurrences of a pattern only rule from the list */
+	public void removeRule(String pattern, RemapRuleType remapType, String opStr) {
+		removeRule(pattern, null, null, remapType, opStr);
+	}
+	
+	/** remove all matching occurrences of a location only rule from the list */
+	public void removeRule(Integer from, Integer to, RemapRuleType remapType, String opStr) {
+		removeRule(null, from, to, remapType, opStr);
+	}
+	
+	/** remove all matching occurrences of a pattern/location rule from the list */
+	public void removeRule(String pattern, Integer from, Integer to, RemapRuleType remapType, String opStr) {
+		RemapRule matchRule = new RemapRule(pattern, from, to, remapType, opStr);
+		for (int idx=rules.size()-1; idx>=0; idx--) 
+			if (rules.get(idx) == matchRule) rules.remove(idx);
 	}
 	
 	/** return the first resulting name of a match */
@@ -50,8 +81,11 @@ public class RemapRuleList {
 		return getRemappedName(oldName, null, sigFrom, sigTo, false);
 	}
 	
+	// -----------
+	
 	/** signal name remapping rule class */
 	private class RemapRule { 
+
 		private String pattern; // name pattern to be matched (null to ignore)
 		private Integer from;  // from location encoding to be matched (null to ignore)
 		private Integer to;  // to location encoding to be matched (null to ignore)
@@ -115,8 +149,56 @@ public class RemapRuleList {
 			boolean toMatch = (to==null) || ((sigTo!=null) && ((sigTo&to) != 0));
 			return fromMatch && toMatch;
 		}
+		
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((from == null) ? 0 : from.hashCode());
+			result = prime * result + ((opStr == null) ? 0 : opStr.hashCode());
+			result = prime * result + ((pattern == null) ? 0 : pattern.hashCode());
+			result = prime * result + ((remapType == null) ? 0 : remapType.hashCode());
+			result = prime * result + ((to == null) ? 0 : to.hashCode());
+			return result;
+		}
 
-	}
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			RemapRule other = (RemapRule) obj;
+			if (from == null) {
+				if (other.from != null)
+					return false;
+			} else if (!from.equals(other.from))
+				return false;
+			if (opStr == null) {
+				if (other.opStr != null)
+					return false;
+			} else if (!opStr.equals(other.opStr))
+				return false;
+			if (pattern == null) {
+				if (other.pattern != null)
+					return false;
+			} else if (!pattern.equals(other.pattern))
+				return false;
+			if (remapType != other.remapType)
+				return false;
+			if (to == null) {
+				if (other.to != null)
+					return false;
+			} else if (!to.equals(other.to))
+				return false;
+			return true;
+		}
+	}  // end class RemapRule 
+	
+	// -----------
+
 }
 
 
