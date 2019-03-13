@@ -378,7 +378,7 @@ public class SystemVerilogTestBuilder extends SystemVerilogBuilder {
 		   	benchtop.addStatement("always @(*)");
 		   	benchtop.addStatement("   gclk = CLK & delayed_gclk_enable;");
 		   	benchtop.addStatement("always @(posedge CLK)");
-		   	benchtop.addStatement("   delayed_gclk_enable <= #1 gclk_enable;");
+		   	benchtop.addStatement("   delayed_gclk_enable <= " + ExtParameters.sysVerSequentialAssignDelayString() + "gclk_enable;");
 		}
 		else {
 		   	// generate clocks

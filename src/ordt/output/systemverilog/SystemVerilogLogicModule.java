@@ -142,11 +142,11 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 					   MsgUtils.errorMessage("reset signal " + resetSignalName + " for field " + fieldProperties.getInstancePath() + " has not been defined");
 			   }
 			   addReset(resetSignalName, resetSignalActiveLow);
-			   addResetAssign(regProperties.getBaseName(), resetSignalName, fieldRegisterName + " <= #1 " + getResetValueString() + ";");  // ff reset assigns			   
+			   addResetAssign(regProperties.getBaseName(), resetSignalName, fieldRegisterName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + getResetValueString() + ";");  // ff reset assigns			   
 		   }
 		   else if (!ExtParameters.sysVerSuppressNoResetWarnings()) MsgUtils.warnMessage("field " + fieldProperties.getInstancePath() + " has no reset defined");
 		   
-		   addRegAssign(regProperties.getBaseName(),  fieldRegisterName + " <= #1  " + fieldRegisterNextName + ";");  // assign next to flop
+		   addRegAssign(regProperties.getBaseName(),  fieldRegisterName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + fieldRegisterNextName + ";");  // assign next to flop
 	}
 
 	/** create statements to set value of next based on field settings */ 
@@ -426,7 +426,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			   // if not LEVEL, need to store previous intr value
 			   if (fieldProperties.getIntrType() != FieldProperties.IntrType.LEVEL) {
 				   addVectorReg(prevIntrName, 0, fieldProperties.getFieldWidth());
-				   addRegAssign(regProperties.getBaseName(), prevIntrName  +  " <= #1 " + hwToLogicIntrName + ";");
+				   addRegAssign(regProperties.getBaseName(), prevIntrName  +  " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + hwToLogicIntrName + ";");
 				   // if posedge detect
 				   if (fieldProperties.getIntrType() == FieldProperties.IntrType.POSEDGE) 
 					   detectStr = "(" + hwToLogicIntrName + " & ~" + prevIntrName + ")";
@@ -457,7 +457,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	       if (ExtParameters.sysVerPulseIntrOnClear()) {
 			   String intrDlyName = fieldProperties.getFullSignalName(DefSignalType.INTR_DLY); 	   
 			   addVectorReg(intrDlyName, 0, fieldProperties.getFieldWidth());
-			   addRegAssign(regProperties.getBaseName(), intrDlyName  +  " <= #1 " + fieldRegisterName + ";");
+			   addRegAssign(regProperties.getBaseName(), intrDlyName  +  " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + fieldRegisterName + ";");
 		       addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, intrClear + " = " + intrClear  + orStr + intrDlyName + " & ~" + fieldRegisterName + endStr);  // negedge detect
 	       }
 
@@ -511,7 +511,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 				   addHwScalar(DefSignalType.L2H_OVERFLOW);   // add hw overflow output
 				   addScalarReg(logicToHwOverflowName);  
 				   addRegAssign(regProperties.getBaseName(), logicToHwOverflowName +
-						   " <= #1 " + nextCountName + "[" + fieldWidth + "] & ~" +  logicToHwOverflowName + ";");  // only active for one cycle  
+						   " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + nextCountName + "[" + fieldWidth + "] & ~" +  logicToHwOverflowName + ";");  // only active for one cycle  
 			   }
 
 			   // if a ref is being used for increment assign it, else add an input
@@ -534,7 +534,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 				   addHwScalar(DefSignalType.L2H_UNDERFLOW);   // add hw underflow output
 				   addScalarReg(logicToHwUnderflowName);  
 				   addRegAssign(regProperties.getBaseName(), logicToHwUnderflowName +
-						   " <= #1 " + nextCountName + "[" + fieldWidth + "] & ~" +  logicToHwUnderflowName + ";");  // only active for one cycle  
+						   " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + nextCountName + "[" + fieldWidth + "] & ~" +  logicToHwUnderflowName + ";");  // only active for one cycle  
 			   }
 
 			   // if a ref is being used for decrement assign it, else add an input

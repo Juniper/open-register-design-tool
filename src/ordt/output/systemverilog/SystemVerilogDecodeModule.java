@@ -183,13 +183,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorReg("pio_dec_write_data_d1", 0, builder.getMaxRegWidth());  // input write data capture register 
 		
         // pio read/write actives - enabled by ext re/we and disabled when ack/nack
-		this.addResetAssign("pio i/f", builder.getDefaultReset(), "pio_write_active <= #1  1'b0;");
-		this.addResetAssign("pio i/f", builder.getDefaultReset(), "pio_read_active <= #1  1'b0;");
-		this.addRegAssign("pio i/f",  "pio_write_active <= #1  pio_write_active ? pio_no_acks : pio_activate_write;"); // active stays high until ack/nack 		   
-		this.addRegAssign("pio i/f",  "pio_read_active <= #1  pio_read_active ? pio_no_acks : pio_activate_read;");  		   
+		this.addResetAssign("pio i/f", builder.getDefaultReset(), "pio_write_active <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");
+		this.addResetAssign("pio i/f", builder.getDefaultReset(), "pio_read_active <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");
+		this.addRegAssign("pio i/f",  "pio_write_active <= " + ExtParameters.sysVerSequentialAssignDelayString() + " pio_write_active ? pio_no_acks : pio_activate_write;"); // active stays high until ack/nack 		   
+		this.addRegAssign("pio i/f",  "pio_read_active <= " + ExtParameters.sysVerSequentialAssignDelayString() + " pio_read_active ? pio_no_acks : pio_activate_read;");  		   
 
-		if (mapHasMultipleAddresses()) this.addRegAssign("pio i/f",  "pio_dec_address_d1 <= #1   " + pioInterfaceAddressName + ";");  // capture address if new transaction		   
-		this.addRegAssign("pio i/f",  "pio_dec_write_data_d1 <= #1  " + pioInterfaceWriteDataName + ";"); // capture write data if new transaction
+		if (mapHasMultipleAddresses()) this.addRegAssign("pio i/f",  "pio_dec_address_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + "  " + pioInterfaceAddressName + ";");  // capture address if new transaction		   
+		this.addRegAssign("pio i/f",  "pio_dec_write_data_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + pioInterfaceWriteDataName + ";"); // capture write data if new transaction
 		
 		// if write enables are specified, then capture
 		if (hasWriteEnables()) {
@@ -198,17 +198,17 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				MsgUtils.errorExit("Invalid write enable size (" + ExtParameters.sysVerWriteEnableSize() + ") specified - must be a factor of min_data_size (" + ExtParameters.getMinDataSize() + ")");
 			this.addVectorReg("pio_dec_write_enable_d1", 0, getWriteEnableWidth());  // input write enable capture register (max width)
 			this.addVectorReg("pio_dec_write_enable_full", 0, builder.getMaxRegWidth());  // expanded enable vector for internals
-			this.addRegAssign("pio i/f",  "pio_dec_write_enable_d1 <= #1  " + pioInterfaceWriteEnableName + ";"); // capture write enable if new transaction
+			this.addRegAssign("pio i/f",  "pio_dec_write_enable_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + pioInterfaceWriteEnableName + ";"); // capture write enable if new transaction
 		}
 		
 		// if max transaction is larger than min, add transaction size signals 
 		if (builder.getMaxRegWordWidth() > 1) {
 			// register trans size input
 			this.addVectorReg("pio_dec_trans_size_d1", 0, builder.getMaxWordBitSize());  // input trans size capture register
-		    this.addRegAssign("pio i/f",  "pio_dec_trans_size_d1 <= #1  " + pioInterfaceTransactionSizeName + ";"); // capture trans size if new transaction
+		    this.addRegAssign("pio i/f",  "pio_dec_trans_size_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + pioInterfaceTransactionSizeName + ";"); // capture trans size if new transaction
 		    this.addVectorReg(pioInterfaceRetTransactionSizeName, 0, builder.getMaxWordBitSize());  //  register the size
-			this.addResetAssign("pio i/f", builder.getDefaultReset(), pioInterfaceRetTransactionSizeName + " <= #1 " + builder.getMaxWordBitSize() + "'b0;");  // reset for delayed block select 
-			this.addRegAssign("pio i/f",  pioInterfaceRetTransactionSizeName + " <= #1 reg_width;");  // use pio_width from decode to set 
+			this.addResetAssign("pio i/f", builder.getDefaultReset(), pioInterfaceRetTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + builder.getMaxWordBitSize() + "'b0;");  // reset for delayed block select 
+			this.addRegAssign("pio i/f",  pioInterfaceRetTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "reg_width;");  // use pio_width from decode to set 
 			this.addVectorReg("reg_width", 0, builder.getMaxWordBitSize());   // size of current register
 		}
 
@@ -218,8 +218,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		
 		// select full size read word
 		this.addCombinAssign("pio read data", pioInterfaceReadDataName + " = dec_pio_read_data_d1;"); 	   					
-		this.addResetAssign("pio read data", builder.getDefaultReset(), "dec_pio_read_data_d1 <= #1  " + builder.getMaxRegWidth() + "'b0;");  // reset for read data 
-		this.addRegAssign("pio read data",  "dec_pio_read_data_d1 <= #1 dec_pio_read_data_next;");  // capture return data	   
+		this.addResetAssign("pio read data", builder.getDefaultReset(), "dec_pio_read_data_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + builder.getMaxRegWidth() + "'b0;");  // reset for read data 
+		this.addRegAssign("pio read data",  "dec_pio_read_data_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + "dec_pio_read_data_next;");  // capture return data	   
 
 		// ------------- add ack/nack output regs
 		this.addScalarReg(pioInterfaceAckName);  // return ack
@@ -228,10 +228,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarReg(pioInterfaceNackNextName);  // next return nack
 
         // pio output reg assignments
-		this.addResetAssign("pio ack/nack", builder.getDefaultReset(), pioInterfaceAckName + " <= #1 1'b0;");  // reset for ack
-		this.addResetAssign("pio ack/nack", builder.getDefaultReset(), pioInterfaceNackName + " <= #1 1'b0;");  // reset for nack 
-		this.addRegAssign("pio ack/nack",  pioInterfaceAckName + " <= #1 " + pioInterfaceAckName + " ? 1'b0 : " + pioInterfaceAckNextName + ";");  // return ack
-		this.addRegAssign("pio ack/nack",  pioInterfaceNackName + " <= #1 " + pioInterfaceNackName + " ? 1'b0 : " + pioInterfaceNackNextName + ";");  // return nack		   
+		this.addResetAssign("pio ack/nack", builder.getDefaultReset(), pioInterfaceAckName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "1'b0;");  // reset for ack
+		this.addResetAssign("pio ack/nack", builder.getDefaultReset(), pioInterfaceNackName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "1'b0;");  // reset for nack 
+		this.addRegAssign("pio ack/nack",  pioInterfaceAckName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + pioInterfaceAckName + " ? 1'b0 : " + pioInterfaceAckNextName + ";");  // return ack
+		this.addRegAssign("pio ack/nack",  pioInterfaceNackName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + pioInterfaceNackName + " ? 1'b0 : " + pioInterfaceNackNextName + ";");  // return nack		   
 		
 		this.addScalarReg("pio_internal_ack");    // set in decoder case	statement	   
 		this.addScalarReg("pio_internal_nack");  
@@ -255,10 +255,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarReg("pio_external_ack_next");    // set in decoder case	statement via ios from hw		   
 		this.addScalarReg("pio_external_nack_next");    
 		
-		this.addResetAssign("pio ack/nack", builder.getDefaultReset(), "pio_external_ack <= #1  1'b0;");  // reset for incoming ack 
-		this.addResetAssign("pio ack/nack", builder.getDefaultReset(), "pio_external_nack <= #1  1'b0;");  // reset for incoming nack 
-		this.addRegAssign("pio ack/nack",  "pio_external_ack <= #1 pio_external_ack_next;");  // capture ack	   
-		this.addRegAssign("pio ack/nack",  "pio_external_nack <= #1 pio_external_nack_next;");  // capture ack	   
+		this.addResetAssign("pio ack/nack", builder.getDefaultReset(), "pio_external_ack <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  // reset for incoming ack 
+		this.addResetAssign("pio ack/nack", builder.getDefaultReset(), "pio_external_nack <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  // reset for incoming nack 
+		this.addRegAssign("pio ack/nack",  "pio_external_ack <= " + ExtParameters.sysVerSequentialAssignDelayString() + "pio_external_ack_next;");  // capture ack	   
+		this.addRegAssign("pio ack/nack",  "pio_external_nack <= " + ExtParameters.sysVerSequentialAssignDelayString() + "pio_external_nack_next;");  // capture ack	   
 
 		// create signal to turn off read_active and write_active (use external ack/nack one cycle early
 		this.addScalarReg("pio_no_acks");    		   
@@ -313,14 +313,14 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarReg(addrMonitorWriteAckName);
 		this.addScalarReg(addrMonitorWriteNackName);
 		
-		this.addResetAssign("address monitor", builder.getDefaultReset(), addrMonitorReadAckName + " <= #1  1'b0;");  
-		this.addRegAssign("address monitor",  addrMonitorReadAckName + " <= #1  " + addrMonitorReadAckNextName + ";");  
-		this.addResetAssign("address monitor", builder.getDefaultReset(), addrMonitorReadNackName + " <= #1  1'b0;");  
-		this.addRegAssign("address monitor",  addrMonitorReadNackName + " <= #1  " + addrMonitorReadNackNextName + ";");  
-		this.addResetAssign("address monitor", builder.getDefaultReset(), addrMonitorWriteAckName + " <= #1  1'b0;");  
-		this.addRegAssign("address monitor",  addrMonitorWriteAckName + " <= #1  " + addrMonitorWriteAckNextName + ";");  
-		this.addResetAssign("address monitor", builder.getDefaultReset(), addrMonitorWriteNackName + " <= #1  1'b0;");  
-		this.addRegAssign("address monitor",  addrMonitorWriteNackName + " <= #1  " + addrMonitorWriteNackNextName + ";");  
+		this.addResetAssign("address monitor", builder.getDefaultReset(), addrMonitorReadAckName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+		this.addRegAssign("address monitor",  addrMonitorReadAckName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + addrMonitorReadAckNextName + ";");  
+		this.addResetAssign("address monitor", builder.getDefaultReset(), addrMonitorReadNackName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+		this.addRegAssign("address monitor",  addrMonitorReadNackName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + addrMonitorReadNackNextName + ";");  
+		this.addResetAssign("address monitor", builder.getDefaultReset(), addrMonitorWriteAckName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+		this.addRegAssign("address monitor",  addrMonitorWriteAckName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + addrMonitorWriteAckNextName + ";");  
+		this.addResetAssign("address monitor", builder.getDefaultReset(), addrMonitorWriteNackName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+		this.addRegAssign("address monitor",  addrMonitorWriteNackName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + addrMonitorWriteNackNextName + ";");  
 
 		// create combi output values		
 		this.addScalarWire(addrMonitorReadAckNextName);
@@ -444,18 +444,18 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int stateBits = 3;
 		this.addVectorReg(arbStateName, 0, stateBits);  
 		this.addVectorReg(arbStateNextName, 0, stateBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), arbStateName + " <= #1  " + stateBits + "'b0;");  
-		this.addRegAssign(groupName,  arbStateName + " <= #1  " + arbStateNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), arbStateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  arbStateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + arbStateNextName + ";");  
 		
 		// registered r/w and ack/nack sm outputs
 		this.addScalarReg(arbiterReName);
 		this.addScalarReg(arbiterWeName);
 		this.addScalarReg(arbiterReNextName);
 		this.addScalarReg(arbiterWeNextName);
-		this.addResetAssign(groupName, builder.getDefaultReset(), arbiterReName + " <= #1  1'b0;");  
-		this.addRegAssign(groupName,  arbiterReName + " <= #1  " + arbiterReNextName + ";");  
-		this.addResetAssign(groupName, builder.getDefaultReset(), arbiterWeName + " <= #1  1'b0;");  
-		this.addRegAssign(groupName,  arbiterWeName + " <= #1  " + arbiterWeNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), arbiterReName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+		this.addRegAssign(groupName,  arbiterReName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + arbiterReNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), arbiterWeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+		this.addRegAssign(groupName,  arbiterWeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + arbiterWeNextName + ";");  
 
 		// state machine init values
 		this.addCombinAssign(groupName,  arbStateNextName + " = " + arbStateName + ";");  
@@ -712,11 +712,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (pulseControls) {
 			String groupName = getGroupPrefix(isPrimary) + "parallel pulsed i/f signals";  
 			this.addScalarReg(levelIoReName);   
-			this.addResetAssign(groupName, builder.getDefaultReset(), levelIoReName + " <= #1  1'b0;");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), levelIoReName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
 			this.addScalarReg(levelIoWeName);   
-			this.addResetAssign(groupName, builder.getDefaultReset(), levelIoWeName + " <= #1  1'b0;");  
-			this.addRegAssign(groupName,  levelIoReName + " <= #1  " + ioReName  + " | (" + levelIoReName + " & ~(" + pioInterfaceAckName + " | " + pioInterfaceNackName + "));");
-			this.addRegAssign(groupName,  levelIoWeName + " <= #1  " + ioWeName  + " | (" + levelIoWeName + " & ~(" + pioInterfaceAckName + " | " + pioInterfaceNackName + "));");
+			this.addResetAssign(groupName, builder.getDefaultReset(), levelIoWeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+			this.addRegAssign(groupName,  levelIoReName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ioReName  + " | (" + levelIoReName + " & ~(" + pioInterfaceAckName + " | " + pioInterfaceNackName + "));");
+			this.addRegAssign(groupName,  levelIoWeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ioWeName  + " | (" + levelIoWeName + " & ~(" + pioInterfaceAckName + " | " + pioInterfaceNackName + "));");
 		}
 		// generate re/we assigns - use delayed versions if this is a single primary
 		String activeIoReName = pulseControls? levelIoReName : ioReName;
@@ -905,49 +905,49 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// assign sm outputs to internal p2 interface
 		String groupName = getGroupPrefix(isPrimary) + "engine1 i/f signals";  
 		this.addVectorReg(e1WrDataNextName, 0, builder.getMaxRegWidth());  //  wr data to be used internally 
-		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceWriteDataName + " <= #1  " + builder.getMaxRegWidth() + "'b0;");  
-		this.addRegAssign(groupName,  pioInterfaceWriteDataName + " <= #1  " + e1WrDataNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceWriteDataName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + builder.getMaxRegWidth() + "'b0;");  
+		this.addRegAssign(groupName,  pioInterfaceWriteDataName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + e1WrDataNextName + ";");  
 		this.addVectorReg(e1AddressNextName, addrLowBit, addrWidth + 1); // extra bit for rollover
-		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceAddressName + " <= #1  " + addrWidth + "'b0;");  
-		this.addRegAssign(groupName,  pioInterfaceAddressName + " <= #1  " + e1AddressNextName + SystemVerilogSignal.genRefArrayString(addrLowBit, addrWidth) + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceAddressName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + addrWidth + "'b0;");  
+		this.addRegAssign(groupName,  pioInterfaceAddressName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + e1AddressNextName + SystemVerilogSignal.genRefArrayString(addrLowBit, addrWidth) + ";");  
 		this.addScalarReg(e1ReNextName);   
-		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceReName + " <= #1  1'b0;");  
-		this.addRegAssign(groupName,  pioInterfaceReName + " <= #1  " + e1ReNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceReName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+		this.addRegAssign(groupName,  pioInterfaceReName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + e1ReNextName + ";");  
 		this.addScalarReg(e1WeNextName);   
-		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceWeName + " <= #1  1'b0;");  
-		this.addRegAssign(groupName,  pioInterfaceWeName + " <= #1  " + e1WeNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceWeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+		this.addRegAssign(groupName,  pioInterfaceWeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + e1WeNextName + ";");  
 		this.addScalarReg(e1AtomicNextName);
-		this.addResetAssign(groupName, builder.getDefaultReset(), arbiterAtomicName + " <= #1  1'b0;");  
-		this.addRegAssign(groupName,  arbiterAtomicName + " <= #1  " + e1AtomicNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), arbiterAtomicName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+		this.addRegAssign(groupName,  arbiterAtomicName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + e1AtomicNextName + ";");  
 		if (useTransactionSize) {
 			this.addVectorReg(e1TransSizeNextName, 0, regWordBits);
-			this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceTransactionSizeName + " <= #1  " + regWordBits + "'b0;");  
-			this.addRegAssign(groupName,  pioInterfaceTransactionSizeName + " <= #1  " + e1TransSizeNextName + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + regWordBits + "'b0;");  
+			this.addRegAssign(groupName,  pioInterfaceTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + e1TransSizeNextName + ";");  
 		}
 		// assign sm outputs to external interface
 		this.addVectorReg(e1LastReadDataName, 0, builder.getMaxRegWidth());  //  rd data to be output externally
 		this.addVectorReg(e1LastReadDataNextName, 0, builder.getMaxRegWidth());  
-		this.addResetAssign(groupName, builder.getDefaultReset(), e1LastReadDataName + " <= #1  " + builder.getMaxRegWidth() + "'b0;");  
-		this.addRegAssign(groupName,  e1LastReadDataName + " <= #1  " + e1LastReadDataNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), e1LastReadDataName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + builder.getMaxRegWidth() + "'b0;");  
+		this.addRegAssign(groupName,  e1LastReadDataName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + e1LastReadDataNextName + ";");  
 		
 		// now create state machine vars
 		groupName = getGroupPrefix(isPrimary) + "engine1 i/f sm";  
 		this.addVectorReg(e1StateName, 0, stateBits);  
 		this.addVectorReg(e1StateNextName, 0, stateBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), e1StateName + " <= #1  " + stateBits + "'b0;");  
-		this.addRegAssign(groupName,  e1StateName + " <= #1  " + e1StateNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), e1StateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  e1StateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + e1StateNextName + ";");  
 
 		//  define transaction counter and next value
 		this.addVectorReg(e1TransCountName, addrLowBit, transCountWidth + 1); 
 		this.addVectorReg(e1TransCountNextName, addrLowBit, transCountWidth + 1); 
-		this.addResetAssign(groupName, builder.getDefaultReset(), e1TransCountName + " <= #1  " + transCountWidth + 1 + "'b0;");  
-		this.addRegAssign(groupName,  e1TransCountName + " <= #1  " + e1TransCountNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), e1TransCountName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + transCountWidth + 1 + "'b0;");  
+		this.addRegAssign(groupName,  e1TransCountName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + e1TransCountNextName + ";");  
 
 		//  define delay counter and next value
 		this.addVectorReg(e1DelayCountName, 0, delayCountBits); 
 		this.addVectorReg(e1DelayCountNextName, 0, delayCountBits); 
-		this.addResetAssign(groupName, builder.getDefaultReset(), e1DelayCountName + " <= #1  " + delayCountBits + "'b0;");  
-		this.addRegAssign(groupName,  e1DelayCountName + " <= #1  " + e1DelayCountNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), e1DelayCountName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + delayCountBits + "'b0;");  
+		this.addRegAssign(groupName,  e1DelayCountName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + e1DelayCountNextName + ";");  
 		
 		// state machine init values
 		this.addCombinAssign(groupName,  e1StateNextName + " = " + e1StateName + ";");  
@@ -1456,13 +1456,13 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			}
 		}
 
-		//this.addResetAssign(getGroupPrefix(isPrimary) + "leaf i/f", builder.getDefaultReset(), "block_select_d1 <= #1  1'b0;");  // reset for delayed block select 
-		//this.addRegAssign(getGroupPrefix(isPrimary) + "leaf i/f",  "block_select_d1 <= #1 block_sel;");  
+		//this.addResetAssign(getGroupPrefix(isPrimary) + "leaf i/f", builder.getDefaultReset(), "block_select_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  // reset for delayed block select 
+		//this.addRegAssign(getGroupPrefix(isPrimary) + "leaf i/f",  "block_select_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + "block_sel;");  
 		
 		// generate valid and wr_dvld active signals 
 		this.addScalarReg(ioValid + "_hld1");  //  delayed valid active
-		this.addResetAssign(getGroupPrefix(isPrimary) + "leaf i/f", builder.getDefaultReset(), ioValid + "_hld1 <= #1  1'b0;");  
-		this.addRegAssign(getGroupPrefix(isPrimary) + "leaf i/f",  ioValid + "_hld1 <= #1 " + ioValid + "_hld1_next;");
+		this.addResetAssign(getGroupPrefix(isPrimary) + "leaf i/f", builder.getDefaultReset(), ioValid + "_hld1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+		this.addRegAssign(getGroupPrefix(isPrimary) + "leaf i/f",  ioValid + "_hld1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + ioValid + "_hld1_next;");
 		
 		this.addScalarReg(ioValid + "_hld1_next");  //  valid activated at valid input, deactivated at ack/nack
 		this.addCombinAssign(getGroupPrefix(isPrimary) + "leaf i/f",  ioValid + "_hld1_next = " + ioValid + " | " + ioValid + "_hld1;");  
@@ -1470,8 +1470,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarWire(ioValid + "_active");  //  active if valid or valid_dly
 
 		this.addScalarReg(ioWrValid + "_hld1");  //  delayed wr_dvld active
-		this.addResetAssign(getGroupPrefix(isPrimary) + "leaf i/f", builder.getDefaultReset(), ioWrValid + "_hld1 <= #1  1'b0;");  
-		this.addRegAssign(getGroupPrefix(isPrimary) + "leaf i/f",  ioWrValid + "_hld1 <= #1 " + ioWrValid + "_hld1_next;");
+		this.addResetAssign(getGroupPrefix(isPrimary) + "leaf i/f", builder.getDefaultReset(), ioWrValid + "_hld1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+		this.addRegAssign(getGroupPrefix(isPrimary) + "leaf i/f",  ioWrValid + "_hld1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + ioWrValid + "_hld1_next;");
 		
 		this.addScalarReg(ioWrValid + "_hld1_next");  //  wr_dvld activated at wr_dvld input, deactivated at ack/nack/valid
 		this.addCombinAssign(getGroupPrefix(isPrimary) + "leaf i/f",  ioWrValid + "_hld1_next = " + ioWrValid + " | " + ioWrValid + "_hld1;");  
@@ -1520,8 +1520,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			// if a write larger than interface then retry (only valid during ack)
 			this.addScalarReg(ioRetryAtomic);  //  register the output
 			this.addScalarWire(ioRetryAtomic + "_next");  
-			this.addResetAssign(getGroupPrefix(isPrimary) + "leaf i/f", builder.getDefaultReset(), ioRetryAtomic + " <= #1  1'b0;");  // reset for retry atomic 
-			this.addRegAssign(getGroupPrefix(isPrimary) + "leaf i/f", ioRetryAtomic + " <= #1 " + ioRetryAtomic + "_next;");  
+			this.addResetAssign(getGroupPrefix(isPrimary) + "leaf i/f", builder.getDefaultReset(), ioRetryAtomic + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  // reset for retry atomic 
+			this.addRegAssign(getGroupPrefix(isPrimary) + "leaf i/f", ioRetryAtomic + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + ioRetryAtomic + "_next;");  
 			this.addWireAssign(ioRetryAtomic + "_next = " + sigBlockSel + " & " + ioWrValid + "_active & (" + ioCycle + " == 2'b00)" + 
 			                       " & (" + ioWrWidth + SystemVerilogSignal.genRefArrayString(0, builder.getMaxWordBitSize()) + " < reg_width);");  // Note: reg_width bypasses internal arbiter
 		}
@@ -1610,8 +1610,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int stateBits = 3;
 		this.addVectorReg(s8StateName, 0, stateBits);  
 		this.addVectorReg(s8StateNextName, 0, stateBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), s8StateName + " <= #1  " + stateBits + "'b0;");  
-		this.addRegAssign(groupName,  s8StateName + " <= #1  " + s8StateNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), s8StateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  s8StateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8StateNextName + ";");  
 
 		// s8 cmd inputs will feed into sm
 		//this.addScalarWire(serial8CmdValidName);  
@@ -1624,7 +1624,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (addressWidth > 0) {
 			this.addVectorReg(s8AddrAccumName, builder.getAddressLowBit(), addressWidth);  
 			this.addVectorReg(s8AddrAccumNextName, builder.getAddressLowBit(), addressWidth);  
-			this.addRegAssign(groupName,  s8AddrAccumName + " <= #1  " + s8AddrAccumNextName + ";");  
+			this.addRegAssign(groupName,  s8AddrAccumName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8AddrAccumNextName + ";");  
 			this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), addressWidth);  
 			this.addWireAssign(pioInterfaceAddressName + " = " + s8AddrAccumName + ";");  // input addr is set from accum reg			
 		}
@@ -1632,7 +1632,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// add write data accumulate reg
 		this.addVectorReg(s8WrAccumName, 0, regWidth);  
 		this.addVectorReg(s8WrAccumNextName, 0, regWidth);  
-		this.addRegAssign(groupName,  s8WrAccumName + " <= #1  " + s8WrAccumNextName + ";");  
+		this.addRegAssign(groupName,  s8WrAccumName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8WrAccumNextName + ";");  
 		this.addVectorWire(pioInterfaceWriteDataName, 0, regWidth);  
 		this.addWireAssign(pioInterfaceWriteDataName + " = " + s8WrAccumName + ";");  // input data is set from accum reg
 		
@@ -1641,27 +1641,27 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (useTransactionSize) {
 			this.addVectorReg(pioInterfaceTransactionSizeName, 0, regWordBits);  
 			this.addVectorReg(pioInterfaceTransactionSizeNextName, 0, regWordBits);  // res size will be set in sm
-			this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceTransactionSizeName + " <= #1  " + regWordBits + "'b0;");  
-			this.addRegAssign(groupName,  pioInterfaceTransactionSizeName + " <= #1  " + pioInterfaceTransactionSizeNextName + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + regWordBits + "'b0;");  
+			this.addRegAssign(groupName,  pioInterfaceTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + pioInterfaceTransactionSizeNextName + ";");  
 		}
 
 		// add capture reg for write transaction indicator
 		this.addScalarReg(s8WrStateCaptureName);  
 		this.addScalarReg(s8WrStateCaptureNextName);  
-		this.addRegAssign(groupName,  s8WrStateCaptureName + " <= #1  " + s8WrStateCaptureNextName + ";");  
+		this.addRegAssign(groupName,  s8WrStateCaptureName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8WrStateCaptureNextName + ";");  
 
 		// add capture reg for read data
 		this.addVectorReg(s8RdCaptureName, 0, regWidth);  
 		this.addVectorReg(s8RdCaptureNextName, 0, regWidth);  
-		this.addRegAssign(groupName,  s8RdCaptureName + " <= #1  " + s8RdCaptureNextName + ";"); 
+		this.addRegAssign(groupName,  s8RdCaptureName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8RdCaptureNextName + ";"); 
 
 		// address byte count
 		int addrXferCountBits = Utils.getBits(addrXferCount);
 		if (addrXferCountBits > 0) {
 			this.addVectorReg(s8AddrCntName, 0, addrXferCountBits);  
 			this.addVectorReg(s8AddrCntNextName, 0, addrXferCountBits);  
-			this.addResetAssign(groupName, builder.getDefaultReset(), s8AddrCntName + " <= #1  " + addrXferCountBits + "'b0;");  
-			this.addRegAssign(groupName,  s8AddrCntName + " <= #1  " + s8AddrCntNextName + ";");  			
+			this.addResetAssign(groupName, builder.getDefaultReset(), s8AddrCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + addrXferCountBits + "'b0;");  
+			this.addRegAssign(groupName,  s8AddrCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8AddrCntNextName + ";");  			
 		}
 		
 		// data byte count
@@ -1669,8 +1669,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int maxDataXferCountBits = Utils.getBits(maxDataXferCount);
 		this.addVectorReg(s8DataCntName, 0, maxDataXferCountBits);  
 		this.addVectorReg(s8DataCntNextName, 0, maxDataXferCountBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), s8DataCntName + " <= #1  " + maxDataXferCountBits + "'b0;");  
-		this.addRegAssign(groupName,  s8DataCntName + " <= #1  " + s8DataCntNextName + ";"); 
+		this.addResetAssign(groupName, builder.getDefaultReset(), s8DataCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + maxDataXferCountBits + "'b0;");  
+		this.addRegAssign(groupName,  s8DataCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8DataCntNextName + ";"); 
 
 		// define internal interface signals that will be set in sm 
 		String s8pioInterfaceReName = "s8_" + pioInterfaceReName;
@@ -2008,8 +2008,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int stateBits = 4;
 		this.addVectorReg(ringStateName, 0, stateBits);  
 		this.addVectorReg(ringStateNextName, 0, stateBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), ringStateName + " <= #1  " + stateBits + "'b0;");  
-		this.addRegAssign(groupName,  ringStateName + " <= #1  " + ringStateNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), ringStateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  ringStateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringStateNextName + ";");  
 
 		// ring cmd inputs will feed into sm (after cmd delay regs)
 		//this.addScalarWire(ringCmdValidName);  
@@ -2028,8 +2028,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorReg(outFifoDataName[0], 0, ringWidth); // out data 0 is set in state machine
 		for (int idx=1; idx<outFifoSize+1; idx++) {
 			this.addVectorReg(outFifoDataName[idx], 0, ringWidth); 
-			this.addResetAssign(groupName, builder.getDefaultReset(), outFifoDataName[idx] + " <= #1  " + ringWidth + "'b0;");  
-			this.addRegAssign(groupName,  "if (" + outFifoAdvanceName +") " + outFifoDataName[idx] + " <= #1  " + outFifoDataName[idx-1] + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), outFifoDataName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringWidth + "'b0;");  
+			this.addRegAssign(groupName,  "if (" + outFifoAdvanceName +") " + outFifoDataName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + outFifoDataName[idx-1] + ";");  
 		}
 
 		// create delayed cmd signals
@@ -2045,10 +2045,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		for (int idx=1; idx<cmdDelayCount+1; idx++) {
 			this.addScalarReg(cmdValidDlyName[idx]);  
 			this.addVectorReg(cmdDataDlyName[idx], 0, ringWidth); 
-			this.addResetAssign(groupName, builder.getDefaultReset(), cmdValidDlyName[idx] + " <= #1  1'b0;");  
-			this.addResetAssign(groupName, builder.getDefaultReset(), cmdDataDlyName[idx] + " <= #1  " + ringWidth + "'b0;");  
-			this.addRegAssign(groupName,  cmdValidDlyName[idx] + " <= #1  " + cmdValidDlyName[idx-1] + ";");  
-			this.addRegAssign(groupName,  cmdDataDlyName[idx] + " <= #1  " + cmdDataDlyName[idx-1] + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), cmdValidDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), cmdDataDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringWidth + "'b0;");  
+			this.addRegAssign(groupName,  cmdValidDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + cmdValidDlyName[idx-1] + ";");  
+			this.addRegAssign(groupName,  cmdDataDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + cmdDataDlyName[idx-1] + ";");  
 		}
         // assign ring cmd inputs to predelay 
 		this.addWireAssign(cmdValidDlyName[0] + " = " + ringCmdValidName + ";");  
@@ -2068,10 +2068,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		for (int idx=1; idx<resDelayCount+1; idx++) {
 			this.addScalarReg(resValidDlyName[idx]);  
 			this.addVectorReg(resDataDlyName[idx], 0, ringWidth); 
-			this.addResetAssign(groupName, builder.getDefaultReset(), resValidDlyName[idx] + " <= #1  1'b0;");  
-			this.addResetAssign(groupName, builder.getDefaultReset(), resDataDlyName[idx] + " <= #1  " + ringWidth + "'b0;");  
-			this.addRegAssign(groupName,  resValidDlyName[idx] + " <= #1  " + resValidDlyName[idx-1] + ";");  
-			this.addRegAssign(groupName,  resDataDlyName[idx] + " <= #1  " + resDataDlyName[idx-1] + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), resValidDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), resDataDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringWidth + "'b0;");  
+			this.addRegAssign(groupName,  resValidDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + resValidDlyName[idx-1] + ";");  
+			this.addRegAssign(groupName,  resDataDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + resDataDlyName[idx-1] + ";");  
 		}
         // assign ring outputs outputs to delayed versions 
 		this.addWireAssign(ringResValidName + " = " + resValidDlyName[resDelayCount] + ";");
@@ -2081,7 +2081,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (addressWidth > 0) {
 			this.addVectorReg(ringAddrAccumName, builder.getAddressLowBit(), addressWidth);  
 			this.addVectorReg(ringAddrAccumNextName, builder.getAddressLowBit(), addressWidth);  
-			this.addRegAssign(groupName,  ringAddrAccumName + " <= #1  " + ringAddrAccumNextName + ";");  
+			this.addRegAssign(groupName,  ringAddrAccumName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringAddrAccumNextName + ";");  
 			this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), addressWidth);  
 			this.addWireAssign(pioInterfaceAddressName + " = " + ringAddrAccumName + ";");  // input addr is set from accum reg			
 		}
@@ -2089,7 +2089,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// add write data accumulate reg
 		this.addVectorReg(ringWrAccumName, 0, regWidth);  
 		this.addVectorReg(ringWrAccumNextName, 0, regWidth);  
-		this.addRegAssign(groupName,  ringWrAccumName + " <= #1  " + ringWrAccumNextName + ";");  
+		this.addRegAssign(groupName,  ringWrAccumName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringWrAccumNextName + ";");  
 		this.addVectorWire(pioInterfaceWriteDataName, 0, regWidth);  
 		this.addWireAssign(pioInterfaceWriteDataName + " = " + ringWrAccumName + ";");  // input data is set from accum reg
 		
@@ -2098,36 +2098,36 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (useTransactionSize) {
 			this.addVectorReg(pioInterfaceTransactionSizeName, 0, regWordBits);  
 			this.addVectorReg(pioInterfaceTransactionSizeNextName, 0, regWordBits);  // res size will be set in sm
-			this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceTransactionSizeName + " <= #1  " + regWordBits + "'b0;");  
-			this.addRegAssign(groupName,  pioInterfaceTransactionSizeName + " <= #1  " + pioInterfaceTransactionSizeNextName + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + regWordBits + "'b0;");  
+			this.addRegAssign(groupName,  pioInterfaceTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + pioInterfaceTransactionSizeNextName + ";");  
 		}
 
 		// add capture reg for write transaction indicator
 		this.addScalarReg(ringWrStateCaptureName);  
 		this.addScalarReg(ringWrStateCaptureNextName);  
-		this.addRegAssign(groupName,  ringWrStateCaptureName + " <= #1  " + ringWrStateCaptureNextName + ";");  
+		this.addRegAssign(groupName,  ringWrStateCaptureName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringWrStateCaptureNextName + ";");  
 
 		// add capture reg for read data
 		this.addVectorReg(ringRdCaptureName, 0, regWidth);  
 		this.addVectorReg(ringRdCaptureNextName, 0, regWidth);  
-		this.addRegAssign(groupName,  ringRdCaptureName + " <= #1  " + ringRdCaptureNextName + ";"); 
+		this.addRegAssign(groupName,  ringRdCaptureName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringRdCaptureNextName + ";"); 
 
 		// address xfer count
 		this.addVectorReg(ringAddrCntName, 0, addrXferCountBits);  
 		this.addVectorReg(ringAddrCntNextName, 0, addrXferCountBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), ringAddrCntName + " <= #1  " + addrXferCountBits + "'b0;");  
-		this.addRegAssign(groupName,  ringAddrCntName + " <= #1  " + ringAddrCntNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), ringAddrCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + addrXferCountBits + "'b0;");  
+		this.addRegAssign(groupName,  ringAddrCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringAddrCntNextName + ";");  
 		
 		// add capture reg for address xfer count
 		this.addVectorReg(ringAddrCntCaptureName, 0, addrXferCountBits);  
 		this.addVectorReg(ringAddrCntCaptureNextName, 0, addrXferCountBits);  
-		this.addRegAssign(groupName,  ringAddrCntCaptureName + " <= #1  " + ringAddrCntCaptureNextName + ";"); 
+		this.addRegAssign(groupName,  ringAddrCntCaptureName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringAddrCntCaptureNextName + ";"); 
 		
 		// add ring msb no match indicator
 		this.addScalarReg(ringNotMineName);  
 		this.addScalarReg(ringNotMineNextName);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), ringNotMineName + " <= #1  1'b0;");  
-		this.addRegAssign(groupName,  ringNotMineName + " <= #1  " + ringNotMineNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), ringNotMineName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+		this.addRegAssign(groupName,  ringNotMineName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringNotMineNextName + ";");  
 		
 		// data byte count 
 		int maxDataXferCount = regWords * ExtParameters.getMinDataSize()/ringWidth; 
@@ -2136,8 +2136,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (useDataCounter) {
 			this.addVectorReg(ringDataCntName, 0, maxDataXferCountBits);  
 			this.addVectorReg(ringDataCntNextName, 0, maxDataXferCountBits);  
-			this.addResetAssign(groupName, builder.getDefaultReset(), ringDataCntName + " <= #1  " + maxDataXferCountBits + "'b0;");  
-			this.addRegAssign(groupName,  ringDataCntName + " <= #1  " + ringDataCntNextName + ";"); 
+			this.addResetAssign(groupName, builder.getDefaultReset(), ringDataCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + maxDataXferCountBits + "'b0;");  
+			this.addRegAssign(groupName,  ringDataCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringDataCntNextName + ";"); 
 		}
 		//System.out.println("SystemVerilogDecodeModule genRingPioInterface: max data xfers=" + maxDataXferCount + ", bits=" + maxDataXferCountBits);
 
@@ -2455,26 +2455,26 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			for (int dly = 1; dly <= maxDelay; dly++) {
 				this.addScalarReg(cgateDelayedReName + dly);  //  delayed read active
 				this.addScalarReg(cgateDelayedWeName + dly);  //  delayed write active
-				this.addResetAssign("clock gate delay", builder.getDefaultReset(), cgateDelayedReName + dly + " <= #1  1'b0;");  
-				this.addResetAssign("clock gate delay", builder.getDefaultReset(), cgateDelayedWeName + dly + " <= #1  1'b0;");
+				this.addResetAssign("clock gate delay", builder.getDefaultReset(), cgateDelayedReName + dly + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+				this.addResetAssign("clock gate delay", builder.getDefaultReset(), cgateDelayedWeName + dly + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");
 				// first delay just picks up input requests, even if final stage
 				if (dly == 1) {
-					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= #1 " + readReqIn + ";");
-					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= #1 " + writeReqIn + ";"); 
+					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + readReqIn + ";");
+					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + writeReqIn + ";"); 
 				}
 				// other delay stages must turn off if request falls
 				else {
-					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= #1 " +
+					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" +
                             "(" + cgateDelayedReName + (dly - 1) + " & !" + cgateDelayedReName + dly + ") | " +  // turn on a cycle after previous stage
                             "(" + cgateDelayedReName + dly + " & !(" + cgateDelayedReName + "1 & !(" + readReqIn + ")));"); // off on falling base req
-					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= #1 " + 
+					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + 
                             "(" + cgateDelayedWeName + (dly - 1) + " & !" + cgateDelayedWeName + dly + ") | " +  // turn on a cycle after previous stage
                             "(" + cgateDelayedWeName + dly + " & !(" + cgateDelayedWeName + "1 & !(" + writeReqIn + ")));"); // off on falling base req
 				}
 				/* otherwise stage is just delayed previous 
 				else {
-					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= #1 " + cgateDelayedReName + (dly - 1) + ";");
-					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= #1 " + cgateDelayedWeName + (dly - 1) + ";");
+					this.addRegAssign("clock gate delay",  cgateDelayedReName + dly + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + cgateDelayedReName + (dly - 1) + ";");
+					this.addRegAssign("clock gate delay",  cgateDelayedWeName + dly + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + cgateDelayedWeName + (dly - 1) + ";");
 				}*/
 			}
 			
@@ -2555,20 +2555,20 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarReg(intDecodeToHwWeName);  
 		this.addScalarReg(intDecodeToHwReName);  
 		// reset output signals
-		this.addResetAssign("external i/f", builder.getDefaultReset(), extIf.decodeToHwWeName + " <= #1  1'b0;" );   
-		this.addResetAssign("external i/f", builder.getDefaultReset(), extIf.decodeToHwReName + " <= #1  1'b0;" );
+		this.addResetAssign("external i/f", builder.getDefaultReset(), extIf.decodeToHwWeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;" );   
+		this.addResetAssign("external i/f", builder.getDefaultReset(), extIf.decodeToHwReName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;" );
 
 		String ackInhibitStr = "~" + extIf.hwToDecodeAckName + " & ~" + extIf.hwToDecodeNackName;
-		this.addRegAssign("external i/f",  extIf.decodeToHwName + " <= #1  " + intDecodeToHwName + ";");  // assign next to flop
-		if (hasWriteEnables()) this.addRegAssign("external i/f",  extIf.decodeToHwEnableName + " <= #1  " + intDecodeToHwEnableName + ";");  // assign next to flop
-		this.addRegAssign("external i/f",  extIf.decodeToHwWeName + " <= #1  " + intDecodeToHwWeName + " & " + ackInhibitStr  + ";");  // assign next to flop
-		this.addRegAssign("external i/f",  extIf.decodeToHwReName + " <= #1  " + intDecodeToHwReName + " & " + ackInhibitStr  + ";");  // assign next to flop
+		this.addRegAssign("external i/f",  extIf.decodeToHwName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwName + ";");  // assign next to flop
+		if (hasWriteEnables()) this.addRegAssign("external i/f",  extIf.decodeToHwEnableName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwEnableName + ";");  // assign next to flop
+		this.addRegAssign("external i/f",  extIf.decodeToHwWeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwWeName + " & " + ackInhibitStr  + ";");  // assign next to flop
+		this.addRegAssign("external i/f",  extIf.decodeToHwReName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwReName + " & " + ackInhibitStr  + ";");  // assign next to flop
 
 		// if size of external range is greater than one reg we'll need an external address  
 		if (addrInstProperties.hasExtAddress()) {  
 			this.addVectorReg(extIf.decodeToHwAddrName, addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());  
 			this.addVectorReg(intDecodeToHwAddrName, addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());  
-			this.addRegAssign("external i/f",  extIf.decodeToHwAddrName + " <= #1  " + intDecodeToHwAddrName  + ";");  // assign next to flop
+			this.addRegAssign("external i/f",  extIf.decodeToHwAddrName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwAddrName  + ";");  // assign next to flop
 		}	
 
 		// if size of max pio transaction is greater than one word need to add transaction size/retry info 
@@ -2578,11 +2578,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 			this.addVectorReg(extIf.decodeToHwTransactionSizeName, 0, regWordBits);  
 			this.addVectorReg(intDecodeToHwTransactionSizeName, 0, regWordBits);  
-			this.addRegAssign("external i/f",  extIf.decodeToHwTransactionSizeName + " <= #1  " + intDecodeToHwTransactionSizeName  + ";");  // assign next to flop
+			this.addRegAssign("external i/f",  extIf.decodeToHwTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwTransactionSizeName  + ";");  // assign next to flop
 
 			this.addVectorReg(intHwToDecodeTransactionSizeName, 0, regWordBits);  
-			this.addResetAssign("external i/f", builder.getDefaultReset(), intHwToDecodeTransactionSizeName + " <= #1  " + regWordBits +"'b0;");  // reset input size flop
-			this.addRegAssign("external i/f",  intHwToDecodeTransactionSizeName + " <= #1  " + extIf.hwToDecodeTransactionSizeName + ";");  // assign input size to flop
+			this.addResetAssign("external i/f", builder.getDefaultReset(), intHwToDecodeTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + regWordBits +"'b0;");  // reset input size flop
+			this.addRegAssign("external i/f",  intHwToDecodeTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + extIf.hwToDecodeTransactionSizeName + ";");  // assign input size to flop
 		}			
 		return extIf;
 	}
@@ -2896,8 +2896,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int stateBits = 3;
 		this.addVectorReg(bbStateName, 0, stateBits);  
 		this.addVectorReg(bbStateNextName, 0, stateBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), bbStateName + " <= #1  " + stateBits + "'b0;");  
-		this.addRegAssign(groupName,  bbStateName + " <= #1  " + bbStateNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), bbStateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  bbStateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + bbStateNextName + ";");  
 		this.addScalarReg(topBackboneReqName);  
 		this.addScalarReg(topBackboneRdName);  
 		this.addScalarReg(topBackboneWrDvldName);  
@@ -2906,15 +2906,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// add read data accumulate reg
 		this.addVectorReg(bbRdAccumName, 0, addrInstProperties.getMaxRegWidth());  
 		this.addVectorReg(bbRdAccumNextName, 0, addrInstProperties.getMaxRegWidth());  
-		this.addRegAssign(groupName,  bbRdAccumName + " <= #1  " + bbRdAccumNextName + ";");  
+		this.addRegAssign(groupName,  bbRdAccumName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + bbRdAccumNextName + ";");  
 		this.addWireAssign(extIf.hwToDecodeName + " = " + bbRdAccumName + ";");
 
 		// if wide regs in ext region, need word count
 		if (regWordBits > 0) {
 			this.addVectorReg(bbWordCntName, 0, regWordBits);  
 			this.addVectorReg(bbWordCntNextName, 0, regWordBits);  
-			this.addResetAssign(groupName, builder.getDefaultReset(), bbWordCntName + " <= #1  " + regWordBits + "'b0;");  
-			this.addRegAssign(groupName,  bbWordCntName + " <= #1  " + bbWordCntNextName + ";");  			
+			this.addResetAssign(groupName, builder.getDefaultReset(), bbWordCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + regWordBits + "'b0;");  
+			this.addRegAssign(groupName,  bbWordCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + bbWordCntNextName + ";");  			
 		}
 		
 		// if an 8 bit ring, need to count wait cycles
@@ -2922,15 +2922,15 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (is8bit) {
 			this.addVectorReg(bbWaitCntName, 0, 2);  
 			this.addVectorReg(bbWaitCntNextName, 0, 2);  
-			this.addResetAssign(groupName, builder.getDefaultReset(), bbWaitCntName + " <= #1  2'b0;");  
-			this.addRegAssign(groupName,  bbWaitCntName + " <= #1  " + bbWaitCntNextName + ";");  			
+			this.addResetAssign(groupName, builder.getDefaultReset(), bbWaitCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 2'b0;");  
+			this.addRegAssign(groupName,  bbWaitCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + bbWaitCntNextName + ";");  			
 		}
 		
 		// timeout counter
 		this.addVectorReg(bbTimeoutCntName, 0, backboneTopTimeoutBits);
 		this.addVectorReg(bbTimeoutCntNextName, 0, backboneTopTimeoutBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), bbTimeoutCntName + " <= #1  " + backboneTopTimeoutBits + "'b0;");  
-		this.addRegAssign(groupName,  bbTimeoutCntName + " <= #1  " + bbTimeoutCntNextName + ";");  			
+		this.addResetAssign(groupName, builder.getDefaultReset(), bbTimeoutCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + backboneTopTimeoutBits + "'b0;");  
+		this.addRegAssign(groupName,  bbTimeoutCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + bbTimeoutCntNextName + ";");  			
 		
 		// state machine init values
 		this.addCombinAssign(groupName,  bbStateNextName + " = " + bbStateName + ";");  
@@ -3207,8 +3207,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int stateBits = 2;
 		this.addVectorReg(ackStateName, 0, stateBits);  
 		this.addVectorReg(ackStateNextName, 0, stateBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), ackStateName + " <= #1  " + stateBits + "'b0;");  
-		this.addRegAssign(groupName,  ackStateName + " <= #1  " + ackStateNextName + ";");
+		this.addResetAssign(groupName, builder.getDefaultReset(), ackStateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  ackStateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ackStateNextName + ";");
 		
 		// state machine init values
 		this.addCombinAssign(groupName,  ackStateNextName + " = " + ackStateName + ";");  
@@ -3337,8 +3337,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int stateBits = 3;
 		this.addVectorReg(s8StateName, 0, stateBits);  
 		this.addVectorReg(s8StateNextName, 0, stateBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), s8StateName + " <= #1  " + stateBits + "'b0;");  
-		this.addRegAssign(groupName,  s8StateName + " <= #1  " + s8StateNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), s8StateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  s8StateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8StateNextName + ";");  
 
 		// create delayed cmd signals
 		int delayCount = addrInstProperties.getExternalType().getParm("delay");
@@ -3353,10 +3353,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		for (int idx=1; idx<delayCount+1; idx++) {
 			this.addScalarReg(cmdValidDlyName[idx]);  
 			this.addVectorReg(cmdDataDlyName[idx], 0, 8); 
-			this.addResetAssign(groupName, builder.getDefaultReset(), cmdValidDlyName[idx] + " <= #1  1'b0;");  
-			this.addResetAssign(groupName, builder.getDefaultReset(), cmdDataDlyName[idx] + " <= #1  8'b0;");  
-			this.addRegAssign(groupName,  cmdValidDlyName[idx] + " <= #1  " + cmdValidDlyName[idx-1] + ";");  
-			this.addRegAssign(groupName,  cmdDataDlyName[idx] + " <= #1  " + cmdDataDlyName[idx-1] + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), cmdValidDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), cmdDataDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 8'b0;");  
+			this.addRegAssign(groupName,  cmdValidDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + cmdValidDlyName[idx-1] + ";");  
+			this.addRegAssign(groupName,  cmdDataDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + cmdDataDlyName[idx-1] + ";");  
 		}
         // assign s8 outputs outputs to delayed versions 
 		this.addScalarWire(serial8CmdValidName);  
@@ -3376,10 +3376,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		for (int idx=1; idx<delayCount+1; idx++) {
 			this.addScalarReg(resValidDlyName[idx]);  
 			this.addVectorReg(resDataDlyName[idx], 0, 8); 
-			this.addResetAssign(groupName, builder.getDefaultReset(), resValidDlyName[idx] + " <= #1  1'b0;");  
-			this.addResetAssign(groupName, builder.getDefaultReset(), resDataDlyName[idx] + " <= #1  8'b0;");  
-			this.addRegAssign(groupName,  resValidDlyName[idx] + " <= #1  " + resValidDlyName[idx-1] + ";");  
-			this.addRegAssign(groupName,  resDataDlyName[idx] + " <= #1  " + resDataDlyName[idx-1] + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), resValidDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), resDataDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 8'b0;");  
+			this.addRegAssign(groupName,  resValidDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + resValidDlyName[idx-1] + ";");  
+			this.addRegAssign(groupName,  resDataDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + resDataDlyName[idx-1] + ";");  
 		}
         // assign s8 inputs to predelay 
 		this.addWireAssign(resValidDlyName[0] + " = " + serial8ResValidName + ";");  
@@ -3390,7 +3390,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String s8RdAccumNextName = "s8_" + addrInstProperties.getBaseName() + "_rdata_accum_next";                      
 		this.addVectorReg(s8RdAccumName, 0, addrInstProperties.getMaxRegWidth());  
 		this.addVectorReg(s8RdAccumNextName, 0, addrInstProperties.getMaxRegWidth());  
-		this.addRegAssign(groupName,  s8RdAccumName + " <= #1  " + s8RdAccumNextName + ";");  
+		this.addRegAssign(groupName,  s8RdAccumName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8RdAccumNextName + ";");  
 		this.addWireAssign(extIf.hwToDecodeName + " = " + s8RdAccumName + ";");
 		
 		//  will need to capture res width
@@ -3398,8 +3398,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (useTransactionSize) {
 			this.addVectorReg(extIf.hwToDecodeTransactionSizeName, 0, regWordBits);  
 			this.addVectorReg(hwToDecodeTransactionSizeNextName, 0, regWordBits);  // res size will be set in sm
-			this.addResetAssign(groupName, builder.getDefaultReset(), extIf.hwToDecodeTransactionSizeName + " <= #1  " + regWordBits + "'b0;");  
-			this.addRegAssign(groupName,  extIf.hwToDecodeTransactionSizeName + " <= #1  " + hwToDecodeTransactionSizeNextName + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), extIf.hwToDecodeTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + regWordBits + "'b0;");  
+			this.addRegAssign(groupName,  extIf.hwToDecodeTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + hwToDecodeTransactionSizeNextName + ";");  
 		}
 
 		// will need to capture nack state
@@ -3407,16 +3407,16 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String rxNackCaptureNextName = rxNackCaptureName + "_next"; 
 		this.addScalarReg(rxNackCaptureName);  
 		this.addScalarReg(rxNackCaptureNextName);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), rxNackCaptureName + " <= #1  1'b0;");  
-		this.addRegAssign(groupName,  rxNackCaptureName + " <= #1  " + rxNackCaptureNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), rxNackCaptureName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+		this.addRegAssign(groupName,  rxNackCaptureName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + rxNackCaptureNextName + ";");  
 		
         // address byte count
 		int addrXferCountBits = Utils.getBits(addrXferCount); 
 		if (addrXferCountBits > 0) {
 			this.addVectorReg(s8AddrCntName, 0, addrXferCountBits);  
 			this.addVectorReg(s8AddrCntNextName, 0, addrXferCountBits);  
-			this.addResetAssign(groupName, builder.getDefaultReset(), s8AddrCntName + " <= #1  " + addrXferCountBits + "'b0;");  
-			this.addRegAssign(groupName,  s8AddrCntName + " <= #1  " + s8AddrCntNextName + ";");  			
+			this.addResetAssign(groupName, builder.getDefaultReset(), s8AddrCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + addrXferCountBits + "'b0;");  
+			this.addRegAssign(groupName,  s8AddrCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8AddrCntNextName + ";");  			
 		}
 		
 		// data byte count
@@ -3425,8 +3425,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		this.addVectorReg(s8DataCntName, 0, maxDataXferCountBits);  
 		this.addVectorReg(s8DataCntNextName, 0, maxDataXferCountBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), s8DataCntName + " <= #1  " + maxDataXferCountBits + "'b0;");  
-		this.addRegAssign(groupName,  s8DataCntName + " <= #1  " + s8DataCntNextName + ";"); 
+		this.addResetAssign(groupName, builder.getDefaultReset(), s8DataCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + maxDataXferCountBits + "'b0;");  
+		this.addRegAssign(groupName,  s8DataCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8DataCntNextName + ";"); 
 		//System.out.println("SystemVerilogBuilder generateExternalInterface_Serial8: max data xfers=" + maxDataXferCount);
 				
 		// state machine init values
@@ -3683,8 +3683,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int stateBits = 3;
 		this.addVectorReg(ringStateName, 0, stateBits);  
 		this.addVectorReg(ringStateNextName, 0, stateBits);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), ringStateName + " <= #1  " + stateBits + "'b0;");  
-		this.addRegAssign(groupName,  ringStateName + " <= #1  " + ringStateNextName + ";");  
+		this.addResetAssign(groupName, builder.getDefaultReset(), ringStateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  ringStateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringStateNextName + ";");  
 
 		// create delayed cmd signals
 		int delayCount = addrInstProperties.getExternalType().getParm("delay");
@@ -3699,10 +3699,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		for (int idx=1; idx<delayCount+1; idx++) {
 			this.addScalarReg(cmdValidDlyName[idx]);  
 			this.addVectorReg(cmdDataDlyName[idx], 0, ringWidth); 
-			this.addResetAssign(groupName, builder.getDefaultReset(), cmdValidDlyName[idx] + " <= #1  1'b0;");  
-			this.addResetAssign(groupName, builder.getDefaultReset(), cmdDataDlyName[idx] + " <= #1  " + ringWidth + "'b0;");  
-			this.addRegAssign(groupName,  cmdValidDlyName[idx] + " <= #1  " + cmdValidDlyName[idx-1] + ";");  
-			this.addRegAssign(groupName,  cmdDataDlyName[idx] + " <= #1  " + cmdDataDlyName[idx-1] + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), cmdValidDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), cmdDataDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringWidth + "'b0;");  
+			this.addRegAssign(groupName,  cmdValidDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + cmdValidDlyName[idx-1] + ";");  
+			this.addRegAssign(groupName,  cmdDataDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + cmdDataDlyName[idx-1] + ";");  
 		}
         // assign ring outputs outputs to delayed versions 
 		this.addScalarWire(ringCmdValidName);  
@@ -3722,10 +3722,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		for (int idx=1; idx<delayCount+1; idx++) {
 			this.addScalarReg(resValidDlyName[idx]);  
 			this.addVectorReg(resDataDlyName[idx], 0, ringWidth); 
-			this.addResetAssign(groupName, builder.getDefaultReset(), resValidDlyName[idx] + " <= #1  1'b0;");  
-			this.addResetAssign(groupName, builder.getDefaultReset(), resDataDlyName[idx] + " <= #1  " + ringWidth + "'b0;");  
-			this.addRegAssign(groupName,  resValidDlyName[idx] + " <= #1  " + resValidDlyName[idx-1] + ";");  
-			this.addRegAssign(groupName,  resDataDlyName[idx] + " <= #1  " + resDataDlyName[idx-1] + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), resValidDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), resDataDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringWidth + "'b0;");  
+			this.addRegAssign(groupName,  resValidDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + resValidDlyName[idx-1] + ";");  
+			this.addRegAssign(groupName,  resDataDlyName[idx] + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + resDataDlyName[idx-1] + ";");  
 		}
         // assign ring inputs to predelay 
 		this.addWireAssign(resValidDlyName[0] + " = " + ringResValidName + ";");  
@@ -3736,7 +3736,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String ringRdAccumNextName = "r" + ringWidth + "_" + addrInstProperties.getBaseName() + "_rdata_accum_next";                      
 		this.addVectorReg(ringRdAccumName, 0, addrInstProperties.getMaxRegWidth());  
 		this.addVectorReg(ringRdAccumNextName, 0, addrInstProperties.getMaxRegWidth());  
-		this.addRegAssign(groupName,  ringRdAccumName + " <= #1  " + ringRdAccumNextName + ";");  
+		this.addRegAssign(groupName,  ringRdAccumName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringRdAccumNextName + ";");  
 		this.addWireAssign(extIf.hwToDecodeName + " = " + ringRdAccumName + ";");
 		
 		//  will need to capture res width
@@ -3744,16 +3744,16 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (useTransactionSize) {
 			this.addVectorReg(extIf.hwToDecodeTransactionSizeName, 0, regWordBits);  
 			this.addVectorReg(hwToDecodeTransactionSizeNextName, 0, regWordBits);  // res size will be set in sm
-			this.addResetAssign(groupName, builder.getDefaultReset(), extIf.hwToDecodeTransactionSizeName + " <= #1  " + regWordBits + "'b0;");  
-			this.addRegAssign(groupName,  extIf.hwToDecodeTransactionSizeName + " <= #1  " + hwToDecodeTransactionSizeNextName + ";");  
+			this.addResetAssign(groupName, builder.getDefaultReset(), extIf.hwToDecodeTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + regWordBits + "'b0;");  
+			this.addRegAssign(groupName,  extIf.hwToDecodeTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + hwToDecodeTransactionSizeNextName + ";");  
 		}
 
         // address byte count
 		if (addrXferCountBits > 0) {
 			this.addVectorReg(ringAddrCntName, 0, addrXferCountBits);  
 			this.addVectorReg(ringAddrCntNextName, 0, addrXferCountBits);  
-			this.addResetAssign(groupName, builder.getDefaultReset(), ringAddrCntName + " <= #1  " + addrXferCountBits + "'b0;");  
-			this.addRegAssign(groupName,  ringAddrCntName + " <= #1  " + ringAddrCntNextName + ";");  			
+			this.addResetAssign(groupName, builder.getDefaultReset(), ringAddrCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + addrXferCountBits + "'b0;");  
+			this.addRegAssign(groupName,  ringAddrCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringAddrCntNextName + ";");  			
 		}
 		
 		// data byte count
@@ -3763,8 +3763,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		if (useDataCounter) {
 			this.addVectorReg(ringDataCntName, 0, maxDataXferCountBits);
 			this.addVectorReg(ringDataCntNextName, 0, maxDataXferCountBits);  
-			this.addResetAssign(groupName, builder.getDefaultReset(), ringDataCntName + " <= #1  " + maxDataXferCountBits + "'b0;");  
-			this.addRegAssign(groupName,  ringDataCntName + " <= #1  " + ringDataCntNextName + ";"); 			
+			this.addResetAssign(groupName, builder.getDefaultReset(), ringDataCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + maxDataXferCountBits + "'b0;");  
+			this.addRegAssign(groupName,  ringDataCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + ringDataCntNextName + ";"); 			
 		}
 		//System.out.println("SystemVerilogDecodeModule generateExternalInterface_ring: max data xfers=" + maxDataXferCount + ", bits=" + maxDataXferCountBits);
 				
