@@ -105,7 +105,8 @@ public class PyBaseModClass {
 	   /** returns code for this method */
 	   public Collection<? extends OutputLine> getPy(Integer indentLvl) {
 		   List<OutputLine> outList = new ArrayList<OutputLine>();
-		   outList.add(new OutputLine(indentLvl++ , "def " + signature.trim() + ":"));	   
+		   outList.add(new OutputLine(indentLvl , "def " + signature.trim() + ":"));
+		   indentLvl += 2;
 		   // add constructor init calls if needed
 		   if (!initCalls.isEmpty()) {
 			  Iterator<String> it = initCalls.iterator();
@@ -115,7 +116,8 @@ public class PyBaseModClass {
 		   }
 		   for (String stmt: statements)
 			   outList.add(new OutputLine(indentLvl , stmt));
-		   outList.add(new OutputLine(--indentLvl , ""));
+		   indentLvl -= 2;
+		   outList.add(new OutputLine(indentLvl , ""));
 		   return outList;
 	   }
    }
@@ -143,9 +145,10 @@ public class PyBaseModClass {
 	   }
 	   if (!parentStr.isEmpty()) parentStr += ")";
 	   
-	   outList.add(new OutputLine(indentLvl++ , "class " + name + parentStr + ":"));
+	   outList.add(new OutputLine(indentLvl , "class " + name + parentStr + ":"));
+	   indentLvl += 2;
 
-	   // add defs TODO
+	   // add defs
 	   for (String stmt: defines) {
 		   outList.add(new OutputLine(indentLvl , stmt)); 
 	   }
@@ -158,7 +161,8 @@ public class PyBaseModClass {
 	   }
 	   
 	   // close class
-	   outList.add(new OutputLine(--indentLvl , ""));
+	   indentLvl -= 2;
+	   outList.add(new OutputLine(indentLvl , ""));
 	   	   
 	   return outList;
    }
