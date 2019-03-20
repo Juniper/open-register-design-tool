@@ -6,6 +6,8 @@ import java.util.List;
 
 import ordt.extract.Ordt;
 import ordt.extract.RegModelIntf;
+import ordt.extract.RegNumber.NumBase;
+import ordt.extract.RegNumber.NumFormat;
 import ordt.output.drvmod.DrvModBaseInstance;
 import ordt.output.drvmod.DrvModBuilder;
 import ordt.output.drvmod.DrvModRegInstance;
@@ -13,6 +15,7 @@ import ordt.output.drvmod.DrvModRegInstance.DrvModField;
 import ordt.output.drvmod.DrvModRegSetInstance.DrvModRegSetChildInfo;
 import ordt.output.drvmod.DrvModRegSetInstance;
 import ordt.output.drvmod.py.PyBaseModClass.PyMethod;
+import ordt.parameters.ExtParameters;
 
 /** generate python pio driver model */
 public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder overrides in PyDrvModBuilder - these are in DrvModBuilder 
@@ -45,12 +48,14 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
 	public void processRegInstance(DrvModRegInstance rInst) {
 		PyMethod rootBuild = rootClass.getTaggedMethod("build");
 		// create the new instance
-		rootBuild.addStatement(rInst.getInstName() + " = ordt_drv_reg('" + rInst.getName() + "')");
+		rootBuild.addStatement(rInst.getInstName() + " = ordt_drv_reg('" + rInst.getName() + "', " + rInst.getWidth() + ")");
 		// add this instance's fields
 		List<DrvModField> fields = rInst.getFields();
-		for(DrvModField field: fields)
+		for(DrvModField field: fields) {
+			String resetStr = (field.reset == null)? "None" : field.reset.toFormat(NumBase.Dec, NumFormat.Int);
 			rootBuild.addStatement(rInst.getInstName() + ".add_field('" + field.name + "', " + field.lowIndex + ", " + field.width +
-					", " + toPyBool(field.isReadable()) + ", " + toPyBool(field.isWriteable()) +")");
+					", " + toPyBool(field.isReadable()) + ", " + toPyBool(field.isWriteable()) + ", " + resetStr + ")");
+		}
 	}
 	
     //---------------------------- output write methods ----------------------------------------
@@ -78,6 +83,7 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
     		writeHeader(pyBw, commentPrefix);
     		writeStmt(pyBw, 0, "");
     		
+    		// TODO - enum defines?
     		// write the driver model classes
     		writeClasses();
     		
@@ -149,12 +155,13 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
 		className = "ordt_drv_field";
 		newClass = new PyBaseModClass(className);
 		// constructors
-		nMethod = newClass.addConstructor("__init__(self, name, loidx, width, readable, writeable)");  
+		nMethod = newClass.addConstructor("__init__(self, name, loidx, width, readable, writeable, reset)");  
 		nMethod.addInitCall("self.name = name");  // field name
 		nMethod.addInitCall("self.loidx = loidx"); // low index of field
 		nMethod.addInitCall("self.width = width");  // field width
 		nMethod.addInitCall("self.readable = readable");
 		nMethod.addInitCall("self.writeable = writeable");
+		nMethod.addInitCall("self.reset = reset");
 		// write class
 		writeStmts(pyBw, newClass.genPy()); // header
 	}
@@ -178,7 +185,7 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
 		nMethod.addStatement("return {'status':'bad path'}");  
 		//
 		nMethod = newClass.addMethod("get_version(self, tag)");
-		String baseTag = rootInstances.get(0).instance.getName();  // root instance name of overlay 0 will be used as tag
+		String baseTag = ExtParameters.hasPyDrvDefaultTagName()? ExtParameters.pyDrvDefaultTagName() : rootInstances.get(0).instance.getName();  // root instance name of overlay 0 will be used as tag unless specified
 		nMethod.addStatement("if tag == '" + baseTag + "':");
 		nMethod.addStatement("    return 0");
 		int idx=1;
@@ -310,23 +317,24 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
 		PyBaseModClass newClass = new PyBaseModClass(className);
 		newClass.addParent("ordt_drv_element");
 		// constructors
-		PyMethod nMethod = newClass.addConstructor("__init__(self, name)");  
+		PyMethod nMethod = newClass.addConstructor("__init__(self, name, width)");  
 		nMethod.addInitCall("super().__init__(name)");
 		nMethod.addInitCall("self.fields = []");
+		nMethod.addInitCall("self.width = width");
 		// get_address method
 		nMethod = newClass.addMethod("get_address_using_list(self, version, path, bypass_names, address_in)");  
 		nMethod.addStatement("if not path:");  // exit with error if no path
 		nMethod.addStatement("    return {'status':'bad path'}");
 		nMethod.addStatement("path.pop(0)");  // remove element from front of path
 		nMethod.addStatement("if not path:");    // now if path is empty we're done
-		nMethod.addStatement("    return {'status':'reg', 'address':address_in, 'fields':self.fields}");  
+		nMethod.addStatement("    return {'status':'reg', 'address':address_in, 'width':self.width, 'fields':self.fields}");  
 		nMethod.addStatement("if __class__.ORDT_PIO_DRV_VERBOSE:");  
 		nMethod.addStatement("    pelem = path[0]");  // get child element from front of path
 		nMethod.addStatement("    print('--> invalid child ' + pelem.name + ' specified in reg ' + self.name)");
 		nMethod.addStatement("return {'status':'bad path'}");
 		//
-		nMethod = newClass.addMethod("add_field(self, name, loidx, width, readable, writeable)");
-		nMethod.addStatement("new_field = ordt_drv_field(name, loidx, width, readable, writeable)");  
+		nMethod = newClass.addMethod("add_field(self, name, loidx, width, readable, writeable, reset)");
+		nMethod.addStatement("new_field = ordt_drv_field(name, loidx, width, readable, writeable, reset)");  
 		nMethod.addStatement("self.fields.append(new_field)");  
 		//  get_path_using_version
 		nMethod = newClass.addMethod("get_path_using_version(self, version, address_in, path_in)");  

@@ -21,6 +21,7 @@ ext_parm_defs
     | bench_out_defs
     | xml_out_defs
  //   | cppmod_out_defs
+    | pydrvmod_out_defs
     | model_annotation
     )*
   ;
@@ -249,6 +250,18 @@ ext_parm_defs
    | 'set_full_model' EQ STR
    ;
 */
+
+// ------------ pydrvmod_out_defs
+ pydrvmod_out_defs
+   : 'output' 'pydrvmod'
+     LBRACE
+     (pydrvmod_out_parm_assign)*
+     RBRACE
+   ;  
+   
+ pydrvmod_out_parm_assign
+   : 'default_tag_name' EQ STR
+   ;
 
 // ------------ model_annotation
  model_annotation

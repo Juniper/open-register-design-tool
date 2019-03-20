@@ -3,6 +3,7 @@ package ordt.output.drvmod;
 import java.util.ArrayList;
 import java.util.List;
 
+import ordt.extract.RegNumber;
 import ordt.extract.model.ModRegister;
 
 public class DrvModRegInstance extends DrvModBaseInstance {
@@ -19,8 +20,8 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 		return fields;
 	}
 
-	public void addField(String name, int lowIndex, int width, boolean readable, boolean writeable) {
-		this.fields.add(new DrvModField(name, lowIndex, width, readable, writeable));
+	public void addField(String name, int lowIndex, int width, boolean readable, boolean writeable, RegNumber reset) {
+		this.fields.add(new DrvModField(name, lowIndex, width, readable, writeable, reset));
 	}
 	
 	public int getWidth() {
@@ -42,14 +43,16 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 		public int width;
 		public boolean readable;
 		public boolean writeable;
+		public RegNumber reset;
 		
-		private DrvModField(String name, int lowIndex, int width, boolean readable, boolean writeable) {
+		private DrvModField(String name, int lowIndex, int width, boolean readable, boolean writeable, RegNumber reset) {
 			super();
 			this.name = name;
 			this.lowIndex = lowIndex;
 			this.width = width;
 			this.readable = readable;
 			this.writeable = writeable;
+			this.reset = reset;
 		}
 
 		@Override
@@ -61,6 +64,7 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 			result = prime * result + (readable ? 1231 : 1237);
 			result = prime * result + width;
 			result = prime * result + (writeable ? 1231 : 1237);
+			result = prime * result + (((reset == null) || !reset.isDefined()) ? 0 : reset.getValue().hashCode());
 			return result;
 		}
 
@@ -85,6 +89,11 @@ public class DrvModRegInstance extends DrvModBaseInstance {
 			if (width != other.width)
 				return false;
 			if (writeable != other.writeable)
+				return false;
+			if ((reset == null) || !reset.isDefined()) {
+				if ((other.reset != null) && other.reset.isDefined())
+					return false;
+			} else if (!reset.getValue().equals(other.reset.getValue()))
 				return false;
 			return true;
 		}

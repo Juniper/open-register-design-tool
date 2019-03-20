@@ -900,6 +900,12 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	@Override public void enterXml_out_parm_assign(SystemRDLParser.Xml_out_parm_assignContext ctx) {
 		ExtParameters.assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
 	}
+	/**
+	 * Assign pydrvmod output parameters
+	 */
+	@Override public void enterPydrvmod_out_parm_assign(SystemRDLParser.Pydrvmod_out_parm_assignContext ctx) {
+		ExtParameters.assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
+	}
 
 	/**
 	 * Capture annotation command  

@@ -195,6 +195,9 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		// ---- xml output defaults
 		initBooleanParameter("include_field_hw_info", true);
 		initBooleanParameter("include_component_info", false);
+		
+		// ---- pydrvmod output defaults
+		initStringParameter("default_tag_name", null);
 	}
 	
 	static void initBooleanParameter(String name, Boolean value) {
@@ -413,6 +416,13 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	 * Assign xml output parameters
 	 */
 	@Override public void enterXml_out_parm_assign(ExtParmsParser.Xml_out_parm_assignContext ctx) {
+		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
+	}
+	
+	/**
+	 * Assign pydrvmod output parameters
+	 */
+	@Override public void enterPydrvmod_out_parm_assign(ExtParmsParser.Pydrvmod_out_parm_assignContext ctx) {
 		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
 	}
 
@@ -959,6 +969,16 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		return uvmregsBaseAddressOverride() != null;
 	}
 	
+	// pydrvmod getters/setters
+	
+	public static String pyDrvDefaultTagName() {
+		return getStringParameter("default_tag_name");
+	}
+	
+	public static boolean hasPyDrvDefaultTagName() {
+		return getStringParameter("default_tag_name") != null;
+	}
+		
 	// --------
 	
 	/** returns true if test commands have been specified  */

@@ -79,6 +79,11 @@ output jspec {
     keep_fset_hierarchy = true     // include fieldset hierarchy in output
 }
 
+// pydrvmod output parameters
+output pydrvmod {
+	default_tag_name = "VER_0"    // override the tag used for default model case (if not specified, root instance name is used)
+}
+
 // rdl output parameters  
 output rdl {
 	root_component_is_instanced = true   // instance the root addrmap/regset or make it a comp definition (not if multi-typedef)?
