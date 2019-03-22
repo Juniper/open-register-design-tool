@@ -83,13 +83,31 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
     		writeHeader(pyBw, commentPrefix);
     		writeStmt(pyBw, 0, "");
     		
-    		// TODO - enum defines?
+    		// write enum defines
+    		writeEnums();
+    		
     		// write the driver model classes
     		writeClasses();
     		
     		// close up py file
     		closeBufferedWriter(pyBw);
     	}
+	}
+
+	/** write enum defines ***/
+	private void writeEnums() {
+		writeStmt(pyBw, 0, "from enum import Enum, auto");
+		writeStmt(pyBw, 0, "");
+		writeStmt(pyBw, 0, "class ordt_drv_error(Enum):");
+		writeStmt(pyBw, 0, "    BAD_TAG = auto()");
+		writeStmt(pyBw, 0, "    BAD_PATH = auto()");
+		writeStmt(pyBw, 0, "    BAD_ADDRESS = auto()");
+		writeStmt(pyBw, 0, "");
+		writeStmt(pyBw, 0, "class ordt_drv_return_type(Enum):");
+		writeStmt(pyBw, 0, "    REG = auto()");
+		writeStmt(pyBw, 0, "    REGSET = auto()");
+		writeStmt(pyBw, 0, "    FIELD = auto()");
+		writeStmt(pyBw, 0, "");
 	}
 
 	/** write model classes */
@@ -174,15 +192,22 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
 		// constructors
 		PyMethod nMethod = newClass.addConstructor("__init__(self, name)");  
 		nMethod.addInitCall("self.name = name");  // relative name of instance
-		// -- get_address methods (get_address_using_list, get_path_using_version are abstract, so no need to declare here)
 		//
-		nMethod = newClass.addMethod("get_address_using_version(self, version, pathstr, address)"); 
+		nMethod = newClass.addMethod("get_address_using_version(self, version, pathstr, address_in)"); 
 		nMethod.addStatement("path = self.get_pathlist(pathstr)");
 		nMethod.addStatement("if path:");  
-		nMethod.addStatement("    return self.get_address_using_list(version, path, False, address)");  // match names by default
+		nMethod.addStatement("    return self.get_address_using_list(version, path, False, address_in)");  // match names by default
 		nMethod.addStatement("if __class__.ORDT_PIO_DRV_VERBOSE:");  
 		nMethod.addStatement("    print('--> invalid path: ' + pathstr)");
-		nMethod.addStatement("return {'status':'bad path'}");  
+		nMethod.addStatement("return {'error':ordt_drv_error.BAD_PATH}");  
+		//
+		nMethod = newClass.addMethod("get_path_instance_list_using_version(self, version, pathstr, path_instance_list_in)"); 
+		nMethod.addStatement("path = self.get_pathlist(pathstr)");
+		nMethod.addStatement("if path:");  
+		nMethod.addStatement("    return self.get_path_instance_list_using_list(version, path, False, path_instance_list_in)");  // match names by default
+		nMethod.addStatement("if __class__.ORDT_PIO_DRV_VERBOSE:");  
+		nMethod.addStatement("    print('--> invalid path: ' + pathstr)");
+		nMethod.addStatement("return {'error':ordt_drv_error.BAD_PATH}");  
 		//
 		nMethod = newClass.addMethod("get_version(self, tag)");
 		String baseTag = ExtParameters.hasPyDrvDefaultTagName()? ExtParameters.pyDrvDefaultTagName() : rootInstances.get(0).instance.getName();  // root instance name of overlay 0 will be used as tag unless specified
@@ -203,13 +228,21 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
 			nMethod.addStatement("tags.append('" + tag + "')");
 		nMethod.addStatement("return tags");
 		//
-		nMethod = newClass.addMethod("get_address_using_tag(self, tag, pathstr, address)"); 
+		nMethod = newClass.addMethod("get_address_using_tag(self, tag, pathstr, address_in)"); 
 		nMethod.addStatement("version = self.get_version(tag)");
 		nMethod.addStatement("if version<0:");  
 		nMethod.addStatement("    if __class__.ORDT_PIO_DRV_VERBOSE:");  
 		nMethod.addStatement("        print('--> invalid tag: ' + tag)");
-		nMethod.addStatement("    return {'status':'bad tag'}");  
-		nMethod.addStatement("return self.get_address_using_version(version, pathstr, address)");  
+		nMethod.addStatement("    return {'error':ordt_drv_error.BAD_TAG}");  
+		nMethod.addStatement("return self.get_address_using_version(version, pathstr, address_in)");  
+		//
+		nMethod = newClass.addMethod("get_path_instance_list_using_tag(self, tag, pathstr, path_instance_list_in)"); 
+		nMethod.addStatement("version = self.get_version(tag)");
+		nMethod.addStatement("if version<0:");  
+		nMethod.addStatement("    if __class__.ORDT_PIO_DRV_VERBOSE:");  
+		nMethod.addStatement("        print('--> invalid tag: ' + tag)");
+		nMethod.addStatement("    return {'error':ordt_drv_error.BAD_TAG}");  
+		nMethod.addStatement("return self.get_path_instance_list_using_version(version, pathstr, path_instance_list_in)");  
 		//
 		nMethod = newClass.addMethod("get_pathlist(self, pathstr)");
 		nMethod.addStatement("pathlist = []");
@@ -224,7 +257,7 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
 		nMethod.addStatement("if version<0:");  
 		nMethod.addStatement("    if __class__.ORDT_PIO_DRV_VERBOSE:");  
 		nMethod.addStatement("        print('--> invalid tag: ' + tag)");
-		nMethod.addStatement("    return {'status':'bad tag'}");  
+		nMethod.addStatement("    return {'error':ordt_drv_error.BAD_TAG}");  
 		nMethod.addStatement("return self.get_path_using_version(version, address, path_in)");  
 		// write class
 		writeStmts(pyBw, newClass.genPy()); // header with no include guards
@@ -268,23 +301,40 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
 		// get_address method
 		nMethod = newClass.addMethod("get_address_using_list(self, version, path, bypass_names, address_in)");  
 		nMethod.addStatement("if not path:");  // exit with error if no path
-		nMethod.addStatement("    return {'status':'bad path'}");
+		nMethod.addStatement("    return {'error':ordt_drv_error.BAD_PATH}");
 		nMethod.addStatement("pelem = path[0]");
 		nMethod.addStatement("if not bypass_names:");  
 		nMethod.addStatement("    path.pop(0)");  // remove element from front of path
 		nMethod.addStatement("    if not path:");    // now if path is empty we're done
-		nMethod.addStatement("        return {'status':'reg set', 'address':address_in, 'children':self.get_child_names(version)}");
+		nMethod.addStatement("        return {'type':ordt_drv_return_type.REGSET, 'address':address_in, 'children':self.get_child_names(version)}");
 		nMethod.addStatement("    pelem = path[0]");  // get child element from front of path
 		nMethod.addStatement("for child in self.children:");  // find matching child
-		// if a matching child, update address and make recursive call
-		nMethod.addStatement("    if ((1<<version) & child.version_map) and (bypass_names or (pelem.name == child.child.name)):");  
+		nMethod.addStatement("    if ((1<<version) & child.version_map) and (bypass_names or (pelem.name == child.child.name)):");  // if a matching child, update address and make recursive call
 		nMethod.addStatement("        address = address_in + child.offset");  // first add this regsets offset
 		nMethod.addStatement("        if child.reps > 1:");  // add index offset if a replicated instance
 		nMethod.addStatement("            address += child.stride*int(pelem.idx)");  // add index offset if a replicated instance
 		nMethod.addStatement("        return child.child.get_address_using_list(version, path, False, address)");  // recursive call to matching child
 		nMethod.addStatement("if __class__.ORDT_PIO_DRV_VERBOSE:");  
 		nMethod.addStatement("    print('--> unable to find child ' + pelem.name + ' in regset ' + self.name)" );
-		nMethod.addStatement("return {'status':'bad path'}");  
+		nMethod.addStatement("return {'error':ordt_drv_error.BAD_PATH}");  
+		// get_path_instance_list_using_list method
+		nMethod = newClass.addMethod("get_path_instance_list_using_list(self, version, path, bypass_names, path_instance_list_in)");  
+		nMethod.addStatement("if not path:");  // exit with error if no path
+		nMethod.addStatement("    return {'error':ordt_drv_error.BAD_PATH}");
+		nMethod.addStatement("pelem = path[0]");
+		nMethod.addStatement("if not bypass_names:");  
+		nMethod.addStatement("    path.pop(0)");  // remove element from front of path
+		nMethod.addStatement("    if not path:");    // now if path is empty we're done
+		nMethod.addStatement("        return {'type':ordt_drv_return_type.REGSET, 'instances':path_instance_list_in}");
+		nMethod.addStatement("    pelem = path[0]");  // get child element from front of path
+		nMethod.addStatement("for child in self.children:");  // find matching child
+		nMethod.addStatement("    if ((1<<version) & child.version_map) and (bypass_names or (pelem.name == child.child.name)):");  // if a matching child, add to list and make recursive call
+		nMethod.addStatement("        path_instance_list = path_instance_list_in.copy()");
+		nMethod.addStatement("        path_instance_list.append(child)");  // append child to list
+		nMethod.addStatement("        return child.child.get_path_instance_list_using_list(version, path, False, path_instance_list)");  // recursive call to matching child
+		nMethod.addStatement("if __class__.ORDT_PIO_DRV_VERBOSE:");  
+		nMethod.addStatement("    print('--> unable to find child ' + pelem.name + ' in regset ' + self.name)" );
+		nMethod.addStatement("return {'error':ordt_drv_error.BAD_PATH}");  
 		// add_child method
 		nMethod = newClass.addMethod("add_child(self, version_map, child, reps, offset, stride)");
 		nMethod.addStatement("new_child = ordt_drv_regset_child(version_map, child, reps, offset, stride)");  
@@ -305,7 +355,7 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
 		nMethod.addStatement("        (match_addr, match_path) = child.find_offset(address_in)");
 		nMethod.addStatement("        if match_path:"); // if a match, add to path, subtract offset, and call child
 		nMethod.addStatement("            return child.child.get_path_using_version(version, address_in - match_addr, path_in + match_path)");
-		nMethod.addStatement("return {'status':'bad address'}");
+		nMethod.addStatement("return {'error':ordt_drv_error.BAD_ADDRESS}");
         //
 		// write class
 		writeStmts(pyBw, newClass.genPy()); // header with no include guards
@@ -324,14 +374,37 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
 		// get_address method
 		nMethod = newClass.addMethod("get_address_using_list(self, version, path, bypass_names, address_in)");  
 		nMethod.addStatement("if not path:");  // exit with error if no path
-		nMethod.addStatement("    return {'status':'bad path'}");
+		nMethod.addStatement("    return {'error':ordt_drv_error.BAD_PATH}");
 		nMethod.addStatement("path.pop(0)");  // remove element from front of path
 		nMethod.addStatement("if not path:");    // now if path is empty we're done
-		nMethod.addStatement("    return {'status':'reg', 'address':address_in, 'width':self.width, 'fields':self.fields}");  
+		nMethod.addStatement("    return {'type':ordt_drv_return_type.REG, 'address':address_in, 'width':self.width, 'fields':self.fields}");  
 		nMethod.addStatement("if __class__.ORDT_PIO_DRV_VERBOSE:");  
 		nMethod.addStatement("    pelem = path[0]");  // get child element from front of path
 		nMethod.addStatement("    print('--> invalid child ' + pelem.name + ' specified in reg ' + self.name)");
-		nMethod.addStatement("return {'status':'bad path'}");
+		nMethod.addStatement("return {'error':ordt_drv_error.BAD_PATH}");
+		// get_path_instance_list method
+		nMethod = newClass.addMethod("get_path_instance_list_using_list(self, version, path, bypass_names, path_instance_list_in)");  
+		nMethod.addStatement("if not path:");  // exit with error if no path
+		nMethod.addStatement("    return {'error':ordt_drv_error.BAD_PATH}");
+		nMethod.addStatement("path.pop(0)");  // remove element from front of path
+		nMethod.addStatement("if not path:");    // now if path is empty we're done
+		nMethod.addStatement("    return {'type':ordt_drv_return_type.REG, 'instances':path_instance_list_in}");
+		nMethod.addStatement("if len(path) == 1:");  
+		nMethod.addStatement("    fname = path[0].name");  // get child element from front of path
+		nMethod.addStatement("    fld = self.get_field_by_name(fname)");  
+		nMethod.addStatement("    if fld:");  
+		nMethod.addStatement("        path_instance_list = path_instance_list_in.copy()");
+		nMethod.addStatement("        path_instance_list.append(fld)");  // append child to list
+		nMethod.addStatement("        return {'type':ordt_drv_return_type.FIELD, 'instances':path_instance_list}");
+		nMethod.addStatement("if __class__.ORDT_PIO_DRV_VERBOSE:");  
+		nMethod.addStatement("    pelem = path[0]");  // get child element from front of path
+		nMethod.addStatement("    print('--> invalid child ' + pelem.name + ' specified in reg ' + self.name)");
+		nMethod.addStatement("return {'error':ordt_drv_error.BAD_PATH}");
+		//
+		nMethod = newClass.addMethod("get_field_by_name(self, name)");
+		nMethod.addStatement("for fld in self.fields:");  
+		nMethod.addStatement("    if fld.name == name:");  
+		nMethod.addStatement("        return fld");  
 		//
 		nMethod = newClass.addMethod("add_field(self, name, loidx, width, readable, writeable, reset)");
 		nMethod.addStatement("new_field = ordt_drv_field(name, loidx, width, readable, writeable, reset)");  
@@ -339,7 +412,7 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
 		//  get_path_using_version
 		nMethod = newClass.addMethod("get_path_using_version(self, version, address_in, path_in)");  
 		//nMethod.addStatement("print('--> reg name, address, path=', self.name, address_in, path_in)");
-		nMethod.addStatement("return {'status':'reg', 'path':path_in}");  // just return input path since already a match  
+		nMethod.addStatement("return {'type':ordt_drv_return_type.REG, 'path':path_in}");  // just return input path since already a match  
 		// write class
 		writeStmts(pyBw, newClass.genPy()); // header with no include guards
 	}
@@ -358,18 +431,32 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
 		nMethod = newClass.addMethod("build(self)"); 
 		newClass.tagMethod("build", nMethod);
 		// override of get_address_using_version to bypass names at root level
-		nMethod = newClass.addMethod("get_address_using_version(self, version, pathstr, address)"); 
+		nMethod = newClass.addMethod("get_address_using_version(self, version, pathstr, address_in)"); 
 		nMethod.addStatement("path = self.get_pathlist(pathstr)");
 		nMethod.addStatement("if path:");  
-		nMethod.addStatement("    return self.get_address_using_list(version, path, True, address)");  // skip name match at root level
+		nMethod.addStatement("    return self.get_address_using_list(version, path, True, address_in)");  // skip name match at root level
 		nMethod.addStatement("if __class__.ORDT_PIO_DRV_VERBOSE:");  
 		nMethod.addStatement("    print('--> invalid path: ' + pathstr)");
-		nMethod.addStatement("return {'status':'bad path'}");  
+		nMethod.addStatement("return {'error':ordt_drv_error.BAD_PATH}");  
+		// override of get_path_instance_list_using_version to bypass names at root level
+		nMethod = newClass.addMethod("get_path_instance_list_using_version(self, version, pathstr, path_instance_list_in)"); 
+		nMethod.addStatement("path = self.get_pathlist(pathstr)");
+		nMethod.addStatement("if path:");  
+		nMethod.addStatement("    return self.get_path_instance_list_using_list(version, path, True, path_instance_list_in)");  // skip name match at root level
+		nMethod.addStatement("if __class__.ORDT_PIO_DRV_VERBOSE:");  
+		nMethod.addStatement("    print('--> invalid path: ' + pathstr)");
+		nMethod.addStatement("return {'error':ordt_drv_error.BAD_PATH}");  
 		//
 		nMethod = newClass.addMethod("get_address(self, tag, pathstr)"); 
+		nMethod.addStatement("'''return address given a path string and tag'''");  
 		nMethod.addStatement("return self.get_address_using_tag(tag, pathstr, __class__.base_address)");  
 		//
+		nMethod = newClass.addMethod("get_path_instance_list(self, tag, pathstr)"); 
+		nMethod.addStatement("'''return list of model elements given a path string and tag'''");  
+		nMethod.addStatement("return self.get_path_instance_list_using_tag(tag, pathstr, [])");  // start with empty list
+		//
 		nMethod = newClass.addMethod("get_path(self, tag, address)"); 
+		nMethod.addStatement("'''return path string given an address and tag'''");  
 		nMethod.addStatement("return self.get_path_using_tag(tag, address, '')");  
 		// return the root class
 		return newClass;
