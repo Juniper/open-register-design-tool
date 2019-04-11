@@ -98,7 +98,6 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		initIOLists(null);  // setup IO lists for logic, decode, and top modules
 		decoder.setPrimaryInterfaceType(ExtParameters.getSysVerRootDecoderInterface()); // set root pio interface type from specified params
 		RhsReference.setInstancePropertyStack(instancePropertyStack);  // update pointer to the instance stack for rhs reference evaluation
-		SystemVerilogDefinedOrdtSignals.initDefinedSignalMap();  // load the mapping of pre-defined systemverilog signals
 		model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
 	}
 	

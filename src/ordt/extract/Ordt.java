@@ -22,6 +22,7 @@ import ordt.output.othertypes.RegListBuilder;
 import ordt.output.othertypes.XmlBuilder;
 import ordt.output.systemverilog.SystemVerilogBuilder;
 import ordt.output.systemverilog.SystemVerilogChildInfoBuilder;
+import ordt.output.systemverilog.SystemVerilogDefinedOrdtSignals;
 import ordt.output.systemverilog.SystemVerilogTestBuilder;
 import ordt.output.uvmregs.UVMRegsBuilder;
 import ordt.output.uvmregs.UVMRegsLite1Builder;
@@ -34,7 +35,7 @@ import ordt.parameters.ExtParameters.UVMModelModes;
 
 public class Ordt {
 
-	private static String version = "190321.01";
+	private static String version = "190411.01";
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -106,6 +107,8 @@ public class Ordt {
         	// define output names/comment chars by type
         	defineOutputNames();
         	defineCommentChars();
+        	
+    		SystemVerilogDefinedOrdtSignals.initDefinedSignalMap();  // load the mapping of pre-defined systemverilog signals since used in multiple outputs, eg uvmregs
         	
         	// generate output of all types specified on command line
         	for (OutputType tp : OutputType.values()) {

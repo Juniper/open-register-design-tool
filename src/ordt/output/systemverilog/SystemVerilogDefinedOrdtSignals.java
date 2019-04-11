@@ -44,7 +44,7 @@ public class SystemVerilogDefinedOrdtSignals extends SystemVerilogDefinedSignalM
 	private static HashMap<String, DefSignalType> rhsSigSet = initRhsSignals();  // set of signal types allowed in rhs assign by deref
 		
 	/** load the defined signal map */
-	protected static void initDefinedSignalMap() {
+	public static void initDefinedSignalMap() {
         clearMap();
 		
 		addDefinedSignal(DefSignalType.FIELD, new SystemVerilogDefinedSignal(LOGIC, LOGIC, "rg_", null, "comp_type", "FIELD"));
@@ -137,7 +137,7 @@ public class SystemVerilogDefinedOrdtSignals extends SystemVerilogDefinedSignalM
 	}
 	
 	/** return true is specified signal deref corresponds to a valid rhs signal */
-	public static boolean isValidRhsDeRef(String deRef) {
+	private static boolean isValidRhsDeRef(String deRef) {
 		return rhsSigSet.containsKey(deRef);
 	}
 
