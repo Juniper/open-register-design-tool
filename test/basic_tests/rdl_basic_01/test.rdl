@@ -40,12 +40,13 @@ field sat_incr_rclr_32b_field {
 regfile estats {
 
 		default reset = 0;
+        signal { } another_reset;
 		
 		reg {
 		field {sw=rw; hw=r;} timer_sram;
 		field {sw=rw; hw=r;} cbuf_fifo;
 		field {sw=rw; hw=r;} lut_st;
-		field {sw=rw; intr; hw=r;} l0_b0;
+		field {sw=rw; intr; hw=r; } l0_b0;
 		field {sw=rw; intr; hw=r;} l0_b1;
 		field {sw=rw; intr; halt; hw=r;} l0_b2;
 		field {sw=rw; hw=r;} l0_b3;
@@ -53,6 +54,8 @@ regfile estats {
 		
 		reg{
 		field {sw=r;hw=na;}  version[31:30] = 2'd2;
+		field {sw=rw;hw=na;}  default_rst_fld[17:16] = 2'd0;
+		field {sw=rw;hw=na;}  alt_rst_fld[15:14] = 2'd0;
 		field {sw=r;hw=na;}  syn_logged[9:9] = 1'd0;
 		field {sw=r;hw=na;ored;}  wdth[8:4] = 5'd7;
 		field {sw=r;hw=na;anded;}  generator[3:3] = 1'd1;
@@ -60,6 +63,7 @@ regfile estats {
 		field {sw=r;hw=na;}  correctable[1:1] = 1'd0;
 		field {sw=r;hw=na;}  adr_logged[0:0] = 1'd1;
 		} features;
+		features.alt_rst_fld->resetsignal=another_reset;
 		
 		reg{
 		  field {sw=rw;hw=w;we;} value[10] = 10'd0;

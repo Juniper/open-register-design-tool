@@ -402,7 +402,7 @@ public abstract class ModComponent extends ModBaseComponent {
 		// if no more instances in path we're done so exit
 		if (instances.size()==0) return regInst;  
 		// otherwise get the next instance recursively
-		return regInst.getRegComp().findInstance(instances);
+		return regInst.getRegComp().findInstance(instances);   // TODO
 	}
 
 	/** return the last addrmap instance along specified path. note: method is destructive to input list. 

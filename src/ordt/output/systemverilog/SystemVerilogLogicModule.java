@@ -115,8 +115,10 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 				   if (fieldProperties.hasReset()) {
 					   addVectorWire(fieldRegisterName, 0, fieldProperties.getFieldWidth());  // add field to wire define list
 					   addWireAssign(fieldRegisterName + " = " + getResetValueString() + ";");
+					   if (fieldProperties.hasRef(RhsRefType.RESET_SIGNAL))
+						   MsgUtils.warnMessage("resetsignal property will have no effect in constant field " + fieldProperties.getInstancePath());
 				   }
-				   else MsgUtils.errorMessage("invalid field constant - no reset value for non-writable field " + fieldProperties.getInstancePath());
+				   else MsgUtils.errorMessage("invalid field constant - no reset value defined for non-writable field " + fieldProperties.getInstancePath());
 			   }
 		   }
 	}
@@ -127,26 +129,29 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		   String fieldRegisterNextName = fieldProperties.getFullSignalName(DefSignalType.FIELD_NEXT);  //"reg_" + hwBaseName + "_next";
 		   addVectorReg(fieldRegisterName, 0, fieldProperties.getFieldWidth());  // add field registers to define list
 		   addVectorReg(fieldRegisterNextName, 0, fieldProperties.getFieldWidth());  // we'll be using next value since complex assign
+		   String groupName = regProperties.getBaseName();
 		   // generate flop reset stmts
 		   if (fieldProperties.hasReset()) {
 			   String resetSignalName = builder.getDefaultReset();
 			   boolean resetSignalActiveLow = builder.getDefaultResetActiveLow();
-			   if (builder.getLogicReset() != null) {
-				   resetSignalName = builder.getLogicReset();
-				   resetSignalActiveLow = builder.getLogicResetActiveLow();
-			   }
-			   else if (fieldProperties.hasRef(RhsRefType.RESET_SIGNAL)) {
+			   if (fieldProperties.hasRef(RhsRefType.RESET_SIGNAL)) {
 				   resetSignalActiveLow = false;  // user defined resets are active high 
 				   resetSignalName = resolveRhsExpression(RhsRefType.RESET_SIGNAL);
+				   groupName += " (reset=" + resetSignalName + ")";  // use a different always group for each unique resetsignal
+				   //System.out.println("SystemVerilogModule genFieldRegWriteStmts: field " + fieldProperties.getId() + " has reset signal=" + resetSignalName);
 				   if (!(definedSignals.contains(resetSignalName) || userDefinedSignals.containsKey(resetSignalName)))
 					   MsgUtils.errorMessage("reset signal " + resetSignalName + " for field " + fieldProperties.getInstancePath() + " has not been defined");
 			   }
+			   else if (builder.getLogicReset() != null) {
+				   resetSignalName = builder.getLogicReset();
+				   resetSignalActiveLow = builder.getLogicResetActiveLow();
+			   }
 			   addReset(resetSignalName, resetSignalActiveLow);
-			   addResetAssign(regProperties.getBaseName(), resetSignalName, fieldRegisterName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + getResetValueString() + ";");  // ff reset assigns			   
+			   addResetAssign(groupName, resetSignalName, fieldRegisterName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + getResetValueString() + ";");  // ff reset assigns			   
 		   }
 		   else if (!ExtParameters.sysVerSuppressNoResetWarnings()) MsgUtils.warnMessage("field " + fieldProperties.getInstancePath() + " has no reset defined");
 		   
-		   addRegAssign(regProperties.getBaseName(),  fieldRegisterName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + fieldRegisterNextName + ";");  // assign next to flop
+		   addRegAssign(groupName,  fieldRegisterName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + fieldRegisterNextName + ";");  // assign next to flop
 	}
 
 	/** create statements to set value of next based on field settings */ 
@@ -778,7 +783,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		String sigName = rawName.replaceFirst("rg_", "sig_");  // convert to signal prefix
 		// the local list may not have been populated, but can load with null to indicate that it's been seen on rhs of an assign
 		if (!userDefinedSignals.containsKey(sigName)) {
-			//System.out.println("SystemVerilogLogicModule saveUserSignalInfo: " + sigNameStr + " was found in master list, but not in module-specific list");
+			//System.out.println("SystemVerilogLogicModule saveUserSignalInfo: " + sigName + " was found in master list, but not in module-specific list");
 			userDefinedSignals.put(sigName, null);
 		}
 		else {

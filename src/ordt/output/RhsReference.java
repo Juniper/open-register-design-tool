@@ -189,7 +189,21 @@ public class RhsReference {
 	   ModInstance rhsInstance = null;
 	   if (ancModComp != null) {
 		   List<String> pathList = Utils.pathToList(rawInstancePath, false, false);
+		   // first see if ref is for a user defined signal
+		   /*if (pathList.size() == 1) {  // TODO enable for ancestor signal accessibility
+			   rhsInstance = findSignalInstance(pathList.get(0));
+			   if (rhsInstance != null) {
+				   userSignal = true;
+				   if (hasDeRef()) 
+					   MsgUtils.errorMessage("Invalid rhs signal reference in assignment (" + rawReference + ")");  // user signal reference with a dref is not allowed
+				   return;
+			   }
+		   }
+		   // if not a signal */
+		   
+		   // find model instance in scope of the component where assign was made
 		   rhsInstance = ancModComp.findInstance(pathList);
+		   //System.out.println("RhsReference parseRawReference: rawInstancePath=" + rawInstancePath + ", pathList.size()=" + pathList.size() + ", ancModComp.getId()=" + ancModComp.getId());
 		   // check for an addrmap mismatch between lhs and rhs of assign
 		   this.sameAddrmap = detectAddrmapMismatch(rawInstancePath, ancModComp);
 		   // detect addrmap mismatch between lhs and rhs
@@ -201,15 +215,48 @@ public class RhsReference {
 	   }
 	   // if no inst found then error
 	   if (rhsInstance == null) 
-		   MsgUtils.errorMessage("Unable to resolve rhs assignment reference " + rawReference);
+		   MsgUtils.errorExit("Unable to resolve rhs assignment reference " + rawReference);
 	   // set signal
 	   if (rhsInstance.getRegComp().isSignal()) {
+		   //System.out.println("RhsReference parseRawReference: found a signal reference, id=" + rhsInstance.getFullId());
 		   userSignal = true;
 		   if (hasDeRef()) 
 			   MsgUtils.errorMessage("Invalid rhs signal reference in assignment (" + rawReference + ")");  // user signal reference with a dref is not allowed
 	   }
    }
+
+// ---- methods referencing active instance stack
+
+   /*private ModInstance findSignalInstance(String string) {
+	   // TODO - will allow signals defined in ancestors to be accessible
+	   return null;
+    }*/
+
+/** return the index in the instance stack where this assignment occurred */
+   private int getAssignStackIndex() {
+	   return instancePropertyStack.size() - (depth + 1);
+   }
    
+   /** return the component of a member of the instance stack given a stack index */
+   private ModComponent getAssignComponent(int stackIndex) {
+	   // if one deeper than stack return the root instanced component
+	   ModComponent ancModComp = null;
+	   if (stackIndex == -1) {
+		   if (!instancePropertyStack.isEmpty()) {
+			   InstanceProperties ancestor = instancePropertyStack.get(0);  // get stack root
+			   ModInstance ancModInst = ancestor.getExtractInstance();
+			   ancModComp = ancModInst.getParent();
+		   }
+	   }
+	   // otherwise return the model instance at assignment depth
+	   else if (stackIndex > -1) {
+		   InstanceProperties ancestor = instancePropertyStack.get(stackIndex); 
+		   ModInstance ancModInst = ancestor.getExtractInstance();
+		   ancModComp = ancModInst.getRegComp();
+	   }
+	   return ancModComp;
+   }
+ 
    /** check for an addrmap mismatch between lhs and rhs of assign - return false on mismatch 
     * @param rawInstancePath - rhs reference path
     * @param ancModComp - component at depth where assign was made
@@ -220,7 +267,7 @@ public class RhsReference {
 	   ModInstance rhsAddrMapInst = ancModComp.findLastAddrmap(pathList);  
 	   // find rhs reference addrmap instance		   
 	   ModInstance lhsAddrMapInst = null;  
-	   int ancIndex = instancePropertyStack.size() - (depth + 1);
+	   int ancIndex = getAssignStackIndex();  
 	   if (ancIndex < 0) ancIndex = 0;
 	   for (int idx=ancIndex; idx<instancePropertyStack.size(); idx++) {
 		   ModInstance inst = instancePropertyStack.get(idx).getExtractInstance();
@@ -230,28 +277,15 @@ public class RhsReference {
 	   return ( ((rhsAddrMapInst == null) && (lhsAddrMapInst == null)) || ((rhsAddrMapInst != null) && rhsAddrMapInst.equals(lhsAddrMapInst)) );
    }
 
-   /** return the model ancestor where assignment was made using the active instance stack. return null if depth is invalid relative to stace size. */
+   /** return the model ancestor where assignment was made using the active instance stack and depth. return null if depth is invalid relative to stack size. */
    private ModComponent getAssignAncestorComp() {
-	   ModComponent ancModComp = null;
-	   int ancIndex = instancePropertyStack.size() - (depth + 1);
-	   // if one deeper than stack return the root instanced component
-	   if (ancIndex == -1) {
-		   if (!instancePropertyStack.isEmpty()) {
-			   InstanceProperties ancestor = instancePropertyStack.get(0);  // get stack root
-			   ModInstance ancModInst = ancestor.getExtractInstance();
-			   ancModComp = ancModInst.getParent();
-		   }
-	   }
-	   // otherwise return the model instance at assignment depth
-	   else if (ancIndex > -1) {
-		   InstanceProperties ancestor = instancePropertyStack.get(ancIndex); 
-		   ModInstance ancModInst = ancestor.getExtractInstance();
-		   ancModComp = ancModInst.getRegComp();
-	   }
-	return ancModComp;
-}
+	   int ancIndex = getAssignStackIndex();
+	   return getAssignComponent(ancIndex);
+   }
 
-/** return relative reference if reg string is of register.field format. else return null  
+   // ----
+
+   /** return relative reference if reg string is of register.field format. else return null  
     *    this is used by uvmregs builder to generate reg+field references that will use common paths of lhs instance */
    private String getRelativeReferenceName(InstanceProperties instProperties) {
 	   

@@ -55,7 +55,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	
 	private static int anonCompId = 0;   // id for anonymous components
 	
-	private InstanceRef rhsInstanceRef = null;  // rhs ref info for assignment checking
+	private List<InstanceRef> rhsInstanceRef = new ArrayList<InstanceRef>();  // list of rhs refs in an assign for validity checking
 	
 	private String usrPropertyName, usrPropertyType, usrPropertyDefault;  // temp vars for capturing user defined properties
 	private List<String> usrPropertyComponents;
@@ -582,7 +582,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 		// if this reg is on rhs of an assign, save it
 		if (activeRules.contains(SystemRDLParser.RULE_post_property_assign) &&
 			activeRules.contains(SystemRDLParser.RULE_property_assign_rhs)) {
-		   rhsInstanceRef = new InstanceRef(ctx, false);
+		   rhsInstanceRef.add(new InstanceRef(ctx, false));
 		}
 	}
 
@@ -607,7 +607,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 		InstanceRef lhsInstanceRef = new InstanceRef(ctx.getChild(0), true);
 		String property = lhsInstanceRef.getProperty();
 		String instPathStr = lhsInstanceRef.getInstPathStr();
-		rhsInstanceRef = null;  // clear out the rhsRef
+		rhsInstanceRef.clear();  // new assign, so clear out the rhsRef list
 		
 		//System.out.println("RdlModelExtractor enterPost_property_assign: dref instance " + instPathStr + ", property=" + property + ", wildcards=" + lhsInstanceRef.hasWildcard()); 
 		// exit with error if an array indexed value is used on lhs	
@@ -616,12 +616,13 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			return;
 		}
 		
-		// if an instance ref of form: path -> property
+		// search for instance having this path in the current component definition
+		ModComponent comp = activeCompDefs.peek();
+		//System.out.println("RdlModelExtractor: post prop assign active component=" + comp.getId()); 
+		ModInstance regInst = comp.findInstance(lhsInstanceRef.getInstPath());   // search for specified instance recursively  
+		
+		// if assigning an instance ref of form: path -> property
 		if (lhsInstanceRef.hasDeRef()) { 
-			// search for instance having this path in the current component definition
-			ModComponent comp = activeCompDefs.peek();
-			//System.out.println("RegExtractor: post prop assign active component =" + comp.getId()); 
-			ModInstance regInst = comp.findInstance(lhsInstanceRef.getInstPath());   // search for specified instance recursively  
 			if (regInst == null)
 				MsgUtils.errorMessage("unable to find lhs instance in property assignment: " + ctx.getText());
 		    // if this instance is found 
@@ -645,14 +646,9 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			}
 		}
 		
-		// parse instance ref of form: instance_ref_elem(or *)+ (treat as a signal assign)
-		else if (lhsInstanceRef.isValid()) { 
+		// else if lhs instance has no deref it's a signal assign
+		else { 
 			//System.out.println("RdlModelExtractor enterPost_property_assign: sig instance " + instPathStr + ", property=" + property); 
-
-			// search for instance having this path in the current component definition
-			ModComponent comp = activeCompDefs.peek();
-			//System.out.println("RegExtractor: post prop assign active component =" + comp.getId()); 
-			ModInstance regInst = comp.findInstance(lhsInstanceRef.getInstPath());   // search for specified instance recursively  
 			if (regInst == null)
 				MsgUtils.errorMessage("unable to find lhs instance or property in assignment: " + ctx.getText());
 		    // if this instance is found in local component then save the prop assignment
@@ -662,29 +658,26 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 				comp.addParameter(instPathStr, property, rhsValue);
 			}
 		}
-
-		// unsupported 
-		else {
-			MsgUtils.warnMessage("instance_ref " + ctx.getChild(0).getText() + " not supported");			
-		}
 	}
-
 
 	/**
 	 * exit Post_property_assign
 	 */
 	@Override public void exitPost_property_assign(@NotNull SystemRDLParser.Post_property_assignContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
+		//System.out.println("RdlModelExtractor exitPost_property_assign: null rhsInstanceRef=" + (rhsInstanceRef==null) + ", text=" + ctx.getText()); 
 		// check for valid rhs references
-		if ((rhsInstanceRef != null) && rhsInstanceRef.isValid()) {
-			//System.out.println("RdlModelExtractor exitPost_property_assign: instance " + rhsInstanceRef.getInstPathStr() + ", property=" + rhsInstanceRef.getProperty() + ", wildcards=" + rhsInstanceRef.hasWildcard()); 
-			ModComponent comp = activeCompDefs.peek();
-			//System.out.println("RegExtractor: post prop assign active component =" + comp.getId()); 
-			ModInstance regInst = comp.findInstance(rhsInstanceRef.getInstPath());   // search for specified instance recursively  
-			if (regInst == null)
-				MsgUtils.errorMessage("unable to find rhs instance in dynamic property assignment: " + ctx.getText());
-			//else
-			//	Jrdl.infoMessage("found rhs instance in dynamic property assignment: " + ctx.getText());
+		for (InstanceRef rhsRef : rhsInstanceRef) {
+			if (rhsRef.isNotRhsSignal()) {  // not checking signals here since validity can depend on ancestor instance path (if sig visibility in child hier is allowed - tbd) 
+				//System.out.println("RdlModelExtractor exitPost_property_assign: instance " + rhsInstanceRef.getInstPathStr() + ", property=" + rhsInstanceRef.getProperty() + ", wildcards=" + rhsInstanceRef.hasWildcard()); 
+				ModComponent comp = activeCompDefs.peek();
+				//System.out.println("RegExtractor: post prop assign active component =" + comp.getId()); 
+				ModInstance regInst = comp.findInstance(rhsRef.getInstPath());   // search for specified instance recursively  
+				if (regInst == null)
+					MsgUtils.errorMessage("unable to find rhs instance in dynamic property assignment: " + ctx.getText());
+				//else
+				//	MsgUtils.infoMessage("found rhs instance in dynamic property assignment: " + ctx.getText());
+			}
 		}
 	}
 	
@@ -959,7 +952,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	
 	/** inner class for carrying extracted rdl instance_ref info */
     class InstanceRef {
-    	private boolean isValid = false;
+    	private boolean isNotRhsSignal = false;
     	private boolean hasWildcard = false;
     	private boolean hasDeRef = false;
     	private String property = null;  // ref is invalid if null
@@ -970,7 +963,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			int instanceRefChildren = instRefTree.getChildCount();
 			// parse an instance ref of form: instance_ref_elem(or *)+ -> property
 			if ((instanceRefChildren>=3) && "->".equals(instRefTree.getChild(instanceRefChildren-2).getText())) { // DREF is at size - 2
-				isValid = true;
+				isNotRhsSignal = true;
 				hasDeRef = true;
 				property = instRefTree.getChild(instanceRefChildren-1).getText();  // set the property from deref
 				// build an instance path list and detect field wildcards
@@ -982,7 +975,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			}
 			// else parse instance ref of form: instance_ref_elem(or *)+ - treat as a signal assign
 			else if (instanceRefChildren>=1) { 
-				isValid = isLhs || (instanceRefChildren>1);  // for now rhs singletons are marked is invalid to inhibit checks
+				isNotRhsSignal = isLhs || (instanceRefChildren>1);  // for now rhs singletons are marked is invalid to inhibit checks
 				property = isLhs? "signalAssign" :  null;  // property is signal assignment if lhs and no deRef				
 				// build an instance path list 
 				for (int idx=0; idx<instanceRefChildren; idx += 2) {
@@ -993,8 +986,9 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 			}
 		}
 		
-		public boolean isValid() {
-			return isValid;
+		/** true if this InstanceRef has a dref or is lhs or is not singleton (not sig) - used for checks */
+		public boolean isNotRhsSignal() {
+			return isNotRhsSignal;
 		}
 		
 		public boolean hasWildcard() {
