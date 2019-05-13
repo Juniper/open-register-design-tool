@@ -5,6 +5,7 @@ package ordt.output.systemverilog;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 import ordt.output.common.MsgUtils;
@@ -47,6 +48,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	private HashMap<String, SignalProperties> userDefinedSignals = new HashMap<String, SignalProperties>();  // all user defined signals in current addrmap module / only valid after generate
 	private HashMap<String, RhsReferenceInfo> rhsSignals = new HashMap<String, RhsReferenceInfo>();  // all right hand side assignment references in module (used to create usable error messages)
 
+	private HashSet<Integer> implementedHwLoadSignals = new HashSet<Integer>();  // set of implemented hwload signals
 	private FieldProperties fieldProperties;
 	private RegProperties regProperties;
 	protected SystemVerilogBuilder builder;  // builder creating this module
@@ -225,9 +227,25 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			   addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + hwToLogicHwClrName + ") " + 
 			      fieldRegisterNextName + " = " + constVal.toFormat(NumBase.Hex, NumFormat.Verilog) + ";");				   
 		   }
+		   
+		   // if hwload is used
+		   for (int hwLoadIdx=0; hwLoadIdx<SystemVerilogDefinedOrdtSignals.MAX_HWLOAD_INPUTS; hwLoadIdx++) {
+			   if (fieldProperties.hasHwLoadValue(hwLoadIdx)) { 
+				   String hwToLogicHwLoadName = getHwToLogicHwLoadName(hwLoadIdx);
+				   RegNumber loadVal = fieldProperties.getHwLoadValue(hwLoadIdx);
+				   addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + hwToLogicHwLoadName + ") " + 
+				      fieldRegisterNextName + " = " + loadVal.toFormat(NumBase.Hex, NumFormat.Verilog) + ";");	
+				   if (!implementedHwLoadSignals.contains(hwLoadIdx)) this.addSimpleScalarFrom(SystemVerilogBuilder.HW, hwToLogicHwLoadName);
+				   implementedHwLoadSignals.add(hwLoadIdx);
+			   }
+		   }
 
 		   // add sw statements
 		   genSwFieldNextWriteStmts(swPrecedence);    // create statements to set value of next based on sw field settings
+	}
+
+	private String getHwToLogicHwLoadName(int hwLoadIdx) {
+		return "h2l_hwload_" + hwLoadIdx;
 	}
 
 	/** if a fieldProperty signal of specified type has a rhs assignment, generate appropriate defines/assign stmts for 

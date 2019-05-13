@@ -33,6 +33,9 @@ public class SystemVerilogDefinedOrdtSignals extends SystemVerilogDefinedSignalM
 		}
 	};
 	
+	// hwload inputs are a special case, not tied to hierarchy
+	public static final int MAX_HWLOAD_INPUTS = 8;
+	
 	// define io locations
 	public static final Integer NONE = SystemVerilogLocationMap.getId("NONE");
 	public static final Integer HW = SystemVerilogLocationMap.add("HW");

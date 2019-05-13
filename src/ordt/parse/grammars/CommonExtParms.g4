@@ -415,9 +415,15 @@ ext_parm_defs
   | 'use_struct'   // added
 
   | 'cppmod_prune'   // added
+
+  | hwload_property   // added
   ;  
   
 // ------------
+
+hwload_property
+  : 'hwload' ( LPAREN NUM RPAREN )?
+  ;
    
 bool
   : ('true' | 'false')
@@ -471,6 +477,8 @@ STR
     '"' // "
   ;
 
+LPAREN : '(' ;
+RPAREN : ')' ;
 LBRACE : '{' ;
 RBRACE : '}' ;
 EQ     : '=' ;
