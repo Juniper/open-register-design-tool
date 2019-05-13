@@ -346,7 +346,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 		String addr = "`UVM_REG_ADDR_WIDTH" + regProperties.getRelativeBaseAddress().toFormat(RegNumber.NumBase.Hex, RegNumber.NumFormat.NoLengthVerilog);
 		if (regProperties.isReplicated()) {
 			subcompBuildList.addStatement(parentID, "foreach (this." + regId + "[i]) begin");
-			if (ExtParameters.uvmregsRegsUseFactory()) subcompBuildList.addStatement(parentID, "  this." + regId + "[i] = " + uvmRegClassName + "::type_id::create($psprintf(\"" + regId + " [%0d]\",i));");
+			if (ExtParameters.uvmregsRegsUseFactory())
+                                subcompBuildList.addStatement(parentID, "  this." + regId + "[i] = " + uvmRegClassName + "::type_id::create($psprintf(\"" + regId + " [%0d]\",i),, get_full_name());");
 			else subcompBuildList.addStatement(parentID, "  this." + regId + "[i] = new($psprintf(\"" + regProperties.getId() + " [%0d]\",i));");  
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i].configure(this, null, \"\");");  
 			subcompBuildList.addStatement(parentID, "  this." + regId + "[i].set_rdl_tag($psprintf(\"" + hdlPath + "_%0d_\",i));");
@@ -360,7 +361,8 @@ public class UVMRegsBuilder extends OutputBuilder {
 			subcompBuildList.addStatement(parentID, "end");
 		}
 		else {
-		   if (ExtParameters.uvmregsRegsUseFactory()) subcompBuildList.addStatement(parentID, "this." + regId + " = " + uvmRegClassName + "::type_id::create(\"" + regId + "\");");
+		   if (ExtParameters.uvmregsRegsUseFactory())
+                           subcompBuildList.addStatement(parentID, "this." + regId + " = " + uvmRegClassName + "::type_id::create(\"" + regId + "\",, get_full_name());");
 		   else subcompBuildList.addStatement(parentID, "this." + regId + " = new(\"" + regProperties.getId() + "\");");  
 		   subcompBuildList.addStatement(parentID, "this." + regId + ".configure(this, null, \"\");"); 
 		   subcompBuildList.addStatement(parentID, "this." + regId + ".set_rdl_tag(\"" + hdlPath + "_\");");
