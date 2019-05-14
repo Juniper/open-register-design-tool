@@ -85,6 +85,7 @@ public class FieldProperties extends InstanceProperties {
 	
 	// interrupt info
 	private boolean isInterrupt = false;   // field is set by interrupt input
+	private boolean isRtlOnlyInterrupt = false;   // rdl interrupt is being used to provide rtl behavior but is not a functional interrupt
 		
 	public enum IntrType {
 		LEVEL(0), POSEDGE(1), NEGEDGE(2), BOTHEDGE(3);
@@ -148,7 +149,11 @@ public class FieldProperties extends InstanceProperties {
 		// now extract from the combined instance properties
 		
 		// category property
-		if (pList.hasProperty("sub_category")) setSubCategory(pList.getProperty("sub_category")); 
+		if (pList.hasProperty("sub_category")) {
+			String subcatStr = pList.getProperty("sub_category");
+			if (subcatStr.contains("RTL_ONLY")) setRtlOnlyInterrupt(true); // RTL_ONLY is a special case, so flag and exit if found
+			else setSubCategory(subcatStr); 
+		}
 		//if (getId().equals("str")) System.out.println("--- FieldProperties for str:" + this.getSubCategory());
 		
 		// now use pList to extract info
@@ -1190,6 +1195,19 @@ public class FieldProperties extends InstanceProperties {
 	 */
 	public void setInterrupt(boolean isInterrupt) {
 		this.isInterrupt = isInterrupt;
+	}
+
+	public boolean isRtlOnlyInterrupt() {
+		return isRtlOnlyInterrupt;
+	}
+
+	private void setRtlOnlyInterrupt(boolean isRtlOnlyInterrupt) {
+		this.isRtlOnlyInterrupt = isRtlOnlyInterrupt;
+	}
+
+	/** return true if field is an rdl interrupt that is used as a functional interrupt */
+	public boolean isFunctionalInterrupt() {
+		return isInterrupt() && !isRtlOnlyInterrupt();
 	}
 
 	/** get intrType

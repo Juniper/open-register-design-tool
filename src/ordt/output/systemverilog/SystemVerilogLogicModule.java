@@ -421,7 +421,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		   else if (!fieldProperties.hasRef(RhsRefType.NEXT)) {
 			   addHwVector(DefSignalType.H2L_INTR, 0, fieldProperties.getFieldWidth());   // add hw interrupt input
 			   addVectorWire(hwToLogicIntrName, 0, fieldProperties.getFieldWidth());
-			   intrInfoList.add(intrInfo);  // this is a leaf interrupt, so add to diagnostic list
+			   if (fieldProperties.isFunctionalInterrupt()) intrInfoList.add(intrInfo);  // this is a leaf functional interrupt, so add to diagnostic list
 		   }
 
 		   // if next is assigned then skip all the intr-specific next generation

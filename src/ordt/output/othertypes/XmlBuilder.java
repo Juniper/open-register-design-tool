@@ -74,7 +74,7 @@ public class XmlBuilder extends OutputBuilder {
 			addXmlElement("dontcompare", ""); 			
 		if (fieldProperties.isCounter()) 
 			addCounterInfo();
-		if (fieldProperties.isInterrupt()) 
+		if (fieldProperties.isFunctionalInterrupt()) 
 			addIntrInfo();
 		if (fieldProperties.hasSubCategory()) 
 			addXmlElement("subcatcode", String.valueOf(fieldProperties.getSubCategory().getValue()));  
