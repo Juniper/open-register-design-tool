@@ -1,0 +1,46 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# --------------------------- pages 
+# home page = regset page
+GET     /                           controllers.Application.regsetPage(id : Int ?= 0, cdepth : Int ?= 0, mdepth : Int ?= 1)
+
+# load page
+GET     /load                       controllers.Application.loadPage(errMsg : Boolean ?= false, responseMsg : String ?= "", fileOwner : String ?= "any")
+
+# register page 
+GET     /register                   controllers.Application.registerPage(id : Int ?= 0)
+
+# filter page
+GET     /filter                     controllers.Application.filterPage(cid : Int ?= 0, scope : String ?= "cur", dids : String ?= "", rstype : String ?= "", rntype : String ?= "", namemode : String ?= "", rname : String ?= "", rwidth : Int ?= 0, raddr : String ?= "", unaddr : Boolean ?= false, rcat : String ?= "", dtest : Boolean ?= false, fntype : String ?= "", fnamemode : String ?= "", fname : String ?= "", faccess : String ?= "", fscat : String ?= "", fnoinit : Boolean ?= false, fvol : Boolean ?= false, fcount : Boolean ?= false, fintr : Boolean ?= false, fdcomp : Boolean ?= false)
+
+# --------------------------- transactional 
+
+# get descendant table html
+GET     /descendants                controllers.Application.getDescendants(id : Int ?= 0, cdepth : Int ?= 0, mdepth : Int ?= 1)
+
+# get ancestor header html
+GET     /ancestors                  controllers.Application.getAncestors(id : Int ?= 0)
+
+# get field table html
+GET     /fields                     controllers.Application.getFields(id : Int ?= 0)
+
+# get load info
+GET     /loads                      controllers.Application.getLoads()
+
+# load database from xml
+POST    /loadfile                    controllers.Application.loadFile()
+
+# get filter results
+GET    /filterregs                  controllers.Application.filterRegs(cid : Int ?= 0, scope : String ?= "cur", dids : String ?= "", rstype : String ?= "", rntype : String ?= "", namemode : String ?= "", rname : String ?= "", rwidth : Int ?= 0, raddr : String ?= "", unaddr : Boolean ?= false, rcat : String ?= "", dtest : Boolean ?= false, fntype : String ?= "", fnamemode : String ?= "", fname : String ?= "", faccess : String ?= "", fscat : String ?= "", fnoinit : Boolean ?= false, fvol : Boolean ?= false, fcount : Boolean ?= false, fintr : Boolean ?= false, fdcomp : Boolean ?= false)
+
+# delete all descendants of specified load id 
+POST   /delete                     controllers.Application.delete()
+
+# ---------------------------- assets map and rev router
+
+GET   /jsRoutes                     controllers.Application.jsRoutes()
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.at(path="/public", file)

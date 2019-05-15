@@ -1,0 +1,45 @@
+@(id: Int, cdepth : Int, mdepth : Int)
+
+@main(id, "Reg DB", "Register Set Info"){
+    <script type='text/javascript' src='@routes.Assets.at("javascripts/ancestors.js")'></script>
+    <script type='text/javascript' src='@routes.Assets.at("javascripts/descendants.js")'></script>
+
+    <div id="ancestors" data-id="@id" data-mdepth="@mdepth"></div>
+    
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-9">
+			<h3></h3>
+        	<h3>Child Registers/Sets   <small> <span id="rescount">0</span> displayed (2000 max)</small></h3>
+        </div>
+        <div class="col-sm-3">
+	        @if(mdepth==0) {
+	           <h5>Showing all levels</h5>
+	        } else {
+	           <h5>Showing @mdepth level(s)</h5>
+	        }
+	        <div class="btn-group btn-group-sm">
+	          <a href="@routes.Application.regsetPage(id, cdepth, 1)" class="btn btn-info" role="button">min</a>
+	          <a href="@routes.Application.regsetPage(id, cdepth, mdepth+1)" class="btn btn-info @if(id==0){disabled}" role="button">+</a>
+	          <a href="@routes.Application.regsetPage(id, cdepth, 0)" class="btn btn-info @if(id==0){disabled}" role="button">max</a>
+			</div>
+			<h6></h6>
+        </div>
+      </div>
+    </div>
+    <table id="descendants" data-id="@id" data-cdepth="@cdepth" data-mdepth="@mdepth" class="table"></table>
+    
+    <!-- local scripts -->
+	<!-- script type="text/javascript">
+	  function downloadJSAtOnload() {
+	   var element = document.createElement("script");
+	   element.src = '@routes.Assets.at("javascripts/addresscalc.js")';
+	   document.body.appendChild(element);
+	  }
+	  if (window.addEventListener)
+	   window.addEventListener("load", downloadJSAtOnload, false);
+	  else if (window.attachEvent)
+	   window.attachEvent("onload", downloadJSAtOnload);
+	  else window.onload = downloadJSAtOnload;
+	</script -->    
+}

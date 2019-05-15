@@ -1,0 +1,175 @@
+@(cid : Int, scope : String, dids : String, rstype : String, rntype : String, namemode : String, rname : String, rwidth : Int, raddr : String, unaddr : Boolean, rcat : String, dtest : Boolean, fntype : String, fnamemode : String, fname : String, faccess : String, fscat : String, fnoinit : Boolean, fvol : Boolean, fcount : Boolean, fintr : Boolean, fdcomp : Boolean)
+
+@main(cid, "Reg DB", "Database Filter"){
+    <script type='text/javascript' src='@routes.Assets.at("javascripts/filterscope.js")'></script>
+    <script type='text/javascript' src='@routes.Assets.at("javascripts/filterregs.js")'></script>
+    
+	<form class="form-horizontal" role="form" action="@routes.Application.filterPage()">
+	<div class="alert-info border-0">
+	    <div class="row">
+		    <div class="col-sm-2 text-right">
+	           <h5><b>Current filter scope:</b></h5>
+		    </div>
+		    <div class="col-sm-10">
+	           <h5><div id="filterscope" data-cid="@cid" ></div></h5>
+		    </div>
+	    </div>
+		  <input type="hidden" name="cid" value="@cid">
+		  <div class="form-group">
+	        @if(cid==0) {
+			    <label class="radio-inline col-sm-offset-2 col-sm-2 disabled">
+		      		<input type="radio" name="scope" id="scope1" value="cur" disabled>Use current scope</label>
+	        } else { @if(scope=="ids"){
+			    <label class="radio-inline col-sm-offset-2 col-sm-2">
+		      		<input type="radio" name="scope" id="scope1" value="cur">Use current scope</label>
+	        } else {
+			    <label class="radio-inline col-sm-offset-2 col-sm-2 active">
+		      		<input type="radio" name="scope" id="scope1" value="cur" checked>Use current scope</label>
+	        } }
+		    
+	        @if(cid==0) {
+		    	<label class="radio-inline col-sm-2 active">
+		      		<input type="radio" name="scope" id="scope2" value="ids" checked>Use data id scope</label>
+	        } else { @if(scope=="ids"){
+		    	<label class="radio-inline col-sm-2 active">
+		      		<input type="radio" name="scope" id="scope2" value="ids" checked>Use data id scope</label>
+	        } else {
+		    	<label class="radio-inline col-sm-2">
+		      		<input type="radio" name="scope" id="scope2" value="ids">Use data id scope</label>
+	        } }
+			<label class="control-label col-sm-1" for="dids">Data ids:</label>
+		    <div class="col-sm-3">
+		      <input type="text" class="form-control" name="dids" id="dids" value="@dids" placeholder="Comma separated ids">
+		    </div>
+		  </div>
+		  
+		  <hr>
+		  <div class="form-group">
+		    <!-- label class="control-label col-sm-2" for="rname">Register name:</label -->
+		    <select class="form-control col-sm-offset-1 col-sm-2" name="rstype" id="rstype">
+			    <option @if(rstype=="Register"){selected}>Register</option>
+			    <option @if(rstype=="Reg Set"){selected}>Reg Set</option>
+		    </select>
+		    <select class="form-control col-sm-2" name="rntype" id="rntype">
+			    <option @if(rntype=="name"){selected}>name</option>
+			    <option @if(rntype=="label"){selected}>label</option>
+			    <option @if(rntype=="description"){selected}>description</option>
+			    <option @if(rntype=="path"){selected}>path</option>
+		    </select>
+		    <select class="form-control col-sm-2" name="namemode" id="namemode">
+			    <option @if(namemode=="is"){selected}>is</option>
+			    <option @if(namemode=="starts with"){selected}>starts with</option>
+			    <option @if(namemode=="ends with"){selected}>ends with</option>
+			    <option @if(namemode=="contains"){selected}>contains</option>
+		    </select>
+		    <div class="col-sm-3">
+		      <input type="text" class="form-control" name="rname" id="rname" pattern="[a-zA-Z0-9._][a-zA-Z0-9._ ]*[a-zA-Z0-9._]" value="@rname" placeholder="Enter name to match">
+		    </div>
+		  </div>	  
+		  <div class="form-group">
+		    <label class="control-label col-sm-3" for="raddr">Address (overrides other filters):</label>
+		    <div class="col-sm-2">
+		      <input type="text" class="form-control" name="raddr" id="raddr" pattern="[A-Fa-f0-9]{1,10}" value="@raddr" placeholder="Enter address (0x)">
+		    </div>
+		    <div class="col-sm-offset-1 col-sm-4 checkbox-inline">
+		      <label><input type="checkbox" id="unaddr" name="unaddr" value="1" @if(unaddr) {checked}>Show only unique addresses (for multi-id compare)</label>
+		    </div>
+		  </div>	  
+		  <div class="form-group">
+		    <label class="control-label col-sm-2" for="rwidth">Width (32b words):</label>
+		    <div class="col-sm-2">
+		      <input type="number" class="form-control" name="rwidth" id="rwidth" value="@rwidth" min="0" max="16">
+		    </div>
+		    <label class="control-label col-sm-1" for="rcat">Category:</label>
+	        <select class="form-control col-sm-2" id="rcat" name="rcat">
+	          <option value="">select</option>
+	          <option @if(rcat=="none"){selected}>none</option>
+	          <option @if(rcat=="STATIC_CONFIG"){selected}>STATIC_CONFIG</option>
+	          <option @if(rcat=="DYNAMIC_CONFIG"){selected}>DYNAMIC_CONFIG</option>
+	          <option @if(rcat=="CONSTRAINED_CONFIG"){selected}>CONSTRAINED_CONFIG</option>
+	          <option @if(rcat=="STAT_COUNTER"){selected}>STAT_COUNTER</option>
+	          <option @if(rcat=="ERROR_COUNTER"){selected}>ERROR_COUNTER</option>
+	          <option @if(rcat=="STATE"){selected}>STATE</option>
+	          <option @if(rcat=="INTERRUPT"){selected}>INTERRUPT</option>
+	          <option @if(rcat=="DIAGNOSTIC"){selected}>DIAGNOSTIC</option>
+	          <option @if(rcat=="DEBUG"){selected}>DEBUG</option>
+	          <option @if(rcat=="CGATE_UNSAFE"){selected}>CGATE_UNSAFE</option>
+	        </select>
+		    <div class="col-sm-offset-1 col-sm-2 checkbox-inline">
+		      <label><input type="checkbox" id="dtest" name="dtest" value="1" @if(dtest) {checked}>No test</label>
+		    </div>
+		  </div>	
+		  <hr>
+		  <div class="form-group">
+		    <label class="control-label col-sm-2" for="fntype">Field:</label>
+		    <select class="form-control col-sm-2" name="fntype" id="fntype">
+			    <option @if(fntype=="name"){selected}>name</option>
+			    <option @if(fntype=="label"){selected}>label</option>
+			    <option @if(fntype=="description"){selected}>description</option>
+		    </select>
+		    <select class="form-control col-sm-2" name="fnamemode" id="fnamemode">
+			    <option @if(fnamemode=="is"){selected}>is</option>
+			    <option @if(fnamemode=="starts with"){selected}>starts with</option>
+			    <option @if(fnamemode=="ends with"){selected}>ends with</option>
+			    <option @if(fnamemode=="contains"){selected}>contains</option>
+		    </select>
+		    <div class="col-sm-2">
+		      <input type="text" class="form-control" name="fname" id="fname" pattern="[a-zA-Z0-9._][a-zA-Z0-9._ ]*[a-zA-Z0-9._]" value="@fname" placeholder="Enter name to match"> 
+		    </div>
+		    <label class="control-label col-sm-2" for="faccess">Access type:</label>
+	        <select class="form-control col-sm-2" id="faccess" name="faccess">
+	          <option value="">select</option>
+	          <option @if(faccess=="RC"){selected}>RC</option>
+	          <option @if(faccess=="RO"){selected}>RO</option>
+	          <option @if(faccess=="RS"){selected}>RS</option>
+	          <option @if(faccess=="RW"){selected}>RW</option>
+	          <option @if(faccess=="W1C"){selected}>W1C</option>
+	          <option @if(faccess=="W1CRS"){selected}>W1CRS</option>
+	          <option @if(faccess=="W1S"){selected}>W1S</option>
+	          <option @if(faccess=="W1SRC"){selected}>W1SRC</option>
+	          <option @if(faccess=="WO"){selected}>WO</option>
+	          <option @if(faccess=="WRC"){selected}>WRC</option>
+	          <option @if(faccess=="WRS"){selected}>WRS</option>
+	        </select>
+		  </div>	
+		  <div class="form-group"> 
+		    <label class="control-label col-sm-2" for="fscat">Sub-category:</label>
+	        <select class="form-control col-sm-2" id="fscat" name="fscat">
+	          <option value="">select</option>
+	          <option @if(fscat=="none"){selected}>none</option>
+	          <option @if(fscat=="INFO"){selected}>INFO</option>
+	          <option @if(fscat=="MAJOR"){selected}>MAJOR</option>
+	          <option @if(fscat=="FATAL"){selected}>FATAL</option>
+	          <option @if(fscat=="MINOR_RECOVERABLE"){selected}>MINOR_RECOVERABLE</option>
+	          <option @if(fscat=="MINOR_TRANSIENT"){selected}>MINOR_TRANSIENT</option>
+	        </select>
+		    <div class="col-sm-offset-1 col-sm-7">
+		      <div class="checkbox-inline">
+		        <label><input type="checkbox" id="fnoinit" name="fnoinit" value="1" @if(fnoinit) {checked}>Uninitialized</label>
+		      </div>
+		      <div class="checkbox-inline">
+		        <label><input type="checkbox" id="fvol" name="fvol" value="1" @if(fvol) {checked}>Volatile</label>
+		      </div>
+		      <div class="checkbox-inline">
+		        <label><input type="checkbox" id="fcount" name="fcount" value="1" @if(fcount) {checked}>Counter</label>
+		      </div>
+		      <div class="checkbox-inline">
+		        <label><input type="checkbox" id="fintr" name="fintr" value="1" @if(fintr) {checked}>Interrupt</label>
+		      </div>
+		      <div class="checkbox-inline">
+		        <label><input type="checkbox" id="fdcomp" name="fdcomp" value="1" @if(fdcomp) {checked}>No compare</label>
+		      </div>
+		    </div>
+		  </div> 
+	  </div>
+	  <div class="form-group"> 
+	    <div class="col-sm-12">
+	      <button type="submit" class="btn btn-info">Run Filter</button>
+	    </div>
+	  </div>
+	</form>   
+	 
+    <h3>Filter results   <small> <span id="frescount">0</span> displayed (500 max)</small></h3>
+    <table id="filterregs" data-cid="@cid" data-scope="@scope" data-dids="@dids"  data-rstype="@rstype" data-rntype="@rntype" data-namemode="@namemode" data-rname="@rname" data-rwidth="@rwidth" data-raddr="@raddr" data-unaddr="@unaddr" data-rcat="@rcat" data-dtest="@dtest" data-fntype="@fntype" data-fnamemode="@fnamemode" data-fname="@fname" data-faccess="@faccess" data-fscat="@fscat" data-fnoinit="@fnoinit" data-fvol="@fvol" data-fcount="@fcount" data-fintr="@fintr" data-fdcomp="@fdcomp" class="table"></table>
+    
+}

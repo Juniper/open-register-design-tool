@@ -1,0 +1,23 @@
+@(errMsg : Boolean, responseMsg : String, fileOwner : String)
+
+@main(0, "Reg DB", "Database Info"){
+    <script type='text/javascript' src='@routes.Assets.at("javascripts/loads.js")'></script>
+    
+    <form class="form-horizontal" role="form" method="POST" action="@routes.Application.loadFile()">
+ 	  <div class="form-group">
+        <label class="col-sm-1" for="fname">XML file </label>
+        <input class="col-sm-8" type="text" name="fname" required="required" pattern="[a-zA-Z0-9/][a-zA-Z0-9._/- ]*[a-zA-Z0-9._/-]" class="form-control" id="fname"/>
+	  </div>	  
+	  <div class="form-group">
+        <label class="col-sm-1" for="flabel">Label </label>
+        <input class="col-sm-2" type="text" name="flabel" required="required" pattern="[a-zA-Z0-9_][a-zA-Z0-9._/- ]*[a-zA-Z0-9_]" class="form-control" id="flabel"/>
+	    <label class="col-sm-4" ><input  name="freplace" type="checkbox" id="freplace" value="1" > Remove all old data with same file name</label>
+	    <button type="submit" class="btn btn-info btn-sm col-sm-1">Load XML</button>
+        <div  class="col-sm-offset-1 col-sm-3 @if(errMsg){text-danger} else {text-primary}">@responseMsg</div>
+	  </div>	  
+    </form>
+	<hr>
+    	    
+    <h3>Loaded XML files   <small>Showing owner=@fileOwner</small></h3>
+    <table id="loads" class="table" data-fowner="@fileOwner"></table>
+}

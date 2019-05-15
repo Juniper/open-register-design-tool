@@ -1,0 +1,27 @@
+@(id: Int)
+
+@main(id, "Reg DB", "Register Info"){
+    <script type='text/javascript' src='@routes.Assets.at("javascripts/ancestors.js")'></script>
+    <script type='text/javascript' src='@routes.Assets.at("javascripts/fields.js")'></script>
+
+    <div id="ancestors" data-id="@id" data-mdepth="1"></div>
+
+    <h5><button type="button" class="btn btn-info btn-sm" id="resetbtn" >reset</button>
+        <button type="button" class="btn btn-info btn-sm" id="clearbtn" >clear</button>
+        <b>register value: </b>0x <input id="regval" size=9 type="text">
+        
+    </h5>
+    
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-9">
+			<h3></h3>
+        	<h3>Fields</h3>
+        </div>
+      </div>
+    </div>
+    
+    <table id="fields" data-id="@id" class="table"></table> 
+    <!-- <b>register value: </b><span id="regval">0x--------</span>  -->
+       
+}
