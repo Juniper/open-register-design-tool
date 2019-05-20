@@ -132,6 +132,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
         //System.out.println("SystemVerilogDecode genPrimaryPioInterface: isS8=" + hasPrimaryInterfaceType(SVDecodeInterfaceTypes.SERIAL8));
 		// create interface logic
 		if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.LEAF)) this.genLeafPioInterface(topRegProperties, true);
+		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.SPI)) this.genSpiPioInterface(topRegProperties, true);
 		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.SERIAL8)) this.genSerial8PioInterface(topRegProperties, true);
 		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.RING8)) this.genRingPioInterface(8, topRegProperties, true);
 		else if (hasPrimaryInterfaceType(SVDecodeInterfaceTypes.RING16)) this.genRingPioInterface(16, topRegProperties, true);
@@ -148,8 +149,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	private void genSecondaryPioInterface(AddressableInstanceProperties topRegProperties) {
 		// create interface logic
 		if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.NONE)) return;
-		//if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.LEAF)) this.genLeafPioInterface(topRegProperties, false);
-		if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.SERIAL8)) this.genSerial8PioInterface(topRegProperties, false);
+		if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.SPI)) this.genSpiPioInterface(topRegProperties, false);
+		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.SERIAL8)) this.genSerial8PioInterface(topRegProperties, false);
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING8)) this.genRingPioInterface(8, topRegProperties, false);
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING16)) this.genRingPioInterface(16, topRegProperties, false);
 		else if (hasSecondaryInterfaceType(SVDecodeInterfaceTypes.RING32)) this.genRingPioInterface(32, topRegProperties, false);
@@ -1532,9 +1533,332 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		}
 	}
 
+	/** add spi pio interface */
+	private void genSpiPioInterface(AddressableInstanceProperties topRegProperties, boolean isPrimary) {  // TODO add spi mode, cmd, address, return info controls
+		// TODO Auto-generated method stub
+		//System.out.println("SystemVerilogDecodeModule: generating decoder with spi interface, id=" + topRegProperties.getInstancePath());
+		// set internal interface names
+		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
+		String pioInterfaceWriteDataName = getSigName(isPrimary, this.pioInterfaceWriteDataName);
+		String pioInterfaceWriteEnableName = getSigName(isPrimary, this.pioInterfaceWriteEnableName);
+		String pioInterfaceTransactionSizeName = getSigName(isPrimary, this.pioInterfaceTransactionSizeName);
+		String pioInterfaceRetTransactionSizeName = getSigName(isPrimary, this.pioInterfaceRetTransactionSizeName);
+		String pioInterfaceWeName = getSigName(isPrimary, this.pioInterfaceWeName);
+		String pioInterfaceReName = getSigName(isPrimary, this.pioInterfaceReName);
+		String pioInterfaceReadDataName = getSigName(isPrimary, this.pioInterfaceReadDataName);
+		String pioInterfaceAckName = getSigName(isPrimary, this.pioInterfaceAckName);
+		String pioInterfaceNackName = getSigName(isPrimary, this.pioInterfaceNackName);
+		String arbiterAtomicName = getSigName(isPrimary, this.arbiterAtomicName);
+		// set IO names
+		String spiClkName = getSigName(isPrimary, "spi_sclk");                      
+		String spiMisoName = getSigName(isPrimary, "spi_miso");                      
+		String spiMisoEnableName = getSigName(isPrimary, "spi_miso_enable");                      
+		String spiMosiName = getSigName(isPrimary, "spi_mosi");                      
+		String spiSelectName = getSigName(isPrimary, "spi_ss");                      
+		// set internal names
+		String s8StateName = getSigName(isPrimary, "s8_state");                     // FIXME 
+		String s8StateNextName = getSigName(isPrimary, "s8_state_next");                      
+		String s8AddrCntName = getSigName(isPrimary, "s8_addr_cnt");                      
+		String s8AddrCntNextName = getSigName(isPrimary, "s8_addr_cnt_next");                      
+		String s8DataCntName = getSigName(isPrimary, "s8_data_cnt");                      
+		String s8DataCntNextName = getSigName(isPrimary, "s8_data_cnt_next"); 
+		String s8AddrAccumName = getSigName(isPrimary, "s8_addr_accum");                      
+		String s8AddrAccumNextName = getSigName(isPrimary, "s8_addr_accum_next");                      
+		String s8WrAccumName = getSigName(isPrimary, "s8_wdata_accum");                      
+		String s8WrAccumNextName = getSigName(isPrimary, "s8_wdata_accum_next");                      
+		String s8WrStateCaptureName = getSigName(isPrimary, "s8_wr_state_capture");                      
+		String s8WrStateCaptureNextName = getSigName(isPrimary, "s8_wr_state_capture_next");                      
+		String s8RdCaptureName = getSigName(isPrimary, "s8_rdata_capture");                      
+		String s8RdCaptureNextName = getSigName(isPrimary, "s8_rdata_capture_next");     
+		
+		// check for valid serial8 width
+		int transactionsInWord = ExtParameters.getMinDataSize()/8;  // FIXME
+		boolean multiTransactionWord = (transactionsInWord>1);
+		if (!multiTransactionWord) MsgUtils.errorExit("Serial8 interface type does not support 8b max width regions.  Use parallel interface instead.");
+		
+		// tie off enables
+		if (hasWriteEnables()) {
+			MsgUtils.warnMessage("SPI decoder interface will not generate write data enables.");
+			this.addVectorWire(pioInterfaceWriteEnableName, 0, getWriteEnableWidth()); 
+			this.addWireAssign(pioInterfaceWriteEnableName + " = " + SystemVerilogBuilder.getHexOnesString(getWriteEnableWidth()) + ";");
+		}
+		
+		// create module IOs
+		//  inputs
+		this.addSimpleScalarFrom(SystemVerilogBuilder.PIO, spiClkName); 
+		this.addSimpleScalarFrom(SystemVerilogBuilder.PIO, spiMosiName); 
+		this.addSimpleScalarFrom(SystemVerilogBuilder.PIO, spiSelectName); 
+
+		// outputs  
+		this.addSimpleScalarTo(SystemVerilogBuilder.PIO, spiMisoName);
+		this.addSimpleScalarTo(SystemVerilogBuilder.PIO, spiMisoEnableName);
+		
+		// calculate max number of 8b xfers required for address 
+		int addressWidth = builder.getMapAddressWidth();
+		int addrXferCount = 0;
+		if (addressWidth > 0) {
+			addrXferCount = (int) Math.ceil(addressWidth/8.0);
+			//System.out.println("SystemVerilogBuilder genSerial8PioInterface: addr width=" + addressWidth + ", addr count=" + addrXferCount);
+		}
+		
+		// compute max transaction size in words and number of bits to represent (4b max)
+		int regWidth = builder.getMaxRegWidth();
+		int regWords = builder.getMaxRegWordWidth();
+		int regWordBits = Utils.getBits(regWords);
+		boolean useTransactionSize = (regWords > 1);  // if transaction sizes need to be sent/received
+		
+		// now create state machine vars
+		String groupName = getGroupPrefix(isPrimary) + "serial8 i/f";  
+		int stateBits = 3;
+		this.addVectorReg(s8StateName, 0, stateBits);  
+		this.addVectorReg(s8StateNextName, 0, stateBits);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), s8StateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + stateBits + "'b0;");  
+		this.addRegAssign(groupName,  s8StateName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8StateNextName + ";");  
+
+		// s8 cmd inputs will feed into sm
+		//this.addScalarWire(serial8CmdValidName);  
+		//this.addVectorWire(serial8CmdDataName, 0, 8); 
+        // s8 res outputs will be set in sm 
+		this.addScalarReg(serial8ResValidName);  
+		this.addVectorReg(serial8ResDataName, 0, 8); 
+
+		// add address accumulate reg 
+		if (addressWidth > 0) {
+			this.addVectorReg(s8AddrAccumName, builder.getAddressLowBit(), addressWidth);  
+			this.addVectorReg(s8AddrAccumNextName, builder.getAddressLowBit(), addressWidth);  
+			this.addRegAssign(groupName,  s8AddrAccumName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8AddrAccumNextName + ";");  
+			this.addVectorWire(pioInterfaceAddressName, builder.getAddressLowBit(), addressWidth);  
+			this.addWireAssign(pioInterfaceAddressName + " = " + s8AddrAccumName + ";");  // input addr is set from accum reg			
+		}
+
+		// add write data accumulate reg
+		this.addVectorReg(s8WrAccumName, 0, regWidth);  
+		this.addVectorReg(s8WrAccumNextName, 0, regWidth);  
+		this.addRegAssign(groupName,  s8WrAccumName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8WrAccumNextName + ";");  
+		this.addVectorWire(pioInterfaceWriteDataName, 0, regWidth);  
+		this.addWireAssign(pioInterfaceWriteDataName + " = " + s8WrAccumName + ";");  // input data is set from accum reg
+		
+		// will need to capture cmd size
+		String pioInterfaceTransactionSizeNextName = pioInterfaceTransactionSizeName + "_next";  // cmd size next will be set in sm
+		if (useTransactionSize) {
+			this.addVectorReg(pioInterfaceTransactionSizeName, 0, regWordBits);  
+			this.addVectorReg(pioInterfaceTransactionSizeNextName, 0, regWordBits);  // res size will be set in sm
+			this.addResetAssign(groupName, builder.getDefaultReset(), pioInterfaceTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + regWordBits + "'b0;");  
+			this.addRegAssign(groupName,  pioInterfaceTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + pioInterfaceTransactionSizeNextName + ";");  
+		}
+
+		// add capture reg for write transaction indicator
+		this.addScalarReg(s8WrStateCaptureName);  
+		this.addScalarReg(s8WrStateCaptureNextName);  
+		this.addRegAssign(groupName,  s8WrStateCaptureName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8WrStateCaptureNextName + ";");  
+
+		// add capture reg for read data
+		this.addVectorReg(s8RdCaptureName, 0, regWidth);  
+		this.addVectorReg(s8RdCaptureNextName, 0, regWidth);  
+		this.addRegAssign(groupName,  s8RdCaptureName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8RdCaptureNextName + ";"); 
+
+		// address byte count
+		int addrXferCountBits = Utils.getBits(addrXferCount);
+		if (addrXferCountBits > 0) {
+			this.addVectorReg(s8AddrCntName, 0, addrXferCountBits);  
+			this.addVectorReg(s8AddrCntNextName, 0, addrXferCountBits);  
+			this.addResetAssign(groupName, builder.getDefaultReset(), s8AddrCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + addrXferCountBits + "'b0;");  
+			this.addRegAssign(groupName,  s8AddrCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8AddrCntNextName + ";");  			
+		}
+		
+		// data byte count
+		int maxDataXferCount = regWords * ExtParameters.getMinDataSize()/8;
+		int maxDataXferCountBits = Utils.getBits(maxDataXferCount);
+		this.addVectorReg(s8DataCntName, 0, maxDataXferCountBits);  
+		this.addVectorReg(s8DataCntNextName, 0, maxDataXferCountBits);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), s8DataCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + maxDataXferCountBits + "'b0;");  
+		this.addRegAssign(groupName,  s8DataCntName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + s8DataCntNextName + ";"); 
+
+		// define internal interface signals that will be set in sm 
+		String s8pioInterfaceReName = "s8_" + pioInterfaceReName;
+		String s8pioInterfaceWeName = "s8_" + pioInterfaceWeName;
+		this.addScalarReg(s8pioInterfaceReName);
+		this.addScalarReg(s8pioInterfaceWeName);
+		
+		// state machine init values
+		this.addCombinAssign(groupName,  s8StateNextName + " = " + s8StateName + ";");  
+		this.addCombinAssign(groupName,  serial8ResValidName + " =  1'b0;");  // return valid
+		this.addCombinAssign(groupName,  serial8ResDataName + " =  8'b0;");   // return data
+		this.addCombinAssign(groupName,  s8pioInterfaceWeName + " =  1'b0;");  // write active
+		this.addCombinAssign(groupName,  s8pioInterfaceReName + " =  1'b0;");  // read active
+		this.addCombinAssign(groupName,  s8WrStateCaptureNextName + " = " + s8WrStateCaptureName + ";");  // write indicator
+		if (addressWidth > 0)
+			this.addCombinAssign(groupName,  s8AddrAccumNextName + " = " + s8AddrAccumName + ";");  // address accumulate
+		this.addCombinAssign(groupName,  s8WrAccumNextName + " = " + s8WrAccumName + ";");  // write data accumulate
+		this.addCombinAssign(groupName,  s8RdCaptureNextName + " = " + s8RdCaptureName + ";");  // read data capture
+		// init cmd size capture
+		if (useTransactionSize)
+			this.addCombinAssign(groupName,  pioInterfaceTransactionSizeNextName + " = " + pioInterfaceTransactionSizeName + ";"); 
+		// init counter values
+		if (addrXferCountBits > 0) {
+			this.addCombinAssign(groupName,  s8AddrCntNextName + " = "  + addrXferCountBits + "'b0;");
+		}
+		this.addCombinAssign(groupName,  s8DataCntNextName + " = "  + maxDataXferCountBits + "'b0;");
+			
+		// state machine  /
+		String IDLE = stateBits + "'h0"; 
+		String CMD_ADDR = stateBits + "'h1"; 
+		String CMD_DATA = stateBits + "'h2"; 
+		String RES_WAIT = stateBits + "'h3";
+		String RES_READ = stateBits + "'h4";
+		String BAD_CMD = stateBits + "'h5";
+				
+		this.addCombinAssign(groupName, "case (" + s8StateName + ")"); 
+
+		// IDLE
+		this.addCombinAssign(groupName, "  " + IDLE + ": begin // IDLE");
+		// init accumulator/capture regs
+		this.addCombinAssign(groupName, "      " + s8WrStateCaptureNextName + " = 1'b0;");  
+		if (addressWidth > 0)
+			this.addCombinAssign(groupName, "      " + s8AddrAccumNextName + " = " + addressWidth + "'b0;");
+		this.addCombinAssign(groupName, "      " + s8WrAccumNextName + " = " + regWidth + "'b0;");
+		// go on cmd valid - capture r/w indicator, addr size, and transaction size
+		this.addCombinAssign(groupName, "      if (" + serial8CmdValidName + ") begin");  
+		this.addCombinAssign(groupName, "        " + s8WrStateCaptureNextName + " = " + serial8CmdDataName + "[7];");  // bit 7 = write
+		if (useTransactionSize)
+		    this.addCombinAssign(groupName, "        " + pioInterfaceTransactionSizeNextName + " = " + serial8CmdDataName + SystemVerilogSignal.genRefArrayString(0, regWordBits) + ";");  // bits 3:0 = transaction size
+        // abort cmd if address count is wrong
+		this.addCombinAssign(groupName, "        if (" + serial8CmdDataName + "[6:4] != 3'd" + addrXferCount + ") " + s8StateNextName + " = " + BAD_CMD +  ";");  // bits 6:4 = check for valid address xfer count  
+        // if an address then get it next
+		if (addrXferCount > 0) {  
+			this.addCombinAssign(groupName, "        else " + s8StateNextName + " = " + CMD_ADDR + ";");  
+		}
+		// otherwise get cmd data if a write or assert read and wait for internal read response
+		else {
+			this.addCombinAssign(groupName, "        else if (" + s8WrStateCaptureNextName + ") " + s8StateNextName + " = " + CMD_DATA + ";");  
+			this.addCombinAssign(groupName, "        else " + s8StateNextName + " = " + RES_WAIT + ";");  
+		}
+		this.addCombinAssign(groupName, "      end");  //cmd valid
+		this.addCombinAssign(groupName, "    end"); 
+		
+        // if an address needed then add CMD_ADDR state
+		if (addrXferCount > 0) {   
+			// CMD_ADDR
+			this.addCombinAssign(groupName, "  " + CMD_ADDR + ": begin // CMD_ADDR");
+			// if more than one address then bump the count
+			if (addrXferCountBits > 0) {  
+				this.addCombinAssign(groupName,  "      " + s8AddrCntNextName + " = " + s8AddrCntName + ";");
+				this.addCombinAssign(groupName, "      if (" + serial8CmdValidName + ") begin");  
+				this.addCombinAssign(groupName,  "        " + s8AddrCntNextName + " = " + s8AddrCntName + " + " + addrXferCountBits + "'b1;");
+				// accumulate the address
+				for (int idx=0; idx<addrXferCount; idx++) {
+					prefix = (idx == 0)? "" : "else ";
+					this.addCombinAssign(groupName, "        " + prefix + "if (" + s8AddrCntName + " == " + addrXferCountBits + "'d" + idx + ")");
+					int lowbit = idx*8 + builder.getAddressLowBit();
+					int size = ((idx+1)*8 > addressWidth)? addressWidth - idx*8 : 8;  // last xfer can be smaller
+					this.addCombinAssign(groupName, "          " + s8AddrAccumNextName + SystemVerilogSignal.genRefArrayString(lowbit, size) + " = " + serial8CmdDataName + SystemVerilogSignal.genRefArrayString(0, size) + ";");
+				}
+	
+				// if addr done, send data if a write or wait for read response 
+				this.addCombinAssign(groupName, "        if (" + s8AddrCntName + " == " + addrXferCountBits + "'d" + (addrXferCount - 1) + ") begin");
+				this.addCombinAssign(groupName, "          if (" + s8WrStateCaptureName + ") " + s8StateNextName + " = " + CMD_DATA + ";");  
+				this.addCombinAssign(groupName, "          else " + s8StateNextName + " = " + RES_WAIT + ";");
+				this.addCombinAssign(groupName, "        end"); 
+			}
+			// else a single addr xfer
+			else {
+				this.addCombinAssign(groupName, "      if (" + serial8CmdValidName + ") begin");  
+				// set address
+				this.addCombinAssign(groupName, "        " + s8AddrAccumNextName  + " = " + serial8CmdDataName + SystemVerilogSignal.genRefArrayString(0, addressWidth) + ";");  
+				// next send data if a write or wait for read response 
+				this.addCombinAssign(groupName, "        if (" + s8WrStateCaptureName + ") " + s8StateNextName + " = " + CMD_DATA + ";");  
+				this.addCombinAssign(groupName, "        else " + s8StateNextName + " = " + RES_WAIT + ";");  
+			}
+			this.addCombinAssign(groupName, "      end"); 
+			this.addCombinAssign(groupName, "    end"); 
+		}
+		
+		// CMD_DATA - capture write data
+		this.addCombinAssign(groupName, "  " + CMD_DATA + ": begin // CMD_DATA");
+		this.addCombinAssign(groupName,  "      " + s8DataCntNextName + " = " + s8DataCntName + ";");
+		this.addCombinAssign(groupName, "      if (" + serial8CmdValidName + ") begin");  
+		//  bump the data count
+		this.addCombinAssign(groupName,  "        " + s8DataCntNextName + " = " + s8DataCntName + " + " + maxDataXferCountBits + "'b1;");
+		// get the data slice
+		for (int idx=0; idx<maxDataXferCount; idx++) {
+			prefix = (idx == 0)? "" : "else ";
+			this.addCombinAssign(groupName, "        "+ prefix + "if (" + s8DataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
+			this.addCombinAssign(groupName, "          "  + s8WrAccumNextName + SystemVerilogSignal.genRefArrayString(8*idx, 8) + " = " + serial8CmdDataName + ";");
+		}
+		// if done, move to res wait  
+		String finalCntStr = getSerialMaxDataCountStr(useTransactionSize, transactionsInWord, pioInterfaceTransactionSizeName);  // get final data count compare string
+		this.addCombinAssign(groupName, "        if (" + s8DataCntName + " == " + finalCntStr + ")");
+		this.addCombinAssign(groupName, "          " + s8StateNextName + " = " + RES_WAIT + ";");
+		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "    end"); 
+			
+		// RES_WAIT
+		this.addCombinAssign(groupName, "  " + RES_WAIT + ": begin  // RES_WAIT");
+		// activate either read or write request
+		this.addCombinAssign(groupName, "      " + s8pioInterfaceWeName + " = " + s8WrStateCaptureName + ";");  // write active
+		this.addCombinAssign(groupName, "      " + s8pioInterfaceReName + " = ~" + s8WrStateCaptureName + ";");  // read active
+		// go on ack/nack, capture read data and set first word of response (contains ack/nack and return xfer size) 
+		this.addCombinAssign(groupName, "      " + "if (" + pioInterfaceAckName + " | " + pioInterfaceNackName + ") begin"); 
+		this.addCombinAssign(groupName, "        " + serial8ResValidName + " =  1'b1;");  // res is valid
+		this.addCombinAssign(groupName, "        " + s8RdCaptureNextName + " = " + pioInterfaceReadDataName + ";");  // capture read data  
+		this.addCombinAssign(groupName, "        " + serial8ResDataName + "[7] = " + pioInterfaceNackName + ";");  // set nack bit  
+		if (useTransactionSize) {
+			this.addCombinAssign(groupName,  "        " + serial8ResDataName + SystemVerilogSignal.genRefArrayString(0, regWordBits) + " = " + pioInterfaceRetTransactionSizeName + ";");  
+		}
+		// if a read then send the data else we're done
+		this.addCombinAssign(groupName, "        if (~" + s8WrStateCaptureName + ") " + s8StateNextName + " = " + RES_READ + ";");  
+		this.addCombinAssign(groupName, "        else "+ s8StateNextName + " = " + IDLE + ";");
+		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "    end");
+		
+		// RES_READ - send read data
+		this.addCombinAssign(groupName, "  " + RES_READ + ": begin  // RES_READ");  
+		this.addCombinAssign(groupName, "      " + serial8ResValidName + " =  1'b1;");  // res is valid
+		//  bump the data count
+		this.addCombinAssign(groupName, "      " + s8DataCntNextName + " = " + s8DataCntName + " + " + maxDataXferCountBits + "'b1;");
+		// send the data slice while 
+		for (int idx=0; idx<maxDataXferCount; idx++) {
+			prefix = (idx == 0)? "" : "else ";
+			this.addCombinAssign(groupName, "      "+ prefix + "if (" + s8DataCntName + " == " + maxDataXferCountBits + "'d" + idx + ")");  
+			this.addCombinAssign(groupName, "        " + serial8ResDataName + " = " + s8RdCaptureName + SystemVerilogSignal.genRefArrayString(8*idx, 8) + ";");
+		}
+		// if final count we're done 
+		finalCntStr = getSerialMaxDataCountStr(useTransactionSize, transactionsInWord, pioInterfaceRetTransactionSizeName);  // get final data count compare string
+		this.addCombinAssign(groupName, "      if (" + s8DataCntName + " == " + finalCntStr + ") " + s8StateNextName + " = " + IDLE + ";");
+		this.addCombinAssign(groupName, "    end"); 
+		
+		// BAD_CMD
+		this.addCombinAssign(groupName, "  " + BAD_CMD + ": begin  // BAD_CMD");
+		// wait for cmdValid to deassert then send a nack cntl word
+		this.addCombinAssign(groupName, "      if (~" + serial8CmdValidName + ") begin");
+		this.addCombinAssign(groupName, "        " + serial8ResValidName + " =  1'b1;");  // res is valid
+		this.addCombinAssign(groupName, "        " + serial8ResDataName + "[7] = 1'b1;");  // set nack bit  
+		this.addCombinAssign(groupName, "      end"); 
+		this.addCombinAssign(groupName, "    end"); 
+		
+		// default
+		this.addCombinAssign(groupName, "  default:");
+		this.addCombinAssign(groupName, "    " + s8StateNextName + " = " + IDLE + ";");  
+
+		this.addCombinAssign(groupName, "endcase"); 				
+
+		this.addScalarWire(pioInterfaceReName);  //  read enable internal interface
+		this.addScalarWire(pioInterfaceWeName);  //  write enable internal interface
+				
+		// disable atomic request to arbiter
+		if (hasSecondaryInterface()) {
+			this.addScalarWire(arbiterAtomicName);   
+			this.addWireAssign(arbiterAtomicName + " = 1'b0;");
+		}
+
+		// generate re/we assigns - use delayed versions if this is a single primary
+		assignReadWriteRequests(s8pioInterfaceReName, s8pioInterfaceWeName, pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());	
+		
+	}
+
 	/** add serial8 pio interface */
 	private void genSerial8PioInterface(AddressableInstanceProperties topRegProperties, boolean isPrimary) {  
-		//System.out.println("SystemVerilogDecodeModule: generating decoder with external interface, id=" + topRegProperties.getInstancePath());
+		//System.out.println("SystemVerilogDecodeModule: generating decoder with serial8 interface, id=" + topRegProperties.getInstancePath());
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
 		String pioInterfaceWriteDataName = getSigName(isPrimary, this.pioInterfaceWriteDataName);
@@ -1869,7 +2193,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 	/** add ring pio interface */ 
 	private void genRingPioInterface(int ringWidth, AddressableInstanceProperties topRegProperties, boolean isPrimary) {
-		//System.out.println("SystemVerilogDecodeModule: generating decoder with external interface, id=" + topRegProperties.getInstancePath());
+		//System.out.println("SystemVerilogDecodeModule: generating decoder with ring interface, id=" + topRegProperties.getInstancePath());
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
 		String pioInterfaceWriteDataName = getSigName(isPrimary, this.pioInterfaceWriteDataName);

@@ -28,8 +28,8 @@ input rdl {
 output systemverilog {
 	leaf_address_size = 40             // leaf address bits
 	//root_has_leaf_interface = true     // does root module talk directly to leaf  DEPRECATED
-    root_decoder_interface = parallel      // parallel | parallel_pulsed | leaf | serial8 | ring8 | ring16 | ring32
-    //secondary_decoder_interface = serial8      // parallel | parallel_pulsed | serial8 | ring8 | ring16 | ring32 | none
+    root_decoder_interface = parallel      // parallel | parallel_pulsed | leaf | serial8 | ring8 | ring16 | ring32 | spi
+    //secondary_decoder_interface = serial8      // parallel | parallel_pulsed | serial8 | ring8 | ring16 | ring32 | spi | none
     //secondary_base_address = 0x40  // base address as viewed from driver of secondary decoder interface 
     //secondary_low_address = 0x50   // low valid address on secondary decoder interfaces
     //secondary_high_address = 0x5f  // high valid address on secondary decoder interfaces
