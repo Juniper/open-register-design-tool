@@ -1536,6 +1536,8 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 	/** add spi pio interface */
 	private void genSpiPioInterface(AddressableInstanceProperties topRegProperties, boolean isPrimary) {  // TODO add spi mode, cmd, address, return info controls
 		// TODO Auto-generated method stub
+		int spiMode = 0;
+		
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with spi interface, id=" + topRegProperties.getInstancePath());
 		// set internal interface names
 		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
@@ -1554,27 +1556,22 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String spiMisoName = getSigName(isPrimary, "spi_miso");                      
 		String spiMisoEnableName = getSigName(isPrimary, "spi_miso_enable");                      
 		String spiMosiName = getSigName(isPrimary, "spi_mosi");                      
-		String spiSelectName = getSigName(isPrimary, "spi_ss");                      
-		// set internal names
-		String s8StateName = getSigName(isPrimary, "s8_state");                     // FIXME 
-		String s8StateNextName = getSigName(isPrimary, "s8_state_next");                      
-		String s8AddrCntName = getSigName(isPrimary, "s8_addr_cnt");                      
-		String s8AddrCntNextName = getSigName(isPrimary, "s8_addr_cnt_next");                      
-		String s8DataCntName = getSigName(isPrimary, "s8_data_cnt");                      
-		String s8DataCntNextName = getSigName(isPrimary, "s8_data_cnt_next"); 
-		String s8AddrAccumName = getSigName(isPrimary, "s8_addr_accum");                      
-		String s8AddrAccumNextName = getSigName(isPrimary, "s8_addr_accum_next");                      
-		String s8WrAccumName = getSigName(isPrimary, "s8_wdata_accum");                      
-		String s8WrAccumNextName = getSigName(isPrimary, "s8_wdata_accum_next");                      
-		String s8WrStateCaptureName = getSigName(isPrimary, "s8_wr_state_capture");                      
-		String s8WrStateCaptureNextName = getSigName(isPrimary, "s8_wr_state_capture_next");                      
-		String s8RdCaptureName = getSigName(isPrimary, "s8_rdata_capture");                      
-		String s8RdCaptureNextName = getSigName(isPrimary, "s8_rdata_capture_next");     
+		String spiSelectName = getSigName(isPrimary, "spi_ss"); 
 		
-		// check for valid serial8 width
-		int transactionsInWord = ExtParameters.getMinDataSize()/8;  // FIXME
-		boolean multiTransactionWord = (transactionsInWord>1);
-		if (!multiTransactionWord) MsgUtils.errorExit("Serial8 interface type does not support 8b max width regions.  Use parallel interface instead.");
+		// set internal names
+		String spiSclkSlowPosName = getSigName(isPrimary, "spi_sclk_slow_pos");   
+		String spiSclkSlowNegName = getSigName(isPrimary, "spi_sclk_slow_neg");                      
+		String spiSclkValidName = getSigName(isPrimary, "spi_sclk_valid");      // half cycle pulse                
+		String spiMosiCaptureName = getSigName(isPrimary, "spi_mosi_capture");      // sclk flopped incoming data 
+		String spiValidSync0Name = getSigName(isPrimary, "spi_valid_sync_0");      // valid sync flops                
+		String spiValidSync1Name = getSigName(isPrimary, "spi_valid_sync_1");                  
+		String spiValidSync2Name = getSigName(isPrimary, "spi_valid_sync_2");                 
+		String spiValidSync3Name = getSigName(isPrimary, "spi_valid_sync_3");                 
+		String spiValidSyncName = getSigName(isPrimary, "spi_valid_sync");      // resync'd valid                
+
+		
+		// check for valid spi data width
+		int bytesInDataWord = ExtParameters.getMinDataSize()/8;
 		
 		// tie off enables
 		if (hasWriteEnables()) {
@@ -1593,12 +1590,12 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addSimpleScalarTo(SystemVerilogBuilder.PIO, spiMisoName);
 		this.addSimpleScalarTo(SystemVerilogBuilder.PIO, spiMisoEnableName);
 		
-		// calculate max number of 8b xfers required for address 
+		// calculate max number of 8b xfers required for address   // FIXME
 		int addressWidth = builder.getMapAddressWidth();
 		int addrXferCount = 0;
 		if (addressWidth > 0) {
 			addrXferCount = (int) Math.ceil(addressWidth/8.0);
-			//System.out.println("SystemVerilogBuilder genSerial8PioInterface: addr width=" + addressWidth + ", addr count=" + addrXferCount);
+			//System.out.println("SystemVerilogBuilder genSPIPioInterface: addr width=" + addressWidth + ", addr count=" + addrXferCount);
 		}
 		
 		// compute max transaction size in words and number of bits to represent (4b max)
@@ -1606,7 +1603,40 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int regWords = builder.getMaxRegWordWidth();
 		int regWordBits = Utils.getBits(regWords);
 		boolean useTransactionSize = (regWords > 1);  // if transaction sizes need to be sent/received
+
+		/*
+		String spiSclkSlowPosName = getSigName(isPrimary, "spi_sclk_slow_pos");   
+		String spiSclkSlowNegName = getSigName(isPrimary, "spi_sclk_slow_neg");                      
+		String spiSclkValidName = getSigName(isPrimary, "spi_sclk_valid");      // half cycle pulse                
+		String spiMosiCaptureName = getSigName(isPrimary, "spi_mosi_capture");      // sclk flopped incoming data 
+		String spiValidSync0Name = getSigName(isPrimary, "spi_valid_sync_0");      // valid sync flops                
+		String spiValidSync1Name = getSigName(isPrimary, "spi_valid_sync_1");                  
+		String spiValidSync2Name = getSigName(isPrimary, "spi_valid_sync_2");                 
+		String spiValidSync3Name = getSigName(isPrimary, "spi_valid_sync_3");                 
+		String spiValidSyncName = getSigName(isPrimary, "spi_valid_sync");      // resync'd valid                
+		 */
+		// capture incoming transaction from master
+		String groupName = getGroupPrefix(isPrimary) + "spi i/f - sclk neg capture";
+		this.addScalarReg(spiSclkSlowNegName); 
+		this.addResetAssign(groupName, builder.getDefaultReset(), spiClkName, true, spiSclkSlowNegName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;"); // TODO 
+		this.addRegAssign(groupName, spiClkName, true,  spiSclkSlowNegName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " !" + spiSclkSlowNegName + ";");  
 		
+		groupName = getGroupPrefix(isPrimary) + "spi i/f - sclk pos capture";
+		this.addScalarReg(spiSclkSlowPosName);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), spiClkName, false, spiSclkSlowPosName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  // TODO
+		this.addRegAssign(groupName, spiClkName, true,  spiSclkSlowPosName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " !" + spiSclkSlowPosName + ";");  
+
+		groupName = getGroupPrefix(isPrimary) + "spi i/f - mosi capture";
+		this.addScalarReg(spiMosiCaptureName);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), spiClkName, false, spiMosiCaptureName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;"); // TODO 
+		this.addRegAssign(groupName, spiClkName, true,  "if (!" + spiSelectName + ") " + spiMosiCaptureName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + spiSclkSlowPosName + ";");  
+
+		this.addScalarWire(spiSclkValidName);  
+		this.addWireAssign(spiSclkValidName + " = !(" + spiSclkSlowPosName + " ^ " + spiSclkSlowNegName + ");");   // TODO - modes?
+		
+		groupName = getGroupPrefix(isPrimary) + "spi i/f - capture valid gen";
+
+		/*
 		// now create state machine vars
 		String groupName = getGroupPrefix(isPrimary) + "serial8 i/f";  
 		int stateBits = 3;
@@ -1786,7 +1816,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addCombinAssign(groupName, "          "  + s8WrAccumNextName + SystemVerilogSignal.genRefArrayString(8*idx, 8) + " = " + serial8CmdDataName + ";");
 		}
 		// if done, move to res wait  
-		String finalCntStr = getSerialMaxDataCountStr(useTransactionSize, transactionsInWord, pioInterfaceTransactionSizeName);  // get final data count compare string
+		String finalCntStr = getSerialMaxDataCountStr(useTransactionSize, bytesInDataWord, pioInterfaceTransactionSizeName);  // get final data count compare string
 		this.addCombinAssign(groupName, "        if (" + s8DataCntName + " == " + finalCntStr + ")");
 		this.addCombinAssign(groupName, "          " + s8StateNextName + " = " + RES_WAIT + ";");
 		this.addCombinAssign(groupName, "      end"); 
@@ -1823,7 +1853,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addCombinAssign(groupName, "        " + serial8ResDataName + " = " + s8RdCaptureName + SystemVerilogSignal.genRefArrayString(8*idx, 8) + ";");
 		}
 		// if final count we're done 
-		finalCntStr = getSerialMaxDataCountStr(useTransactionSize, transactionsInWord, pioInterfaceRetTransactionSizeName);  // get final data count compare string
+		finalCntStr = getSerialMaxDataCountStr(useTransactionSize, bytesInDataWord, pioInterfaceRetTransactionSizeName);  // get final data count compare string
 		this.addCombinAssign(groupName, "      if (" + s8DataCntName + " == " + finalCntStr + ") " + s8StateNextName + " = " + IDLE + ";");
 		this.addCombinAssign(groupName, "    end"); 
 		
@@ -1853,7 +1883,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 		// generate re/we assigns - use delayed versions if this is a single primary
 		assignReadWriteRequests(s8pioInterfaceReName, s8pioInterfaceWeName, pioInterfaceReName, pioInterfaceWeName, !hasSecondaryInterface());	
-		
+		*/
 	}
 
 	/** add serial8 pio interface */

@@ -66,7 +66,7 @@ public class SystemVerilogModule {
 		setTerminalInsideLocs(insideLocs);  // locations inside this module
 		setName(name);
 		this.defaultClkName = defaultClkName;
-		registers = new SystemVerilogRegisters(writer, defaultClkName, useAsyncResets);
+		registers = new SystemVerilogRegisters(writer, useAsyncResets);
 		wireDefList = new SystemVerilogSignalList();
 		regDefList = new SystemVerilogSignalList();
 		coverGroups = new SystemVerilogCoverGroups(writer, defaultClkName, coverageResetName);  // TODO - need to change cover reset if separate logic reset is being used
@@ -212,22 +212,27 @@ public class SystemVerilogModule {
 
 	/** add a combinatorial reg assign */
 	public void addCombinAssign(String groupName, String assign) {
-		registers.get(groupName).addCombinAssign(assign);  
+		registers.getOrCreate(groupName, defaultClkName, false).addCombinAssign(assign);  
 	}
 
 	/** add a list of combinatorial reg assigns */
 	public void addCombinAssign(String groupName, List<String> assignList) {
-		registers.get(groupName).addCombinAssign(assignList);  
+		registers.getOrCreate(groupName, defaultClkName, false).addCombinAssign(assignList);  
 	}
 
 	/** add a combinatorial reg assign with specified precedence */
 	public void addPrecCombinAssign(String groupName, boolean hiPrecedence, String assign) {
-		registers.get(groupName).addPrecCombinAssign(hiPrecedence, assign);		
+		registers.getOrCreate(groupName, defaultClkName, false).addPrecCombinAssign(hiPrecedence, assign);		
 	}
 
 	/** add a sequential reg assign */
+	public void addRegAssign(String groupName, String clkName, boolean useNegClkEdge, String assign) {
+		 registers.getOrCreate(groupName, clkName, useNegClkEdge).addRegAssign(assign);
+	}
+	
+	/** add a sequential reg assign using posedge default clock */
 	public void addRegAssign(String groupName, String assign) {
-		 registers.get(groupName).addRegAssign(assign);
+		addRegAssign(groupName, defaultClkName, false, assign);
 	}
 
 	public SystemVerilogRegisters getRegisters() {
@@ -240,8 +245,13 @@ public class SystemVerilogModule {
 	}
 
 	/** add a reset assign to this modules reg group */
+	public void addResetAssign(String groupName, String resetName, String clkName, boolean useNegClkEdge, String assign) {
+		registers.getOrCreate(groupName, clkName, useNegClkEdge).addResetAssign(resetName, assign);
+	}
+
+	/** add a reset assign to this modules reg group using posedge default clock */
 	public void addResetAssign(String groupName, String resetName, String assign) {
-		registers.get(groupName).addResetAssign(resetName, assign);
+		addResetAssign(groupName, resetName, defaultClkName, false, assign);
 	}
 
 	/** add a wire define */
