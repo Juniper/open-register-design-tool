@@ -3,10 +3,60 @@
 global {
 	base_address = 0x0                // set block base address
 }
+output systemverilog {
+    root_decoder_interface = parallel      // parallel | parallel_pulsed | leaf | serial8 | ring8 | ring16 | ring32
+	pulse_intr_on_clear = false    // pulse interrupt output low if any child in intr tree is cleared
+}
+
 output bench {
+    // set log inputs to be captured
+	add_test_command = "statement #1 h2l_bar_log_reg1_err_log_w = 10'h25a;"
+	add_test_command = "statement #1 h2l_bar_log_reg2_err_log_w = 10'h25a;"
+	add_test_command = "statement #1 h2l_bar_log_reg3_err_log_w = 10'h25a;"
 	add_test_command = "write 32 0x0 0x12345678"  // write
-	add_test_command = "read 32 0x0"  // read 
-	add_test_command = "read 32 0x104"  // read log
-	add_test_command = "read 32 0x108"  // read log
-	add_test_command = "read 32 0x10c"  // read log
+	add_test_command = "read 32 0x0 0x278"  // read back and verify
+	// read logs pre intr
+	add_test_command = "read 32 0x104 0x25a"  // read log pre intr
+	add_test_command = "read 32 0x108 0x0"  // read log pre intr
+	add_test_command = "read 32 0x10c 0x25a"  // read log pre intr
+	// interrupt and capture logs
+	add_test_command = "statement #1 h2l_bar_intr_reg1_int1_intr = 1'b1;" // pulse intr
+	add_test_command = "wait 1"
+	add_test_command = "statement #1 h2l_bar_intr_reg1_int1_intr = 1'b0;" // pulse intr
+	add_test_command = "wait 1"
+    // set bogus log inputs to not be captured
+	add_test_command = "statement #1 h2l_bar_log_reg1_err_log_w = 10'h3ff;"
+	add_test_command = "statement #1 h2l_bar_log_reg2_err_log_w = 10'h3ff;"
+	add_test_command = "statement #1 h2l_bar_log_reg3_err_log_w = 10'h3ff;"
+	// verify logs are correct
+	add_test_command = "read 32 0x104 0x25a"
+	add_test_command = "read 32 0x108 0x25a"
+	add_test_command = "read 32 0x10c 0x25a"
+	add_test_command = "write 32 0x100 0x1"  // write 1 to clr int1_intr
+
+	// verify no edge intrs
+	add_test_command = "read 32 0x500 0x0"
+	add_test_command = "read 32 0x504 0x0"
+	// rising edge
+	add_test_command = "statement #1 h2l_bar_negintr_interrupt_intr = 1'b1;"
+	add_test_command = "statement #1 h2l_bar_bothintr_interrupt_intr = 1'b1;"
+	add_test_command = "wait 1"
+	// verify rising edge intr
+	add_test_command = "read 32 0x500 0x0"
+	add_test_command = "read 32 0x504 0x1"
+	add_test_command = "write 32 0x504 0x1"  // write 1 to clr bothintr
+	add_test_command = "read 32 0x504 0x0"
+	add_test_command = "wait 10"
+	// falling edge
+	add_test_command = "statement #1 h2l_bar_negintr_interrupt_intr = 1'b0;"
+	add_test_command = "statement #1 h2l_bar_bothintr_interrupt_intr = 1'b0;"
+	add_test_command = "wait 1"
+	// verify falling edge intr
+	add_test_command = "read 32 0x500 0x1"
+	add_test_command = "read 32 0x504 0x1"
+	add_test_command = "write 32 0x500 0x1"  // write 1 to clr negintr
+	add_test_command = "write 32 0x504 0x1"  // write 1 to clr bothintr
+	add_test_command = "read 32 0x500 0x0"
+	add_test_command = "read 32 0x504 0x0"
+	
 }
