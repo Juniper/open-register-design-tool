@@ -149,7 +149,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 				   resetSignalActiveLow = builder.getLogicResetActiveLow();
 			   }
 			   addReset(resetSignalName, resetSignalActiveLow);
-			   addResetAssign(groupName, resetSignalName, fieldRegisterName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + getResetValueString() + ";");  // ff reset assigns			   
+			   addResetAssign(groupName, resetSignalName, fieldRegisterName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + getResetValueString() + ";");  // ff reset assigns			   
 		   }
 		   else if (!ExtParameters.sysVerSuppressNoResetWarnings()) MsgUtils.warnMessage("field " + fieldProperties.getInstancePath() + " has no reset defined");
 		   
@@ -449,7 +449,9 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			   // if not LEVEL, need to store previous intr value
 			   if (fieldProperties.getIntrType() != FieldProperties.IntrType.LEVEL) {
 				   addVectorReg(prevIntrName, 0, fieldProperties.getFieldWidth());
-				   addRegAssign(regProperties.getBaseName(), prevIntrName  +  " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + hwToLogicIntrName + ";");
+				   if (fieldProperties.hasReset()) 
+					   addResetAssign(regProperties.getBaseName(), getResetSignalName(), prevIntrName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + getResetValueString() + ";");
+				   addRegAssign(regProperties.getBaseName(), prevIntrName  +  " <= " + ExtParameters.sysVerSequentialAssignDelayString() + hwToLogicIntrName + ";");
 				   // if posedge detect
 				   if (fieldProperties.getIntrType() == FieldProperties.IntrType.POSEDGE) 
 					   detectStr = "(" + hwToLogicIntrName + " & ~" + prevIntrName + ")";
@@ -480,7 +482,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	       if (ExtParameters.sysVerPulseIntrOnClear()) {
 			   String intrDlyName = fieldProperties.getFullSignalName(DefSignalType.INTR_DLY); 	   
 			   addVectorReg(intrDlyName, 0, fieldProperties.getFieldWidth());
-			   addRegAssign(regProperties.getBaseName(), intrDlyName  +  " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + fieldRegisterName + ";");
+			   addRegAssign(regProperties.getBaseName(), intrDlyName  +  " <= " + ExtParameters.sysVerSequentialAssignDelayString() + fieldRegisterName + ";");
 		       addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, intrClear + " = " + intrClear  + orStr + intrDlyName + " & ~" + fieldRegisterName + endStr);  // negedge detect
 	       }
 
@@ -534,7 +536,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 				   addHwScalar(DefSignalType.L2H_OVERFLOW);   // add hw overflow output
 				   addScalarReg(logicToHwOverflowName);  
 				   addRegAssign(regProperties.getBaseName(), logicToHwOverflowName +
-						   " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + nextCountName + "[" + fieldWidth + "] & ~" +  logicToHwOverflowName + ";");  // only active for one cycle  
+						   " <= " + ExtParameters.sysVerSequentialAssignDelayString() + nextCountName + "[" + fieldWidth + "] & ~" +  logicToHwOverflowName + ";");  // only active for one cycle  
 			   }
 
 			   // if a ref is being used for increment assign it, else add an input
@@ -557,7 +559,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 				   addHwScalar(DefSignalType.L2H_UNDERFLOW);   // add hw underflow output
 				   addScalarReg(logicToHwUnderflowName);  
 				   addRegAssign(regProperties.getBaseName(), logicToHwUnderflowName +
-						   " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + nextCountName + "[" + fieldWidth + "] & ~" +  logicToHwUnderflowName + ";");  // only active for one cycle  
+						   " <= " + ExtParameters.sysVerSequentialAssignDelayString() + nextCountName + "[" + fieldWidth + "] & ~" +  logicToHwUnderflowName + ";");  // only active for one cycle  
 			   }
 
 			   // if a ref is being used for decrement assign it, else add an input
@@ -664,7 +666,7 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	/** create reset value string */
 	private String getResetValueString() {
 		String resetValueString = null;
-		if (fieldProperties.getReset() != null) {  // if reset value specified
+		if (fieldProperties.hasReset()) {  // if reset value specified
 			RegNumber resetValue = new RegNumber(fieldProperties.getReset());  
 			resetValue.setNumFormat(RegNumber.NumFormat.Verilog);  // output reset in verilog format
 			resetValueString = resetValue.toString();
@@ -673,6 +675,19 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			resetValueString = resolveRhsExpression(RhsRefType.RESET_VALUE);
 		}
 		return resetValueString;
+	}
+	
+	/** get reset signal name for current field */
+	private String getResetSignalName() {
+		String resetSignalName = null;
+		if (fieldProperties.hasReset()) {
+			resetSignalName = builder.getDefaultReset();
+			if (fieldProperties.hasRef(RhsRefType.RESET_SIGNAL)) 
+				resetSignalName = resolveRhsExpression(RhsRefType.RESET_SIGNAL);
+			else if (builder.getLogicReset() != null) 
+				resetSignalName = builder.getLogicReset();
+		}
+        return resetSignalName;
 	}
 
 	/** create count increment string */
