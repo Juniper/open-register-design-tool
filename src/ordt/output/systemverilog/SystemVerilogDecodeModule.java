@@ -1532,11 +1532,21 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			this.addWireAssign(ioRdWidth + " = " + externalDataBitSize + "'b0;"); 
 		}
 	}
+	
+    //  TODO enum SpiFormat { SPI_FORM1 };
 
 	/** add spi pio interface */
 	private void genSpiPioInterface(AddressableInstanceProperties topRegProperties, boolean isPrimary) {  // TODO add spi mode, cmd, address, return info controls
-		// TODO Auto-generated method stub
-		int spiMode = 0;
+		// spi control info
+		int spiMode = 0; // 0:cpol=0,cpha=0(rising capture)  1:cpol=0,cpha=1(falling capture)  2:cpol=1,cpha=0(falling capture)  3:cpol=1,cpha=1(rising capture)
+		
+		int spiWordSize = 8;  // 8b per std word
+        int spiFirstWordSize = 3; // special first word  // TODO use a mode??
+        boolean spiIndirectReadMode = true;  // address is not sent with r/w - separate write sets address first, waddr, raddr, then do indir reg write/read
+		
+		boolean risingCapture = (spiMode == 0) || (spiMode == 3);
+		int maxSpiWordSize = (spiWordSize > spiFirstWordSize)? spiWordSize : spiFirstWordSize;
+		int spiWordSizeBits = Utils.getBits(maxSpiWordSize);
 		
 		//System.out.println("SystemVerilogDecodeModule: generating decoder with spi interface, id=" + topRegProperties.getInstancePath());
 		// set internal interface names
@@ -1559,20 +1569,20 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String spiSelectName = getSigName(isPrimary, "spi_ss"); 
 		
 		// set internal names
-		String spiSclkSlowPosName = getSigName(isPrimary, "spi_sclk_slow_pos");   
-		String spiSclkSlowNegName = getSigName(isPrimary, "spi_sclk_slow_neg");                      
-		String spiSclkValidName = getSigName(isPrimary, "spi_sclk_valid");      // half cycle pulse                
+		String spiMosiBitCountName = getSigName(isPrimary, "spi_mosi_bit_count");  // count of bits in spi word
+		String spiMosiBitCountNextName = getSigName(isPrimary, "spi_mosi_bit_count_next");  // count of bits in spi word
+		String spiMosiWordCountName = getSigName(isPrimary, "spi_mosi_word_count");   // count of words in transaction                  
+		String spiMosiWordCountNextName = getSigName(isPrimary, "spi_mosi_word_count_next");   // count of words in transaction                  
+		String spiMosiWordEndName = getSigName(isPrimary, "spi_mosi_word_end");      // half cycle pulse                
+		String spiMosiWordEndNextEdgeName = getSigName(isPrimary, "spi_mosi_word_end_next_edge");      // half cycle delayed word_end for valid gen               
 		String spiMosiCaptureName = getSigName(isPrimary, "spi_mosi_capture");      // sclk flopped incoming data 
+		
 		String spiValidSync0Name = getSigName(isPrimary, "spi_valid_sync_0");      // valid sync flops                
 		String spiValidSync1Name = getSigName(isPrimary, "spi_valid_sync_1");                  
 		String spiValidSync2Name = getSigName(isPrimary, "spi_valid_sync_2");                 
 		String spiValidSync3Name = getSigName(isPrimary, "spi_valid_sync_3");                 
 		String spiValidSyncName = getSigName(isPrimary, "spi_valid_sync");      // resync'd valid                
-
-		
-		// check for valid spi data width
-		int bytesInDataWord = ExtParameters.getMinDataSize()/8;
-		
+	
 		// tie off enables
 		if (hasWriteEnables()) {
 			MsgUtils.warnMessage("SPI decoder interface will not generate write data enables.");
@@ -1590,6 +1600,21 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addSimpleScalarTo(SystemVerilogBuilder.PIO, spiMisoName);
 		this.addSimpleScalarTo(SystemVerilogBuilder.PIO, spiMisoEnableName);
 		
+		// calculate min spi data word transactions
+		if ((ExtParameters.getMinDataSize() % spiWordSize) != 0)
+			MsgUtils.warnMessage("Specified SPI decoder interface word size (" + spiWordSize + ") must be a factor of minimum data size (" + ExtParameters.getMinDataSize() + ").");
+		int minSpiDataWords = ExtParameters.getMinDataSize()/spiWordSize;
+
+		// calculate max spi data word transactions
+		int maxRegWords = builder.getMaxRegWordWidth();
+		int maxSpiDataWords = minSpiDataWords * maxRegWords;
+		int spiWordCountBits = Utils.getBits(maxSpiDataWords);
+		
+		// compute max transaction size in words and number of bits to represent (4b max)
+		int maxRegWidth = builder.getMaxRegWidth();
+		int regWordBits = Utils.getBits(maxRegWords);
+		boolean useTransactionSize = (maxRegWords > 1);  // if transaction sizes need to be sent/received
+		
 		// calculate max number of 8b xfers required for address   // FIXME
 		int addressWidth = builder.getMapAddressWidth();
 		int addrXferCount = 0;
@@ -1597,44 +1622,55 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 			addrXferCount = (int) Math.ceil(addressWidth/8.0);
 			//System.out.println("SystemVerilogBuilder genSPIPioInterface: addr width=" + addressWidth + ", addr count=" + addrXferCount);
 		}
-		
-		// compute max transaction size in words and number of bits to represent (4b max)
-		int regWidth = builder.getMaxRegWidth();
-		int regWords = builder.getMaxRegWordWidth();
-		int regWordBits = Utils.getBits(regWords);
-		boolean useTransactionSize = (regWords > 1);  // if transaction sizes need to be sent/received
 
+		// count incoming sclk bit transactions
+		String groupName = getGroupPrefix(isPrimary) + "spi i/f - mosi bit count and word end indication";
+		this.addVectorReg(spiMosiBitCountName, 0, spiWordSizeBits); 
+		this.addVectorReg(spiMosiBitCountNextName, 0, spiWordSizeBits); 
+		this.addScalarReg(spiMosiWordEndName); 
+		String syncAssignStr = " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " ";
+		this.addResetAssign(groupName, builder.getDefaultReset(), spiClkName, !risingCapture, spiMosiBitCountName + syncAssignStr + spiWordSizeBits + "'d0;");
+		this.addRegAssign(groupName, spiClkName, !risingCapture,  spiMosiBitCountName + syncAssignStr + spiMosiBitCountNextName + ";");
+		
+		this.addCombinAssign(groupName, spiMosiWordEndName + " = 1'b0;");
+		this.addCombinAssign(groupName, "if (" + spiSelectName + ") " + spiMosiBitCountNextName + " = " + spiWordSizeBits + "'d0;");  
+		this.addCombinAssign(groupName, "else if (((" + spiMosiWordCountName + "==" + spiWordCountBits + "'d0) && (" + spiMosiBitCountName + " = " + spiWordSizeBits + "'d" + (spiFirstWordSize-1) + ")) || ");
+		this.addCombinAssign(groupName, "         ((" + spiMosiWordCountName + "!=" + spiWordCountBits + "'d0) && (" + spiMosiBitCountName + " = " + spiWordSizeBits + "'d" + (spiWordSize-1) + ")) begin");
+		this.addCombinAssign(groupName, "    " + spiMosiBitCountNextName + " = " + spiWordSizeBits + "'d0;");
+		this.addCombinAssign(groupName, "    " + spiMosiWordEndName + " = 1'b1;");
+		this.addCombinAssign(groupName, "end");
+		this.addCombinAssign(groupName, "else " + spiMosiBitCountNextName + " = " + spiMosiBitCountNextName + " + " + spiWordSizeBits + "'d1;");  
+
+		// create a half clock delayed word end signal (assumes word end valid in a half sclk cycle)
+		this.addScalarWire(spiMosiWordEndNextEdgeName);  
+		this.addRegAssign(groupName, spiClkName, risingCapture,  spiMosiWordEndNextEdgeName + syncAssignStr + spiMosiWordEndName + ";");
+			
+		// count incoming sclk words
+		groupName = getGroupPrefix(isPrimary) + "spi i/f - mosi word count";
+		this.addVectorReg(spiMosiWordCountName, 0, spiWordCountBits); // TODO single word case? 
+		this.addVectorReg(spiMosiWordCountNextName, 0, spiWordCountBits);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), spiClkName, !risingCapture, spiMosiWordCountName + syncAssignStr + spiWordCountBits + "'d0;");
+		this.addRegAssign(groupName, spiClkName, !risingCapture,  spiMosiWordCountName + syncAssignStr + spiMosiWordCountNextName + ";");
+		
+		this.addCombinAssign(groupName, spiMosiWordCountName + " = " + spiMosiWordCountNextName + " + " + spiWordCountBits + "'d1;");  
+		this.addCombinAssign(groupName, "if (" + spiSelectName + ") " + spiMosiWordCountName + " = " + spiWordCountBits + "'d0;");  
+		this.addCombinAssign(groupName, "else if (" + spiMosiWordEndName + ") " + spiMosiWordCountName + " = " + spiMosiWordCountNextName + " + " + spiWordCountBits + "'d1;");  
+
+		groupName = getGroupPrefix(isPrimary) + "spi i/f - mosi capture";
+		this.addVectorReg(spiMosiCaptureName, 0, spiWordSizeBits);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), spiClkName, !risingCapture, spiMosiCaptureName + syncAssignStr + spiWordSizeBits + "'b0;");
+		String idxStr = "[" + spiMosiBitCountNextName + "]";
+		this.addRegAssign(groupName, spiClkName, !risingCapture,  "if (!" + spiSelectName + ") " + spiMosiCaptureName + idxStr + syncAssignStr + spiMosiName + ";");  
+
+		groupName = getGroupPrefix(isPrimary) + "spi i/f - capture valid gen";
+		
 		/*
-		String spiSclkSlowPosName = getSigName(isPrimary, "spi_sclk_slow_pos");   
-		String spiSclkSlowNegName = getSigName(isPrimary, "spi_sclk_slow_neg");                      
-		String spiSclkValidName = getSigName(isPrimary, "spi_sclk_valid");      // half cycle pulse                
-		String spiMosiCaptureName = getSigName(isPrimary, "spi_mosi_capture");      // sclk flopped incoming data 
 		String spiValidSync0Name = getSigName(isPrimary, "spi_valid_sync_0");      // valid sync flops                
 		String spiValidSync1Name = getSigName(isPrimary, "spi_valid_sync_1");                  
 		String spiValidSync2Name = getSigName(isPrimary, "spi_valid_sync_2");                 
 		String spiValidSync3Name = getSigName(isPrimary, "spi_valid_sync_3");                 
 		String spiValidSyncName = getSigName(isPrimary, "spi_valid_sync");      // resync'd valid                
 		 */
-		// capture incoming transaction from master
-		String groupName = getGroupPrefix(isPrimary) + "spi i/f - sclk neg capture";
-		this.addScalarReg(spiSclkSlowNegName); 
-		this.addResetAssign(groupName, builder.getDefaultReset(), spiClkName, true, spiSclkSlowNegName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;"); // TODO 
-		this.addRegAssign(groupName, spiClkName, true,  spiSclkSlowNegName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " !" + spiSclkSlowNegName + ";");  
-		
-		groupName = getGroupPrefix(isPrimary) + "spi i/f - sclk pos capture";
-		this.addScalarReg(spiSclkSlowPosName);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), spiClkName, false, spiSclkSlowPosName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");  // TODO
-		this.addRegAssign(groupName, spiClkName, true,  spiSclkSlowPosName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " !" + spiSclkSlowPosName + ";");  
-
-		groupName = getGroupPrefix(isPrimary) + "spi i/f - mosi capture";
-		this.addScalarReg(spiMosiCaptureName);  
-		this.addResetAssign(groupName, builder.getDefaultReset(), spiClkName, false, spiMosiCaptureName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;"); // TODO 
-		this.addRegAssign(groupName, spiClkName, true,  "if (!" + spiSelectName + ") " + spiMosiCaptureName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + spiSclkSlowPosName + ";");  
-
-		this.addScalarWire(spiSclkValidName);  
-		this.addWireAssign(spiSclkValidName + " = !(" + spiSclkSlowPosName + " ^ " + spiSclkSlowNegName + ");");   // TODO - modes?
-		
-		groupName = getGroupPrefix(isPrimary) + "spi i/f - capture valid gen";
 
 		/*
 		// now create state machine vars
