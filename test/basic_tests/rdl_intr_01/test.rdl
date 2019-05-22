@@ -53,6 +53,36 @@ addrmap foo_map {
             fld fld4[3];
 	    } rst_reg;
         rst_reg.fld4->reset=4;
+        
+        // try alt rdl interrupt types
+		reg negintr_t {
+		    name = "Reg negedge intr";
+		    desc = "A register with negedge intr";
+		         default hw = na; // Ordt have as na
+		        default sw = rw;
+		    field {
+		        name = "negedge_intr check";
+		        desc = "checking that the negedge intr works";
+		        negedge intr;
+		        woclr;
+		    } interrupt = 1'b0;
+		};
+		
+		reg bothintr_t {
+		    name = "Reg bothedge intr";
+		    desc = "A register with bothedge intr";
+		         default hw = na; // Ordt have as na
+		        default sw = rw;
+		    field {
+		        name = "bothedge_intr check";
+		        desc = "checking that the bothedge intr works";
+		        bothedge intr;
+		        woclr;
+		    } interrupt = 1'b0;
+		};
+		
+		negintr_t           negintr @0x500;
+		bothintr_t          bothintr;   
  	    
     } bar;
     
