@@ -119,8 +119,8 @@ ext_parm_defs
  systemverilog_out_parm_assign
    : 'leaf_address_size' EQ NUM
    | 'root_has_leaf_interface' EQ bool 
-   | 'root_decoder_interface' EQ ('leaf' | 'parallel' | 'parallel_pulsed' | 'serial8' | 'ring8' | 'ring16' | 'ring32' | 'spi') 
-   | 'secondary_decoder_interface' EQ ('none' | 'leaf' | 'parallel' | 'parallel_pulsed' | 'serial8' | 'ring8' | 'ring16' | 'ring32' | 'engine1' | 'spi') 
+   | 'root_decoder_interface' EQ ('leaf' | 'parallel' | 'parallel_pulsed' | 'serial8' | 'ring8' | 'ring16' | 'ring32' | 'spi_interface') 
+   | 'secondary_decoder_interface' EQ ('none' | 'leaf' | 'parallel' | 'parallel_pulsed' | 'serial8' | 'ring8' | 'ring16' | 'ring32' | 'engine1' | 'spi_interface') 
    | 'secondary_base_address' EQ NUM 
    | 'secondary_low_address' EQ NUM 
    | 'secondary_high_address' EQ NUM 

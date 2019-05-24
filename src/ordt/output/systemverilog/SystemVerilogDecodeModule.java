@@ -1577,11 +1577,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String spiMosiWordEndNextEdgeName = getSigName(isPrimary, "spi_mosi_word_end_next_edge");      // half cycle delayed word_end for valid gen               
 		String spiMosiCaptureName = getSigName(isPrimary, "spi_mosi_capture");      // sclk flopped incoming data 
 		
-		String spiValidSync0Name = getSigName(isPrimary, "spi_valid_sync_0");      // valid sync flops                
-		String spiValidSync1Name = getSigName(isPrimary, "spi_valid_sync_1");                  
-		String spiValidSync2Name = getSigName(isPrimary, "spi_valid_sync_2");                 
-		String spiValidSync3Name = getSigName(isPrimary, "spi_valid_sync_3");                 
-		String spiValidSyncName = getSigName(isPrimary, "spi_valid_sync");      // resync'd valid                
+		String spiWordEndSync0Name = getSigName(isPrimary, "spi_word_end_sync_0");      // valid sync flops                
+		String spiWordEndSync1Name = getSigName(isPrimary, "spi_word_end_sync_1");                  
+		String spiWordEndSync2Name = getSigName(isPrimary, "spi_word_end_sync_2");                 
+		String spiWordEndSync3Name = getSigName(isPrimary, "spi_word_end_sync_3");                 
+		String spiWordEndSyncName = getSigName(isPrimary, "spi_word_end_sync");      // resync'd valid                
 	
 		// tie off enables
 		if (hasWriteEnables()) {
@@ -1610,7 +1610,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		int maxSpiDataWords = minSpiDataWords * maxRegWords;
 		int spiWordCountBits = Utils.getBits(maxSpiDataWords);
 		
-		// compute max transaction size in words and number of bits to represent (4b max)
+		// compute max transaction size in words and number of bits to represent (4b max)  // FIXME
 		int maxRegWidth = builder.getMaxRegWidth();
 		int regWordBits = Utils.getBits(maxRegWords);
 		boolean useTransactionSize = (maxRegWords > 1);  // if transaction sizes need to be sent/received
@@ -1662,7 +1662,18 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String idxStr = "[" + spiMosiBitCountNextName + "]";
 		this.addRegAssign(groupName, spiClkName, !risingCapture,  "if (!" + spiSelectName + ") " + spiMosiCaptureName + idxStr + syncAssignStr + spiMosiName + ";");  
 
-		groupName = getGroupPrefix(isPrimary) + "spi i/f - capture valid gen";
+		groupName = getGroupPrefix(isPrimary) + "spi i/f - sync word end";
+		this.addScalarReg(spiWordEndSync0Name);  
+		this.addScalarReg(spiWordEndSync1Name);  
+		this.addScalarReg(spiWordEndSync2Name);  
+		this.addScalarReg(spiWordEndSync3Name);  
+		this.addResetAssign(groupName, builder.getDefaultReset(), spiWordEndSync0Name + syncAssignStr + "1'b0;");
+		this.addRegAssign(groupName, spiWordEndSync0Name + syncAssignStr + spiMosiWordEndNextEdgeName + ";");
+		this.addRegAssign(groupName, spiWordEndSync1Name + syncAssignStr + spiWordEndSync0Name + ";");
+		this.addRegAssign(groupName, spiWordEndSync2Name + syncAssignStr + spiWordEndSync1Name + ";");
+		this.addRegAssign(groupName, spiWordEndSync3Name + syncAssignStr + spiWordEndSync2Name + ";");
+		this.addScalarWire(spiWordEndSyncName);  
+		this.addCombinAssign(groupName, spiWordEndSyncName + " = " +  spiWordEndSync1Name + " & " + spiWordEndSync2Name + " & !" + spiWordEndSync3Name);  
 		
 		/*
 		String spiValidSync0Name = getSigName(isPrimary, "spi_valid_sync_0");      // valid sync flops                
