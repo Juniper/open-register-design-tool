@@ -176,6 +176,10 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 	/** generate common internal pio interface code */
 	private void generateCommonPio(AddressableInstanceProperties topRegProperties) {
+		String grpName = "pio i/f";
+		String rstGrpName = "pio i/f (reset signal = " + builder.getDefaultReset() + ")";		
+		String optGrpName = (ExtParameters.sysVerResetAllOutputs())? rstGrpName : grpName;  // selectable block group		
+		
 		// add internal registered input sigs
 		this.addScalarReg("pio_write_active");  // write indication
 		this.addScalarReg("pio_read_active");  // read indication
@@ -183,13 +187,19 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addVectorReg("pio_dec_write_data_d1", 0, builder.getMaxRegWidth());  // input write data capture register 
 		
         // pio read/write actives - enabled by ext re/we and disabled when ack/nack
-		this.addResetAssign("pio i/f", builder.getDefaultReset(), "pio_write_active <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");
-		this.addResetAssign("pio i/f", builder.getDefaultReset(), "pio_read_active <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");
-		this.addRegAssign("pio i/f",  "pio_write_active <= " + ExtParameters.sysVerSequentialAssignDelayString() + " pio_write_active ? pio_no_acks : pio_activate_write;"); // active stays high until ack/nack 		   
-		this.addRegAssign("pio i/f",  "pio_read_active <= " + ExtParameters.sysVerSequentialAssignDelayString() + " pio_read_active ? pio_no_acks : pio_activate_read;");  		   
+		this.addResetAssign(rstGrpName, builder.getDefaultReset(), "pio_write_active <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");
+		this.addResetAssign(rstGrpName, builder.getDefaultReset(), "pio_read_active <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;");
+		this.addRegAssign(rstGrpName,  "pio_write_active <= " + ExtParameters.sysVerSequentialAssignDelayString() + " pio_write_active ? pio_no_acks : pio_activate_write;"); // active stays high until ack/nack 		   
+		this.addRegAssign(rstGrpName,  "pio_read_active <= " + ExtParameters.sysVerSequentialAssignDelayString() + " pio_read_active ? pio_no_acks : pio_activate_read;");  		   
 
-		if (mapHasMultipleAddresses()) this.addRegAssign("pio i/f",  "pio_dec_address_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + "  " + pioInterfaceAddressName + ";");  // capture address if new transaction		   
-		this.addRegAssign("pio i/f",  "pio_dec_write_data_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + pioInterfaceWriteDataName + ";"); // capture write data if new transaction
+		if (mapHasMultipleAddresses()) {
+			if (ExtParameters.sysVerResetAllOutputs())
+				this.addResetAssign(rstGrpName, builder.getDefaultReset(), "pio_dec_address_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + builder.getMapAddressWidth() + "'b0;" );   
+			this.addRegAssign(optGrpName,  "pio_dec_address_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + "  " + pioInterfaceAddressName + ";");  // capture address if new transaction		   
+		}
+		if (ExtParameters.sysVerResetAllOutputs())
+			this.addResetAssign(rstGrpName, builder.getDefaultReset(), "pio_dec_write_data_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + builder.getMaxRegWidth() + "'b0;" );   
+		this.addRegAssign(optGrpName,  "pio_dec_write_data_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + pioInterfaceWriteDataName + ";"); // capture write data if new transaction
 		
 		// if write enables are specified, then capture
 		if (hasWriteEnables()) {
@@ -198,17 +208,17 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 				MsgUtils.errorExit("Invalid write enable size (" + ExtParameters.sysVerWriteEnableSize() + ") specified - must be a factor of min_data_size (" + ExtParameters.getMinDataSize() + ")");
 			this.addVectorReg("pio_dec_write_enable_d1", 0, getWriteEnableWidth());  // input write enable capture register (max width)
 			this.addVectorReg("pio_dec_write_enable_full", 0, builder.getMaxRegWidth());  // expanded enable vector for internals
-			this.addRegAssign("pio i/f",  "pio_dec_write_enable_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + pioInterfaceWriteEnableName + ";"); // capture write enable if new transaction
+			this.addRegAssign(grpName,  "pio_dec_write_enable_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + pioInterfaceWriteEnableName + ";"); // capture write enable if new transaction
 		}
 		
 		// if max transaction is larger than min, add transaction size signals 
 		if (builder.getMaxRegWordWidth() > 1) {
 			// register trans size input
 			this.addVectorReg("pio_dec_trans_size_d1", 0, builder.getMaxWordBitSize());  // input trans size capture register
-		    this.addRegAssign("pio i/f",  "pio_dec_trans_size_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + pioInterfaceTransactionSizeName + ";"); // capture trans size if new transaction
+		    this.addRegAssign(grpName,  "pio_dec_trans_size_d1 <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + pioInterfaceTransactionSizeName + ";"); // capture trans size if new transaction
 		    this.addVectorReg(pioInterfaceRetTransactionSizeName, 0, builder.getMaxWordBitSize());  //  register the size
-			this.addResetAssign("pio i/f", builder.getDefaultReset(), pioInterfaceRetTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + builder.getMaxWordBitSize() + "'b0;");  // reset for delayed block select 
-			this.addRegAssign("pio i/f",  pioInterfaceRetTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "reg_width;");  // use pio_width from decode to set 
+			this.addResetAssign(rstGrpName, builder.getDefaultReset(), pioInterfaceRetTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "" + builder.getMaxWordBitSize() + "'b0;");  // reset for delayed block select 
+			this.addRegAssign(rstGrpName,  pioInterfaceRetTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + "reg_width;");  // use pio_width from decode to set 
 			this.addVectorReg("reg_width", 0, builder.getMaxWordBitSize());   // size of current register
 		}
 
@@ -271,7 +281,7 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addCombinAssign("pio ack/nack", "pio_activate_read = (" + pioInterfaceReName + 
 				                                 " & ~(" + pioInterfaceAckName + " | " + pioInterfaceNackName + "));"); 
 		
-		//this.addCombinAssign("pio i/f", "$display($time, \" Entering pio i/f block...\");"); 
+		//this.addCombinAssign(grpName, "$display($time, \" Entering pio i/f block...\");"); 
 
 		this.addVectorReg("dec_pio_read_data_next", 0, builder.getMaxRegWidth());  // read data assignment signal
 		this.addScalarReg("external_transaction_active");
@@ -2543,6 +2553,9 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		String intDecodeToHwTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.D2H_SIZE) + "_next";  // size of r/w transaction in words
 		String intHwToDecodeTransactionSizeName = addrInstProperties.getFullSignalName(DefSignalType.H2D_RETSIZE) + "_d1";  // size of return read transaction in words
 
+		String grpName = "external i/f";
+		String rstGrpName = "external i/f (reset signal = " + builder.getDefaultReset() + ")";
+		
 		// register the outputs and assign output reg values
 		this.addVectorReg(extIf.decodeToHwName, 0, addrInstProperties.getMaxRegWidth());
 		if (hasWriteEnables()) this.addVectorReg(extIf.decodeToHwEnableName, 0, addrInstProperties.getWriteEnableWidth());
@@ -2555,20 +2568,20 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		this.addScalarReg(intDecodeToHwWeName);  
 		this.addScalarReg(intDecodeToHwReName);  
 		// reset output signals
-		this.addResetAssign("external i/f", builder.getDefaultReset(), extIf.decodeToHwWeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;" );   
-		this.addResetAssign("external i/f", builder.getDefaultReset(), extIf.decodeToHwReName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;" );
+		this.addResetAssign(rstGrpName, builder.getDefaultReset(), extIf.decodeToHwWeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;" );   
+		this.addResetAssign(rstGrpName, builder.getDefaultReset(), extIf.decodeToHwReName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " 1'b0;" );
 
 		String ackInhibitStr = "~" + extIf.hwToDecodeAckName + " & ~" + extIf.hwToDecodeNackName;
-		this.addRegAssign("external i/f",  extIf.decodeToHwName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwName + ";");  // assign next to flop
-		if (hasWriteEnables()) this.addRegAssign("external i/f",  extIf.decodeToHwEnableName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwEnableName + ";");  // assign next to flop
-		this.addRegAssign("external i/f",  extIf.decodeToHwWeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwWeName + " & " + ackInhibitStr  + ";");  // assign next to flop
-		this.addRegAssign("external i/f",  extIf.decodeToHwReName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwReName + " & " + ackInhibitStr  + ";");  // assign next to flop
+		this.addRegAssign(grpName,  extIf.decodeToHwName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwName + ";");  // assign next to flop
+		if (hasWriteEnables()) this.addRegAssign(grpName,  extIf.decodeToHwEnableName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwEnableName + ";");  // assign next to flop
+		this.addRegAssign(rstGrpName,  extIf.decodeToHwWeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwWeName + " & " + ackInhibitStr  + ";");  // assign next to flop
+		this.addRegAssign(rstGrpName,  extIf.decodeToHwReName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwReName + " & " + ackInhibitStr  + ";");  // assign next to flop
 
 		// if size of external range is greater than one reg we'll need an external address  
 		if (addrInstProperties.hasExtAddress()) {  
 			this.addVectorReg(extIf.decodeToHwAddrName, addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());  
-			this.addVectorReg(intDecodeToHwAddrName, addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());  
-			this.addRegAssign("external i/f",  extIf.decodeToHwAddrName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwAddrName  + ";");  // assign next to flop
+			this.addVectorReg(intDecodeToHwAddrName, addrInstProperties.getExtLowBit(), addrInstProperties.getExtAddressWidth());
+			this.addRegAssign(grpName,  extIf.decodeToHwAddrName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwAddrName  + ";");  // assign next to flop
 		}	
 
 		// if size of max pio transaction is greater than one word need to add transaction size/retry info 
@@ -2578,11 +2591,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 
 			this.addVectorReg(extIf.decodeToHwTransactionSizeName, 0, regWordBits);  
 			this.addVectorReg(intDecodeToHwTransactionSizeName, 0, regWordBits);  
-			this.addRegAssign("external i/f",  extIf.decodeToHwTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwTransactionSizeName  + ";");  // assign next to flop
+			this.addRegAssign(grpName,  extIf.decodeToHwTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + intDecodeToHwTransactionSizeName  + ";");  // assign next to flop
 
 			this.addVectorReg(intHwToDecodeTransactionSizeName, 0, regWordBits);  
-			this.addResetAssign("external i/f", builder.getDefaultReset(), intHwToDecodeTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + regWordBits +"'b0;");  // reset input size flop
-			this.addRegAssign("external i/f",  intHwToDecodeTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + extIf.hwToDecodeTransactionSizeName + ";");  // assign input size to flop
+			this.addResetAssign(rstGrpName, builder.getDefaultReset(), intHwToDecodeTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + regWordBits +"'b0;");  // reset input size flop
+			this.addRegAssign(rstGrpName,  intHwToDecodeTransactionSizeName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + " " + extIf.hwToDecodeTransactionSizeName + ";");  // assign input size to flop
 		}			
 		return extIf;
 	}

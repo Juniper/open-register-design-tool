@@ -153,6 +153,7 @@ ext_parm_defs
    | 'include_addr_monitor' EQ bool 
    | 'generate_iwrap_xform_modules' EQ bool 
    | 'include_sequential_assign_delays' EQ bool
+   | 'reset_all_outputs' EQ bool
    ;
    
  systemverilog_wrapper_info
