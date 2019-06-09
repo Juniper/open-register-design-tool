@@ -1,0 +1,8 @@
+#!/bin/bash
+
+antjar=/usr/local/lib/antlr-4.5.1-complete.jar
+cfgdir=/Users/snellenbach/eclipse-workspace/Config
+gramdir=$cfgdir/antlr/grammars
+gendir=$cfgdir/cfg/antlr_generated
+
+java -jar $antjar -o $gendir -Dlanguage=Python3 $gramdir/Config.g4

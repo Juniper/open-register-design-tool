@@ -151,6 +151,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("include_addr_monitor", false); 
 		initBooleanParameter("generate_iwrap_xform_modules", true); 
 		initBooleanParameter("include_sequential_assign_delays", true); 
+		initBooleanParameter("reset_all_outputs", false); 
 		
 		// ---- rdl output defaults
 		initBooleanParameter("root_component_is_instanced", true); 
@@ -830,7 +831,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static String sysVerSequentialAssignDelayString() {
 		return getBooleanParameter("include_sequential_assign_delays")? "#1 " : "";
 	}
-			
+	
+	public static boolean sysVerResetAllOutputs() {
+		return getBooleanParameter("reset_all_outputs");
+	}
+	
 	// bench parameter getters
 
 	public static Boolean sysVerGenerateExternalRegs() {

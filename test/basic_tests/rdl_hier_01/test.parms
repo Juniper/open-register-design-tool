@@ -6,6 +6,44 @@ output systemverilog {
 	export_start_end = true           // create addr_start, addr_end outputs (these feed corresponding leaf)
 	generate_child_addrmaps = true    // generate child address maps
 	ring_inter_node_delay = 2       // delay stages added between nodes in a ring16
+	reset_all_outputs = true          // reset all decoder outputs
+}
+// uvmregs output parameters
+output uvmregs {
+	reuse_uvm_classes = true   // allow reuse of classes in model
+}
+
+output bench {
+    // read root
+	add_test_command = "read 32 0x0"  // read 
+	add_test_command = "write 32 0x0 0x12345678"  // write
+	add_test_command = "read 32 0x0"  // read 
+	// read l2 r16 child
+	add_test_command = "read 32 0x20000"  // read 
+	add_test_command = "write 32 0x20000 0x12345678"  // write
+	add_test_command = "read 32 0x20000"  // read 
+	// read l2 s8 child
+	add_test_command = "read 32 0x30000"  // read 
+	add_test_command = "write 32 0x30000 0x12345678"  // write
+	add_test_command = "read 32 0x30000"  // read 
+	// read l3 r16-s8 child
+	add_test_command = "read 32 0x22000"  // read 
+	add_test_command = "write 32 0x22000 0x12345678"  // write
+	add_test_command = "read 32 0x22000"  // read 
+	// read l3 s8-s8 child
+	add_test_command = "read 32 0x32000"  // read 
+	add_test_command = "write 32 0x32000 0x12345678"  // write
+	add_test_command = "read 32 0x32000"  // read 
+}
+global {
+	base_address = 0x0                // set block base address
+}
+output systemverilog {
+	block_select_mode = always        // all transactions to leaf decoders are valid (leaf uses start/end)
+	export_start_end = true           // create addr_start, addr_end outputs (these feed corresponding leaf)
+	generate_child_addrmaps = true    // generate child address maps
+	ring_inter_node_delay = 2         // delay stages added between nodes in a ring16
+	reset_all_outputs = true          // reset all decoder outputs
 }
 // uvmregs output parameters
 output uvmregs {
