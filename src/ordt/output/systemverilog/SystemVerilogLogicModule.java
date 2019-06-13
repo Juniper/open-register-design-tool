@@ -137,8 +137,10 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			   String resetSignalName = builder.getDefaultReset();
 			   boolean resetSignalActiveLow = builder.getDefaultResetActiveLow();
 			   if (fieldProperties.hasRef(RhsRefType.RESET_SIGNAL)) {
-				   resetSignalActiveLow = false;  // user defined resets are active high 
+				   resetSignalActiveLow = false;  // user defined resets are active high by default 
 				   resetSignalName = resolveRhsExpression(RhsRefType.RESET_SIGNAL);
+				   if (userDefinedSignals.containsKey(resetSignalName))
+					   resetSignalActiveLow = userDefinedSignals.get(resetSignalName).isActiveLow();
 				   groupName += " (reset=" + resetSignalName + ")";  // use a different always group for each unique resetsignal
 				   //System.out.println("SystemVerilogModule genFieldRegWriteStmts: field " + fieldProperties.getId() + " has reset signal=" + resetSignalName);
 				   if (!(definedSignals.contains(resetSignalName) || userDefinedSignals.containsKey(resetSignalName)))
