@@ -8,6 +8,7 @@ import java.util.List;
 
 import ordt.extract.Ordt;
 import ordt.extract.RegModelIntf;
+import ordt.output.common.MsgUtils;
 import ordt.output.drvmod.DrvModBaseInstance;
 import ordt.output.drvmod.DrvModBuilder;
 import ordt.output.drvmod.DrvModRegInstance;
@@ -265,6 +266,8 @@ public class CppDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder 
 		nMethod.addStatement("return 4;");  
 		//
 		nMethod = newClass.addMethod(Vis.PROTECTED, "int get_version(const std::string tag)");
+		if (rootInstances.isEmpty())
+			MsgUtils.errorExit("No valid root instances found for C++ model generation");
 		String baseTag = rootInstances.get(0).instance.getName();  // root instance name of overlay 0 will be used as tag
 		nMethod.addStatement("if (tag == \"" + baseTag + "\") return 0;");
 		int idx=1;

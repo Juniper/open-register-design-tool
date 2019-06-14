@@ -8,6 +8,7 @@ import ordt.extract.Ordt;
 import ordt.extract.RegModelIntf;
 import ordt.extract.RegNumber.NumBase;
 import ordt.extract.RegNumber.NumFormat;
+import ordt.output.common.MsgUtils;
 import ordt.output.drvmod.DrvModBaseInstance;
 import ordt.output.drvmod.DrvModBuilder;
 import ordt.output.drvmod.DrvModRegInstance;
@@ -210,6 +211,8 @@ public class PyDrvModBuilder extends DrvModBuilder {  // Note no OutputBuilder o
 		nMethod.addStatement("return {'error':ordt_drv_error.BAD_PATH}");  
 		//
 		nMethod = newClass.addMethod("get_version(self, tag)");
+		if (rootInstances.isEmpty())
+			MsgUtils.errorExit("No valid root instances found for python model generation");
 		String baseTag = ExtParameters.hasPyDrvDefaultTagName()? ExtParameters.pyDrvDefaultTagName() : rootInstances.get(0).instance.getName();  // root instance name of overlay 0 will be used as tag unless specified
 		nMethod.addStatement("if tag == '" + baseTag + "':");
 		nMethod.addStatement("    return 0");
