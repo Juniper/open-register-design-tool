@@ -329,6 +329,7 @@ public class FieldProperties extends InstanceProperties {
 
 			// set interrupt enable/mask reference 
 			if (pList.hasProperty("enable")) {
+				if (getInstancePath().contains("global")) System.out.println("FieldProperties extractProperties: setting enable on inst=" + getInstancePath() + ", enable=" + pList.getProperty("enable") );
 				setRef(RhsRefType.INTR_ENABLE, pList.getProperty("enable"), pList.getDepth("enable")); 
 			}
 			else if (pList.hasProperty("mask")) {
