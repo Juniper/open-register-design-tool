@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import ordt.annotate.AnnotateCommand;
+import ordt.extract.model.ModComponent;
 import ordt.extract.model.ModRegister;
 import ordt.output.OutputBuilder;
 import ordt.output.common.MsgUtils;
@@ -35,7 +36,7 @@ import ordt.parameters.ExtParameters.UVMModelModes;
 
 public class Ordt {
 
-	private static String version = "190606.01";
+	private static String version = "190617.01";
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
@@ -239,9 +240,14 @@ public class Ordt {
 	
 	/** return true if model has a root address map */
     private static boolean verifyRootAddressMap(RegModelIntf model, OutputType type) {
-		   if (model.getRootInstancedComponent() != null) {
-			   if (!model.getRootInstancedComponent().isAddressMap()) {
-				   MsgUtils.errorMessage("A root addrmap is required for " + outputNames.get(type) + " generation");
+    	   ModComponent rootComp = model.getRootInstancedComponent();
+		   if (rootComp != null) {
+			   if (!rootComp.isAddressMap()) {
+				   String instId = model.getRootInstance().getId();
+				   if (hasInputType(InputType.JSPEC))
+					   MsgUtils.errorMessage("Root instance " + instId + " is not a register_set.  A single root register_set instance is required for " + outputNames.get(type) + " generation unless the process_typedef parameter is specified.");
+				   else  
+					   MsgUtils.errorMessage("Root instance " + instId + " is not an addrmap.  A single root addrmap instance is required for " + outputNames.get(type) + " generation unless the process_component parameter is specified.");
 			       return false;
 			   }
 		   }

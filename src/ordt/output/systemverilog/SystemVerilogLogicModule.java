@@ -137,8 +137,10 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			   String resetSignalName = builder.getDefaultReset();
 			   boolean resetSignalActiveLow = builder.getDefaultResetActiveLow();
 			   if (fieldProperties.hasRef(RhsRefType.RESET_SIGNAL)) {
-				   resetSignalActiveLow = false;  // user defined resets are active high 
+				   resetSignalActiveLow = false;  // user defined resets are active high by default 
 				   resetSignalName = resolveRhsExpression(RhsRefType.RESET_SIGNAL);
+				   if (userDefinedSignals.containsKey(resetSignalName))
+					   resetSignalActiveLow = userDefinedSignals.get(resetSignalName).isActiveLow();
 				   groupName += " (reset=" + resetSignalName + ")";  // use a different always group for each unique resetsignal
 				   //System.out.println("SystemVerilogModule genFieldRegWriteStmts: field " + fieldProperties.getId() + " has reset signal=" + resetSignalName);
 				   if (!(definedSignals.contains(resetSignalName) || userDefinedSignals.containsKey(resetSignalName)))
@@ -423,26 +425,27 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			   addVectorWire(hwToLogicIntrName, 0, fieldProperties.getFieldWidth());
 			   if (fieldProperties.isFunctionalInterrupt()) intrInfoList.add(intrInfo);  // this is a leaf functional interrupt, so add to diagnostic list
 		   }
+		   
+		   // create mask/enable output and bit modifier if specified
+		   String intrBitModifier = "";
+		   String intrOutputModifier = "";
+		   boolean hasNextAssign = fieldProperties.hasRef(RhsRefType.NEXT);
+		   if (fieldProperties.hasRef(RhsRefType.INTR_ENABLE)) {
+			   String refName = resolveRhsExpression(RhsRefType.INTR_ENABLE);
+			   if (fieldProperties.isMaskIntrBits()) intrBitModifier = " & " + refName;
+			   else intrOutputModifier = " & " + refName;
+			   if (!hasNextAssign) intrInfo.setIntrEnableInfo(true, refName);  // save leaf enable signal in diag info
+		   }
+		   else if (fieldProperties.hasRef(RhsRefType.INTR_MASK)) {
+			   String refName = resolveRhsExpression(RhsRefType.INTR_MASK);
+			   if (fieldProperties.isMaskIntrBits()) intrBitModifier = " & ~" + refName;
+			   else intrOutputModifier = " & ~" + refName;
+			   if (!hasNextAssign) intrInfo.setIntrEnableInfo(false, refName);  // save leaf mask signal in diag info
+		   }
 
 		   // if next is assigned then skip all the intr-specific next generation
-		   String intrOutputModifier = "";
-		   if (!fieldProperties.hasRef(RhsRefType.NEXT)) {
-				   
-			   // create mask/enable output and bit modifier if specified
-			   String intrBitModifier = "";
-			   if (fieldProperties.hasRef(RhsRefType.INTR_ENABLE)) {
-				   String refName = resolveRhsExpression(RhsRefType.INTR_ENABLE);
-				   if (fieldProperties.isMaskIntrBits()) intrBitModifier = " & " + refName;
-				   else intrOutputModifier = " & " + refName;
-				   intrInfo.setIntrEnableInfo(true, refName);  // save signal in diag info
-			   }
-			   else if (fieldProperties.hasRef(RhsRefType.INTR_MASK)) {
-				   String refName = resolveRhsExpression(RhsRefType.INTR_MASK);
-				   if (fieldProperties.isMaskIntrBits()) intrBitModifier = " & ~" + refName;
-				   else intrOutputModifier = " & ~" + refName;
-				   intrInfo.setIntrEnableInfo(false, refName);  // save signal in diag info
-			   }
-			   
+		   if (!hasNextAssign) {
+
 			   // create intr detect based on intrType (level, posedge, negedge, bothedge)
 			   String detectStr = hwToLogicIntrName;  // default to LEVEL
 			   String prevIntrName = fieldProperties.getFullSignalName(DefSignalType.PREVINTR);  // hwBaseName + "_previntr" 	   
@@ -459,17 +462,17 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 					   detectStr = "(" + prevIntrName + " & ~" + hwToLogicIntrName + ")";
 				   else // BOTHEDGE detect  
 					   detectStr = "(" + hwToLogicIntrName + " ^ " + prevIntrName + ")";
-		   }
-		   
-		   // assign field based on detect and intrStickyype (nonsticky, sticky, stickybit)  
-		   if (fieldProperties.getIntrStickyType() == FieldProperties.IntrStickyType.NONSTICKY) 
-		      addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, fieldRegisterNextName + " = " + detectStr + intrBitModifier + ";");
-		   else if (fieldProperties.getIntrStickyType() == FieldProperties.IntrStickyType.STICKY) 
-			  addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + detectStr + " != " + fieldWidth + "'b0) " +
-		                         fieldRegisterNextName +  " = " + detectStr + intrBitModifier + ";");	
-		   else // STICKYBIT default 
-			  addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, fieldRegisterNextName + " = (" + detectStr + " | " +
-		                         fieldRegisterName + ")" + intrBitModifier + ";");
+			   }
+
+			   // assign field based on detect and intrStickyype (nonsticky, sticky, stickybit)  
+			   if (fieldProperties.getIntrStickyType() == FieldProperties.IntrStickyType.NONSTICKY) 
+				   addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, fieldRegisterNextName + " = " + detectStr + intrBitModifier + ";");
+			   else if (fieldProperties.getIntrStickyType() == FieldProperties.IntrStickyType.STICKY) 
+				   addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, "if (" + detectStr + " != " + fieldWidth + "'b0) " +
+						   fieldRegisterNextName +  " = " + detectStr + intrBitModifier + ";");	
+			   else // STICKYBIT default 
+				   addPrecCombinAssign(regProperties.getBaseName(), hwPrecedence, fieldRegisterNextName + " = (" + detectStr + " | " +
+						   fieldRegisterName + ")" + intrBitModifier + ";");
 		   }
 
 		   // if an enable/mask then gate interrupt output with this signal
