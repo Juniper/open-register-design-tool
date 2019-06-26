@@ -24,12 +24,14 @@ public class SystemVerilogRegisters {
 	private HashMap<String, VerilogRegInfo> registers = new HashMap<String, VerilogRegInfo>();  // info for a set of registers grouped by name
 	private HashMap<String, Boolean> resetActiveLow = new HashMap<String, Boolean>();  // reset polarity for each reset signal defined		
 	private OutputWriterIntf writer;
+	private String clkName;  // clock for this group of registers
 	private boolean useAsyncResets = false;
 	
 	/** create VerilogRegisters 
 	 * @param clkName */
-	public SystemVerilogRegisters(OutputWriterIntf writer, boolean useAsyncResets) {
+	public SystemVerilogRegisters(OutputWriterIntf writer, String clkName, boolean useAsyncResets) {
 		this.writer = writer;  // save reference to calling writer
+		this.clkName = clkName;  // clock to be used for this register group
 		this.useAsyncResets = useAsyncResets;
 	}
 
@@ -95,8 +97,8 @@ public class SystemVerilogRegisters {
 		 * @param name - name of this reg group
 		 */
 		public VerilogRegInfo(String name, String clock, boolean useNegClkEdge) {
-			this.name = name;
-			this.clock = clock;    // use this clock name for this register group
+			this.setName(name);
+			this.setClock(clock);    // use this clock name for this register group
 			this.useNegClkEdge = useNegClkEdge;
 			this.resetAssignList= new HashMap<String, List<String>>();  // reset assignments for each reset signal		
 			this.regAssignList = new ArrayList<String>();    // list of synchronous reg assigns
@@ -116,7 +118,24 @@ public class SystemVerilogRegisters {
 		public String getName() {
 			return name;
 		}
-
+		/** set name
+		 *  @param name the name to set
+		 */
+		public void setName(String name) {
+			this.name = name;
+		}
+		/** get clock
+		 *  @return the clock
+		 */
+		public String getClock() {
+			return clock;
+		}
+		/** set clock
+		 *  @param clock the clock to set
+		 */
+		public void setClock(String clock) {
+			this.clock = clock;
+		}
 		/** add a reset assignment
 		 *  @param reset - name of reset signal
 		 *  @param stmt - verilog assignment statement

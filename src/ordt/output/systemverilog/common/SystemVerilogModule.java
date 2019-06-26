@@ -66,7 +66,7 @@ public class SystemVerilogModule {
 		setTerminalInsideLocs(insideLocs);  // locations inside this module
 		setName(name);
 		this.defaultClkName = defaultClkName;
-		registers = new SystemVerilogRegisters(writer, useAsyncResets);
+		registers = new SystemVerilogRegisters(writer, defaultClkName, useAsyncResets);
 		wireDefList = new SystemVerilogSignalList();
 		regDefList = new SystemVerilogSignalList();
 		coverGroups = new SystemVerilogCoverGroups(writer, defaultClkName, coverageResetName);  // TODO - need to change cover reset if separate logic reset is being used
