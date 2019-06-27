@@ -97,7 +97,7 @@ public class SystemVerilogRegisters {
 		 * @param name - name of this reg group
 		 */
 		public VerilogRegInfo(String name, String clock, boolean useNegClkEdge) {
-			this.setName(name);
+			this.setName(name);      // unique description for this group
 			this.setClock(clock);    // use this clock name for this register group
 			this.useNegClkEdge = useNegClkEdge;
 			this.resetAssignList= new HashMap<String, List<String>>();  // reset assignments for each reset signal		
@@ -255,24 +255,39 @@ public class SystemVerilogRegisters {
 				// write any saved precedence statements
 				writeLowPrecedenceStatements(indentLevel);
 				writeHiPrecedenceStatements(indentLevel);
-				writer.writeStmt(--indentLevel, "end");  
-				writer.writeStmt(indentLevel, "");  			
+				writeBlockFooter(--indentLevel);
 			}
 			
 			// write synchronous assignment block
 			if (!regAssignList.isEmpty()) {
 				//System.out.println("VerilogRegInfo writeVerilog: assigned reset sigs=" + signalsWithResetAssigns);
-				writer.writeStmt(indentLevel, "//------- reg assigns for " + name);
-				String asyncStr = useAsyncResets? genAsyncString() : "";
-				if (SystemVerilogModule.isLegacyVerilog()) writer.writeStmt(indentLevel++, "always @ (posedge " + clkName + asyncStr + ") begin");  
-				else writer.writeStmt(indentLevel++, "always_ff @ (posedge " + clkName + asyncStr + ") begin");  
-				writeRegResets(indentLevel, resetAssignList);
-				writeRegAssigns(indentLevel, regAssignList);
-				writer.writeStmt(--indentLevel, "end");  
-				writer.writeStmt(indentLevel, "");  		
+				writeSyncBlockHeader(indentLevel++, true);
+				writeRegResets(indentLevel);
+				writeRegAssigns(indentLevel);
+				writeBlockFooter(--indentLevel);
 			}
 		}
+
+		/** create synchronous always block header **
+		 * 
+		 * @param indentLevel
+		 * @param allowAsyncResetSensitivities - if false, no async resets are added to sensitivity list even if group has async resets 
+		 */
+		private void writeSyncBlockHeader(int indentLevel, boolean allowAsyncResetSensitivities) {
+			String noResetStr = allowAsyncResetSensitivities? "" : " (no reset)";
+			writer.writeStmt(indentLevel, "//------- reg assigns for " + name + noResetStr);
+			String asyncStr = (allowAsyncResetSensitivities && useAsyncResets && hasResetAssigns())? genAsyncString() : "";
+			String clkEdgeType = this.useNegClkEdge? "negedge " : "posedge ";
+			if (SystemVerilogModule.isLegacyVerilog()) writer.writeStmt(indentLevel, "always @ (" + clkEdgeType + clkName + asyncStr + ") begin");  
+			else writer.writeStmt(indentLevel, "always_ff @ (" + clkEdgeType + clkName + asyncStr + ") begin");  
+		}
 		
+		/** complete always block */
+		private void writeBlockFooter(int indentLevel) {
+			writer.writeStmt(indentLevel, "end");  
+			writer.writeStmt(indentLevel, "");  		
+		}
+
 		/** generate always activation list for async resets */
 		private String genAsyncString() {
 			String outStr = "";
@@ -283,15 +298,15 @@ public class SystemVerilogRegisters {
 			return outStr;
 		}
 		/** write always block reset stmts */
-		private  void writeRegResets(int indentLevel, HashMap<String, List<String>> regResetList) {
+		private  void writeRegResets(int indentLevel) {
 			// write reset assigns for each reset signal
 			String firstRst = "";
-			for (String reset: regResetList.keySet()) {
-				if (!regResetList.get(reset).isEmpty()) {
+			for (String reset: resetAssignList.keySet()) {
+				if (!resetAssignList.get(reset).isEmpty()) {
 				   String notStr = (resetActiveLow.get(reset)) ? "! " : "";
 				   writer.writeStmt(indentLevel++, firstRst + "if (" + notStr + reset + ") begin");  
 				   firstRst = "else ";
-				   Iterator<String> it = regResetList.get(reset).iterator();
+				   Iterator<String> it = resetAssignList.get(reset).iterator();
 				   while (it.hasNext()) {
 					   String stmt = it.next();
 					   writer.writeStmt(indentLevel, stmt);  
@@ -302,7 +317,7 @@ public class SystemVerilogRegisters {
 		}
 		
 		/** write always block assign stmts */
-		private  void writeRegAssigns(int indentLevel, List<String> regAssignList) {
+		private void writeRegAssigns(int indentLevel) {
 			if (regAssignList.isEmpty()) return;
 			boolean hasResets = hasResetAssigns();
 			List<String> movedAssignList = new ArrayList<String>();
@@ -320,6 +335,11 @@ public class SystemVerilogRegisters {
 			}		   			
 			if (hasResets) writer.writeStmt(--indentLevel, "end");  
 			// move non-reset assigns out of else block
+			if (movedAssignList.isEmpty()) return;
+			if (useAsyncResets) {  // if using async resets move these to a separate always block
+				writeBlockFooter(--indentLevel);
+				writeSyncBlockHeader(indentLevel++, false);
+			}
 			it = movedAssignList.iterator();
 			while (it.hasNext()) {
 				String stmt = it.next();
