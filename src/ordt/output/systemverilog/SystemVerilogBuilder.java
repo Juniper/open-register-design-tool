@@ -28,6 +28,7 @@ import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.output.systemverilog.common.io.SystemVerilogIOSignalList;
 import ordt.output.systemverilog.common.io.SystemVerilogIOSignalSet;
 import ordt.output.systemverilog.common.wrap.SystemVerilogWrapModule;
+import ordt.output.systemverilog.decode.SystemVerilogDecodeModule;
 import ordt.output.AddressableInstanceProperties.ExtType;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.Utils;
@@ -59,10 +60,11 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	private static ValidAddressRanges addressRanges;
 	
 	// define io locations
-	protected static final Integer HW = SystemVerilogDefinedOrdtSignals.HW;
-	protected static final Integer LOGIC = SystemVerilogDefinedOrdtSignals.LOGIC;
-	protected static final Integer DECODE = SystemVerilogDefinedOrdtSignals.DECODE;
-	protected static final Integer PIO = SystemVerilogDefinedOrdtSignals.PIO;
+	public static final Integer HW = SystemVerilogDefinedOrdtSignals.HW;
+	public static final Integer LOGIC = SystemVerilogDefinedOrdtSignals.LOGIC;
+	public static final Integer DECODE = SystemVerilogDefinedOrdtSignals.DECODE;
+	public static final Integer DECODE_PIO_IF = SystemVerilogDefinedOrdtSignals.DECODE_PIO_IF;
+	public static final Integer PIO = SystemVerilogDefinedOrdtSignals.PIO;
 	protected boolean usesInterfaces = false;  // detect if sv interfaces are needed  
 
     // define common IO lists
@@ -200,7 +202,15 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	    this.regSetPropertyStack.addAll(parentBuilder.regSetPropertyStack);
 		//System.out.println("SystemVerilogBuilder updateRegSetState: updating state for path=" + getInstancePath() + ", rs addrmap=" + regSetProperties.isAddressMap());
 	}
+	
+	public static String getDecodeClk() {
+		return decodeClk;
+	}
 
+	public static String getLogicClk() {
+		return logicClk;
+	}
+	
 	//---------------------------- OutputBuilder methods to load verilog structures ----------------------------------------
 
 	/** add a signal for a particular output */
@@ -617,7 +627,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	}
 	
 	/** add IO hierarchy level (no singleRep override) */
-	void startIOHierarchy(InstanceProperties properties) {
+	public void startIOHierarchy(InstanceProperties properties) {
 		startIOHierarchy(properties, false);
 	}
 	
@@ -635,7 +645,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	}
 
 	/** close out active IO hierarchy level */
-	void endIOHierarchy(InstanceProperties properties) {
+	public void endIOHierarchy(InstanceProperties properties) {
 			//System.out.println("*** Popping interface:" + properties.getBaseName());
 			hwSigList.popIOSignalSet();
 	}
@@ -832,6 +842,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			writeModuleToFile(logic, outName + getModuleName() + "_jrdl_logic" + extension, description, commentPrefix);
 			
 			// write the decode module
+			SystemVerilogModule.writeUniqueModules(outName, extension, description);  // TODO - for now, uniqueModules only contains decoder children
 			writeModuleToFile(decoder, outName + getModuleName() + "_jrdl_decode" + extension, description, commentPrefix);
 			
 			// if IO interfaces are used, generate the interfaces and wrapper
@@ -994,6 +1005,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 		logic.write();   
 		
 		// write the decode module
+		SystemVerilogModule.writeUniqueModules(this);  // TODO - for now, uniqueModules only contains decoder children
 		decoder.write();  
 		
 		// write the top level module
@@ -1204,7 +1216,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 	}
 	
 	/** return the number of bits to select max sized wide reg */   
-	protected int getMaxWordBitSize() {
+	public int getMaxWordBitSize() {
 		return Utils.getBits(getMaxRegWordWidth());
 	}
 

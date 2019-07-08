@@ -41,6 +41,7 @@ public class SystemVerilogDefinedOrdtSignals extends SystemVerilogDefinedSignalM
 	public static final Integer HW = SystemVerilogLocationMap.add("HW");
 	public static final Integer LOGIC = SystemVerilogLocationMap.add("LOGIC");
 	public static final Integer DECODE = SystemVerilogLocationMap.add("DECODE");
+	public static final Integer DECODE_PIO_IF = SystemVerilogLocationMap.add("DECODE_PIO_IF");
 	public static final Integer PIO = SystemVerilogLocationMap.add("PIO");
 	public static final Integer WRAPPER = SystemVerilogLocationMap.add("WRAPPER");
 

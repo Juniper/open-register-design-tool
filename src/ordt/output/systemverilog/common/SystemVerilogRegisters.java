@@ -43,14 +43,15 @@ public class SystemVerilogRegisters {
 	 * @param name - name of this reg group
 	 * @param clkName - clock to be used for this group
 	 * @param useNegClkEdge - clock edge to be used for this group
+	 * @param checkClockConsistency - if true, incoming clock name and edge type will be checked for consistency with previous values for this reg group
 	 **/
-	public VerilogRegInfo getOrCreate(String name, String clkName, boolean useNegClkEdge) {
+	public VerilogRegInfo getOrCreate(String name, String clkName, boolean useNegClkEdge, boolean checkClockConsistency) {
 		VerilogRegInfo regInfo = this.registers.get(name);
 		if (regInfo == null) {
 			regInfo = new VerilogRegInfo(name, clkName, useNegClkEdge); // define a new reg group using the active clock 
 			this.registers.put(name, regInfo);  // save new reginfo in hashmap
 		}
-		else regInfo.checkClock(clkName, useNegClkEdge);
+		else if (checkClockConsistency) regInfo.checkClock(clkName, useNegClkEdge);  // FIXME - this is called by combinassign with default clk
 		return regInfo;
 	}
 

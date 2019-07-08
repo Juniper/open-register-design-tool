@@ -21,6 +21,7 @@ import ordt.output.systemverilog.common.RemapRuleList.RemapRuleType;
 import ordt.output.systemverilog.common.io.SystemVerilogIOElement;
 import ordt.output.systemverilog.common.io.SystemVerilogIOSignal;
 import ordt.output.systemverilog.common.io.SystemVerilogIOSignalList;
+import ordt.output.systemverilog.decode.SystemVerilogDecodeModule;
 import ordt.output.systemverilog.common.SystemVerilogModule;
 import ordt.output.systemverilog.common.SystemVerilogSignal;
 import ordt.parameters.ExtParameters;

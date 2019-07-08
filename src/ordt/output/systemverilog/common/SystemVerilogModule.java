@@ -193,6 +193,37 @@ public class SystemVerilogModule {
 		uniqueModules.remove(name);
 	}
 	
+	/** write all unique modules to a single writer.  Note that module writer values will be changed by this method.  // TODO - separate method for separate files w/ dir/suffix inputs
+	 * 
+	 * @param singleWriter - writer to which all modules will be written (must be opened prior to call and closed outside this method)
+	 */
+	public static void writeUniqueModules(OutputWriterIntf singleWriter) {
+		for (String modName: uniqueModules.keySet()) {
+			SystemVerilogModule mod = uniqueModules.get(modName);
+			//System.out.println("Writing module " + modName);
+            mod.setWriter(singleWriter);
+            mod.write();
+		}
+	}
+	
+	/** write all unique modules to a separate file with module as name.  Note that module writer values will be changed by this method.  // TODO - separate method for separate files w/ dir/suffix inputs
+	 * 
+	 * @param prefix - file directory prefix (prepended to module name)
+	 * @param suffix - file suffix (appended to module name)
+	 */
+
+	public static void writeUniqueModules(String prefix, String suffix, String description) {
+		for (String modName: uniqueModules.keySet()) {
+			SystemVerilogModule mod = uniqueModules.get(modName);
+			String fName = prefix + modName + suffix;
+			//System.out.println("Writing module " + modName + " to " + fName);
+			OutputWriterIntf simpleWriter = new SimpleOutputWriter(fName, description);
+            mod.setWriter(simpleWriter);
+            mod.write();
+            simpleWriter.close();
+		}
+	}
+	
 	// ------------------- wire/reg assign methods -----------------------
 
 	/** add a wire assign statement */
@@ -212,22 +243,22 @@ public class SystemVerilogModule {
 
 	/** add a combinatorial reg assign */
 	public void addCombinAssign(String groupName, String assign) {
-		registers.getOrCreate(groupName, defaultClkName, false).addCombinAssign(assign);  
+		registers.getOrCreate(groupName, defaultClkName, false, false).addCombinAssign(assign);  
 	}
 
 	/** add a list of combinatorial reg assigns */
 	public void addCombinAssign(String groupName, List<String> assignList) {
-		registers.getOrCreate(groupName, defaultClkName, false).addCombinAssign(assignList);  
+		registers.getOrCreate(groupName, defaultClkName, false, false).addCombinAssign(assignList);  
 	}
 
 	/** add a combinatorial reg assign with specified precedence */
 	public void addPrecCombinAssign(String groupName, boolean hiPrecedence, String assign) {
-		registers.getOrCreate(groupName, defaultClkName, false).addPrecCombinAssign(hiPrecedence, assign);		
+		registers.getOrCreate(groupName, defaultClkName, false, false).addPrecCombinAssign(hiPrecedence, assign);		
 	}
 
 	/** add a sequential reg assign */
 	public void addRegAssign(String groupName, String clkName, boolean useNegClkEdge, String assign) {
-		 registers.getOrCreate(groupName, clkName, useNegClkEdge).addRegAssign(assign);
+		 registers.getOrCreate(groupName, clkName, useNegClkEdge, true).addRegAssign(assign);
 	}
 	
 	/** add a sequential reg assign using posedge default clock */
@@ -246,7 +277,7 @@ public class SystemVerilogModule {
 
 	/** add a reset assign to this modules reg group */
 	public void addResetAssign(String groupName, String resetName, String clkName, boolean useNegClkEdge, String assign) {
-		registers.getOrCreate(groupName, clkName, useNegClkEdge).addResetAssign(resetName, assign);
+		registers.getOrCreate(groupName, clkName, useNegClkEdge, true).addResetAssign(resetName, assign);
 	}
 
 	/** add a reset assign to this modules reg group using posedge default clock */
@@ -428,7 +459,7 @@ public class SystemVerilogModule {
 		defaultIOListIsRegistered = true;
 	}
 	
-	/** get the IO list to be used for signal addition based on remote location */
+	/** get the IO list to be used for signal addition based on specified remote location */
 	public SystemVerilogIOSignalList getIOList(int remLoc) {
 		SystemVerilogIOSignalList sigList = ioHash.get(remLoc);  // get the siglist
 		if (sigList == null) {  // if no list returned from ioHash, use the default for this remote location
@@ -660,26 +691,41 @@ public class SystemVerilogModule {
 		sigList.popIOSignalSet(); 
 	}
 	
-	/** inherit io and internal signals from this module's children - IOs are added to the default list and duplicate signals are ignored (assumes flat child IO structure currently) */
-	public void inheritChildSignals() {
+	/** inherit io and internal signals from this module's children.
+	 *  IOs are added to the default list and duplicate signals are ignored (assumes flat child IO structure currently) */
+	public void inheritAllChildSignals() {
 		HashSet<String> uniqueSigs = new HashSet<String>();  // save list of unique sigs/IOs and omit any dups
-		//Integer insideLocs = this.getInsideLocs();  // get in and out locations including children
-		Integer outsideLocs = this.getOutsideLocs();
 		for (SystemVerilogInstance inst: instanceList) {
-			// get remapped IO signals for this child instance
-			SystemVerilogIOSignalList childIOList = inst.getIOSignalList();
-			for (SystemVerilogIOElement elem: childIOList.getIOElementList(null, null)) {  // loop through full list
-				if (!elem.isSignalSet()) {  // ignore hierarchical elements
-					SystemVerilogIOSignal sig = (SystemVerilogIOSignal) elem;
-					boolean isInput = elem.isFrom(outsideLocs);
-					boolean isOutput = elem.isTo(outsideLocs);
-					String sigName = elem.getName();
-					if (!uniqueSigs.contains(sigName)) {  // skip dups
-						uniqueSigs.add(sigName);
-						// if an IO add it
-						if (isInput || isOutput)
-							defaultIOList.addSimpleVector(sig.getFrom(), sig.getTo(), sigName, sig.getLowIndex(), sig.getSize());  // directly add to default list so from/to are retained
-						if (!isInput)
+			inheritChildSignals(inst, uniqueSigs, defaultIOList, true);  // use default list and add all child IOs
+		}
+	}
+
+	/** inherit io and create internal signal defines from a child instance of this module.
+	 *  IOs are added to the specified IO list (or default list if null) and duplicate signals in specified uniqueSigs HashSet are ignored (assumes flat child IO structure currently)
+	 * 
+	 * @param inst - child instance whos IO signals will be added to the current module
+	 * @param uniqueSigs - set of signals that will not be added
+	 * @param targetIOList - IOlist in current module where new IOs will be added 
+	 * @param addChildInputDefines
+	 */
+	public void inheritChildSignals(SystemVerilogInstance inst, HashSet<String> uniqueSigs, SystemVerilogIOSignalList targetIOList, boolean addChildInputDefines) {
+		Integer outsideLocs = this.getOutsideLocs();
+		SystemVerilogIOSignalList childIOList = inst.getIOSignalList();  // get remapped IO signals for this child instance
+		for (SystemVerilogIOElement elem: childIOList.getIOElementList(null, null)) {  // loop through full list
+			if (!elem.isSignalSet()) {  // ignore hierarchical elements
+				SystemVerilogIOSignal sig = (SystemVerilogIOSignal) elem;
+				boolean isInput = elem.isFrom(outsideLocs);
+				boolean isOutput = elem.isTo(outsideLocs);
+				String sigName = elem.getName();
+				if (!uniqueSigs.contains(sigName)) {  // skip dups
+					uniqueSigs.add(sigName);
+					// if an IO add it
+					if (isInput || isOutput)
+						targetIOList.addSimpleVector(sig.getFrom(), sig.getTo(), sigName, sig.getLowIndex(), sig.getSize());  // directly add to list so from/to are retained
+					// if not an input add wire defines
+					if (!isInput) {
+						boolean isChildInput = elem.isFrom(inst.getMod().getOutsideLocs());
+						if (addChildInputDefines || !isChildInput) 
 							this.addVectorWire(sigName, sig.getLowIndex(), sig.getSize());
 					}
 				}

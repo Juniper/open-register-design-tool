@@ -17,6 +17,11 @@ public class RemapRuleList {
 	 * DIRECT_MAP - change to string specified by opStr on match
 	 * REGEX_GROUPS - change to regex template specified by opStr on match
 	 */
+	
+	/** add an always match rule to end of the list - first in list is highest match priority */
+	public void addRule(RemapRuleType remapType, String opStr) {
+		rules.add(new RemapRule(null, null, null, remapType, opStr));
+	}
 
 	/** add a pattern only rule to end of the list - first in list is highest match priority */
 	public void addRule(String pattern, RemapRuleType remapType, String opStr) {
@@ -31,6 +36,11 @@ public class RemapRuleList {
 	/** add a pattern/location rule to end of the list - first in list is highest match priority */
 	public void addRule(String pattern, Integer from, Integer to, RemapRuleType remapType, String opStr) {
 		rules.add(new RemapRule(pattern, from, to, remapType, opStr));
+	}
+	
+	/** add an always match rule to start of the list - first in list is highest match priority */
+	public void addFirstRule(RemapRuleType remapType, String opStr) {
+		rules.add(0, new RemapRule(null, null, null, remapType, opStr));
 	}
 	
 	/** add a pattern only rule to start of the list - first in list is highest match priority */
@@ -79,6 +89,11 @@ public class RemapRuleList {
 	/** return the first resulting name of a match w/ no altBaseName and no null return */
 	public String getRemappedName(String oldName, Integer sigFrom, Integer sigTo) {
 		return getRemappedName(oldName, null, sigFrom, sigTo, false);
+	}
+	
+	/** return the first resulting name of a match w/ no altBaseName, all loctions valid, and no null return */
+	public String getRemappedName(String oldName) {
+		return getRemappedName(oldName, null, null, null, false);
 	}
 	
 	// -----------
