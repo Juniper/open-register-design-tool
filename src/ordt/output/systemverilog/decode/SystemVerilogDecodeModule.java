@@ -1568,26 +1568,11 @@ public class SystemVerilogDecodeModule extends SystemVerilogModule {
 		// instance the pio interface module
 		SystemVerilogInstance pioInst = this.addInstance(pioIfModule, (isPrimary? "p1_pio_if" : "p2_pio_if"), rules);
 		
-		// TODO - create output wires from pio_if - get wire defines from an IO list??
-		SystemVerilogIOSignalList intIoList = pioIfModule.getIOList(SystemVerilogBuilder.DECODE);  // TODO only want outputs
-		rules.removeRule(SystemVerilogBuilder.DECODE, SystemVerilogBuilder.DECODE_PIO_IF, RemapRuleType.ADD_PREFIX, intPrefix);  // TODO remove input rules?
-		//this.();  // TODO
-		
-		// add PIO interface IOs
-		SystemVerilogIOSignalList pioIoList = pioIfModule.getIOList(SystemVerilogBuilder.PIO);
-		if (!pioPrefix.isEmpty()) pioIoList = new SystemVerilogIOSignalList(pioIoList, rules, null); // use rule modified names if a prefix
-		//pioIoList.display();
-		// TODO this.useIOList(pioIoList, SystemVerilogBuilder.PIO);
-		
 		// add IOs and internal wire defines
 		HashSet<String> uniqueSigs = new HashSet<String>();
 		uniqueSigs.add(SystemVerilogBuilder.getDecodeClk());
 		uniqueSigs.add(builder.getDefaultReset());
 		inheritChildSignals(pioInst, uniqueSigs, getIOList(SystemVerilogBuilder.PIO), false);
-
-		//System.out.println("SystemVerilogDecodeModule: generating decoder with spi interface, id=" + topRegProperties.getInstancePath());
-		// set internal interface names
-		String pioInterfaceAddressName = getSigName(isPrimary, this.pioInterfaceAddressName);
 	}
 
 	/** add serial8 pio interface */

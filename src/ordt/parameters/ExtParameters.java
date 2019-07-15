@@ -481,7 +481,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		}
 		else if (name.equals("root_decoder_interface")) {  
 			if (value.equals("leaf")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.LEAF;
-			else if (value.equals("spi_interface")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.SPI;
+			else if (value.equals("spi_PIO")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.SPI;
 			else if (value.equals("serial8")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.SERIAL8;
 			else if (value.equals("ring8")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.RING8;
 			else if (value.equals("ring16")) sysVerRootDecoderInterface = SVDecodeInterfaceTypes.RING16;
@@ -491,7 +491,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		}
 		else if (name.equals("secondary_decoder_interface")) {  
 			if (value.equals("leaf")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.LEAF;
-			else if (value.equals("spi_interface")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.SPI;
+			else if (value.equals("spi_PIO")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.SPI;
 			else if (value.equals("serial8")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.SERIAL8;
 			else if (value.equals("ring8")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.RING8;
 			else if (value.equals("ring16")) sysVerSecondaryDecoderInterface = SVDecodeInterfaceTypes.RING16;
