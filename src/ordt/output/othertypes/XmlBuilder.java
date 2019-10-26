@@ -62,7 +62,7 @@ public class XmlBuilder extends OutputBuilder {
 		if (fieldProperties.isSinglePulse()) addXmlElement("singlepulse", "");
 		if (ExtParameters.xmlIncludeFieldHwInfo()) addHwInfo();  // include field hw info
 		if (fieldProperties.getReset() != null) {
-			addXmlElement("reset", fieldProperties.getReset().toFormat(NumBase.Hex, NumFormat.Int)); // output reset as hex string
+			addXmlElement("reset", fieldProperties.getReset().toFormat(NumBase.Hex, NumFormat.Address)); // output reset as hex string
 		}
 		//addXmlElementStart("position");
 		addXmlElement("lowidx", fieldProperties.getLowIndex().toString());
