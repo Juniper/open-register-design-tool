@@ -4,7 +4,7 @@
 
 # Never modify line endings of our bash scripts
 *.sh -crlf
-test/scripts/* -crlf
+test/** -text
 
 #
 # The above will handle all files NOT found below

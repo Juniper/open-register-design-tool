@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# run an ordl test
+# run an ordt test
 #
 
 # inputs
@@ -45,6 +45,7 @@ golden_dir=$test_dir/golden
 
 # set options for specific environment (ordt required, others optional)
 . test.setup
+#echo "ordt=$ordt"
 
 rdl_test_file=$test_dir/test.rdl
 js_test_file=$test_dir/test.js
@@ -61,8 +62,10 @@ fi
 # remove previous output
 if [ -e $output_dir ]; then
    rm -r $output_dir
-   mkdir $output_dir
 fi
+
+# create new output dir
+mkdir $output_dir
 
 # set ordt output options
 uvm_option=" -uvmregspkg $output_dir/uvm_reg_jrdl_pkg.sv -uvmregs $output_dir/uvmregs.sv"
@@ -72,26 +75,29 @@ rdl_option=" -rdl $output_dir/output.rdl"
 js_option=" -jspec $output_dir/output.js"
 xml_option=" -xml $output_dir/output.xml"
 reglist_option=" -reglist $output_dir/output.reglist"
+py_option=" -pydrvmod $output_dir/output.py"
+cpp_option=" -cppdrvmod $output_dir -cppmod $output_dir"
 
 parms_option=
 if [ -f $parms_file ]; then
    parms_option=" -parms $parms_file"
 fi
 
-rdl_opts="$parms_option$sv_option$v_option$uvm_option$js_option$xml_option$reglist_option"
-js_opts="$parms_option$uvm_option$rdl_option$xml_option$reglist_option"
+rdl_opts="$parms_option$sv_option$v_option$uvm_option$js_option$xml_option$reglist_option$py_option$cpp_option"
+js_opts="$parms_option$uvm_option$rdl_option$xml_option$reglist_option$py_option$cpp_option"
 
 # run the command
 if [ -e $rdl_test_file ]; then
    ordt_cmd="$ordt $rdl_opts $rdl_test_file"
 else if [ -e $js_test_file ]; then
-      ordt_cmd="$ordt $js_opts $js_test_file"
-   else
-      echo "ERROR: no input file exists for test=$test_name" 
-      exit
-   fi
+        ordt_cmd="$ordt $js_opts $js_test_file"
+     else
+        echo "ERROR: no input file exists for test=$test_name" 
+        exit
+     fi
 fi
-#echo $ordt_cmd
+#echo "ordt=$ordt"
+#echo "ordt_cmd=$ordt_cmd"
 $ordt_cmd > $ordt_stdout 2> $ordt_stderr
 
 # check that log file exists and is non-empty

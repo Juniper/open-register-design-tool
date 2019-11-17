@@ -1,11 +1,10 @@
 #!/bin/bash
 #
-# run all jrdl tests
+# run all ordt tests in a directory
 #
 
 # inputs
 tests_dir=.                # dir where tests are located, default is current directory
-test_name=                 # name of test to be run
 skip_output_read_checks=   # skip compile/read of outputs
 verbose=                   #verbose output
 
