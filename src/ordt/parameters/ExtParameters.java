@@ -174,7 +174,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("show_fields", false);
 		
 		// ---- uvmregs output defaults
-		initBooleanParameter("suppress_no_category_warnings", false); 
+		initBooleanParameter("suppress_no_category_warnings", true); 
 		initIntegerParameter("is_mem_threshold", 1000);
 		initBooleanParameter("include_address_coverage", false); 
 		initIntegerParameter("max_reg_coverage_bins", 128);
