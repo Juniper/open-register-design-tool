@@ -34,7 +34,6 @@ import ordt.parse.systemrdl.SystemRDLParser.Component_inst_elemContext;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
@@ -180,7 +179,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	 		    (COMMA component_inst_elem)*
 	 		  ;
 	 */
-	@Override public void enterAnonymous_component_inst_elems(@NotNull SystemRDLParser.Anonymous_component_inst_elemsContext ctx) { 
+	@Override public void enterAnonymous_component_inst_elems(SystemRDLParser.Anonymous_component_inst_elemsContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
 		//System.out.println(repeat(' ', ctx.depth()) + "anonymous_comp_instance_elem (d=" + ctx.depth() + ") " + ctx.getText());
 		savedParms.clear();
@@ -199,7 +198,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * exit anonymous instance elem.
 	 */
-	@Override public void exitAnonymous_component_inst_elems(@NotNull SystemRDLParser.Anonymous_component_inst_elemsContext ctx) { 
+	@Override public void exitAnonymous_component_inst_elems(SystemRDLParser.Anonymous_component_inst_elemsContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 	}
 	
@@ -222,7 +221,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 
 	/** Extract component definition
 	 */
-	@Override public void enterComponent_def(@NotNull SystemRDLParser.Component_defContext ctx) {
+	@Override public void enterComponent_def(SystemRDLParser.Component_defContext ctx) {
 		activeRules.add(ctx.getRuleIndex());
 		
 		//System.out.println(repeat(' ', ctx.depth()) + "--> (" + ctx.depth() + ") " + ctx.getText());
@@ -269,7 +268,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 *   component creation is complete 
 	 */
-	@Override public void exitComponent_def(@NotNull SystemRDLParser.Component_defContext ctx) {
+	@Override public void exitComponent_def(SystemRDLParser.Component_defContext ctx) {
 		activeRules.remove(ctx.getRuleIndex());
 		//System.out.println("RdlModelExtractor exitComponent_def: line=" + ctx.getStart().getLine() + ", " + ctx.getText());
 		
@@ -306,7 +305,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	            (MOD num)?  //addr mod
 	          ;
 	 */
-	@Override public void enterComponent_inst_elem(@NotNull SystemRDLParser.Component_inst_elemContext ctx) {
+	@Override public void enterComponent_inst_elem(SystemRDLParser.Component_inst_elemContext ctx) {
 		activeRules.add(ctx.getRuleIndex());
 		//System.out.println("RdlModelExtractor enterComponent_inst_elem: text=" + ctx.getText());
 		//displayCtxChildren(ctx);
@@ -352,7 +351,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * exit Component_inst_elem
 	 */
-	@Override public void exitComponent_inst_elem(@NotNull SystemRDLParser.Component_inst_elemContext ctx) {
+	@Override public void exitComponent_inst_elem(SystemRDLParser.Component_inst_elemContext ctx) {
 		activeRules.remove(ctx.getRuleIndex());
 		//System.out.println(repeat(' ',ctx.depth()) + "  created RegInstance, id=" + activeInstance.getId() + ", rcomp=" + activeInstance.getRegComp());			
 		activeInstance = null;
@@ -361,14 +360,14 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * Concat
 	 */
-	@Override public void enterConcat(@NotNull SystemRDLParser.ConcatContext ctx) { 
+	@Override public void enterConcat(SystemRDLParser.ConcatContext ctx) { 
 		MsgUtils.warnMessage("concat not implemented");
 	}
 	
 	/**
 	 * exit Concat
 	 */
-	@Override public void exitConcat(@NotNull SystemRDLParser.ConcatContext ctx) { 
+	@Override public void exitConcat(SystemRDLParser.ConcatContext ctx) { 
 	}
 	
 	/*
@@ -377,7 +376,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	    explicit_property_assign
 	  ;		
 	 */
-	@Override public void enterDefault_property_assign(@NotNull SystemRDLParser.Default_property_assignContext ctx) { 
+	@Override public void enterDefault_property_assign(SystemRDLParser.Default_property_assignContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
 		//System.out.println(repeat(' ', ctx.depth()) + "default_property_assign (d=" + ctx.depth() + ") " + ctx.getText());	
 	}
@@ -385,7 +384,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * exit Property_assign
 	 */
-	@Override public void exitDefault_property_assign(@NotNull SystemRDLParser.Default_property_assignContext ctx) { 
+	@Override public void exitDefault_property_assign(SystemRDLParser.Default_property_assignContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 	}
 	
@@ -396,7 +395,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 		    SEMI
 		  ;
 	 */
-	@Override public void enterEnum_def(@NotNull SystemRDLParser.Enum_defContext ctx) {  
+	@Override public void enterEnum_def(SystemRDLParser.Enum_defContext ctx) {  
 		activeRules.add(ctx.getRuleIndex());
 		//System.out.println(repeat(' ', ctx.depth()) + "--> (" + ctx.depth() + ") " + ctx.getText());
 		
@@ -414,7 +413,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * exit Enum_def
 	 */
-	@Override public void exitEnum_def(@NotNull SystemRDLParser.Enum_defContext ctx) { 
+	@Override public void exitEnum_def(SystemRDLParser.Enum_defContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 	}
 
@@ -426,7 +425,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 		    SEMI
 		  ;
     */
-	@Override public void enterEnum_entry(@NotNull SystemRDLParser.Enum_entryContext ctx) { 
+	@Override public void enterEnum_entry(SystemRDLParser.Enum_entryContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
 		//System.out.println(repeat(' ', ctx.depth()) + "enum_entry (d=" + ctx.depth() + ") " + ctx.getText());	
 
@@ -455,7 +454,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * exit Enum_entry
 	 */
-	@Override public void exitEnum_entry(@NotNull SystemRDLParser.Enum_entryContext ctx) { 
+	@Override public void exitEnum_entry(SystemRDLParser.Enum_entryContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 	}
 
@@ -473,7 +472,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 		    ( EQ property_assign_rhs )?   // added ? here to allow properties w/o an EQ
 		  ;	
 	 */
-	@Override public void enterExplicit_property_assign(@NotNull SystemRDLParser.Explicit_property_assignContext ctx) { 
+	@Override public void enterExplicit_property_assign(SystemRDLParser.Explicit_property_assignContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
 		//System.out.println(repeat(' ', ctx.depth()) + "explicit_property_assign (d=" + ctx.depth() + ") " + ctx.getText());	
 		//System.out.println("RegExtractor: explicit_property_assign, " + ctx.getText());	
@@ -513,7 +512,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * exit Explicit_property_assign
 	 */
-	@Override public void exitExplicit_property_assign(@NotNull SystemRDLParser.Explicit_property_assignContext ctx) { 
+	@Override public void exitExplicit_property_assign(SystemRDLParser.Explicit_property_assignContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 	}
 	
@@ -528,7 +527,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	 		    SEMI
 	 		  ;
 	 */
-	@Override public void enterExplicit_component_inst(@NotNull SystemRDLParser.Explicit_component_instContext ctx) { 
+	@Override public void enterExplicit_component_inst(SystemRDLParser.Explicit_component_instContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
 		//System.out.println(repeat(' ', ctx.depth()) + "explicit_component_inst (d=" + ctx.depth() + ") " + ctx.getText());	
 		
@@ -570,7 +569,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * end Explicit_component_inst
 	 */
-	@Override public void exitExplicit_component_inst(@NotNull SystemRDLParser.Explicit_component_instContext ctx) { 
+	@Override public void exitExplicit_component_inst(SystemRDLParser.Explicit_component_instContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());	
 	}
 	
@@ -599,7 +598,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
            | simple_instance_ref ( EQ verilog_expression )  // allow vlog expression use in signal assigns 
 		  ;
 	 */
-	@Override public void enterPost_property_assign(@NotNull SystemRDLParser.Post_property_assignContext ctx) {
+	@Override public void enterPost_property_assign(SystemRDLParser.Post_property_assignContext ctx) {
 		activeRules.add(ctx.getRuleIndex());
 		//System.out.println("RdlModelExtractor enterPost_property_assign: " + ctx.getText());
 		//displayCtxChildren(ctx);
@@ -663,7 +662,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * exit Post_property_assign
 	 */
-	@Override public void exitPost_property_assign(@NotNull SystemRDLParser.Post_property_assignContext ctx) { 
+	@Override public void exitPost_property_assign(SystemRDLParser.Post_property_assignContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 		//System.out.println("RdlModelExtractor exitPost_property_assign: null rhsInstanceRef=" + (rhsInstanceRef==null) + ", text=" + ctx.getText()); 
 		// check for valid rhs references
@@ -684,14 +683,14 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * Property_assign
 	 */
-	@Override public void enterProperty_assign(@NotNull SystemRDLParser.Property_assignContext ctx) { 
+	@Override public void enterProperty_assign(SystemRDLParser.Property_assignContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
 	}
 	
 	/**
 	 * exit Property_assign
 	 */
-	@Override public void exitProperty_assign(@NotNull SystemRDLParser.Property_assignContext ctx) { 
+	@Override public void exitProperty_assign(SystemRDLParser.Property_assignContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 	}
 	
@@ -712,7 +711,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * Property_definition
 	 */
-	@Override public void enterProperty_definition(@NotNull SystemRDLParser.Property_definitionContext ctx) { 
+	@Override public void enterProperty_definition(SystemRDLParser.Property_definitionContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
 		//System.out.println("RdlModelExtractor enterProperty_definition: " + ctx.getText());
 		usrPropertyName = ctx.getChild(1).getText();  // save prop name
@@ -725,7 +724,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * exit Property_definition
 	 */
-	@Override public void exitProperty_definition(@NotNull SystemRDLParser.Property_definitionContext ctx) { 
+	@Override public void exitProperty_definition(SystemRDLParser.Property_definitionContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());	
 		//System.out.println("RdlModelExtractor exitProperty_definition: name=" + usrPropertyName + ", type=" + usrPropertyType + ", default=" + usrPropertyDefault+ ", comps=" + usrPropertyComponents);
         // add the new property to defined list
@@ -778,7 +777,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 *  initialize root element
 	 */
-	@Override public void enterRoot(@NotNull SystemRDLParser.RootContext ctx) { 
+	@Override public void enterRoot(SystemRDLParser.RootContext ctx) { 
 		// add the root element
 		root = (ModRootComponent) ModComponent.createModComponent("root");
 		activeCompDefs.push(root);   // push onto the active definition stack
@@ -787,13 +786,13 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 *  exiting file 
 	 */
-	@Override public void exitRoot(@NotNull SystemRDLParser.RootContext ctx) { 
+	@Override public void exitRoot(SystemRDLParser.RootContext ctx) { 
 	}
 
 	/**
 	 * Detect unimplemented properties
 	 */
-	@Override public void enterUnimplemented_property(@NotNull SystemRDLParser.Unimplemented_propertyContext ctx) {
+	@Override public void enterUnimplemented_property(SystemRDLParser.Unimplemented_propertyContext ctx) {
 		MsgUtils.warnMessage("property " + ctx.getText() + " not implemented");
 	}
 
@@ -802,21 +801,21 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * Assign global parameters
 	 */
-	@Override public void enterGlobal_parm_assign(@NotNull SystemRDLParser.Global_parm_assignContext ctx) {
+	@Override public void enterGlobal_parm_assign(SystemRDLParser.Global_parm_assignContext ctx) {
 		ExtParameters.assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());
 	}
 	
 	/**
 	 * Assign rdl input parameters
 	 */
-	@Override public void enterRdl_in_parm_assign(@NotNull SystemRDLParser.Rdl_in_parm_assignContext ctx) { 
+	@Override public void enterRdl_in_parm_assign(SystemRDLParser.Rdl_in_parm_assignContext ctx) { 
 		ExtParameters.assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());			
 	}
 	
 	/**
 	 * Assign systemverilog output parameters
 	 */
-	@Override public void enterSystemverilog_out_parm_assign(@NotNull SystemRDLParser.Systemverilog_out_parm_assignContext ctx) {
+	@Override public void enterSystemverilog_out_parm_assign(SystemRDLParser.Systemverilog_out_parm_assignContext ctx) {
 		ExtParameters.assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
 	}
 	
@@ -855,35 +854,35 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 	/**
 	 * Assign rdl output parameters
 	 */
-	@Override public void enterRdl_out_parm_assign(@NotNull SystemRDLParser.Rdl_out_parm_assignContext ctx) { 
+	@Override public void enterRdl_out_parm_assign(SystemRDLParser.Rdl_out_parm_assignContext ctx) { 
 		ExtParameters.assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());				
 	}
 	
 	/**
 	 * Assign jspec output parameters
 	 */
-	@Override public void enterJspec_out_parm_assign(@NotNull SystemRDLParser.Jspec_out_parm_assignContext ctx) {
+	@Override public void enterJspec_out_parm_assign(SystemRDLParser.Jspec_out_parm_assignContext ctx) {
 		ExtParameters.assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
 	}
 	
 	/**
 	 * Assign reglist output parameters
 	 */
-	@Override public void enterReglist_out_parm_assign(@NotNull SystemRDLParser.Reglist_out_parm_assignContext ctx) {
+	@Override public void enterReglist_out_parm_assign(SystemRDLParser.Reglist_out_parm_assignContext ctx) {
 		ExtParameters.assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
 	}
 	
 	/**
 	 * Assign uvmregs output parameters
 	 */
-	@Override public void enterUvmregs_out_parm_assign(@NotNull SystemRDLParser.Uvmregs_out_parm_assignContext ctx) {
+	@Override public void enterUvmregs_out_parm_assign(SystemRDLParser.Uvmregs_out_parm_assignContext ctx) {
 		ExtParameters.assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
 	}
 	
 	/**
 	 * Assign bench output parameters
 	 */
-	@Override public void enterBench_out_parm_assign(@NotNull SystemRDLParser.Bench_out_parm_assignContext ctx) {
+	@Override public void enterBench_out_parm_assign(SystemRDLParser.Bench_out_parm_assignContext ctx) {
 		ExtParameters.assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
 	}
 	
@@ -908,7 +907,7 @@ public class RdlModelExtractor extends SystemRDLBaseListener implements RegModel
 		     ('instances' | 'components')
 		     STR
 	 */
-	@Override public void enterAnnotation_command(@NotNull SystemRDLParser.Annotation_commandContext ctx) {
+	@Override public void enterAnnotation_command(SystemRDLParser.Annotation_commandContext ctx) {
 		ExtParameters.processAnnotationCommand(ctx);
 	}
 
