@@ -22,6 +22,7 @@ ext_parm_defs
     | xml_out_defs
  //   | cppmod_out_defs
     | pydrvmod_out_defs
+    | cheader_out_defs
     | model_annotation
     )*
   ;
@@ -263,6 +264,20 @@ ext_parm_defs
  pydrvmod_out_parm_assign
    : 'default_tag_name' EQ STR
    ;
+
+// ------------ cheader_out_defs
+ cheader_out_defs
+    : 'output' 'cheader'
+        LBRACE
+        (cheader_out_parm_assign)*
+        RBRACE
+    ;
+
+ cheader_out_parm_assign
+    : 'generate_memory_map' EQ bool
+    | 'generate_bitfield' EQ bool
+    | 'generate_explicit_functions' EQ bool
+    ;
 
 // ------------ model_annotation
  model_annotation
