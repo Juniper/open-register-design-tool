@@ -199,6 +199,11 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		
 		// ---- pydrvmod output defaults
 		initStringParameter("default_tag_name", null);
+
+		// ---- cheader output defaults
+		initBooleanParameter("generate_memory_map", true);
+		initBooleanParameter("generate_bitfield", true);
+		initBooleanParameter("generate_explicit_functions", false);
 	}
 	
 	static void initBooleanParameter(String name, Boolean value) {
@@ -425,6 +430,13 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	 */
 	@Override public void enterPydrvmod_out_parm_assign(ExtParmsParser.Pydrvmod_out_parm_assignContext ctx) {
 		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
+	}
+
+	/**
+	 * Assign cheader output parameters
+	 */
+	@Override public void enterCheader_out_parm_assign(ExtParmsParser.Cheader_out_parm_assignContext ctx){
+		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());
 	}
 
 	/**
@@ -985,7 +997,15 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	public static boolean hasPyDrvDefaultTagName() {
 		return getStringParameter("default_tag_name") != null;
 	}
-		
+
+	// C header output parameters
+
+	public static Boolean cheaderAddMemoryMap() { return getBooleanParameter("generate_memory_map");}
+
+	public static Boolean cheaderAddBitfields() { return getBooleanParameter("generate_bitfield");}
+
+	public static Boolean cheaderExplicitFunctions() { return getBooleanParameter("generate_explicit_functions");}
+
 	// --------
 	
 	/** returns true if test commands have been specified  */

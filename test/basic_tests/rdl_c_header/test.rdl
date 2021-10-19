@@ -1,0 +1,72 @@
+addrmap {
+    reg {
+		name = "DEVICE_ID";
+		desc = "Register with Device identifier.";
+		field {
+			name = "FLD_A";
+			desc = "Description of FLD_A";
+			sw = rw;
+			hw = r;
+			reset = 0x02;
+		} f0[7:0];
+		field {
+			name = "FLD_B";
+			desc = "Description of FLD_B";
+			sw = rw;
+			hw = r;
+			reset = 0x04;
+		} f1[15:8];
+		field {
+			name = "FLD_C";
+			desc = "Description of example field";
+			sw = rw;
+			hw = r;
+			reset = 0x0A0B;
+		} f2[31:16];
+	} r0@0x00;
+
+	reg {
+		name = "SPI_CONFIG";
+		desc = "Register with revision number";
+		field {
+			name = "REV_MINOR";
+			desc = "Minor revision number";
+			sw=rw;
+			hw=r;
+			reset = 0x1;
+		} f0[3:0];
+		field {
+			name = "REV_MAJOR";
+			desc = "Major revision number";
+			sw=rw;
+			hw=r;
+			reset = 0x0;
+		} f1[7:4];
+	} r1@0x04;
+
+	reg {
+		name = "SPI_STATUS";
+		desc = "Register with revision number";
+		field {
+			name = "MASTER";
+			desc = "master enable";
+			sw=rw;
+			hw=r;
+			reset = 0x1;
+		} f0[3:2];
+		field {
+			name = "MASTER1";
+			desc = "master enable";
+			sw=rw;
+			hw=r;
+			reset = 0x1;
+		} f2[1:0];
+		field {
+			name = "TRANSFER";
+			desc = "transferring";
+			sw=rw;
+			hw=r;
+			reset = 0x0;
+		} f3[7:4];
+	} r2@0x08;
+} example_addr_map;

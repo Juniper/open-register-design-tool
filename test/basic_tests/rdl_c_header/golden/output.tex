@@ -1,0 +1,47 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% This file is generated documentation for example_addr_map address map
+%
+% DO NOT MODIFY THIS FILE! USE 'openrdt' toolchain to modify register map!
+%
+% Generated on: 2021-09-15
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\gdef\TROPICTEXLIBPATH {\detokenize{../../../modules/ts-latex-lib/tropic_tex_lib}}
+
+\documentclass{\TROPICTEXLIBPATH/tropic_datasheet}
+
+\title{TODO!}
+\begin{document}
+
+\onecolumn
+
+% Register Summary table
+\begin{TropicRatioTable3Col}
+{0.15} {0.65} {0.2}
+{Address Offset & Register Name & Reset Value}
+0x0 & DEVICE_ID & 0x0A0B0402\Ttlb%
+0x4 & REVISION_ID & 0x00000001\Ttlb%
+\end{TropicRatioTable3Col}
+
+\pagebreak
+
+\begin{TropicRegisterTable}
+  {DEVICE_ID}%
+  {0x0}%
+  FLD_A & RW & 0x2 & 7:0 & Description of FLD_A \Ttlb
+  FLD_B & RW & 0x4 & 15:8 & Description of FLD_B \Ttlb
+  FLD_C & RW & 0xA0B & 31:16 & Description of example field \Ttlb
+\end{TropicRegisterTable}
+
+\begin{TropicRegisterTable}
+  {REVISION_ID}%
+  {0x4}%
+  REV_MINOR & RW & 0x1 & 3:0 & Minor revision number \Ttlb
+  REV_MAJOR & RW & 0x0 & 7:4 & Major revision number \Ttlb
+\end{TropicRegisterTable}
+
+\end{document}

@@ -61,8 +61,9 @@ fi
 # remove previous output
 if [ -e $output_dir ]; then
    rm -r $output_dir
-   mkdir $output_dir
 fi
+
+mkdir $output_dir
 
 # set ordt output options
 uvm_option=" -uvmregspkg $output_dir/uvm_reg_jrdl_pkg.sv -uvmregs $output_dir/uvmregs.sv"
@@ -72,13 +73,14 @@ rdl_option=" -rdl $output_dir/output.rdl"
 js_option=" -jspec $output_dir/output.js"
 xml_option=" -xml $output_dir/output.xml"
 reglist_option=" -reglist $output_dir/output.reglist"
+c_header_option=" -cheader $output_dir/output.h"
 
 parms_option=
 if [ -f $parms_file ]; then
    parms_option=" -parms $parms_file"
 fi
 
-rdl_opts="$parms_option$sv_option$v_option$uvm_option$js_option$xml_option$reglist_option"
+rdl_opts="$parms_option$sv_option$v_option$uvm_option$js_option$xml_option$reglist_option$c_header_option"
 js_opts="$parms_option$uvm_option$rdl_option$xml_option$reglist_option"
 
 # run the command
