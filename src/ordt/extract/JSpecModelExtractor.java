@@ -34,7 +34,6 @@ import ordt.parse.jspec.JSpecParser;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
@@ -183,14 +182,14 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	  : LSQ num_expression
 	    (COLON num_expression)?
 	    RSQ	 */
-	@Override public void enterArray(@NotNull JSpecParser.ArrayContext ctx) { 
+	@Override public void enterArray(JSpecParser.ArrayContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());   
 		
 	}
 	
 	/**
 	 */
-	@Override public void exitArray(@NotNull JSpecParser.ArrayContext ctx) { 
+	@Override public void exitArray(JSpecParser.ArrayContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());	
 		lastResolvedArrayIndex = (lastResolvedNum != null) ? lastResolvedNum.toInteger() : null;  // get last resolved integer index
 	}
@@ -204,7 +203,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	     param_block?
 	     SEMI 
 	 */
-	@Override public void enterEnum_field_def(@NotNull JSpecParser.Enum_field_defContext ctx) { 
+	@Override public void enterEnum_field_def(JSpecParser.Enum_field_defContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());   
 		// create an enum component and set as activeEnumDef
 		createEnumComponent(ctx); 
@@ -230,7 +229,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 
 	/**
 	 */
-	@Override public void exitEnum_field_def(@NotNull JSpecParser.Enum_field_defContext ctx) { 
+	@Override public void exitEnum_field_def(JSpecParser.Enum_field_defContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 		exitComponentDefinition();		
 	}
@@ -241,12 +240,12 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	   : id EQ num_expression str
 	     SEMI 
 	 */
-	@Override public void enterEnum_value_assign(@NotNull JSpecParser.Enum_value_assignContext ctx) { 
+	@Override public void enterEnum_value_assign(JSpecParser.Enum_value_assignContext ctx) { 
 	}
 	
 	/**
 	 */
-	@Override public void exitEnum_value_assign(@NotNull JSpecParser.Enum_value_assignContext ctx) { 
+	@Override public void exitEnum_value_assign(JSpecParser.Enum_value_assignContext ctx) { 
 		String parm = ctx.getChild(0).getText();
 		String value = ctx.getChild(2).getText();
 		String nameStr = ctx.getChild(3).getText().replaceAll("\"", "");
@@ -268,7 +267,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	     RBRACE         
 	     SEMI 
 	 */
-	@Override public void enterField_set_def(@NotNull JSpecParser.Field_set_defContext ctx) { 
+	@Override public void enterField_set_def(JSpecParser.Field_set_defContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());   
 		// create the component (and instance if not typedef) 
 		enterComponentDefinition(ctx, "fieldset", 1, 2);		
@@ -280,7 +279,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	}
 	/**
 	 */
-	@Override public void exitField_set_def(@NotNull JSpecParser.Field_set_defContext ctx) { 
+	@Override public void exitField_set_def(JSpecParser.Field_set_defContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 		Integer childOffset = fieldOffsets.pop(); // grab the width of this fieldset from child offset
 		// if this fieldset is a union, remove all except first child 
@@ -302,7 +301,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	 * <p/>
 	 * The default implementation does nothing.
 	 */
-	@Override public void enterInteger_constant_assign(@NotNull JSpecParser.Integer_constant_assignContext ctx) { 
+	@Override public void enterInteger_constant_assign(JSpecParser.Integer_constant_assignContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
     }
 	
@@ -311,7 +310,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	 * <p/>
 	 * The default implementation does nothing.
 	 */
-	@Override public void exitInteger_constant_assign(@NotNull JSpecParser.Integer_constant_assignContext ctx) { 
+	@Override public void exitInteger_constant_assign(JSpecParser.Integer_constant_assignContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 	}
 	
@@ -321,7 +320,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	     param_block?
 	     SEMI 
 	 */
-	@Override public void enterInt_field_def(@NotNull JSpecParser.Int_field_defContext ctx) { 
+	@Override public void enterInt_field_def(JSpecParser.Int_field_defContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());   
 		// extract field header info indices
 		boolean hasNoId = ctx.getChild(1).getText().startsWith("[");
@@ -344,7 +343,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	
 	/**
 	 */
-	@Override public void exitInt_field_def(@NotNull JSpecParser.Int_field_defContext ctx) { 
+	@Override public void exitInt_field_def(JSpecParser.Int_field_defContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 		exitComponentDefinition();		
 	}
@@ -355,7 +354,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	     param_block?
 	     SEMI 
 	 */
-	@Override public void enterNop_field_def(@NotNull JSpecParser.Nop_field_defContext ctx) { 
+	@Override public void enterNop_field_def(JSpecParser.Nop_field_defContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
 		// extract the field width and store in component
 		String fieldWidthStr = ctx.getChild(1).getChild(1).getText();
@@ -368,7 +367,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	
 	/**
 	 */
-	@Override public void exitNop_field_def(@NotNull JSpecParser.Nop_field_defContext ctx) { 
+	@Override public void exitNop_field_def(JSpecParser.Nop_field_defContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 		//exitComponentDefinition();				
 	}
@@ -383,13 +382,13 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
         RBRACE
         SEMI 
 	 */
-	@Override public void enterNum_constant_def(@NotNull JSpecParser.Num_constant_defContext ctx) {
+	@Override public void enterNum_constant_def(JSpecParser.Num_constant_defContext ctx) {
 		activeRules.add(ctx.getRuleIndex());
 		accumulated_constant_width = 0;  // init constant width
 		activeConstantId = ctx.getChild(1).getText();  // set active constant id 
     }
 	
-	@Override public void exitNum_constant_def(@NotNull JSpecParser.Num_constant_defContext ctx) {  
+	@Override public void exitNum_constant_def(JSpecParser.Num_constant_defContext ctx) {  
 		activeRules.remove(ctx.getRuleIndex());
 		
 		ParseTree constAssignStmt = ctx.getChild(4);
@@ -501,7 +500,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	/**
 	 * numeric expression
 	 */
-	@Override public void enterNum_expression(@NotNull JSpecParser.Num_expressionContext ctx) {
+	@Override public void enterNum_expression(JSpecParser.Num_expressionContext ctx) {
 		activeRules.add(ctx.getRuleIndex());
 		numExpessionDepth++;
 		if (numExpessionDepth == 1) {
@@ -513,7 +512,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	
 	/**
 	 */
-	@Override public void exitNum_expression(@NotNull JSpecParser.Num_expressionContext ctx) {  
+	@Override public void exitNum_expression(JSpecParser.Num_expressionContext ctx) {  
 		activeRules.remove(ctx.getRuleIndex());
 		numExpessionDepth--;
 	}
@@ -525,14 +524,14 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	     (value_assign)+
 	     RBRACE         
 	 */
-	@Override public void enterParam_block(@NotNull JSpecParser.Param_blockContext ctx) { 
+	@Override public void enterParam_block(JSpecParser.Param_blockContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
 		
 	}
 	
 	/**
 	 */
-	@Override public void exitParam_block(@NotNull JSpecParser.Param_blockContext ctx) { 
+	@Override public void exitParam_block(JSpecParser.Param_blockContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 	
 	}
@@ -546,7 +545,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	     param_block?
 	     SEMI 
 	 */
-	@Override public void enterRegister_def(@NotNull JSpecParser.Register_defContext ctx) { 
+	@Override public void enterRegister_def(JSpecParser.Register_defContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
 		// create the component (and instance if not typedef) 
 		enterComponentDefinition(ctx, "reg", 1, 2);
@@ -557,7 +556,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	
 	/**
 	 */
-	@Override public void exitRegister_def(@NotNull JSpecParser.Register_defContext ctx) { 
+	@Override public void exitRegister_def(JSpecParser.Register_defContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 		//activeCompDefs.peek().display(null, null, true);
 		// save the bitsAssigned - will use to set bit padding in AlignedSize calculation when register size is known
@@ -576,7 +575,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	     param_block?
 	     SEMI 
 	 */
-	@Override public void enterRegister_set_def(@NotNull JSpecParser.Register_set_defContext ctx) { 
+	@Override public void enterRegister_set_def(JSpecParser.Register_set_defContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());   
 		// create the component (and instance if not typedef) 
 		enterComponentDefinition(ctx, "regset", 1, 2);
@@ -584,7 +583,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 
 	/**
 	 */
-	@Override public void exitRegister_set_def(@NotNull JSpecParser.Register_set_defContext ctx) { 
+	@Override public void exitRegister_set_def(JSpecParser.Register_set_defContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 		exitComponentDefinition();
 	}
@@ -592,7 +591,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	/**
 	 *  initialize root element
 	 */
-	@Override public void enterRoot(@NotNull JSpecParser.RootContext ctx) { 
+	@Override public void enterRoot(JSpecParser.RootContext ctx) { 
 		// add the root element
 		root = (ModRootComponent) ModComponent.createModComponent("root");
 		activeCompDefs.push(root);   // push onto the active definition stack
@@ -602,13 +601,13 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	/**
 	 *  exiting file 
 	 */
-	@Override public void exitRoot(@NotNull JSpecParser.RootContext ctx) { 
+	@Override public void exitRoot(JSpecParser.RootContext ctx) { 
 	}
 
 	/**
 	 * unsupported constants (same hdr as num_constant_def)
 	 */
-	@Override public void enterString_constant_def(@NotNull JSpecParser.String_constant_defContext ctx) { 
+	@Override public void enterString_constant_def(JSpecParser.String_constant_defContext ctx) { 
 		//System.out.println("JSpecModelExtractor: enterString_constant_def: --------  def=" + ctx.getText() );
 		String constID = ctx.getChild(1).getText();
 		MsgUtils.warnMessage("Definition of non-integer constant " + constID + " will be ignored");
@@ -617,7 +616,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	
 	/**
 	 */
-	@Override public void exitString_constant_def(@NotNull JSpecParser.String_constant_defContext ctx) { 
+	@Override public void exitString_constant_def(JSpecParser.String_constant_defContext ctx) { 
 		
 	}
 	
@@ -653,7 +652,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	}
 	
 	/** issue unsupported msg for transaction */
-	@Override public void enterTransaction_def(@NotNull JSpecParser.Transaction_defContext ctx) {
+	@Override public void enterTransaction_def(JSpecParser.Transaction_defContext ctx) {
 		MsgUtils.warnMessage("Jspec transaction definition not supported (line " + ctx.getStart().getLine() + ")"); 
 	}
 
@@ -666,14 +665,14 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	     | field_def 
 	     )
 	 */
-	@Override public void enterType_definition(@NotNull JSpecParser.Type_definitionContext ctx) { 
+	@Override public void enterType_definition(JSpecParser.Type_definitionContext ctx) { 
 		activeRules.add(ctx.getRuleIndex());
 		typeDefFound = true;  // mark for subsequent component definition - value will be pushed onto typeDef stack for ea component def	
 	}
 	
 	/**
 	 */
-	@Override public void exitType_definition(@NotNull JSpecParser.Type_definitionContext ctx) { 
+	@Override public void exitType_definition(JSpecParser.Type_definitionContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 	}
 	
@@ -689,7 +688,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	     param_block?
 	     SEMI
 	 */
-	@Override public void enterTypedef_instance(@NotNull JSpecParser.Typedef_instanceContext ctx) {   
+	@Override public void enterTypedef_instance(JSpecParser.Typedef_instanceContext ctx) {   
 		activeRules.add(ctx.getRuleIndex());
         // extract typedef name, id, name, and source line  // TODO add src line?
 		String compId = ctx.getChild(0).getText();
@@ -731,7 +730,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	
 	/**
 	 */
-	@Override public void exitTypedef_instance(@NotNull JSpecParser.Typedef_instanceContext ctx) { 
+	@Override public void exitTypedef_instance(JSpecParser.Typedef_instanceContext ctx) { 
 		activeRules.remove(ctx.getRuleIndex());
 		if (!activeInstances.isEmpty()) activeInstances.pop();  // we're done with this instance
 	}
@@ -747,7 +746,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 	     )         
 	     SEMI 
 	 */
-	@Override public void enterValue_assign(@NotNull JSpecParser.Value_assignContext ctx) {
+	@Override public void enterValue_assign(JSpecParser.Value_assignContext ctx) {
 		activeRules.add(ctx.getRuleIndex());
 		String parm = ctx.getChild(0).getText();
         if (parm.equals("reset")) inhibitNextResolveCheck = true;
@@ -755,7 +754,7 @@ public class JSpecModelExtractor extends JSpecBaseListener implements RegModelIn
 
 	/**
 	 */
-	@Override public void exitValue_assign(@NotNull JSpecParser.Value_assignContext ctx) {  
+	@Override public void exitValue_assign(JSpecParser.Value_assignContext ctx) {  
 		activeRules.remove(ctx.getRuleIndex());
 		String parm = ctx.getChild(0).getText();
 		String value = ctx.getChild(2).getText();

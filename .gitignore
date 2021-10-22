@@ -32,6 +32,7 @@ hs_err_pid*
 /test/**/output/
 /test/scripts/test.setup
 /rdl/
+/rdl_local/
 
 # gradle stuff
 /.gradle/

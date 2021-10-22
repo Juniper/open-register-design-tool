@@ -27,8 +27,8 @@ repositories {
 
 dependencies {
     compile 'org.abego.treelayout:org.abego.treelayout.core:1.0.3'
-    antlr   'org.antlr:antlr4:4.5.1-1'
-    runtime 'org.antlr:antlr4-runtime:4.5.1-1'
+    antlr   'org.antlr:antlr4:4.5.3'
+    runtime 'org.antlr:antlr4-runtime:4.5.3'
 }
 
 final antlrSrc = 'src/ordt/parse/grammars'

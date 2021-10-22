@@ -15,7 +15,6 @@ import java.util.List;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
@@ -174,7 +173,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 		initBooleanParameter("show_fields", false);
 		
 		// ---- uvmregs output defaults
-		initBooleanParameter("suppress_no_category_warnings", false); 
+		initBooleanParameter("suppress_no_category_warnings", true); 
 		initIntegerParameter("is_mem_threshold", 1000);
 		initBooleanParameter("include_address_coverage", false); 
 		initIntegerParameter("max_reg_coverage_bins", 128);
@@ -325,7 +324,7 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	/**
 	 * Assign global parameters
 	 */
-	@Override public void enterGlobal_parm_assign(@NotNull ExtParmsParser.Global_parm_assignContext ctx) {
+	@Override public void enterGlobal_parm_assign(ExtParmsParser.Global_parm_assignContext ctx) {
 		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());
 	
 	}
@@ -333,42 +332,42 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	/**
 	 * Assign rdl input parameters
 	 */
-	@Override public void enterRdl_in_parm_assign(@NotNull ExtParmsParser.Rdl_in_parm_assignContext ctx) { 
+	@Override public void enterRdl_in_parm_assign(ExtParmsParser.Rdl_in_parm_assignContext ctx) { 
 		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());			
 	}
 	
 	/**
 	 * Assign jspec input parameters
 	 */
-	@Override public void enterJspec_in_parm_assign(@NotNull ExtParmsParser.Jspec_in_parm_assignContext ctx) { 
+	@Override public void enterJspec_in_parm_assign(ExtParmsParser.Jspec_in_parm_assignContext ctx) { 
 		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());			
 	}
 	
 	/**
 	 * Assign systemverilog output parameters
 	 */
-	@Override public void enterSystemverilog_out_parm_assign(@NotNull ExtParmsParser.Systemverilog_out_parm_assignContext ctx) {
+	@Override public void enterSystemverilog_out_parm_assign(ExtParmsParser.Systemverilog_out_parm_assignContext ctx) {
 		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
 	}
 	
 	/**
 	 * Assign rdl output parameters
 	 */
-	@Override public void enterRdl_out_parm_assign(@NotNull ExtParmsParser.Rdl_out_parm_assignContext ctx) { 
+	@Override public void enterRdl_out_parm_assign(ExtParmsParser.Rdl_out_parm_assignContext ctx) { 
 		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());				
 	}
 	
 	/**
 	 * Assign jspec output parameters
 	 */
-	@Override public void enterJspec_out_parm_assign(@NotNull ExtParmsParser.Jspec_out_parm_assignContext ctx) {
+	@Override public void enterJspec_out_parm_assign(ExtParmsParser.Jspec_out_parm_assignContext ctx) {
 		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
 	}
 	
 	/**
 	 * Assign reglist output parameters
 	 */
-	@Override public void enterReglist_out_parm_assign(@NotNull ExtParmsParser.Reglist_out_parm_assignContext ctx) {
+	@Override public void enterReglist_out_parm_assign(ExtParmsParser.Reglist_out_parm_assignContext ctx) {
 		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
 	}
 	
@@ -407,14 +406,14 @@ public class ExtParameters extends ExtParmsBaseListener  {
 	/**
 	 * Assign uvmregs output parameters
 	 */
-	@Override public void enterUvmregs_out_parm_assign(@NotNull ExtParmsParser.Uvmregs_out_parm_assignContext ctx) {
+	@Override public void enterUvmregs_out_parm_assign(ExtParmsParser.Uvmregs_out_parm_assignContext ctx) {
 		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
 	}
 	
 	/**
 	 * Assign bench output parameters
 	 */
-	@Override public void enterBench_out_parm_assign(@NotNull ExtParmsParser.Bench_out_parm_assignContext ctx) {
+	@Override public void enterBench_out_parm_assign(ExtParmsParser.Bench_out_parm_assignContext ctx) {
 		assignParameter(ctx.getChild(0).getText(), ctx.getChild(2).getText());		
 	}
 	

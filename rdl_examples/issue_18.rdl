@@ -1,0 +1,61 @@
+// issue 18 debug 
+<PARMS>
+output systemverilog {
+    root_decoder_interface = parallel      // parallel | parallel_pulsed | leaf | serial8 | ring8 | ring16 | ring32
+	use_async_resets = true          // registers will use asynchronous reset
+}
+</PARMS>
+
+signal test_rst_sig {  
+   // async;   SDN - async keyword isnt supported
+};  // SDN - removed signal instance here since it's not in an addrmap
+
+regfile other_regs_defns_rf {
+	reg attr_resetsignal_t {
+		name = "Reg resetsignal";
+		desc = "A register with resetsignal to verify resetsignal works correctly";
+		default hw = r; //Register default hw field type to read
+		default sw = rw; //Register default sw field type to read/write
+		default fieldwidth = 8;   // SDN - dropped fwidth to 8b so fields fit in one reg
+		default reset = 0;
+		field {
+			name = "rstsignal check";
+			desc = "Verifying that rstsignal works";
+		} extsig_rst_field1;  // SDN - this field used resetsignal override in addrmap
+		field {
+			name = "rstsignal check";
+			desc = "Verifying that rstsignal works";
+			resetsignal = test_rst_sig; //signal used to reset field's register and hardware logic
+		} extsig_rst_field2;  // SDN - this field sets resetsignal locally.  FAILS with Unable to resolve rhs assignment reference error prior to 191222.01
+		field {
+			name = "rstsignal check";
+			desc = "Verifying that rstsignal works";
+		} default_rst_fld;  // SDN - this field uses the default reset
+	};
+	attr_resetsignal_t attr_rstsignal;  // SDN - missing semi
+};
+
+	
+field fld_4b_t {
+	hw = r; sw = rw; fieldwidth = 4; reset = 0;
+};
+reg attr_reg_t {
+    default resetsignal = test_rst_sig;  // set a default reset to be used for all fields in this reg
+    fld_4b_t fld1;
+    fld_4b_t fld2;
+    fld_4b_t fld3;
+};
+
+addrmap ordtreg_regs {
+	test_rst_sig test_rst_sig;
+	other_regs_defns_rf other_rf @ 0x000100;
+	other_rf.attr_rstsignal.extsig_rst_field1->resetsignal = test_rst_sig;
+	
+	attr_reg_t another_reg @ 0x200;
+	//another_reg.fld1->resetsignal = test_rst_sig;
+	//another_reg.fld2->resetsignal = test_rst_sig;
+	//another_reg.fld3->resetsignal = test_rst_sig;
+	//another_reg.*->resetsignal = test_rst_sig;
+	
+	
+} basemap;  // SDN - instanced addrmap

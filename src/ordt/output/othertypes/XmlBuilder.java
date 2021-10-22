@@ -62,7 +62,7 @@ public class XmlBuilder extends OutputBuilder {
 		if (fieldProperties.isSinglePulse()) addXmlElement("singlepulse", "");
 		if (ExtParameters.xmlIncludeFieldHwInfo()) addHwInfo();  // include field hw info
 		if (fieldProperties.getReset() != null) {
-			addXmlElement("reset", fieldProperties.getReset().toFormat(NumBase.Hex, NumFormat.Int)); // output reset as hex string
+			addXmlElement("reset", fieldProperties.getReset().toFormat(NumBase.Hex, NumFormat.Address)); // output reset as hex string
 		}
 		//addXmlElementStart("position");
 		addXmlElement("lowidx", fieldProperties.getLowIndex().toString());
@@ -502,7 +502,7 @@ public class XmlBuilder extends OutputBuilder {
 				addXmlElement("enc_elem_name", elemName);
 				String elemValue = enumElem.getValue().toFormat(NumBase.Hex, NumFormat.Address);
 				addXmlElement("enc_elem_value", elemValue);
-				//if (enumElem.getName() != null) addXmlElement("enc_elem_info", enumElem.getName());
+				if (enumElem.getDesc() != null) addXmlElement("enc_elem_desc", wrapXmlText(enumElem.getDesc()));
 				addXmlElementEnd("enc_elem");	
 			}
 		}

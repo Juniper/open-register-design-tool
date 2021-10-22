@@ -490,9 +490,11 @@ public class FieldProperties extends InstanceProperties {
 		if (pList.hasProperty("precedence")) {
 			if (pList.getProperty("precedence").equals("hw")) setHwPrecedence(true);   
 			else if (pList.getProperty("precedence").equals("sw")) setHwPrecedence(false);   
+			//System.out.println("FieldProperties extractProperties: inst=" + getInstancePath() + ", precedence property setting=" + pList.getProperty("precedence") + ", hw precedence=" + hasHwPrecedence());
 		}
 		//else if ((isCounter() || isInterrupt())) setHwPrecedence(true); // give hw precedence if a counter or interrupt
 		else if (isCounter()) setHwPrecedence(true); // give hw precedence if a counter
+		else if (isRclr() || isRset()) setHwPrecedence(true); // give hw precedence if a field using rset or rclr
 		else setHwPrecedence(false);  // default to sw precedence
 		
 		// set next value specified
