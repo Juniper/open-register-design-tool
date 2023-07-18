@@ -1,4 +1,4 @@
-// Gradle build file for ordt 
+// Gradle build file for ordt
 
 description = 'Tool to generate register RTL, models, and docs using ' +
               'SystemRDL or JSpec input'
