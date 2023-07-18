@@ -109,8 +109,6 @@ task generateEclipseGrammarSource {
         moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'ExtParms', antlrGen, destFolder)
         moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'JSpec', antlrGen, destFolder)
         moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'SystemRDL', antlrGen, destFolder)
-        //moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'SimpleSVLexer', antlrGen, destFolder)
-        //moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'SimpleSVParser', antlrGen, destFolder)
         moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'SimpleSV', antlrGen, destFolder)
     }
 }
