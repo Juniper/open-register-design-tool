@@ -86,7 +86,7 @@ if [ -f $parms_file ]; then
 fi
 
 rdl_opts="$parms_option$sv_option$v_option$uvm_option$js_option$xml_option$reglist_option$py_option$cpp_option$c_header_option"
-js_opts="$parms_option$uvm_option$rdl_option$xml_option$reglist_option$py_option$cpp_option"
+js_opts="$parms_option$uvm_option$rdl_option$xml_option$reglist_option$py_option$cpp_option$c_header_option"
 
 # run the command
 if [ -e $rdl_test_file ]; then
@@ -110,12 +110,12 @@ fi
 
 # check the log file for errors
 if [ -e $ordt_stderr ]; then
-   if grep -q -e "ERROR" -e "Exception in thread" $ordt_stderr; then
+   if grep -q -e "ERROR" -e "Exception" $ordt_stderr; then
       echo "ERROR: ordt error detected:"
       if [ -n "$verbose" ]; then
          cat $ordt_stdout $ordt_stderr
       else
-         grep -e "ERROR" -e "Exception in thread" $ordt_stderr
+         grep -e "ERROR" -e "Exception" $ordt_stderr
       fi
       exit 8 
    fi

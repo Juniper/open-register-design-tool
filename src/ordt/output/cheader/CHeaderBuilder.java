@@ -29,10 +29,10 @@ public class CHeaderBuilder extends OutputBuilder {
     public CHeaderBuilder(ordt.extract.RegModelIntf model) {
         setBaseBuilderID();   // set unique ID of this instance
         this.model = model;
-        setVisitEachReg(false);                 // only need to call once for replicated reg groups
-        setVisitEachRegSet(false);              // only need to call once for replicated reg set groups
+        setVisitEachReg(true);                 // only need to call once for replicated reg groups
+        setVisitEachRegSet(true);              // only need to call once for replicated reg set groups
         setVisitExternalRegisters(true);        // we will visit externals
-        setVisitEachExternalRegister(false);    // handle externals as a group
+        setVisitEachExternalRegister(true);    // handle externals as a group
         ordt.output.RhsReference.setInstancePropertyStack(instancePropertyStack);  // update pointer to the instance stack for rhs reference evaluation
         model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
     }
@@ -132,18 +132,6 @@ public class CHeaderBuilder extends OutputBuilder {
      * Builder specific methods
      ******************************************************************************************************************/
     void addComments() {
-        commonOutputList.add(new OutputLine(indentLvl, "///////////////////////////////////////////////////////////////////////////////"));
-        commonOutputList.add(new OutputLine(indentLvl, "///////////////////////////////////////////////////////////////////////////////"));
-        commonOutputList.add(new OutputLine(indentLvl, "//"));
-        commonOutputList.add(new OutputLine(indentLvl, String.format("/* This is an automatically generated header file for %s address map */", getAddressMapName())));
-        commonOutputList.add(new OutputLine(indentLvl, "//"));
-        commonOutputList.add(new OutputLine(indentLvl, "/* DO NOT MODIFY THIS FILE! USE 'openrdt' toolchain to modify register map! */"));
-        commonOutputList.add(new OutputLine(indentLvl, "//"));
-        commonOutputList.add(new OutputLine(indentLvl, String.format("/* Generated on: %s */", java.time.LocalDate.now().toString())));
-        commonOutputList.add(new OutputLine(indentLvl, "//"));
-        commonOutputList.add(new OutputLine(indentLvl, "///////////////////////////////////////////////////////////////////////////////"));
-        commonOutputList.add(new OutputLine(indentLvl, "///////////////////////////////////////////////////////////////////////////////"));
-        commonOutputList.add(new OutputLine(indentLvl, ""));
         commonOutputList.add(new OutputLine(indentLvl, String.format("#ifndef __%s_REGISTER_MAP__", getAddressMapName().toUpperCase())));
         commonOutputList.add(new OutputLine(indentLvl, String.format("#define __%s_REGISTER_MAP__\n", getAddressMapName().toUpperCase())));
     }

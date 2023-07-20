@@ -37,7 +37,7 @@ import ordt.parameters.ExtParameters.UVMModelModes;
 
 public class Ordt {
 
-	private static String version = "211019.01";
+	private static String version = "230719.01";
 
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
@@ -171,6 +171,7 @@ public class Ordt {
 		outputNames.put(OutputType.PYDRVMOD, "python driver model");
 		outputNames.put(OutputType.JSON, "json");
 		outputNames.put(OutputType.SVCHILDINFO, "systemverilog child map info");
+		outputNames.put(OutputType.CHEADER, "C header");
 	}
 
 	/** assign a comment string for each output type */
@@ -191,6 +192,7 @@ public class Ordt {
 		commentChars.put(OutputType.PYDRVMOD, "#");
 		commentChars.put(OutputType.JSON, null);
 		commentChars.put(OutputType.SVCHILDINFO, (ExtParameters.getSysVerChildInfoMode() == SVChildInfoModes.MODULE)? "//" : "#");
+		commentChars.put(OutputType.CHEADER, "//");
 	}
 
     /** return an OutputBuilder of specified type */
@@ -235,7 +237,7 @@ public class Ordt {
 		   case SVCHILDINFO:
 			   return new SystemVerilogChildInfoBuilder(model);
            case CHEADER:
-               return new ordt.output.cheader.CHeaderBuilder(model);
+               return new CHeaderBuilder(model);
            default:
 		}
 		return null;
@@ -347,7 +349,9 @@ public class Ordt {
     	System.out.println("   -parms <input_parms_filename>");
     	System.out.println("       <input_parms_filename> will be used to set ordt control parameters. The -parms");
     	System.out.println("       option may be specified multiple times to include multiple parameter files.");
-    	System.out.println("   -cppmod <dirname>");
+        System.out.println("   -cheader <filename>");
+        System.out.println("       <filename> header file will be created containing C register definitions.");
+		System.out.println("   -cppmod <dirname>");
     	System.out.println("       <dirname> will be created containing C++ model output files");
     	System.out.println("   -cppdrvmod <dirname>");
     	System.out.println("       <dirname> will be created containing C++ driver model output files");
@@ -385,8 +389,6 @@ public class Ordt {
     	System.out.println("       file containing verilog output for all generated modules.");
     	System.out.println("   -xml <filename>");
     	System.out.println("       <filename> will be created containing xml output");
-        System.out.println("   -cheader <filename>");
-        System.out.println("       <filename> header file will be created containing register definitions.");
         System.exit(0);
     }
 

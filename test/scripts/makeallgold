@@ -16,9 +16,12 @@ rdl_golden=      # make rdl golden
 js_golden=       # make jspec golden
 reglist_golden=  # make reglist golden
 xml_golden=      # make xml golden
+py_golden=       # make python golden
+cpp_golden=      # make cpp golden
+c_header_golden= # make c header golden
 
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
-while getopts "d:acvsurjlxpz" opt; do
+while getopts "d:acvsurjlxpzh" opt; do
     case "$opt" in
     d)  tests_dir=$OPTARG 
         ;;
@@ -44,6 +47,8 @@ while getopts "d:acvsurjlxpz" opt; do
         ;;
     c)  cpp_golden=" -c"
         ;;
+    h)  c_header_golden=" -h"
+        ;;
     esac
 done
 
@@ -64,6 +69,7 @@ if [ ! $# == 0 ]; then
    echo "                  -x         - make xml golden"
    echo "                  -p         - make python golden"
    echo "                  -c         - make cpp golden"
+   echo "                  -h         - make c header output golden"
    exit 0
 fi
 
@@ -73,6 +79,6 @@ for full_test_name in $tests_dir/*; do
    if [ -d $full_test_name ]; then
       test_name=`basename $full_test_name`
       #echo "-------- test=$test_name ..."
-      makegold $all_golden $clear_golden $v_golden $sv_golden $uvm_golden $rdl_golden $js_golden $reglist_golden $xml_golden $py_golden $cpp_golden $test_name
+      makegold $all_golden $clear_golden $v_golden $sv_golden $uvm_golden $rdl_golden $js_golden $reglist_golden $xml_golden $py_golden $cpp_golden  $c_header_golden $test_name
    fi
 done

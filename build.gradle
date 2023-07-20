@@ -42,7 +42,7 @@ sourceSets {
 		       'src/ordt/extract',
 		       'src/ordt/output',
 		       'src/ordt/parameters',
-		       antlrGen ]
+		       'src/ordt/parse' ]
         }
     	antlr {
     	    srcDirs = [ antlrSrc ]
@@ -70,7 +70,14 @@ compileJava.dependsOn(copyMyDebugController)
 
 generateGrammarSource {
     outputs.upToDateWhen { false }  // force compile of all grammar files so import dependencies are picked up
-//    outputDirectory = file(antlrGen)
+    // copy all generated antlr files to their package locations - not optimum, but avoids ide issues due to package mismatch
+    doLast {
+        final destFolder = 'src'
+        copyAntlrGeneratedFilesToTheirPackages(antlrSrc, 'ExtParms', antlrGen, destFolder)
+        copyAntlrGeneratedFilesToTheirPackages(antlrSrc, 'JSpec', antlrGen, destFolder)
+        copyAntlrGeneratedFilesToTheirPackages(antlrSrc, 'SystemRDL', antlrGen, destFolder)
+        copyAntlrGeneratedFilesToTheirPackages(antlrSrc, 'SimpleSV', antlrGen, destFolder)
+    }
 }
 
 shadowJar {
@@ -99,21 +106,7 @@ task distclean {
     }
 }
 
-// eclipse ide expects java source files to be in directories corresponding to their package.
-// the generateEclipseGrammarSource generates the antlr output and moves output java files into 
-// their respective package directories (note that not all grammars need to be copied)
-task generateEclipseGrammarSource {
-    dependsOn generateGrammarSource
-    doLast {
-        final destFolder = 'src'
-        moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'ExtParms', antlrGen, destFolder)
-        moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'JSpec', antlrGen, destFolder)
-        moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'SystemRDL', antlrGen, destFolder)
-        moveAntlrGeneratedFilesToTheirPackages(antlrSrc, 'SimpleSV', antlrGen, destFolder)
-    }
-}
-
-def moveAntlrGeneratedFilesToTheirPackages(grammarFolder, grammarName, genFolder, destFolder) {
+def copyAntlrGeneratedFilesToTheirPackages(grammarFolder, grammarName, genFolder, destFolder) {
     File grammarFile = file("${grammarFolder}/${grammarName}.g4")
     final grammarPackage = extractPackageNameFromGrammerFile(grammarFile)
     copy {
@@ -121,7 +114,6 @@ def moveAntlrGeneratedFilesToTheirPackages(grammarFolder, grammarName, genFolder
         include "${grammarName}*.*"
         into destFolder + "/" + grammarPackage.replaceAll("\\.", "/")
     }
-    project.delete fileTree(genFolder).include("${grammarName}*.*")
 }
 
 def extractPackageNameFromGrammerFile(File grammarFile) {

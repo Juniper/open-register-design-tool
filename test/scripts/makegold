@@ -17,9 +17,10 @@ reglist_golden=  # make reglist golden
 xml_golden=      # make xml golden
 py_golden=       # make python golden
 cpp_golden=      # make cpp golden
+c_header_golden= # make c header golden
 
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
-while getopts "d:azvsurjlxcp" opt; do
+while getopts "d:azvsurjlxcph" opt; do
     case "$opt" in
     d)  tests_dir=$OPTARG 
         ;;
@@ -45,6 +46,8 @@ while getopts "d:azvsurjlxcp" opt; do
         ;;
     c)  cpp_golden=1
         ;;
+    h)  cpp_header_golden=1
+        ;;
     esac
 done
 
@@ -65,6 +68,7 @@ if [ ! $# == 1 ]; then
    echo "                  -x         - make xml output golden"
    echo "                  -p         - make python output golden"
    echo "                  -c         - make cpp output golden"
+   echo "                  -h         - make c header output golden"
    exit 0
 fi
 
@@ -144,4 +148,9 @@ fi
 if [ -n "$cpp_golden" ]; then
    cp $output_dir/*.cpp $golden_dir
    cp $output_dir/*.hpp $golden_dir
+fi
+
+# promote c header
+if [ -n "$c_header_golden" ]; then
+   cp $output_dir/output.h $golden_dir
 fi
