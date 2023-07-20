@@ -46,7 +46,7 @@ while getopts "d:azvsurjlxcph" opt; do
         ;;
     c)  cpp_golden=1
         ;;
-    h)  cpp_header_golden=1
+    h)  c_header_golden=1
         ;;
     esac
 done

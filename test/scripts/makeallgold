@@ -79,6 +79,6 @@ for full_test_name in $tests_dir/*; do
    if [ -d $full_test_name ]; then
       test_name=`basename $full_test_name`
       #echo "-------- test=$test_name ..."
-      makegold $all_golden $clear_golden $v_golden $sv_golden $uvm_golden $rdl_golden $js_golden $reglist_golden $xml_golden $py_golden $cpp_golden  $c_header_golden $test_name
+      makegold $all_golden $clear_golden $v_golden $sv_golden $uvm_golden $rdl_golden $js_golden $reglist_golden $xml_golden $py_golden $cpp_golden $c_header_golden $test_name
    fi
 done

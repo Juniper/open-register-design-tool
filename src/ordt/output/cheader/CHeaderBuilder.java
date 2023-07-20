@@ -1,5 +1,6 @@
 package ordt.output.cheader;
 
+import ordt.extract.RegNumber;
 import ordt.output.FieldProperties;
 import ordt.output.OutputBuilder;
 import ordt.output.common.OutputLine;
@@ -7,24 +8,13 @@ import ordt.parameters.ExtParameters;
 
 import java.io.BufferedWriter;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 
 public class CHeaderBuilder extends OutputBuilder {
-    private List<OutputLine> memoryMapOutputList = new ArrayList<OutputLine>();
     private List<OutputLine> bitfieldOutputList = new ArrayList<OutputLine>();
-    private List<OutputLine> commonOutputList = new ArrayList<OutputLine>();
-    private List<OutputLine> explicitFunctionOutputList = new ArrayList<OutputLine>();
-    private int indentLvl = 0;
     private final int noIndent = 0;
-
-    /*******************************************************************************************************************
-     * User configurable parameters
-     ******************************************************************************************************************/
-
-    /*******************************************************************************************************************
-     * Internal variables
-     ******************************************************************************************************************/
 
     public CHeaderBuilder(ordt.extract.RegModelIntf model) {
         setBaseBuilderID();   // set unique ID of this instance
@@ -37,121 +27,18 @@ public class CHeaderBuilder extends OutputBuilder {
         model.getRoot().generateOutput(null, this);   // generate output structures recursively starting at model root
     }
 
-    @Override
-    public void addField() {
-        while (fieldList.size() > 0){
-            FieldProperties field = fieldList.remove();
-            int lowIndex = field.getLowIndex();
-            int highIndex = field.getLowIndex() + field.getFieldWidth() - 1;
-
-            if (lowIndex == highIndex) {
-                String bitIndices = String.format("%d", lowIndex);
-                bitfieldOutputList.add(new OutputLine(noIndent, String.format("#define %s BIT(%s)", field.getTextName(), bitIndices)));
-            }
-            if (lowIndex != highIndex) {
-                String bitIndices = String.format("%d, %d", highIndex, lowIndex);
-                bitfieldOutputList.add(new OutputLine(noIndent, String.format("#define %s GENMASK(%s)", field.getTextName(), bitIndices)));
-            }
-        }
+    public class MemoryMapEntry {
+      public RegNumber address;
+      public String regName;
+      public MemoryMapEntry(RegNumber address, String regName) {
+        this.address = address;
+        this.regName = regName;
+      }
     }
-    @Override
-    public void addAliasField() {
-    }
+    private List<MemoryMapEntry> memoryMapEntryList = new ArrayList<MemoryMapEntry>();
 
-    @Override
-    public void addRegister() {
-        String regAddress = regProperties.getExtractInstance().getAddress().toString();
-        String regName = regProperties.getTextName();
-
-        if (ExtParameters.cheaderAddMemoryMap())
-            memoryMapOutputList.add(new OutputLine(indentLvl, String.format("%s = %s,", regName, regAddress)));
-
-        if (ExtParameters.cheaderAddBitfields())
-            bitfieldOutputList.add(new OutputLine(noIndent, String.format("\n/* %s registers */", regName)));
-    }
-
-    @Override
-    public void finishRegister() {
-    }
-
-    @Override
-    public void addRegSet() {
-    }
-    @Override
-    public void finishRegSet() {
-    }
-
-    @Override
-    public void addRegMap() {
-        if (ExtParameters.cheaderAddMemoryMap())
-             addHeader();
-    }
-    @Override
-    public void finishRegMap() {
-        if (ExtParameters.cheaderAddMemoryMap())
-            endEnum();
-    }
-
-    @Override
-    public void write(BufferedWriter bw) {
-        bufferedWriter = bw;
-
-        // Comments about auto generated file with name and date
-        addComments();
-        for (OutputLine jsLine : commonOutputList){
-            writeStmt(jsLine.getIndent(), jsLine.getLine());
-        }
-
-        // Explicitly declare all functions in the same header file
-        if (ExtParameters.cheaderExplicitFunctions()){
-            explicitFunctions();
-            for (OutputLine jsLine : explicitFunctionOutputList){
-                writeStmt(jsLine.getIndent(), jsLine.getLine());
-            }
-        }
-        else writeStmt(noIndent,"#include <bits.h>\n");
-
-        // Write memory map (enum)
-        if (ExtParameters.cheaderAddMemoryMap())
-            // sherlock: memoryMapOutputList is array, OutputLine is datatype for temp variable jsLine
-            // sherlock: loop iterates over array and jsline becomes each element
-            for (OutputLine jsLine : memoryMapOutputList) {
-                writeStmt(jsLine.getIndent(), jsLine.getLine());
-            }
-
-        // Write bitfields (#define)
-        if (ExtParameters.cheaderAddBitfields())
-            for (OutputLine jsLine : bitfieldOutputList) {
-                writeStmt(jsLine.getIndent(), jsLine.getLine());
-            }
-
-        endComments();
-    }
-
-    /*******************************************************************************************************************
-     * Builder specific methods
-     ******************************************************************************************************************/
-    void addComments() {
-        commonOutputList.add(new OutputLine(indentLvl, String.format("#ifndef __%s_REGISTER_MAP__", getAddressMapName().toUpperCase())));
-        commonOutputList.add(new OutputLine(indentLvl, String.format("#define __%s_REGISTER_MAP__\n", getAddressMapName().toUpperCase())));
-    }
-
-    void addHeader() {
-        memoryMapOutputList.add(new OutputLine(indentLvl, String.format("/* %s_REGISTERS memory map */", getAddressMapName().toUpperCase())));
-        memoryMapOutputList.add(new OutputLine(indentLvl++, String.format("enum %s_REGS {", getAddressMapName().toUpperCase())));
-    }
-
-    void endEnum(){
-        memoryMapOutputList.add(new OutputLine(--indentLvl, "};"));
-    }
-
-    void endComments() {
-        commonOutputList.add(new OutputLine(indentLvl, "#endif"));
-        writeStmt(noIndent, "\n#endif");
-    }
-
-    void explicitFunctions(){
-        explicitFunctionOutputList.add(new OutputLine(indentLvl, String.format("/*\n" +
+    String explicitFunctionString =
+                 "/*\n" +
                 " * bits.h\n" +
                 " *\n" +
                 " * Struct and function declarations for dealing with bit assignment.\n" +
@@ -186,6 +73,95 @@ public class CHeaderBuilder extends OutputBuilder {
                 "#define GENMASK(h, l) \\\n" +
                 "\t(GENMASK_INPUT_CHECK(h, l) + __GENMASK(h, l))\n" +
                 "\n" +
-                "#endif /* _BITS_H */")));
+                "#endif /* _BITS_H */\n";
+
+    /*******************************************************************************************************************
+     * Builder override methods
+     ******************************************************************************************************************/
+
+    @Override
+    public void addField() {
+        int lowIndex = fieldProperties.getLowIndex();
+        int highIndex = fieldProperties.getLowIndex() + fieldProperties.getFieldWidth() - 1;
+        String fieldName = fieldProperties.getBaseName().toUpperCase();
+        String textNameComment = (fieldProperties.getTextName() == null) ? "" : "    /* " + fieldProperties.getTextName() + " */";
+
+        if (lowIndex == highIndex) {
+            String bitIndices = String.format("%d", lowIndex);
+            bitfieldOutputList.add(new OutputLine(noIndent, String.format("#define %s BIT(%s)%s", fieldName, bitIndices, textNameComment)));
+        }
+        else {
+            String bitIndices = String.format("%d, %d", highIndex, lowIndex);
+            bitfieldOutputList.add(new OutputLine(noIndent, String.format("#define %s GENMASK(%s)%s", fieldName, bitIndices, textNameComment)));
+        }
     }
+    @Override
+    public void addAliasField() {
+    }
+
+    @Override
+    public void addRegister() {
+        String regName = regProperties.getBaseName().toUpperCase();
+
+        if (ExtParameters.cheaderAddMemoryMap()) 
+            memoryMapEntryList.add(new MemoryMapEntry(regProperties.getBaseAddress(), regName));
+        
+        if (ExtParameters.cheaderAddBitfields()) {
+            String textName = (regProperties.getTextName() == null) ? "" : " (" + regProperties.getTextName() + ")";
+            bitfieldOutputList.add(new OutputLine(noIndent, "\n/* " + regName + textName + " register fields */"));
+        }
+    }
+
+    @Override
+    public void finishRegister() {
+    }
+
+    @Override
+    public void addRegSet() {
+    }
+    @Override
+    public void finishRegSet() {
+    }
+
+    @Override
+    public void addRegMap() {
+    }
+    @Override
+    public void finishRegMap() {
+    }
+
+    @Override
+    public void write(BufferedWriter bw) {
+        bufferedWriter = bw;
+
+        writeStmt(0, String.format("#ifndef __%s_REGISTER_MAP__", getAddressMapName().toUpperCase()));
+        writeStmt(0, String.format("#define __%s_REGISTER_MAP__\n", getAddressMapName().toUpperCase()));
+
+        // Explicitly declare all functions in the same header file
+        if (ExtParameters.cheaderExplicitFunctions())
+            writeStmt(noIndent, explicitFunctionString); 
+        else writeStmt(noIndent, "#include <bits.h>\n");
+
+        // Write memory map (enum)
+        if (ExtParameters.cheaderAddMemoryMap()) {
+            writeStmt(0, String.format("/* %s_REGISTERS memory map */", getAddressMapName().toUpperCase()));
+            writeStmt(0, String.format("enum %s_REGS {", getAddressMapName().toUpperCase()));
+            Iterator<MemoryMapEntry> mapIter = memoryMapEntryList.iterator();
+            while (mapIter.hasNext()) {
+                MemoryMapEntry mapEntry = mapIter.next();
+                String suffix = (mapIter.hasNext())? "," : "";
+                writeStmt(1, mapEntry.regName + " = " + mapEntry.address.toString() + suffix);
+            }
+            writeStmt(0, "};");
+        }
+
+        // Write bitfields (#define)
+        if (ExtParameters.cheaderAddBitfields())
+            for (OutputLine jsLine : bitfieldOutputList) {
+                writeStmt(jsLine.getIndent(), jsLine.getLine());
+            }
+
+        writeStmt(noIndent, "\n#endif");
+    }
+    
 }

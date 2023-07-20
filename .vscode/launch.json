@@ -8,9 +8,8 @@
             "type": "java",
             "name": "Ordt",
             "request": "launch",
-            "mainClass": "Ordt",
+            "mainClass": "ordt.extract.Ordt",
             "projectName": "ordt"
         }
-    
     ]
 }
