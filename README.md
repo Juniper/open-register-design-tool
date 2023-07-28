@@ -8,6 +8,7 @@ The tool can generate several outputs from SystemRDL or JSpec, including:
   - SystemVerilog/Verilog RTL code description of registers
   - UVM model of the registers
   - C++ and python models of the registers
+  - C header file providing register address and field defines
   - XML and text file register descriptions
   - SystemRDL and JSpec (conversion)
 
