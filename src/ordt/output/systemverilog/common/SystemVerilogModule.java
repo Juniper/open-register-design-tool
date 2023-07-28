@@ -60,8 +60,9 @@ public class SystemVerilogModule {
 	 * @param name - name of this module
 	 * @param insideLocs - ORed Integer of locations in top level in this module (not including children) 
 	 * @param defaultClkName - default clock name used for generated registers
+	 * @param defaultResetName - default reset name used for generated coverpoints
 	 */
-	public SystemVerilogModule(OutputWriterIntf writer, String name, int insideLocs, String defaultClkName, String coverageResetName, boolean useAsyncResets) {
+	public SystemVerilogModule(OutputWriterIntf writer, String name, int insideLocs, String defaultClkName, String defaultResetName, boolean useAsyncResets) {
 		this.writer = writer;  // save reference to calling writer
 		setTerminalInsideLocs(insideLocs);  // locations inside this module
 		setName(name);
@@ -69,16 +70,17 @@ public class SystemVerilogModule {
 		registers = new SystemVerilogRegisters(writer, defaultClkName, useAsyncResets);
 		wireDefList = new SystemVerilogSignalList();
 		regDefList = new SystemVerilogSignalList();
-		coverGroups = new SystemVerilogCoverGroups(writer, defaultClkName, coverageResetName);  // TODO - need to change cover reset if separate logic reset is being used
+		coverGroups = new SystemVerilogCoverGroups(writer, defaultClkName, defaultResetName);
 	}
 	
 	/** create a module with no name
 	 * @param writer - OutputWriterIntf to be used for output generation 
 	 * @param insideLocs - ORed Integer of locations in top level in this module (not including children) 
 	 * @param defaultClkName - default clock name used for generated registers
+	 * @param defaultResetName - default reset name used for generated coverpoints
 	 */
-	public SystemVerilogModule(OutputWriterIntf writer, int insideLocs, String defaultClkName, String coverageResetName, boolean useAsyncResets) {
-		this(writer, null, insideLocs, defaultClkName, coverageResetName, useAsyncResets);
+	public SystemVerilogModule(OutputWriterIntf writer, int insideLocs, String defaultClkName, String defaultResetName, boolean useAsyncResets) {
+		this(writer, null, insideLocs, defaultClkName, defaultResetName, useAsyncResets);
 	}
 
 	// ------------------- get/set -----------------------
@@ -101,6 +103,11 @@ public class SystemVerilogModule {
 		this.writer = writer;
 		registers.setWriter(writer);
 		coverGroups.setWriter(writer);
+	}
+	
+	/** set the default reset name and polarity for this module (currently only used for covergroups */
+	public void setDefaultReset(String resetName, boolean resetSignalActiveLow) {
+		coverGroups.setReset(resetName, resetSignalActiveLow);
 	}
 
 	public static boolean isLegacyVerilog() {

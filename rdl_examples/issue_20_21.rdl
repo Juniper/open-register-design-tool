@@ -1,0 +1,31 @@
+// issue 20/21 debug 
+<PARMS>
+output systemverilog {
+    root_decoder_interface = parallel      // parallel | parallel_pulsed | leaf | serial8 | ring8 | ring16 | ring32
+}
+</PARMS>
+	
+property p_hold_reg { type=boolean; default=false; component=reg; };
+
+enum my_enum_t {
+  VAL_0 = 4'd1 {desc="VAL_0 desc";};
+  VAL_1 = 4'd2 {desc="VAL_1 desc";};
+  VAL_2 = 4'd4 {desc="VAL_2 desc";};
+  VAL_3 = 4'd8 {desc="VAL_3 desc";};
+};
+
+field fld_4b_t {
+	hw = r; sw = rw; fieldwidth = 4; reset = 0;
+};
+reg attr_reg_t {
+    fld_4b_t fld1;
+    fld_4b_t fld2;
+    fld_4b_t fld3;
+    fld3->encode=my_enum_t;
+};
+
+addrmap {
+	attr_reg_t first_reg @ 0x100;	
+	attr_reg_t second_reg @ 0x200;
+	second_reg->p_hold_reg=true;	
+} basemap;

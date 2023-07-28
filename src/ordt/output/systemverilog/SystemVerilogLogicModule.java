@@ -134,21 +134,18 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 		   String groupName = regProperties.getBaseName();
 		   // generate flop reset stmts
 		   if (fieldProperties.hasReset()) {
-			   String resetSignalName = builder.getDefaultReset();
-			   boolean resetSignalActiveLow = builder.getDefaultResetActiveLow();
+			   String resetSignalName = getDefaultLogicReset();
+			   boolean resetSignalActiveLow = getDefaultLogicResetActiveLow();
 			   if (fieldProperties.hasRef(RhsRefType.RESET_SIGNAL)) {
 				   resetSignalActiveLow = false;  // user defined resets are active high by default 
 				   resetSignalName = resolveRhsExpression(RhsRefType.RESET_SIGNAL);
+				   //System.out.println("SystemVerilogModule genFieldRegWriteStmts: field " + fieldProperties.getId() + " has reset signal=" + resetSignalName);
 				   if (userDefinedSignals.containsKey(resetSignalName))
 					   resetSignalActiveLow = userDefinedSignals.get(resetSignalName).isActiveLow();
 				   groupName += " (reset=" + resetSignalName + ")";  // use a different always group for each unique resetsignal
 				   //System.out.println("SystemVerilogModule genFieldRegWriteStmts: field " + fieldProperties.getId() + " has reset signal=" + resetSignalName);
 				   if (!(definedSignals.contains(resetSignalName) || userDefinedSignals.containsKey(resetSignalName)))
 					   MsgUtils.errorMessage("reset signal " + resetSignalName + " for field " + fieldProperties.getInstancePath() + " has not been defined");
-			   }
-			   else if (builder.getLogicReset() != null) {
-				   resetSignalName = builder.getLogicReset();
-				   resetSignalActiveLow = builder.getLogicResetActiveLow();
 			   }
 			   addReset(resetSignalName, resetSignalActiveLow);
 			   addResetAssign(groupName, resetSignalName, fieldRegisterName + " <= " + ExtParameters.sysVerSequentialAssignDelayString() + getResetValueString() + ";");  // ff reset assigns			   
@@ -684,15 +681,25 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	private String getResetSignalName() {
 		String resetSignalName = null;
 		if (fieldProperties.hasReset()) {
-			resetSignalName = builder.getDefaultReset();
+			resetSignalName = getDefaultLogicReset();
 			if (fieldProperties.hasRef(RhsRefType.RESET_SIGNAL)) 
 				resetSignalName = resolveRhsExpression(RhsRefType.RESET_SIGNAL);
-			else if (builder.getLogicReset() != null) 
-				resetSignalName = builder.getLogicReset();
 		}
         return resetSignalName;
 	}
-
+	
+	/** get default reset name for the logic module */
+	private String getDefaultLogicReset() {
+		   if (builder.getLogicReset() != null) return builder.getLogicReset();
+		   return builder.getDefaultReset();
+	}
+	
+	/** get default reset polarity for the logic module */
+	private boolean getDefaultLogicResetActiveLow() {
+		   if (builder.getLogicReset() != null) return builder.getLogicResetActiveLow();
+		   return builder.getDefaultResetActiveLow();
+	}
+	
 	/** create count increment string */
 	private String getCountIncrValueString(int countWidth) {
 		String incrValueString = "0";
@@ -942,13 +949,13 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 	/** create an interrupt assertion bind module */
 	public SystemVerilogModule createIntrBindModule() {
 		String intrBindModName = getName() + "_intr_bind";
-		SystemVerilogModule intrBindMod = new SystemVerilogModule(builder, intrBindModName, getInsideLocs(), defaultClkName, builder.getDefaultReset(), ExtParameters.sysVerUseAsyncResets());
+		SystemVerilogModule intrBindMod = new SystemVerilogModule(builder, intrBindModName, getInsideLocs(), defaultClkName, getDefaultLogicReset(), ExtParameters.sysVerUseAsyncResets());
 		Integer defaultOutputLoc = getOutsideLocs();
 		SystemVerilogIOSignalList bindIOList = new SystemVerilogIOSignalList("default");
 		intrBindMod.useIOList(bindIOList, defaultOutputLoc);
 		// add default clock and reset
 		intrBindMod.addSimpleScalarFrom(defaultOutputLoc, defaultClkName);
-		intrBindMod.addSimpleScalarFrom(defaultOutputLoc, builder.getDefaultReset());
+		intrBindMod.addSimpleScalarFrom(defaultOutputLoc, getDefaultLogicReset());
 		// add control signal defines
 		String pkgPrefix = "";
 		if (ExtParameters.sysVerUseGlobalDvBindControls()) {
@@ -1021,7 +1028,8 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 			// define inhibit and assign
 			String inhibitName = "inhibit_" + intrInfo.getSigName();
 			intrBindMod.addScalarWire(inhibitName);
-			intrBindMod.addWireAssign(inhibitName + " = !" + pkgPrefix + "enable_intr_check || "+ builder.getDefaultReset() + " || (" + pkgPrefix + "only_error_asserts && (get_severity(\""+ intrInfo.getSubCategory() + "\") != ERROR));");
+			String resetActiveStr = (getDefaultLogicResetActiveLow()? "!" : "") + getDefaultLogicReset();
+			intrBindMod.addWireAssign(inhibitName + " = !" + pkgPrefix + "enable_intr_check || "+ resetActiveStr + " || (" + pkgPrefix + "only_error_asserts && (get_severity(\""+ intrInfo.getSubCategory() + "\") != ERROR));");
 		}
 		// add all leaf interrupts to to monitored
 		intrBindMod.addStatement("");
@@ -1058,14 +1066,14 @@ public class SystemVerilogLogicModule extends SystemVerilogModule {
 
 	public SystemVerilogModule createCoverBindModule() {
 		String bindModName = getName() + "_cover_bind";
-		SystemVerilogModule coverBindMod = new SystemVerilogModule(builder, bindModName, getInsideLocs(), defaultClkName, builder.getDefaultReset(), ExtParameters.sysVerUseAsyncResets());
+		SystemVerilogModule coverBindMod = new SystemVerilogModule(builder, bindModName, getInsideLocs(), defaultClkName, getDefaultLogicReset(), ExtParameters.sysVerUseAsyncResets());
 		Integer defaultOutputLoc = getOutsideLocs();
 		SystemVerilogIOSignalList bindIOList = new SystemVerilogIOSignalList("default");
 		coverBindMod.useIOList(bindIOList, defaultOutputLoc);
 		// add default clock and reset
 		coverBindMod.addSimpleScalarFrom(defaultOutputLoc, defaultClkName);
-		coverBindMod.addSimpleScalarFrom(defaultOutputLoc, builder.getDefaultReset());
-		// use defined coverage info in the logic module
+		coverBindMod.addSimpleScalarFrom(defaultOutputLoc, getDefaultLogicReset());
+		// use defined coverage info in the logic module (includes default reset info)
 		SystemVerilogCoverGroups definedCGs = getCoverGroups();
 		if (definedCGs.isEmpty()) return null;  // exit if no CGs
 		coverBindMod.setCoverGroups(definedCGs);

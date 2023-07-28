@@ -9,8 +9,8 @@ systemverilog_exec=
 systemverilog_err="error"
 uvm_exec=
 uvm_err="error"
-rdl_exec="$ordt -jspec temp.js"
+rdl_exec="$ordt -rdl temp.rdl"
 rdl_err="ERROR"
-js_exec="$ordt -rdl temp.rdl"
+js_exec="$ordt -jspec temp.js"
 js_err="ERROR"
 ####################################################################

@@ -1,0 +1,63 @@
+// hwload property example 
+<PARMS>
+output systemverilog {
+    root_decoder_interface = parallel      // parallel | parallel_pulsed | leaf | serial8 | ring8 | ring16 | ring32
+}
+
+output uvmregs {
+	suppress_no_category_warnings = true   // inhibit reg no category messages
+}
+
+output bench {
+    // first verify all regs post reset
+	add_test_command = "read 32 0x0 0xffffffff"
+	add_test_command = "read 32 0x10 0xffffffff"
+	add_test_command = "read 32 0x20 0xffffffff"
+	add_test_command = "read 32 0x100 0xffffffff"
+	add_test_command = "read 32 0x110 0xffffffff"
+	add_test_command = "read 32 0x120 0xffffffff"
+	// drive hwload0 and verify
+	add_test_command = "statement #1 h2l_hwload_0 = 1'b1;"
+	add_test_command = "wait 1"
+	add_test_command = "statement #1 h2l_hwload_0 = 1'b0;"
+	add_test_command = "read 32 0x0 0xffff0000"
+	add_test_command = "read 32 0x10 0xffff0000"
+	add_test_command = "read 32 0x20 0xffff0000"
+	add_test_command = "read 32 0x100 0xffff0000"
+	add_test_command = "read 32 0x110 0xffff0000"
+	add_test_command = "read 32 0x120 0xffff0000"
+	// drive hwload1 and verify
+	add_test_command = "statement #1 h2l_hwload_1 = 1'b1;"
+	add_test_command = "wait 1"
+	add_test_command = "statement #1 h2l_hwload_1 = 1'b0;"
+	add_test_command = "read 32 0x0 0x01ff0100"
+	add_test_command = "read 32 0x10 0x01ff0100"
+	add_test_command = "read 32 0x20 0x01ff0100"
+	add_test_command = "read 32 0x100 0x01ff0100"
+	add_test_command = "read 32 0x110 0x01ff0100"
+	add_test_command = "read 32 0x120 0x01ff0100"
+	//add_test_command = "write 32 0x0 0x12345678"  // write
+}
+
+</PARMS>
+
+reg reg1_t {
+    default reset = 8'hff;  // all fields reset to 255
+    default hw = r;
+    default sw = rw;
+    field { hwload(0) = 8'h0; } fld1[8];    // fld1 written by hwload0
+    field { hwload(0) = 8'h0; hwload(1) = 8'h1; } fld2[8];    // fld2 written by hwload0 and hwload1
+    field { } fld3[8];    // fld3 not written by hwloads
+    field { hwload(1) = 8'h1; } fld4[8];    // fld4 written by hwload1
+};
+
+regfile rf1_t {
+        reg1_t reg1;
+        reg1_t reg2 @0x10;
+        reg1_t reg3 @0x20;
+};
+
+addrmap {
+        rf1_t rf1 @0x0;
+        rf1_t rf2 @0x100;
+} basemap;

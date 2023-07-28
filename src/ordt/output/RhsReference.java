@@ -185,25 +185,17 @@ public class RhsReference {
 	   
 	   // now use instance stack to check for a valid reference
 	   ModComponent ancModComp = getAssignAncestorComp();   // find assignment ancestor component in model
+	   //System.out.println("RhsReference parseRawReference: ancModComp=" + ((ancModComp==null)? "null" : ancModComp.getFullId()));
 	   // search for rhs instance in model
 	   ModInstance rhsInstance = null;
 	   if (ancModComp != null) {
 		   List<String> pathList = Utils.pathToList(rawInstancePath, false, false);
-		   // first see if ref is for a user defined signal
-		   /*if (pathList.size() == 1) {  // TODO enable for ancestor signal accessibility
-			   rhsInstance = findSignalInstance(pathList.get(0));
-			   if (rhsInstance != null) {
-				   userSignal = true;
-				   if (hasDeRef()) 
-					   MsgUtils.errorMessage("Invalid rhs signal reference in assignment (" + rawReference + ")");  // user signal reference with a dref is not allowed
-				   return;
-			   }
-		   }
-		   // if not a signal */
-		   
+		   String sigName = ((pathList.size() == 1) && !hasDeRef())? pathList.get(0) : null; // findInstance() is destructive so save possible signal name
 		   // find model instance in scope of the component where assign was made
 		   rhsInstance = ancModComp.findInstance(pathList);
-		   //System.out.println("RhsReference parseRawReference: rawInstancePath=" + rawInstancePath + ", pathList.size()=" + pathList.size() + ", ancModComp.getId()=" + ancModComp.getId());
+		   // find user-defined signal instance in the ancester stack
+		   if ((rhsInstance==null) && (sigName != null)) rhsInstance = findSignalInstance(sigName);
+		   //System.out.println("RhsReference parseRawReference: rawInstancePath=" + rawInstancePath + ", sigName=" + sigName + ", depth=" + depth + ", rhsInstance.getId()=" + ((rhsInstance==null)? "null" : rhsInstance.getId()));
 		   // check for an addrmap mismatch between lhs and rhs of assign
 		   this.sameAddrmap = detectAddrmapMismatch(rawInstancePath, ancModComp);
 		   // detect addrmap mismatch between lhs and rhs
@@ -227,12 +219,36 @@ public class RhsReference {
 
 // ---- methods referencing active instance stack
 
-   /*private ModInstance findSignalInstance(String string) {
-	   // TODO - will allow signals defined in ancestors to be accessible
-	   return null;
-    }*/
+   /** find a child instance by name in the active instance stack and adjust reference depth on a match */
+   private ModInstance findSignalInstance(String name) {
+	   ModInstance outInstance = null;
+	   int adjustedDepth = 0;
+	   int currentDepth = instancePropertyStack.size();
+	   if (instancePropertyStack.empty()) return null;
+	   // instancePropertyStack doesn't contain the root component so look there first
+	   ModComponent rootComp = instancePropertyStack.get(0).getExtractInstance().getParent();
+	   ModInstance childInst = rootComp.findLocalInstance(name);
+	   if ((childInst != null) && childInst.getRegComp().isSignal()) {
+		   adjustedDepth = currentDepth;
+		   outInstance = childInst; // save last matching signal instance in stack
+	   }
+	   //System.out.println("RhsReference findSignalInstance: searching InstanceId=" + instancePropertyStack.get(0).getExtractInstance().getId() + " for name=" + name + ", childInst=" + ((outInstance==null)? "null" : outInstance.getId()));
+	   // now check the stack instances
+	   for (InstanceProperties inst: instancePropertyStack) {
+		   currentDepth--;  // track current distance from leaf instance
+		   ModComponent modComp = inst.getExtractInstance().getRegComp();
+		   childInst = modComp.findLocalInstance(name);
+		   //System.out.println("RhsReference findSignalInstance: searching InstanceId=" + inst.getExtractInstance().getId() + " for name=" + name + ", childInst=" + ((childInst==null)? "null" : childInst.getId()));
+		   if ((childInst != null) && childInst.getRegComp().isSignal()) {
+			   adjustedDepth = currentDepth;
+			   outInstance = childInst; // save last matching signal instance in stack
+		   }
+	   }
+	   depth = adjustedDepth;
+	   return outInstance;
+   }
 
-/** return the index in the instance stack where this assignment occurred */
+   /** return the index in the instance stack where this assignment occurred */
    private int getAssignStackIndex() {
 	   return instancePropertyStack.size() - (depth + 1);
    }

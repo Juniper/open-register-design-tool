@@ -30,36 +30,38 @@ import ordt.output.uvmregs.UVMRegsLite1Builder;
 import ordt.output.uvmregs.UVMRegsNativeBuilder;
 import ordt.output.verilog.VerilogBuilder;
 import ordt.output.verilog.VerilogTestBuilder;
+import ordt.output.cheader.CHeaderBuilder;
 import ordt.parameters.ExtParameters;
 import ordt.parameters.ExtParameters.SVChildInfoModes;
 import ordt.parameters.ExtParameters.UVMModelModes;
 
 public class Ordt {
 
-	private static String version = "190715.01";
+	private static String version = "230719.01";
+
 	private static DebugController debug = new MyDebugController(); // override design annotations, input/output files
 
 	public enum InputType { RDL, JSPEC };
 	private static InputType inputType;   // primary input file type
 	private static String inputFile = null;   // primary input file
     private static List<OverlayFileInfo> overlayFiles = new ArrayList<OverlayFileInfo>();   // overlay input files
-	
+
 	private static List<String> inputParmFiles = new ArrayList<String>();
 
-	public enum OutputType { VERILOG, SYSTEMVERILOG, JSPEC, RALF, RDL, REGLIST, SVBENCH, VBENCH, 
-		                     UVMREGS, UVMREGSPKG, XML, CPPMOD, CPPDRVMOD, PYDRVMOD, JSON, SVCHILDINFO };
+	public enum OutputType { VERILOG, SYSTEMVERILOG, JSPEC, RALF, RDL, REGLIST, SVBENCH, VBENCH,
+		                     UVMREGS, UVMREGSPKG, XML, CPPMOD, CPPDRVMOD, PYDRVMOD, JSON, SVCHILDINFO, CHEADER};
 	private static HashMap<OutputType, String> outputNames = new HashMap<OutputType, String>();
 	private static HashMap<OutputType, String> commentChars = new HashMap<OutputType, String>();
 	private static HashMap<OutputType, String> outputFileNames = new HashMap<OutputType, String>();
 	private static HashMap<String, OutputType> outputArgs = new HashMap<String, OutputType>();
-	
+
     private static RegModelIntf model;
-    
+
     /**
 	 * @param args
 	 */
     public static void main(String[] args) throws Exception {
-        
+
         // extract command line args
         defineOutputArgs();
         if ( args.length>0 ) {
@@ -67,7 +69,7 @@ public class Ordt {
         	// input file is last arg
         	inputFile = args[--remainingArgs];
         	// now get any options
-        	while (remainingArgs>0) {   
+        	while (remainingArgs>0) {
         		String arg = args[args.length - remainingArgs - 1];  // next arg
         		// output file args
         		if (outputArgs.containsKey(arg) && (remainingArgs>1)) {
@@ -93,27 +95,27 @@ public class Ordt {
         // no args specified
         else {
         	if (debug.isActive()) debug.setRunInfo(); // override info if debug
-        	else showUsage();	
+        	else showUsage();
         }
-        
-		try {	  
+
+		try {
 	    	System.out.println("Open Register Design Tool, version=" + getVersion() + ", input=" + inputFile);
 	    	// get control parameters from parms files
 	    	ExtParameters.init();
 	    	ExtParameters.loadParameters(inputParmFiles);
-	    	
+
 			// extract model from input file and prep as needed
 	    	model = extractModel(inputFile);
 
         	// define output names/comment chars by type
         	defineOutputNames();
         	defineCommentChars();
-        	
+
     		SystemVerilogDefinedOrdtSignals.initDefinedSignalMap();  // load the mapping of pre-defined systemverilog signals since used in multiple outputs, eg uvmregs
-        	
+
         	// generate output of all types specified on command line
         	for (OutputType tp : OutputType.values()) {
-        		if (tp == OutputType.UVMREGS) 
+        		if (tp == OutputType.UVMREGS)
         	    	createUvmRegs(model); // special method for uvm gen
         		else if (tp != OutputType.UVMREGSPKG)
         	    	createOutput(model, tp);  // gen all others
@@ -128,7 +130,7 @@ public class Ordt {
     }
 
     // ----------------------- output definition methods ----------------------------
-    
+
 
 	/** assign an output type for each command line parm */
     private static void defineOutputArgs() {
@@ -148,6 +150,7 @@ public class Ordt {
 		outputArgs.put("-pydrvmod", OutputType.PYDRVMOD);
 		outputArgs.put("-json", OutputType.JSON);
 		outputArgs.put("-svchildinfo", OutputType.SVCHILDINFO);
+		outputArgs.put("-cheader", OutputType.CHEADER);
 	}
 
 	/** assign a name string for each output type */
@@ -168,6 +171,7 @@ public class Ordt {
 		outputNames.put(OutputType.PYDRVMOD, "python driver model");
 		outputNames.put(OutputType.JSON, "json");
 		outputNames.put(OutputType.SVCHILDINFO, "systemverilog child map info");
+		outputNames.put(OutputType.CHEADER, "C header");
 	}
 
 	/** assign a comment string for each output type */
@@ -188,56 +192,59 @@ public class Ordt {
 		commentChars.put(OutputType.PYDRVMOD, "#");
 		commentChars.put(OutputType.JSON, null);
 		commentChars.put(OutputType.SVCHILDINFO, (ExtParameters.getSysVerChildInfoMode() == SVChildInfoModes.MODULE)? "//" : "#");
+		commentChars.put(OutputType.CHEADER, "//");
 	}
 
     /** return an OutputBuilder of specified type */
 	private static OutputBuilder getBuilder(RegModelIntf model, OutputType type) {
 		switch (type) {
-		   case VERILOG: 
+		   case VERILOG:
 			   if (!verifyRootAddressMap(model, type)) return null;
 			   return new VerilogBuilder(model);
-		   case SYSTEMVERILOG: 
+		   case SYSTEMVERILOG:
 			   if (!verifyRootAddressMap(model, type)) return null;
 			   return new SystemVerilogBuilder(model);
-		   case JSPEC: 
-			   return new JspecBuilder(model); 
-		   case RALF: 
+		   case JSPEC:
+			   return new JspecBuilder(model);
+		   case RALF:
 			   //return new RalfBuilder(model);
 			   MsgUtils.warnMessage("Ralf output is disabled");
 			   return null;
-		   case RDL: 
+		   case RDL:
 			   return new RdlBuilder(model);
-		   case REGLIST: 
+		   case REGLIST:
 			   return new RegListBuilder(model);
-		   case VBENCH: 
+		   case VBENCH:
 			   if (!verifyRootAddressMap(model, type)) return null;
-			   return new VerilogTestBuilder(model); 
-		   case SVBENCH: 
+			   return new VerilogTestBuilder(model);
+		   case SVBENCH:
 			   if (!verifyRootAddressMap(model, type)) return null;
 			   return new SystemVerilogTestBuilder(model);
-		   case UVMREGS: 
+		   case UVMREGS:
 			   return new UVMRegsBuilder(model, true);
-		   case UVMREGSPKG:   
+		   case UVMREGSPKG:
 			   return new UVMRegsBuilder(model, true);  // note: uses UVMRegsBuilder but not std write(), so dont use getBuilder()
-		   case XML: 
+		   case XML:
 			   return new XmlBuilder(model);
-		   case CPPMOD: 
+		   case CPPMOD:
 			   return new CppModBuilder(model);
-		   case CPPDRVMOD: 
+		   case CPPDRVMOD:
 			   return new CppDrvModBuilder(model);
-		   case PYDRVMOD: 
+		   case PYDRVMOD:
 			   return new PyDrvModBuilder(model);
-		   case JSON: 
+		   case JSON:
 			   return new JsonBuilder(model);
-		   case SVCHILDINFO: 
+		   case SVCHILDINFO:
 			   return new SystemVerilogChildInfoBuilder(model);
+           case CHEADER:
+               return new CHeaderBuilder(model);
            default:
 		}
 		return null;
 	}
 
 	// -------------------------------------------------------------------------------
-	
+
 	/** return true if model has a root address map */
     private static boolean verifyRootAddressMap(RegModelIntf model, OutputType type) {
     	   ModComponent rootComp = model.getRootInstancedComponent();
@@ -246,18 +253,18 @@ public class Ordt {
 				   String instId = model.getRootInstance().getId();
 				   if (hasInputType(InputType.JSPEC))
 					   MsgUtils.errorMessage("Root instance " + instId + " is not a register_set.  A single root register_set instance is required for " + outputNames.get(type) + " generation unless the process_typedef parameter is specified.");
-				   else  
+				   else
 					   MsgUtils.errorMessage("Root instance " + instId + " is not an addrmap.  A single root addrmap instance is required for " + outputNames.get(type) + " generation unless the process_component parameter is specified.");
 			       return false;
 			   }
 		   }
 		return true;
 	}
-    
+
 	/** extract model from input file and prep as needed */
 	private static RegModelIntf extractModel(String inputFile) {
 		RegModelIntf newModel;
-		
+
 		// extract model from rdl or jspec input file depending on name
     	if (inputFile.endsWith("js")) {
     		setInputType(InputType.JSPEC);
@@ -267,16 +274,16 @@ public class Ordt {
     		setInputType(InputType.RDL);
     		newModel = new RdlModelExtractor(inputFile);
     	}
-    	
+
     	// precompute min size of each register and regset
     	newModel.getRoot().setAlignedSize(ModRegister.defaultWidth);
-    	
-    	// fix simple address ordering issues 
+
+    	// fix simple address ordering issues
     	if (ExtParameters.allowUnorderedAddresses()) newModel.getRoot().sortRegisters();
-    	
+
     	// add any debug annotation commands to the active list
-    	if (debug.isActive()) debug.addAnnotations(); 
-    	
+    	if (debug.isActive()) debug.addAnnotations();
+
     	// process any model annotate cmds
     	for (AnnotateCommand cmd: ExtParameters.getAnnotations()) {
     		newModel.getRoot().processAnnotation(cmd, 0);
@@ -287,12 +294,12 @@ public class Ordt {
 
 	/**create output of the specified type if non-null output name is specified
 	 */
-    public static void createOutput(RegModelIntf model, OutputType type) { 
+    public static void createOutput(RegModelIntf model, OutputType type) {
     	String outFileName = outputFileNames.get(type);
     	if (outFileName == null) return;
     	// create builder and generate structures from model
 		System.out.println("Ordt: building " + outputNames.get(type) + "...");
-    	OutputBuilder outBuilder = getBuilder(model, type);  
+    	OutputBuilder outBuilder = getBuilder(model, type);
     	if (outBuilder != null) {
         	// process overlay files if builder type supports
         	if (outBuilder.supportsOverlays()) {
@@ -327,22 +334,24 @@ public class Ordt {
 			new UVMRegsBuilder(model, true);
     	if (uvm != null) {
     		uvm.write(outFileName, outName, "//");
-    		
+
     		// now output the pkg if specified
     		if (outPkgFileName != null) {
     			System.out.println("Ordt: building " + outPkgName + "...");
-    			uvm.writePkg(outPkgFileName, outPkgName);  
+    			uvm.writePkg(outPkgFileName, outPkgName);
     		}
     	}
     }
-         
+
     private static void showUsage() {
     	System.out.println("Open Register Design Tool (version " + getVersion() + ") usage: ordt [options] <input_rdl_or_jspec_file>");
     	System.out.println("Options:");
     	System.out.println("   -parms <input_parms_filename>");
     	System.out.println("       <input_parms_filename> will be used to set ordt control parameters. The -parms");
     	System.out.println("       option may be specified multiple times to include multiple parameter files.");
-    	System.out.println("   -cppmod <dirname>");
+        System.out.println("   -cheader <filename>");
+        System.out.println("       <filename> header file will be created containing C register definitions.");
+		System.out.println("   -cppmod <dirname>");
     	System.out.println("       <dirname> will be created containing C++ model output files");
     	System.out.println("   -cppdrvmod <dirname>");
     	System.out.println("       <dirname> will be created containing C++ driver model output files");
@@ -361,7 +370,7 @@ public class Ordt {
     	System.out.println("   -rdl <filename>");
     	System.out.println("       <filename> will be created containing rdl output");
     	//System.out.println("   -svbench <filename>");
-    	//System.out.println("       <filename> will be created containing a basic systemverilog testbench"); 
+    	//System.out.println("       <filename> will be created containing a basic systemverilog testbench");
     	System.out.println("   -systemverilog <output_name>");
     	System.out.println("       if <output name> ends with '/', <output_name> will be a directory where multiple ");
     	System.out.println("       systemverilog output files will be written.  Otherwise <output_name> will be a");
@@ -369,22 +378,22 @@ public class Ordt {
     	System.out.println("   -svchildinfo <filename>");
     	System.out.println("       <filename> will be created containing child decoder address information");
     	System.out.println("   -uvmregs <filename>");
-    	System.out.println("       <filename> will be created containing UVM register classes"); 
+    	System.out.println("       <filename> will be created containing UVM register classes");
     	System.out.println("   -uvmregspkg <filename>");
-    	System.out.println("       <filename> will be created containing package of ordt extended UVM classes"); 
+    	System.out.println("       <filename> will be created containing package of ordt extended UVM classes");
     	System.out.println("   -vbench <filename>");
-    	System.out.println("       <filename> will be created containing a basic verilog testbench"); 
+    	System.out.println("       <filename> will be created containing a basic verilog testbench");
     	System.out.println("   -verilog <output_name>");
     	System.out.println("       if <output name> ends with '/', <output_name> will be a directory where multiple ");
     	System.out.println("       verilog output files will be written.  Otherwise <output_name> will be a");
     	System.out.println("       file containing verilog output for all generated modules.");
     	System.out.println("   -xml <filename>");
     	System.out.println("       <filename> will be created containing xml output");
-    	System.exit(0);
+        System.exit(0);
     }
-    
+
     // ------------------------ common static methods ---------------------------
-    
+
 	/** return ordt version */
 	public static String getVersion() {
 		return version;
@@ -410,7 +419,7 @@ public class Ordt {
 	}
 
     // ------------------------ static methods for DebugController overrides ---------------------------
-	
+
 	/** override the input file name (used by DebugController) */
 	public static void setInputFile(String inFile) {
 		inputFile = inFile;
@@ -418,12 +427,12 @@ public class Ordt {
 
 	/** add an output of specified name/type (used by DebugController) */
 	public static void addOutputFile(OutputType type, String name) {
-		outputFileNames.put(type, name);  		
+		outputFileNames.put(type, name);
 	}
 
 	/** add an input parameter file (used by DebugController) */
 	public static void addInputParmFile(String name) {
-		inputParmFiles.add(name);  		
+		inputParmFiles.add(name);
 	}
 
 	/** add an input overlay file (used by DebugController) */
