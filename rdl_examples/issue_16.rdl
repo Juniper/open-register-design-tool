@@ -1,0 +1,23 @@
+// issue 16 debug
+<PARMS>
+output systemverilog {
+    root_decoder_interface = parallel      // parallel | parallel_pulsed | leaf | serial8 | ring8 | ring16 | ring32
+	pulse_intr_on_clear = false    // pulse interrupt output low if any child in intr tree is cleared
+	include_default_coverage = true   // include default cover points in rtl
+    generate_dv_bind_modules = false   // if true generate diagnostic dv bind modules 
+}
+</PARMS>
+
+regfile t_rf {
+        reg {
+            field { reset=1'd0; } fld1 ;
+            field { reset=1'd0; counter; } count1[5] ;
+            field { reset=1'd0; intr; } intr1[5] ;
+        } reg1 ;
+} ;
+
+addrmap {
+        signal {field_reset; activelow;} teser_n;
+        t_rf rf1 @0x0;
+        t_rf rf2 @0x100;
+} basemap;

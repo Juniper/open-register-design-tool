@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# promote output of a jrdl test to golden for test compare
+# promote output of a ordt test to golden for test compare
 #
 
 # inputs
@@ -15,15 +15,18 @@ rdl_golden=      # make rdl golden
 js_golden=       # make jspec golden
 reglist_golden=  # make reglist golden
 xml_golden=      # make xml golden
+py_golden=       # make python golden
+cpp_golden=      # make cpp golden
+c_header_golden= # make c header golden
 
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
-while getopts "d:acvsurjlx" opt; do
+while getopts "d:azvsurjlxcph" opt; do
     case "$opt" in
     d)  tests_dir=$OPTARG 
         ;;
     a)  all_golden=1
         ;;
-    c)  clear_golden=1
+    z)  clear_golden=1
         ;;
     v)  v_golden=1
         ;;
@@ -39,6 +42,12 @@ while getopts "d:acvsurjlx" opt; do
         ;;
     x)  xml_golden=1
         ;;
+    p)  py_golden=1
+        ;;
+    c)  cpp_golden=1
+        ;;
+    h)  c_header_golden=1
+        ;;
     esac
 done
 
@@ -49,14 +58,17 @@ if [ ! $# == 1 ]; then
    echo "ERROR: invalid input arguments - usage: makegold <options> <test>"
    echo "       <options>: -d <dir>   - set dir where tests are located"
    echo "                  -a         - clear golden dir and make all outputs golden"
-   echo "                  -c         - clear golden dir"
-   echo "                  -v         - make verilog golden"
-   echo "                  -s         - make systemverilog golden"
-   echo "                  -u         - make uvm golden"
-   echo "                  -r         - make rdl golden"
-   echo "                  -j         - make jspec golden"
-   echo "                  -l         - make reglist golden"
-   echo "                  -x         - make xml golden"
+   echo "                  -z         - clear golden dir"
+   echo "                  -v         - make verilog output golden"
+   echo "                  -s         - make systemverilog output golden"
+   echo "                  -u         - make uvm output golden"
+   echo "                  -r         - make rdl output golden"
+   echo "                  -j         - make jspec output golden"
+   echo "                  -l         - make reglist output golden"
+   echo "                  -x         - make xml output golden"
+   echo "                  -p         - make python output golden"
+   echo "                  -c         - make cpp output golden"
+   echo "                  -h         - make c header output golden"
    exit 0
 fi
 
@@ -81,6 +93,8 @@ if [ -n "$all_golden" ]; then
    # copy all outputs to golden
    cp $output_dir/uvm*.sv $golden_dir
    cp $output_dir/output.* $golden_dir
+   cp $output_dir/*.cpp $golden_dir
+   cp $output_dir/*.hpp $golden_dir
    exit 0
 fi
 
@@ -123,4 +137,20 @@ fi
 # promote xml
 if [ -n "$xml_golden" ]; then
    cp $output_dir/output.xml $golden_dir
+fi
+
+# promote python
+if [ -n "$py_golden" ]; then
+   cp $output_dir/output.py $golden_dir
+fi
+
+# promote cpp
+if [ -n "$cpp_golden" ]; then
+   cp $output_dir/*.cpp $golden_dir
+   cp $output_dir/*.hpp $golden_dir
+fi
+
+# promote c header
+if [ -n "$c_header_golden" ]; then
+   cp $output_dir/output.h $golden_dir
 fi

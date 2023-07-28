@@ -224,6 +224,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			else {
 				defaultReset = signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL);
 				defaultResetActiveLow = signalProperties.isActiveLow();
+				logic.setDefaultReset(defaultReset, defaultResetActiveLow);  // update default logic reset
 				return;
 			}
 		}
@@ -232,6 +233,7 @@ public class SystemVerilogBuilder extends OutputBuilder {
 			else {
 				logicReset = signalProperties.getFullSignalName(DefSignalType.USR_SIGNAL);
 				logicResetActiveLow = signalProperties.isActiveLow();
+				logic.setDefaultReset(logicReset, logicResetActiveLow);  // update default logic reset
 				return;
 			}			
 		}

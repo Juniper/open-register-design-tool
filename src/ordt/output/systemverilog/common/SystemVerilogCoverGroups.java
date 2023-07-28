@@ -23,6 +23,7 @@ public class SystemVerilogCoverGroups {
 	private OutputWriterIntf writer;
 	private String clkName;  // clock name for this group of covergroups
 	private String resetName;  // reset name for this group of covergroups
+	private  boolean resetSignalActiveLow = false;  // reset polarity for this group of covergroups
 	
 	/** create VerilogRegisters 
 	 * @param clkName */
@@ -44,6 +45,12 @@ public class SystemVerilogCoverGroups {
 
 	public void setWriter(OutputWriterIntf writer) {
 		this.writer = writer;
+	}
+	
+	/** set the default reset name and polarity to be used for all covergroups */
+	public void setReset(String resetName, boolean resetSignalActiveLow) {
+		this.resetName = resetName;
+		this.resetSignalActiveLow = resetSignalActiveLow;
 	}
 	
 	/** return true if no coverpoints */
@@ -152,7 +159,7 @@ public class SystemVerilogCoverGroups {
 			this.signal = signal;
 			this.size = size;
 			if (condition != null) this.condition = condition;
-			else this.condition = "!" + resetName;  // default to reset inactive condition
+			else this.condition = (resetSignalActiveLow ? "" : "!") + resetName;  // default to reset inactive condition
 		}
 
 		public void write(int indentLevel) {

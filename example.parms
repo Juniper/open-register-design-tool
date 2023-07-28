@@ -28,7 +28,7 @@ input rdl {
 output systemverilog {
 	leaf_address_size = 40             // leaf address bits
 	//root_has_leaf_interface = true     // does root module talk directly to leaf  DEPRECATED
-    root_decoder_interface = spi_PIO      // parallel | parallel_pulsed | leaf | serial8 | ring8 | ring16 | ring32 | spi_PIO
+    root_decoder_interface = parallel      // parallel | parallel_pulsed | leaf | serial8 | ring8 | ring16 | ring32 | spi_PIO
     //secondary_decoder_interface = serial8      // parallel | parallel_pulsed | serial8 | ring8 | ring16 | ring32 | spi_PIO | none
     //secondary_base_address = 0x40  // base address as viewed from driver of secondary decoder interface 
     //secondary_low_address = 0x50   // low valid address on secondary decoder interfaces
@@ -36,8 +36,8 @@ output systemverilog {
     //secondary_on_child_addrmaps = true  // add secondary interface to child decoders also
 	base_addr_is_parameter = false     // base address parameter will be added to top module
 	//module_tag = "_version1"         // tag to be added to generated module names
-	//use_gated_logic_clock = false       // use separate gated clock for registers and generate a clk enable output
-	//gated_logic_access_delay = 5     // number of clocks after clk enable before gated logic is accessed
+	use_gated_logic_clock = true       // use separate gated clock for registers and generate a clk enable output
+	gated_logic_access_delay = 2     // number of clocks after clk enable before gated logic is accessed
 	//use_external_select = true         // use an externally generated block select  DEPRECATED
 	block_select_mode = always       // is block select generated internally, externally or always
 	//export_start_end = true           // create addr_start, addr_end outputs 
@@ -61,7 +61,7 @@ output systemverilog {
     //}
     //separate_iwrap_encap_files = true // generate a separate file for each wrap encap (interface/struct) type
     generate_dv_bind_modules = true   // if true generate diagnostic dv bind modules 
-    use_global_dv_bind_controls = true   // if true diagnostic dv bind module settings will be controlled by global packages 
+    use_global_dv_bind_controls = false   // if true diagnostic dv bind module settings will be controlled by global packages 
     //include_addr_monitor = true       // generate io to monitor decoder transactions to a specified address range 
     generate_iwrap_xform_modules = false // generate common wrapper transform modules
     //include_sequential_assign_delays = true // include #1 delay on sequential assigns
