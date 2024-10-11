@@ -1,0 +1,26 @@
+
+reg some_4B_reg {
+   field { sw=rw; hw=r; } lsb_field[16] = 16'hffff;
+   field { sw=rw; hw=r; } msb_field[16] = 16'h0;
+};
+
+regfile my_regfile {
+      some_4B_reg regs1[8];              // 8 4B regs
+};   
+
+addrmap my_addrmap {
+      some_4B_reg regs1[8];              // 8 4B regs
+};  
+ 
+addrmap {
+   my_addrmap norep_map;  // creates single interface from base decoder w 3b address 
+   //my_addrmap rep_map[4];  // fails with replicated address map error 
+   external my_regfile norep_rf;  // creates single interface from base decoder w 3b address (same as addrmap)
+   external my_regfile rep_rf[4] @0x100;  // creates single interface from base decoder w 5b address
+   regfile {
+       external my_regfile norep_rf;  // creates 4 interfaces from base decoder each w 3b address
+   } rep_wrapper_rf[4] @0x200;
+   regfile {
+       my_addrmap norep_map;  // creates 4 interfaces from base decoder each w 3b address
+   } rep_wrapper_rf[4] @0x300;
+} top;   
