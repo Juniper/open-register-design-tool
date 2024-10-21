@@ -9,27 +9,42 @@ version = versionMatcher[0][1]
 
 buildscript {
     repositories {
-        jcenter()
+        // Use Maven Central for resolving dependencies.
+        mavenCentral()
     }
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
+        classpath 'com.gradleup.shadow:shadow-gradle-plugin:8.3.3'
     }
 }
 
-apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'com.gradleup.shadow'
 apply plugin: 'java'
 apply plugin: 'antlr'
 
 repositories {
-    // Use jcenter for resolving my dependencies.
-    jcenter()
+    // Use Maven Central for resolving dependencies.
+    mavenCentral()
+}
+
+configurations {
+    compile {
+        extendsFrom = extendsFrom.findAll { it != configurations.antlr }
+    }
 }
 
 dependencies {
-    compile 'org.abego.treelayout:org.abego.treelayout.core:1.0.3'
-    antlr   'org.antlr:antlr4:4.5.3'
-    runtime 'org.antlr:antlr4-runtime:4.5.3'
+    antlr  group: "org.antlr", name: "antlr4", version: "4.6"
+    compile group: "org.antlr", name: "antlr4-runtime", version: "4.6"
 }
+
+/*
+// Apply a specific Java toolchain to ease working on different environments.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+}
+*/
 
 final antlrSrc = 'src/ordt/parse/grammars'
 final antlrGen = 'build/generated-src/antlr/main'
@@ -81,19 +96,12 @@ generateGrammarSource {
 }
 
 shadowJar {
-    baseName = 'Ordt'
-    classifier = null
-    
+    archiveBaseName.set('Ordt')
+    archiveClassifier.set('')
+    archiveVersion.set(version)
+   
     manifest {
 	    attributes 'Main-Class': 'ordt.extract.Ordt'
-    }
-
-    dependencies {
-	// The antlr plugin adds the entire library to the jar file,
-	// not just the runtime, so remove this dependency. The runtime
-	// library is named antlr4-runtime, so it won't be affected by
-	// this exclude rule.
-	exclude(dependency('org.antlr:antlr4:.*'))
     }
 }
 
