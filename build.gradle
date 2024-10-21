@@ -37,14 +37,10 @@ dependencies {
     compile group: "org.antlr", name: "antlr4-runtime", version: "4.6"
 }
 
-/*
-// Apply a specific Java toolchain to ease working on different environments.
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(8)
-    }
+// make to resulting jar java 8 compatible for now
+compileJava {
+    options.release = 8
 }
-*/
 
 final antlrSrc = 'src/ordt/parse/grammars'
 final antlrGen = 'build/generated-src/antlr/main'
