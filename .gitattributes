@@ -1,28 +1,12 @@
-# Handle line endings automatically for files detected as text 
-# and leave all files detected as binary untouched.
-* text=auto
-
-# Never modify line endings of our bash scripts
-*.sh -crlf
-test/** -text
-
 #
-# The above will handle all files NOT found below
+# https://help.github.com/articles/dealing-with-line-endings/
 #
-# These files are text and should be normalized (Convert crlf => lf)
-*.css           text
-*.html          text
-*.java          text
-*.js            text
-*.json          text
-*.properties    text
-*.txt           text
-*.xml           text
+# Linux start script should use lf
+/gradlew        text eol=lf
 
-# These files are binary and should be left untouched
-# (binary is macro for -text -diff)
-*.class         binary
+# These are Windows script files and should use crlf
+*.bat           text eol=crlf
+
+# Binary files should be left untouched
 *.jar           binary
-*.gif           binary
-*.jpg           binary
-*.png           binary
+
