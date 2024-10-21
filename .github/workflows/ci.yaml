@@ -21,7 +21,7 @@ jobs:
       uses: actions/setup-java@v2
       with:
         distribution: 'adopt'
-        java-version: '8'  # Adjust the Java version as needed
+        java-version: '21'  # Adjust the Java version as needed
 
     - name: Build with Gradle
       run: ./gradlew build
