@@ -1,5 +1,7 @@
 # open-register-design-tool
 
+NOTICE: this repo is no longer actively monitored or maintained. Refer to an alternate open-register-design-tool fork or application.
+
 Ordt is a tool for automation of IC register definition and documentation.  It currently supports 2 input formats:
   1. SystemRDL - a stardard register description format released by [Accellera.org](http://accellera.org/activities/working-groups/systemrdl)
   2. JSpec - a register description format used within Juniper Networks
